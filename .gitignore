@@ -1,0 +1,25 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Kotlin/Native + Xcode artefacts
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# ONNX model — excluded from version control (98 MB).
+# Drop best.onnx into composeApp/src/androidMain/assets/ before building
+# for Android. See README.md for details.
+composeApp/src/androidMain/assets/best.onnx
