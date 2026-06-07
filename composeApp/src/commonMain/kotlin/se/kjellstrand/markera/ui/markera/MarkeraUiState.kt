@@ -19,7 +19,7 @@ data class MarkeraUiState(
     val topScores: List<Int> = List(SCORE_PICKER_COUNT) { 0 },
 )
 
-const val SCORE_PICKER_COUNT = 6
+const val SCORE_PICKER_COUNT = 5
 const val SCORE_PICKER_INNER_TEN = 11
 val SCORE_PICKER_LABELS: List<String> =
     (0..10).map { it.toString() } + "X"

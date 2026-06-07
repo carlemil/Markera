@@ -35,7 +35,7 @@ class HoleDetectionMosaicTest {
     private val seed = System.getProperty("mosaic.seed")?.toLong() ?: System.nanoTime()
 
     // Mirror the device call-site constants from MarkeraScreen.kt.
-    private val inputSize = 640
+    private val inputSize = 1280
     private val confidenceThreshold = 0.35f
     private val iouThreshold = 0.45f
     private val cols = 3

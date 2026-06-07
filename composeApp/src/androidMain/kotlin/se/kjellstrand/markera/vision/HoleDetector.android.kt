@@ -24,19 +24,25 @@ actual class HoleDetector actual constructor(
             session.run(mapOf(inputName to t)).use { result ->
                 @Suppress("UNCHECKED_CAST")
                 val out = result[0].value as Array<Array<FloatArray>>
-                // YOLOv8 1-class output: [1, 5, N] with channels (cx, cy, w, h, conf).
-                val channels = out[0]
-                val n = channels[0].size
-                val list = ArrayList<RawDetection>(64)
-                for (i in 0 until n) {
-                    val conf = channels[4][i]
+                // YOLOv8 export with embedded NMS: [1, 300, 6], each row
+                // (x1, y1, x2, y2, confidence, classId) in input-tensor pixels.
+                // Unused slots are zero-padded and fall below PREFILTER_CONFIDENCE.
+                val dets = out[0]
+                val list = ArrayList<RawDetection>(dets.size)
+                for (det in dets) {
+                    val conf = det[4]
                     if (conf >= PREFILTER_CONFIDENCE) {
+                        val x1 = det[0]
+                        val y1 = det[1]
+                        val x2 = det[2]
+                        val y2 = det[3]
                         list += RawDetection(
-                            cx = channels[0][i],
-                            cy = channels[1][i],
-                            w = channels[2][i],
-                            h = channels[3][i],
+                            cx = (x1 + x2) * 0.5f,
+                            cy = (y1 + y2) * 0.5f,
+                            w = x2 - x1,
+                            h = y2 - y1,
                             conf = conf,
+                            cls = det[5].toInt(),
                         )
                     }
                 }

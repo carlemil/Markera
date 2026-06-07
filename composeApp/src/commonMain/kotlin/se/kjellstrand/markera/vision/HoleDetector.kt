@@ -18,9 +18,9 @@ expect class HoleDetector(modelBytes: ByteArray, inputSize: Int) {
      * Run the model on a `[1, 3, inputSize, inputSize]` float tensor laid
      * out in CHW order with values in 0..1. Returns raw boxes in
      * input-tensor coordinates (centre-x, centre-y, width, height) plus
-     * confidence. Callers run [filterByConfidence] + [nonMaxSuppression] +
-     * [mapToImageSpace] from [DetectionPostProcess] to turn this into
-     * drawable [Detection]s.
+     * confidence and predicted class id. Callers run [filterByConfidence] +
+     * [nonMaxSuppression] + [mapToImageSpace] from [DetectionPostProcess] to
+     * turn this into drawable [Detection]s.
      */
     suspend fun detect(inputChw: FloatArray): List<RawDetection>
 
@@ -33,6 +33,8 @@ data class RawDetection(
     val w: Float,
     val h: Float,
     val conf: Float,
+    /** Predicted class index (0..11: Hole 0–10, Hole X). 0 when unknown. */
+    val cls: Int = 0,
 )
 
 data class Detection(

@@ -13,6 +13,8 @@ data class RawDetection(
     val w: Float,
     val h: Float,
     val conf: Float,
+    /** Predicted class index (0..11: Hole 0–10, Hole X). 0 when unknown. */
+    val cls: Int = 0,
 )
 
 data class Detection(

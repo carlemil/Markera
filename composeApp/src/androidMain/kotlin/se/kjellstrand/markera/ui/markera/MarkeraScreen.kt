@@ -53,6 +53,7 @@ import se.kjellstrand.markera.R
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.HoleDetector
+import se.kjellstrand.markera.vision.RawDetection
 import se.kjellstrand.markera.vision.TARGET_CARD_WIDTH_MM
 import se.kjellstrand.markera.vision.TargetCalibration
 import se.kjellstrand.markera.vision.computeHitScores
@@ -65,7 +66,7 @@ private const val SCORE_TAG = "MarkeraScore"
 private const val CONFIDENCE_THRESHOLD = 0.35f
 private const val IOU_THRESHOLD = 0.45f
 private const val MODEL_ASSET = "best.onnx"
-private const val MODEL_INPUT_SIZE = 640
+private const val MODEL_INPUT_SIZE = 1280
 
 private fun scoreDetections(
     detections: List<Detection>,
@@ -110,11 +111,18 @@ private fun logHitScores(scores: List<HitScore>, calibration: TargetCalibration?
     Log.d(SCORE_TAG, "total: ${scores.size} hits, score=$total")
 }
 
-/** Top [SCORE_PICKER_COUNT] hits (already sorted desc by [computeHitScores]) → picker indices, padded with 0. */
-private fun topPickerValues(scores: List<HitScore>): List<Int> {
-    val taken = scores.take(SCORE_PICKER_COUNT).map {
-        if (it.isInnerTen) SCORE_PICKER_INNER_TEN else it.ring
-    }
+/**
+ * The model's per-hole class predictions → the [SCORE_PICKER_COUNT] picker
+ * fields. Each class id maps straight onto a picker value (0..10 = ring
+ * number, 11 = inner-ten "X"). Sorted descending so X comes first, then
+ * 10..0 left to right; the highest [SCORE_PICKER_COUNT] are kept and the
+ * row is padded with 0 when fewer holes were found.
+ */
+private fun topPickerValues(raws: List<RawDetection>): List<Int> {
+    val taken = raws
+        .map { it.cls.coerceIn(0, SCORE_PICKER_INNER_TEN) }
+        .sortedDescending()
+        .take(SCORE_PICKER_COUNT)
     return taken + List(SCORE_PICKER_COUNT - taken.size) { 0 }
 }
 
@@ -250,7 +258,7 @@ fun MarkeraScreen() {
                 viewModel.onFrameAnalysed(
                     detections, analysisBitmap.width, analysisBitmap.height,
                 )
-                viewModel.setTopScores(topPickerValues(scores))
+                viewModel.setTopScores(topPickerValues(kept))
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
                 viewModel.setError(errorInference)
