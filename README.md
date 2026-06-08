@@ -24,14 +24,38 @@ iosApp/             Placeholder README — scaffold the Xcode project later
 ## Building Android
 
 The ONNX model `best.onnx` (~99 MB) is **not** committed to the repository.
-Drop it into `composeApp/src/androidMain/assets/best.onnx` before building,
-then:
+Drop it into `composeApp/src/androidMain/assets/best.onnx` before building.
+
+The app has two product flavors:
+
+- **`camera`** — the shipping app; live CameraX preview from a back camera.
+- **`mock`** — an emulator/dev flavor that fakes the camera by replaying a
+  random sample of dataset images bundled at build time (the
+  `prepareMockFrames` Gradle task). Detection runs automatically on each
+  loaded image; installs side by side via the `.mock` application-id suffix.
 
 ```sh
-./gradlew :composeApp:assembleDebug
+./gradlew :composeApp:installCameraDebug   # real camera, on a device
+./gradlew :composeApp:installMockDebug     # emulator, no camera needed
 ```
 
-Install on a device or emulator (API 24+) with a back camera.
+Install on a device or emulator (API 24+); the `camera` flavor needs a back
+camera.
+
+### Emulator memory
+
+The model runs at a 1536×1536 input, and on Android the input tensor and the
+decoded frames live on the Java heap. An emulator with the default RAM/heap
+can hit the `lowmemorykiller` mid-inference (the app dies and returns to the
+launcher). Give the AVD headroom — in `~/.android/avd/<name>.avd/config.ini`
+(or Device Manager → edit device):
+
+```
+hw.ramSize=12288   # ~12 GB
+vm.heapSize=2048   # ~2 GB per-app heap
+```
+
+Cold-boot the emulator after changing `hw.ramSize` so the new value applies.
 
 ## Running tests
 
