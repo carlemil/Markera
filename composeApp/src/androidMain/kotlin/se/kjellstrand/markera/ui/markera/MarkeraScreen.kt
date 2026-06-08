@@ -140,6 +140,13 @@ fun MarkeraScreen() {
         frameSource.onResumeLive()
     }
 
+    // Mock flavor: run detection automatically each time a fresh frame is
+    // loaded from disk (the key changes), so no tap is needed. The camera
+    // flavor reports a null key and stays manual.
+    LaunchedEffect(frameSource.autoDetectKey) {
+        if (frameSource.autoDetectKey != null) onDetectClick()
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isPortrait = maxHeight >= maxWidth
 

@@ -14,6 +14,9 @@ import androidx.compose.ui.platform.LocalContext
 private class CameraFrameSource(private val previewView: PreviewView) : FrameSource {
     override val requiresCameraPermission = true
 
+    // On-demand only: detection runs when the user taps the FAB.
+    override val autoDetectKey: Int? = null
+
     @Composable
     override fun Preview(onError: (Throwable) -> Unit, modifier: Modifier) {
         CameraPreview(

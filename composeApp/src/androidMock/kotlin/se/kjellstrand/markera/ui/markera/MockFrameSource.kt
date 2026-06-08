@@ -37,6 +37,11 @@ private class MockFrameSource(
 
     private var current by mutableStateOf(pickRandom())
 
+    // Bumped on every new image so the screen auto-detects it (no tap). The
+    // initial 0 triggers detection of the first frame on first composition.
+    private var frameKey by mutableStateOf(0)
+    override val autoDetectKey: Int? get() = frameKey
+
     private fun pickRandom(): Bitmap? {
         if (names.isEmpty()) return null
         return decodeFrame(appContext, names[Random.nextInt(names.size)])
@@ -44,6 +49,7 @@ private class MockFrameSource(
 
     private fun shuffle() {
         current = pickRandom()
+        frameKey++
     }
 
     @Composable

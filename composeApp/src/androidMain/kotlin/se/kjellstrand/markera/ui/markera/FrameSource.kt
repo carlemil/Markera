@@ -19,6 +19,14 @@ interface FrameSource {
     /** Whether the CAMERA runtime permission must be granted before use. */
     val requiresCameraPermission: Boolean
 
+    /**
+     * For sources that load frames on their own (the `mock` flavor), a value
+     * that changes each time a fresh frame becomes available, so the screen
+     * can run detection automatically without a tap. `null` for on-demand
+     * sources (the `camera` flavor), which only detect when the user taps.
+     */
+    val autoDetectKey: Int?
+
     /** The live (non-frozen) preview shown in the viewport. */
     @Composable
     fun Preview(onError: (Throwable) -> Unit, modifier: Modifier)
