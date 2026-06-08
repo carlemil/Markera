@@ -1,8 +1,8 @@
 # Markera
 
 Kotlin Multiplatform + Compose Multiplatform app that detects bullet-hole
-positions in a camera-captured target image (YOLOv8 ONNX), fits an ellipse
-to the 7-ring, perspective-rectifies the target, and scores hits.
+positions in a camera-captured target image (YOLOv8 ONNX) and draws them on
+the frame. Scores are entered manually via the on-screen pickers.
 
 The feature was extracted from [webshooter](https://github.com/) and
 collapsed into a single `:composeApp` KMP module with `commonMain`,
@@ -17,7 +17,7 @@ composeApp/
     androidMain/    MainActivity, MarkeraScreen, CameraX preview,
                     ONNX Runtime HoleDetector, Material You dynamic colors
     iosMain/        MainViewController placeholder + HoleDetector iOS stub
-    commonTest/     11 vision unit tests
+    commonTest/     detection post-processing unit tests
 iosApp/             Placeholder README — scaffold the Xcode project later
 ```
 

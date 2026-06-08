@@ -1,8 +1,5 @@
 package eval
 
-import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
-import se.kjellstrand.markera.vision.TargetCalibration
-import se.kjellstrand.markera.vision.calibrateFromGrayscale
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import kotlin.math.min
@@ -38,50 +35,4 @@ fun toModelInput(img: BufferedImage, inputSize: Int): FloatArray {
         chw[i + 2 * plane] = (p and 0xFF) / 255f
     }
     return chw
-}
-
-/**
- * Subsample [img] by [stride], convert to BT.601 luma, and run the shared
- * `calibrateFromGrayscale`. Returns the recovered 7-ring ellipse in
- * **full-resolution** pixel coordinates — a JVM port of `Bitmap.calibrate`.
- */
-fun calibrate(img: BufferedImage, stride: Int = 4): TargetCalibration? {
-    val width = img.width
-    val height = img.height
-    val sw = (width + stride - 1) / stride
-    val sh = (height + stride - 1) / stride
-    if (sw < 8 || sh < 8) return null
-
-    val gray = ByteArray(sw * sh)
-    var dst = 0
-    var srcY = 0
-    for (y in 0 until sh) {
-        var srcX = 0
-        for (x in 0 until sw) {
-            val p = img.getRGB(srcX, srcY)
-            val r = (p shr 16) and 0xFF
-            val gg = (p shr 8) and 0xFF
-            val b = p and 0xFF
-            val luma = (0.299 * r + 0.587 * gg + 0.114 * b).toInt().coerceIn(0, 255)
-            gray[dst++] = luma.toByte()
-            srcX += stride
-            if (srcX >= width) srcX = width - 1
-        }
-        srcY += stride
-        if (srcY >= height) srcY = height - 1
-    }
-
-    val small = calibrateFromGrayscale(gray, sw, sh) ?: return null
-    val s = stride.toFloat()
-    val majorFull = small.semiMajorPx * s
-    val minorFull = small.semiMinorPx * s
-    return TargetCalibration(
-        centerX = small.centerX * s,
-        centerY = small.centerY * s,
-        semiMajorPx = majorFull,
-        semiMinorPx = minorFull,
-        rotationRad = small.rotationRad,
-        mmPerPx = TARGET_BLACK_RING_RADIUS_MM / majorFull,
-        confidence = small.confidence,
-    )
 }

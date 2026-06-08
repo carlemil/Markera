@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import se.kjellstrand.markera.vision.Detection
-import se.kjellstrand.markera.vision.TargetCalibration
 
 class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
 
@@ -23,11 +22,6 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 error = null,
             )
         }
-    }
-
-    override fun setCalibration(fresh: TargetCalibration?) {
-        if (fresh == null) return
-        _uiState.update { it.copy(calibration = fresh) }
     }
 
     override fun clearResults() {
@@ -49,14 +43,6 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
 
     override fun setError(message: String?) {
         _uiState.update { it.copy(error = message, isProcessing = false) }
-    }
-
-    override fun setTopScores(values: List<Int>) {
-        val normalised = values
-            .map { it.coerceIn(0, SCORE_PICKER_INNER_TEN) }
-            .take(SCORE_PICKER_COUNT)
-            .let { it + List(SCORE_PICKER_COUNT - it.size) { 0 } }
-        _uiState.update { it.copy(topScores = normalised) }
     }
 
     override fun setTopScoreAt(index: Int, value: Int) {

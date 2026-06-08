@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -45,134 +44,20 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
-import kotlin.math.min
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.R
-import se.kjellstrand.markera.vision.Detection
-import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.HoleDetector
-import se.kjellstrand.markera.vision.RawDetection
-import se.kjellstrand.markera.vision.TARGET_CARD_WIDTH_MM
-import se.kjellstrand.markera.vision.TargetCalibration
-import se.kjellstrand.markera.vision.computeHitScores
 import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
 
 private const val TAG = "Markera"
-private const val SCORE_TAG = "MarkeraScore"
 private const val CONFIDENCE_THRESHOLD = 0.35f
 private const val IOU_THRESHOLD = 0.45f
 private const val MODEL_ASSET = "best.onnx"
-private const val MODEL_INPUT_SIZE = 1280
-
-private fun scoreDetections(
-    detections: List<Detection>,
-    width: Int,
-    height: Int,
-    calibration: TargetCalibration?,
-): List<HitScore> =
-    if (calibration != null) {
-        computeHitScores(detections, calibration)
-    } else {
-        computeHitScores(
-            detections,
-            centerX = width / 2f,
-            centerY = height / 2f,
-            mmPerPx = TARGET_CARD_WIDTH_MM / width.toDouble(),
-        )
-    }
-
-private fun logHitScores(scores: List<HitScore>, calibration: TargetCalibration?) {
-    if (calibration != null) {
-        Log.d(
-            SCORE_TAG,
-            "calibrated: centre=(${calibration.centerX.toInt()},${calibration.centerY.toInt()}) " +
-                "semiMajor=${calibration.semiMajorPx.toInt()}px " +
-                "semiMinor=${calibration.semiMinorPx.toInt()}px " +
-                "θ=${"%.1f".format(calibration.rotationRad * 180.0 / kotlin.math.PI)}° " +
-                "mmPerPx=${"%.3f".format(calibration.mmPerPx)} " +
-                "conf=${"%.2f".format(calibration.confidence)}",
-        )
-    } else {
-        Log.d(SCORE_TAG, "fallback calibration (no 7-ring blob found)")
-    }
-    val total = scores.sumOf { if (it.isInnerTen) 10 else it.ring }
-    scores.forEachIndexed { i, s ->
-        val ringStr = if (s.isInnerTen) "X" else s.ring.toString()
-        Log.d(
-            SCORE_TAG,
-            "hit #${i + 1}: ring=$ringStr distance=${"%.1f".format(s.distanceMm)}mm " +
-                "px=(${s.centerXpx.toInt()},${s.centerYpx.toInt()})",
-        )
-    }
-    Log.d(SCORE_TAG, "total: ${scores.size} hits, score=$total")
-}
-
-/**
- * The model's per-hole class predictions → the [SCORE_PICKER_COUNT] picker
- * fields. Each class id maps straight onto a picker value (0..10 = ring
- * number, 11 = inner-ten "X"). Sorted descending so X comes first, then
- * 10..0 left to right; the highest [SCORE_PICKER_COUNT] are kept and the
- * row is padded with 0 when fewer holes were found.
- */
-private fun topPickerValues(raws: List<RawDetection>): List<Int> {
-    val taken = raws
-        .map { it.cls.coerceIn(0, SCORE_PICKER_INNER_TEN) }
-        .sortedDescending()
-        .take(SCORE_PICKER_COUNT)
-    return taken + List(SCORE_PICKER_COUNT - taken.size) { 0 }
-}
-
-private fun eccentricity(c: TargetCalibration): Float =
-    if (c.semiMajorPx > 0f) 1f - c.semiMinorPx / c.semiMajorPx else 0f
-
-/**
- * Result of choosing how to rectify the frozen snapshot. The [mode]
- * string is informational only (for logging) and reports the path
- * actually taken (`perspective(SRC) | affine | skipped`).
- */
-private data class WarpResult(
-    val bitmap: android.graphics.Bitmap,
-    val calibration: TargetCalibration?,
-    val mode: String,
-)
-
-private suspend fun warpForAnalysis(
-    snapshot: android.graphics.Bitmap,
-    calibration: TargetCalibration?,
-    intrinsics: se.kjellstrand.markera.vision.CameraIntrinsics?,
-): WarpResult {
-    if (calibration == null) return WarpResult(snapshot, null, "skipped")
-    val outputSize = min(snapshot.width, snapshot.height)
-    // Try perspective first — only skip it on essentially-frontal shots
-    // where the pose recovery is ill-conditioned and the affine warp is
-    // already near-identity. 0.005 corresponds to ~6 deg tilt.
-    if (intrinsics != null && eccentricity(calibration) > 0.005f) {
-        val warped = withContext(Dispatchers.Default) {
-            snapshot.unwarpToCirclePerspective(calibration, intrinsics, outputSize)
-        }
-        if (warped != null) {
-            return WarpResult(
-                warped,
-                calibration.afterUnwarpPerspective(outputSize),
-                "perspective(${intrinsics.source})",
-            )
-        }
-    }
-    // Fall back to affine on near-frontal shots, missing intrinsics, or
-    // degenerate pose recovery.
-    val warped = withContext(Dispatchers.Default) {
-        snapshot.unwarpToCircle(calibration, outputSize)
-    }
-    return WarpResult(
-        warped,
-        calibration.afterUnwarpToCircle(outputSize),
-        "affine",
-    )
-}
+private const val MODEL_INPUT_SIZE = 1536
 
 @Composable
 fun MarkeraScreen() {
@@ -188,16 +73,18 @@ fun MarkeraScreen() {
         onDispose { detector.close() }
     }
     val coroutineScope = rememberCoroutineScope()
-    val previewView = remember {
-        PreviewView(context).apply {
-            scaleType = PreviewView.ScaleType.FILL_CENTER
-        }
-    }
+    // The active frame source is chosen at build time by the product flavor:
+    // `camera` → live CameraX preview, `mock` → random images from disk.
+    val frameSource = rememberFrameSource()
+    val requiresPermission = frameSource.requiresCameraPermission
 
+    // `cameraGranted` doubles as the "ready to use" gate; flavors that need
+    // no camera (mock) report ready immediately.
     var cameraGranted by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                PackageManager.PERMISSION_GRANTED
+            !requiresPermission ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
         )
     }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -205,30 +92,26 @@ fun MarkeraScreen() {
     ) { granted -> cameraGranted = granted }
 
     LaunchedEffect(Unit) {
-        if (!cameraGranted) permissionLauncher.launch(Manifest.permission.CAMERA)
+        if (requiresPermission && !cameraGranted) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
     val errorInference = stringResource(R.string.markera_error_inference)
 
     val onDetectClick: () -> Unit = onDetect@{
         if (uiState.isProcessing) return@onDetect
-        val snapshot = previewView.bitmap ?: return@onDetect
+        val snapshot = frameSource.capture() ?: return@onDetect
         // Freeze the frame immediately so the user sees the static image
         // the model will analyse instead of the live preview.
         snapshotVm.set(snapshot)
         viewModel.setProcessing(true)
         coroutineScope.launch {
             try {
-                val freshCal = withContext(Dispatchers.Default) { snapshot.calibrate() }
-                val intrinsics = snapshotVm.intrinsics
-                    ?.scaledToBitmap(snapshot.width, snapshot.height)
-
-                val warp = warpForAnalysis(snapshot, freshCal, intrinsics)
-                val analysisBitmap = warp.bitmap
-                val analysisCal = warp.calibration
-
+                // The raw frame goes straight to the model — no perspective
+                // warp or centre detection, only the model-input letterbox.
                 val input = withContext(Dispatchers.Default) {
-                    analysisBitmap.toModelInput(detector.inputSize)
+                    snapshot.toModelInput(detector.inputSize)
                 }
                 val raws = detector.detect(input)
                 val kept = nonMaxSuppression(
@@ -236,29 +119,14 @@ fun MarkeraScreen() {
                     IOU_THRESHOLD,
                 )
                 val detections = mapToImageSpace(
-                    kept, detector.inputSize, analysisBitmap.width, analysisBitmap.height,
+                    kept, detector.inputSize, snapshot.width, snapshot.height,
                 )
                 Log.d(
                     TAG,
-                    "snapshot ${snapshot.width}x${snapshot.height} -> " +
-                        "analysis ${analysisBitmap.width}x${analysisBitmap.height}: " +
-                        "raw=${raws.size} kept=${kept.size} warp=${warp.mode}",
+                    "snapshot ${snapshot.width}x${snapshot.height}: " +
+                        "raw=${raws.size} kept=${kept.size}",
                 )
-
-                val scores = scoreDetections(
-                    detections, analysisBitmap.width, analysisBitmap.height, analysisCal,
-                )
-                logHitScores(scores, analysisCal)
-
-                if (analysisBitmap !== snapshot) {
-                    snapshotVm.set(analysisBitmap)
-                    snapshot.recycle()
-                }
-                viewModel.setCalibration(analysisCal)
-                viewModel.onFrameAnalysed(
-                    detections, analysisBitmap.width, analysisBitmap.height,
-                )
-                viewModel.setTopScores(topPickerValues(kept))
+                viewModel.onFrameAnalysed(detections, snapshot.width, snapshot.height)
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
                 viewModel.setError(errorInference)
@@ -269,6 +137,7 @@ fun MarkeraScreen() {
     val onResumeLive: () -> Unit = {
         snapshotVm.clear()
         viewModel.clearResults()
+        frameSource.onResumeLive()
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -294,7 +163,7 @@ fun MarkeraScreen() {
                     Viewport(
                         snapshotVm = snapshotVm,
                         uiState = uiState,
-                        previewView = previewView,
+                        frameSource = frameSource,
                         onError = { viewModel.setError(it.message) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -314,7 +183,7 @@ fun MarkeraScreen() {
                     Viewport(
                         snapshotVm = snapshotVm,
                         uiState = uiState,
-                        previewView = previewView,
+                        frameSource = frameSource,
                         onError = { viewModel.setError(it.message) },
                         modifier = Modifier
                             .fillMaxHeight()
@@ -365,7 +234,7 @@ fun MarkeraScreen() {
 private fun Viewport(
     snapshotVm: MarkeraSnapshotViewModel,
     uiState: MarkeraUiState,
-    previewView: PreviewView,
+    frameSource: FrameSource,
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -379,19 +248,11 @@ private fun Viewport(
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            CameraPreview(
-                previewView = previewView,
+            frameSource.Preview(
                 onError = onError,
                 modifier = Modifier.fillMaxSize(),
-                onCameraReady = { camera -> snapshotVm.intrinsics = extractIntrinsics(camera) },
             )
         }
-        CalibrationOverlay(
-            calibration = uiState.calibration,
-            imageWidth = uiState.imageWidth,
-            imageHeight = uiState.imageHeight,
-            modifier = Modifier.fillMaxSize(),
-        )
         DetectionOverlay(
             detections = uiState.detections,
             imageWidth = uiState.imageWidth,

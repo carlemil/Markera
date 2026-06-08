@@ -2,11 +2,6 @@ package eval
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import se.kjellstrand.markera.vision.Detection
-import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.vision.TARGET_CARD_WIDTH_MM
-import se.kjellstrand.markera.vision.TargetCalibration
-import se.kjellstrand.markera.vision.computeHitScores
 import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
@@ -16,9 +11,8 @@ import javax.imageio.ImageIO
 
 /**
  * Runs the real hole-detection pipeline (preprocess -> ONNX -> filter -> NMS
- * -> map-to-image -> ring calibration -> hit scoring) over a random 3x3
- * sample of training images and writes an annotated mosaic for eyeballing how
- * well holes, ring positions, and per-hole scores are recovered.
+ * -> map-to-image) over a random 3x3 sample of training images and writes an
+ * annotated mosaic for eyeballing how well holes are detected.
  *
  * Override defaults with -D flags, e.g.:
  *   ./gradlew :eval:test -Dmosaic.seed=7 -Dmosaic.images="D:/ml/holes/dataset/images/val"
@@ -35,7 +29,7 @@ class HoleDetectionMosaicTest {
     private val seed = System.getProperty("mosaic.seed")?.toLong() ?: System.nanoTime()
 
     // Mirror the device call-site constants from MarkeraScreen.kt.
-    private val inputSize = 1280
+    private val inputSize = 1536
     private val confidenceThreshold = 0.35f
     private val iouThreshold = 0.45f
     private val cols = 3
@@ -78,33 +72,11 @@ class HoleDetectionMosaicTest {
         val kept = nonMaxSuppression(filterByConfidence(raws, confidenceThreshold), iouThreshold)
         val detections = mapToImageSpace(kept, inputSize, img.width, img.height)
 
-        val calibration = calibrate(img)
-        val perHole = detections.map { d -> scoreOne(d, img.width, img.height, calibration) }
-
-        val total = perHole.sumOf { if (it.isInnerTen) 10 else it.ring }
         println(
-            "[mosaic]   ${file.name}: ${img.width}x${img.height}  raw=${raws.size} " +
-                "kept=${detections.size}  total=$total  " +
-                (calibration?.let { "ringConf=%.2f".format(it.confidence) } ?: "no-ring-fit"),
+            "[mosaic]   ${file.name}: ${img.width}x${img.height}  " +
+                "raw=${raws.size} kept=${detections.size}",
         )
 
-        return annotate(img, detections, perHole, calibration, file.name)
-    }
-
-    /** Per-detection ring, using the ellipse calibration when available. */
-    private fun scoreOne(
-        d: Detection,
-        w: Int,
-        h: Int,
-        calibration: TargetCalibration?,
-    ): HitScore = if (calibration != null) {
-        computeHitScores(listOf(d), calibration).single()
-    } else {
-        computeHitScores(
-            listOf(d),
-            centerX = w / 2f,
-            centerY = h / 2f,
-            mmPerPx = TARGET_CARD_WIDTH_MM / w.toDouble(),
-        ).single()
+        return annotate(img, detections, file.name)
     }
 }

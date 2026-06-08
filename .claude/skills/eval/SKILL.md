@@ -6,7 +6,7 @@ user_invocable: true
 
 # Eval: Run Hole Detection and Show the Mosaic
 
-Runs the real detection pipeline (preprocess → ONNX → filter → NMS → map-to-image → ring calibration → hit scoring) over a random 3×3 sample of target images and renders an annotated mosaic so the user can eyeball detection quality.
+Runs the real detection pipeline (preprocess → ONNX → filter → NMS → map-to-image) over a random 3×3 sample of target images and renders an annotated mosaic so the user can eyeball detection quality.
 
 **Optional arguments** (positional, both may be omitted):
 - `<seed>` — integer seed for the random image pick, so a run is reproducible. If omitted, a fresh random sample is used each run.
@@ -40,7 +40,7 @@ Example with both:
 
 ## Step 2 — Run it
 
-Run the command. It takes ~20–40s (ONNX inference on 9 full-res images). The test prints, per image, the source size, raw vs kept detection counts, the total score, and whether the black-ring ellipse fit succeeded — plus the seed used and the output path. Capture that stdout; it's the per-image summary.
+Run the command. It takes ~20–40s (ONNX inference on 9 full-res images). The test prints, per image, the source size and raw vs kept detection counts — plus the seed used and the output path. Capture that stdout; it's the per-image summary.
 
 If the build fails:
 - "model not found" → the ONNX model is missing at `composeApp/src/androidMain/assets/best.onnx`; tell the user.
@@ -73,12 +73,11 @@ Do **both** of the following:
 
 After showing the image, give a short summary based on the captured stdout:
 - The seed used (so the user can reproduce the exact sample with `/eval <seed>`).
-- Total images sampled and how many got a ring-fit vs. centre-fallback.
-- Anything notable — images with very few/many holes, or where ring calibration failed.
+- Total images sampled and the per-image hole counts.
+- Anything notable — images with very few/many holes, or obvious false positives/misses.
 
 Legend to remind the user what they're looking at:
-- **Green boxes** = detected holes, labelled `ring  confidence%`.
-- **Cyan ellipses** = the recovered scoring rings (only drawn when the black 7-ring was found); the brightest ring is the 100 mm black ring, the gold centre dot is the inner-X.
-- **Caption band** (bottom of each tile) = filename, hole count, total score, ring-fit confidence.
+- **Green boxes** = detected holes, labelled with confidence `%`.
+- **Caption band** (bottom of each tile) = filename and hole count.
 
-Note for the user: the model is single-class (`hole`) — there is no digit detection — and static images have no camera intrinsics, so scoring uses the ellipse-based foreshortening fallback rather than a perspective warp.
+Note for the user: the model is single-class (`hole`) — there is no digit detection, no perspective correction, and no automatic scoring. The pipeline just detects holes; ring scores are entered manually in the app.
