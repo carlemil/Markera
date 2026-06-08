@@ -244,7 +244,9 @@ private fun Viewport(
             Image(
                 bitmap = frozen.asImageBitmap(),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                // Fit-centre so the DetectionOverlay boxes (also fit-centre)
+                // line up with the holes in this non-square snapshot.
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {

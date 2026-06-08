@@ -35,7 +35,9 @@ private class CameraFrameSource(private val previewView: PreviewView) : FrameSou
 fun rememberFrameSource(): FrameSource {
     val context = LocalContext.current
     val previewView = remember {
-        PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
+        // Fit-centre so the live preview matches the frozen snapshot and the
+        // fit-centre DetectionOverlay (boxes align on non-square frames).
+        PreviewView(context).apply { scaleType = PreviewView.ScaleType.FIT_CENTER }
     }
     return remember { CameraFrameSource(previewView) }
 }

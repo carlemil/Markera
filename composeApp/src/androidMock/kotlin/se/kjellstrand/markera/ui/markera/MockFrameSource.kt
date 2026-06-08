@@ -54,7 +54,9 @@ private class MockFrameSource(
                 Image(
                     bitmap = bmp.asImageBitmap(),
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    // Fit-centre to match the frozen snapshot + DetectionOverlay,
+                    // so framing doesn't jump and boxes stay aligned.
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
