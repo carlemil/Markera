@@ -45,10 +45,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.R
+import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.HoleDetector
+import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
@@ -69,8 +72,12 @@ fun MarkeraScreen() {
         val bytes = context.assets.open(MODEL_ASSET).use { it.readBytes() }
         HoleDetector(bytes, inputSize = MODEL_INPUT_SIZE)
     }
-    DisposableEffect(detector) {
-        onDispose { detector.close() }
+    val digitDetector: DigitDetector = remember { DigitDetector() }
+    DisposableEffect(detector, digitDetector) {
+        onDispose {
+            detector.close()
+            digitDetector.close()
+        }
     }
     val coroutineScope = rememberCoroutineScope()
     // The active frame source is chosen at build time by the product flavor:
@@ -108,25 +115,37 @@ fun MarkeraScreen() {
         viewModel.setProcessing(true)
         coroutineScope.launch {
             try {
-                // The raw frame goes straight to the model — no perspective
-                // warp or centre detection, only the model-input letterbox.
-                val input = withContext(Dispatchers.Default) {
-                    snapshot.toModelInput(detector.inputSize)
+                // Hole detection (ONNX) and digit OCR (ML Kit) are independent,
+                // so run them concurrently and join before publishing results.
+                val holesJob = async {
+                    // The raw frame goes straight to the model — no perspective
+                    // warp or centre detection, only the model-input letterbox.
+                    val input = withContext(Dispatchers.Default) {
+                        snapshot.toModelInput(detector.inputSize)
+                    }
+                    val raws = detector.detect(input)
+                    val kept = nonMaxSuppression(
+                        filterByConfidence(raws, CONFIDENCE_THRESHOLD),
+                        IOU_THRESHOLD,
+                    )
+                    raws.size to mapToImageSpace(
+                        kept, detector.inputSize, snapshot.width, snapshot.height,
+                    )
                 }
-                val raws = detector.detect(input)
-                val kept = nonMaxSuppression(
-                    filterByConfidence(raws, CONFIDENCE_THRESHOLD),
-                    IOU_THRESHOLD,
-                )
-                val detections = mapToImageSpace(
-                    kept, detector.inputSize, snapshot.width, snapshot.height,
-                )
+                val digitsJob = async { digitDetector.detect(snapshot) }
+
+                val (rawCount, detections) = holesJob.await()
+                val digits = digitsJob.await()
+                val centre = estimateCentre(digits)
                 Log.d(
                     TAG,
                     "snapshot ${snapshot.width}x${snapshot.height}: " +
-                        "raw=${raws.size} kept=${kept.size}",
+                        "raw=$rawCount kept=${detections.size} " +
+                        "digits=${digits.size} centre=${centre.method}",
                 )
-                viewModel.onFrameAnalysed(detections, snapshot.width, snapshot.height)
+                viewModel.onFrameAnalysed(
+                    detections, digits, centre, snapshot.width, snapshot.height,
+                )
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
                 viewModel.setError(errorInference)
@@ -264,6 +283,8 @@ private fun Viewport(
         }
         DetectionOverlay(
             detections = uiState.detections,
+            digits = uiState.digits,
+            centre = uiState.centre,
             imageWidth = uiState.imageWidth,
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),

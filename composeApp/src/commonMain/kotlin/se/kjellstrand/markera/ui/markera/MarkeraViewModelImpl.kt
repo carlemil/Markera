@@ -5,17 +5,27 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
+import se.kjellstrand.markera.vision.DigitDetection
 
 class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
 
     private val _uiState = MutableStateFlow(MarkeraUiState())
     override val uiState: StateFlow<MarkeraUiState> = _uiState.asStateFlow()
 
-    override fun onFrameAnalysed(detections: List<Detection>, imageWidth: Int, imageHeight: Int) {
+    override fun onFrameAnalysed(
+        detections: List<Detection>,
+        digits: List<DigitDetection>,
+        centre: CentreEstimate?,
+        imageWidth: Int,
+        imageHeight: Int,
+    ) {
         _uiState.update {
             it.copy(
                 detections = detections,
+                digits = digits,
+                centre = centre,
                 imageWidth = imageWidth,
                 imageHeight = imageHeight,
                 isProcessing = false,
@@ -28,6 +38,8 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         _uiState.update {
             it.copy(
                 detections = emptyList(),
+                digits = emptyList(),
+                centre = null,
                 imageWidth = 0,
                 imageHeight = 0,
                 isProcessing = false,

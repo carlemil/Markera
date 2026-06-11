@@ -58,6 +58,7 @@ kotlin {
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
             implementation(libs.onnxruntime.android)
+            implementation(libs.mlkit.text.recognition)
         }
     }
 }

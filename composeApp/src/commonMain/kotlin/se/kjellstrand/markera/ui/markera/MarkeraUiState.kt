@@ -1,9 +1,13 @@
 package se.kjellstrand.markera.ui.markera
 
+import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
+import se.kjellstrand.markera.vision.DigitDetection
 
 data class MarkeraUiState(
     val detections: List<Detection> = emptyList(),
+    val digits: List<DigitDetection> = emptyList(),
+    val centre: CentreEstimate? = null,
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
     val isProcessing: Boolean = false,
