@@ -1,9 +1,11 @@
 package se.kjellstrand.markera.vision
 
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class CentreEstimatorTest {
@@ -18,8 +20,8 @@ class CentreEstimatorTest {
     /**
      * Build a target whose digits sit on a horizontal and a vertical row about
      * (cx, cy). For value v the digit is at distance (10 - v) * step from the
-     * centre on each side, so the two 9s are innermost (distance step) and the
-     * centre is exactly between them. [theta] rotates the whole pattern.
+     * centre on each side, so the rows cross exactly at (cx, cy). [theta]
+     * rotates the whole pattern.
      */
     private fun target(
         cx: Float,
@@ -56,43 +58,50 @@ class CentreEstimatorTest {
     // --- tests -------------------------------------------------------------
 
     @Test
-    fun `ideal cross resolves via inner nines at the true centre`() {
+    fun `ideal cross intersects at the true centre`() {
         val e = estimateCentre(target(100f, 200f))
-        assertEquals(CentreMethod.INNER_NINES, e.method)
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
         assertCentre(e, 100f, 200f)
+    }
+
+    @Test
+    fun `both fitted lines are returned for the UI`() {
+        val e = estimateCentre(target(100f, 200f))
+        val h = assertNotNull(e.horizontalLine)
+        val v = assertNotNull(e.verticalLine)
+        // Horizontal row line runs along x at y=200; vertical along y at x=100.
+        assertEquals(200f, h.py, 0.5f)
+        assertTrue(abs(h.dx) > 0.99f)
+        assertEquals(100f, v.px, 0.5f)
+        assertTrue(abs(v.dy) > 0.99f)
     }
 
     @Test
     fun `off-centre target still resolves the centre`() {
         val e = estimateCentre(target(640f, 360f))
-        assertEquals(CentreMethod.INNER_NINES, e.method)
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
         assertCentre(e, 640f, 360f)
     }
 
     @Test
-    fun `rotated rows still resolve exactly because midpoints are rotation invariant`() {
+    fun `rotated rows intersect at the true centre`() {
         val e = estimateCentre(target(300f, 300f, theta = 10.0 * kotlin.math.PI / 180.0))
-        assertEquals(CentreMethod.INNER_NINES, e.method)
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
         assertCentre(e, 300f, 300f, tol = 1f)
     }
 
     @Test
-    fun `one missing inner nine falls back on that axis only`() {
-        val digits = target(100f, 200f).toMutableList()
-        // Drop a single horizontal 9 (innermost left, at cx = 80, cy = 200).
-        val removed = digits.removeAll { it.value == 9 && it.cx < 100f && it.cy == 200f }
-        assertTrue(removed)
-        val e = estimateCentre(digits)
-        assertEquals(CentreMethod.LINE_FIT_FALLBACK, e.method)
+    fun `partial rows still intersect at the centre`() {
+        // Only digits 5..9 read on each row — fewer points, same lines.
+        val e = estimateCentre(target(100f, 200f, hValues = 5..9, vValues = 5..9))
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
         assertCentre(e, 100f, 200f, tol = 1f)
     }
 
     @Test
-    fun `both inner nines missing on an axis uses symmetric pair fallback`() {
-        val digits = target(100f, 200f, hValues = 1..8, vValues = 1..9)
-        val e = estimateCentre(digits)
-        assertEquals(CentreMethod.LINE_FIT_FALLBACK, e.method)
-        assertCentre(e, 100f, 200f, tol = 1.5f)
+    fun `missing vertical row yields NONE`() {
+        val e = estimateCentre(target(100f, 200f, vValues = IntRange.EMPTY))
+        assertEquals(CentreMethod.NONE, e.method)
     }
 
     @Test
@@ -114,7 +123,7 @@ class CentreEstimatorTest {
         // A '7' parked far off both rows.
         digits += digit(400f, 500f, 7)
         val e = estimateCentre(digits)
-        assertEquals(CentreMethod.INNER_NINES, e.method)
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
         assertCentre(e, 100f, 200f, tol = 1f)
     }
 
@@ -123,7 +132,7 @@ class CentreEstimatorTest {
         val digits = target(100f, 200f).toMutableList()
         digits += digit(100f, 200f, 5)
         val e = estimateCentre(digits)
-        assertEquals(CentreMethod.INNER_NINES, e.method)
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
         assertCentre(e, 100f, 200f, tol = 1f)
     }
 }

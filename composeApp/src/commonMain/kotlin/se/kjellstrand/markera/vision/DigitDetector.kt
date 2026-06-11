@@ -42,15 +42,27 @@ data class CentreEstimate(
     val x: Float,
     val y: Float,
     val method: CentreMethod,
+    /** Best-fit line through the horizontal digit row, when resolved. */
+    val horizontalLine: TargetLine? = null,
+    /** Best-fit line through the vertical digit row, when resolved. */
+    val verticalLine: TargetLine? = null,
+)
+
+/**
+ * An infinite line in source-image pixel space: a point on the line plus a
+ * unit direction vector.
+ */
+data class TargetLine(
+    val px: Float,
+    val py: Float,
+    val dx: Float,
+    val dy: Float,
 )
 
 /** How [estimateCentre] arrived at a centre, for logging/diagnostics. */
 enum class CentreMethod {
-    /** Midpoint of the two innermost 9s on at least one axis. */
-    INNER_NINES,
-
-    /** A 9 was missing on an axis; symmetric digit pairs were used instead. */
-    LINE_FIT_FALLBACK,
+    /** Intersection of the lines fitted through the two digit rows. */
+    LINE_INTERSECTION,
 
     /** Not enough digits to commit to a centre — caller should draw nothing. */
     NONE,
