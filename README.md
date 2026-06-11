@@ -1,71 +1,78 @@
 # Markera
 
-En **Kotlin Multiplatform**- + **Compose Multiplatform**-app för Android och iOS
-som automatiskt poängsätter serier i precisionsskytte från en bild av tavlan.
+A **Kotlin Multiplatform** + **Compose Multiplatform** app for Android and iOS
+that automatically scores precision-shooting series from a photo of the target.
 
-![Markera-appen](docs/images/hero.png)
+![The Markera app](docs/images/hero.png)
 
-## Mål med appen
+## Goal
 
-Att **poängsätta serier i precisionsskytte automatiskt** via en Android- och
-iOS-app, och sedan spara dem till en lokal databas och eventuellt en backend
-([webshooter](https://github.com/)). Resultaten ska kunna exporteras och delas
-till CSV, Excel m.m.
+To **score precision-shooting series automatically** from an Android and iOS
+app, then save the results to a local database and possibly a backend
+([webshooter](https://github.com/)), with export/share to CSV, Excel, etc.
 
-## Lösningsförsök
+> Note: persistence, backend sync, and export are goals — they are not
+> implemented yet. Today scores are entered manually via the on-screen pickers.
 
-### 1. Träna modellen på hål
+## Solution attempts
 
-Träna modellen att detektera hål, och räkna poäng utifrån avståndet mellan
-"mitten" och 6:e/7:e ringen.
+### 1. Train the model on holes
 
-**Resultat:** Fungerar dåligt. Detekteringen av mitten är väldigt skakig och
-hamnar nästan alltid fel, vilket leder till felaktiga poäng. Även detekteringen
-av 6:e–7:e ringen skulle behöva förbättras.
+Train the model to detect holes, then compute the score from the distance
+between the "centre" and the 6th/7th ring.
 
-### 2. Träna modellen att markera poäng
+**Result:** Works poorly. Detecting the centre is very jittery and almost always
+lands in the wrong place, which leads to incorrect scores. The 6th–7th ring
+detection would also need to be improved.
 
-Träna modellen att markera poäng direkt, inte bara hål.
+### 2. Train the model to mark scores
 
-**Resultat:** Fungerade bra på verifieringsdatan, men dåligt i praktiken. Ett
-större träningsdataset skulle eventuellt hjälpa, men det är svårt att skapa och
-väldigt tidskrävande. Framför allt de lägre poängen — som är ovanligare i
-träningsdatan — fick mer eller mindre slumpmässig poängsättning.
+Train the model to mark scores directly, not just holes.
 
-### 3. Träna modellen på hål + geometrisk mitt (pågående)
+**Result:** Worked well on the verification data, but poorly in practice. A
+larger training dataset might help, but it is hard to create and very
+time-consuming. The lower scores in particular — which are rarer in the training
+data — were scored more or less at random.
 
-Träna modellen på hål (ingen "vibe-kodning"), detektera siffrorna och dra två
-linjer — en vertikal och en horisontell — så att de passerar genom mitten på så
-många sifferboxar som möjligt. Skärningspunkten för dessa linjer är ellipsens
-centrum.
+### 3. Train on holes + a geometric centre (in progress)
 
-**Resultat:** Okänt — implementationen pågår.
+Train the model on holes (no "vibe coding"), detect the digits, and draw two
+lines — one vertical and one horizontal — so that they pass through the centre
+of as many digit boxes as possible. The intersection of those lines is the
+ellipse centre.
 
-## Teknisk översikt
+**Result:** Unknown — implementation in progress.
 
-Appen är ett enda `:composeApp`-KMP-modul med `commonMain`, `androidMain` och
-`iosMain`. Håldetekteringen körs med en YOLOv8 ONNX-modell. Poäng matas idag in
-manuellt via väljarna på skärmen.
+## Technical overview
 
-### Bygga för Android
+The app is a single `:composeApp` KMP module with `commonMain`, `androidMain`,
+and `iosMain` source sets (plus a small `:eval` module used to evaluate the
+hole-detection model). Hole detection runs a YOLOv8 ONNX model. Scores are
+currently entered manually via the on-screen pickers.
 
-ONNX-modellen `best.onnx` (~99 MB) är **inte** incheckad i repot. Lägg den i
-`composeApp/src/androidMain/assets/best.onnx` innan du bygger.
+### Building for Android
 
-Appen har två produktflavors:
+The ONNX model `best.onnx` (~80 MB) is **not** committed to the repository. Drop
+it into `composeApp/src/androidMain/assets/best.onnx` before building. The model
+runs at a 1536×1536 input.
 
-- **`camera`** — appen som levereras; live CameraX-förhandsvisning från
-  baksideskameran.
-- **`mock`** — en emulator-/utvecklingsflavor som fejkar kameran genom att spela
-  upp ett slumpmässigt urval av dataset-bilder. Detektering körs automatiskt på
-  varje inläst bild.
+The app has two product flavors (dimension `source`):
+
+- **`camera`** — the shipping app; live CameraX preview from the back camera.
+- **`mock`** — an emulator/dev flavor that fakes the camera by replaying a
+  random sample of dataset images bundled at build time (the `prepareMockFrames`
+  Gradle task). Detection runs automatically on each loaded image, and it
+  installs side by side via the `.mock` application-id suffix.
 
 ```sh
-./gradlew :composeApp:installCameraDebug   # riktig kamera, på en enhet
-./gradlew :composeApp:installMockDebug     # emulator, ingen kamera behövs
+./gradlew :composeApp:installCameraDebug   # real camera, on a device
+./gradlew :composeApp:installMockDebug     # emulator, no camera needed
 ```
 
-### Köra tester
+Install on a device or emulator (API 24+); the `camera` flavor needs a back
+camera.
+
+### Running tests
 
 ```sh
 ./gradlew :composeApp:testDebugUnitTest
@@ -73,6 +80,6 @@ Appen har två produktflavors:
 
 ### iOS
 
-`HoleDetector` är för närvarande en stub på iOS (returnerar inga detekteringar).
-Följ `iosApp/README.md` för att skapa ett Xcode-projekt som använder det delade
-ramverket.
+`HoleDetector` is currently a stub on iOS (returns no detections). Follow
+`iosApp/README.md` to scaffold an Xcode project that consumes the shared
+framework.
