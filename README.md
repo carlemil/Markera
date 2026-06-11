@@ -23,8 +23,6 @@ Träna modellen att detektera hål, och räkna poäng utifrån avståndet mellan
 hamnar nästan alltid fel, vilket leder till felaktiga poäng. Även detekteringen
 av 6:e–7:e ringen skulle behöva förbättras.
 
-![Försök 1 — håldetektering](docs/images/forsok-1.png)
-
 ### 2. Träna modellen att markera poäng
 
 Träna modellen att markera poäng direkt, inte bara hål.
@@ -34,8 +32,6 @@ större träningsdataset skulle eventuellt hjälpa, men det är svårt att skapa
 väldigt tidskrävande. Framför allt de lägre poängen — som är ovanligare i
 träningsdatan — fick mer eller mindre slumpmässig poängsättning.
 
-![Försök 2 — poängmarkering](docs/images/forsok-2.png)
-
 ### 3. Träna modellen på hål + geometrisk mitt (pågående)
 
 Träna modellen på hål (ingen "vibe-kodning"), detektera siffrorna och dra två
@@ -44,8 +40,6 @@ många sifferboxar som möjligt. Skärningspunkten för dessa linjer är ellipse
 centrum.
 
 **Resultat:** Okänt — implementationen pågår.
-
-![Försök 3 — linjeskärning](docs/images/forsok-3.png)
 
 ## Teknisk översikt
 
