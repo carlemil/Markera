@@ -1,80 +1,84 @@
 # Markera
 
-Kotlin Multiplatform + Compose Multiplatform app that detects bullet-hole
-positions in a camera-captured target image (YOLOv8 ONNX) and draws them on
-the frame. Scores are entered manually via the on-screen pickers.
+En **Kotlin Multiplatform**- + **Compose Multiplatform**-app för Android och iOS
+som automatiskt poängsätter serier i precisionsskytte från en bild av tavlan.
 
-The feature was extracted from [webshooter](https://github.com/) and
-collapsed into a single `:composeApp` KMP module with `commonMain`,
-`androidMain`, and `iosMain` source sets.
+![Markera-appen](docs/images/hero.png)
 
-## Modules / source sets
+## Mål med appen
 
-```
-composeApp/
-  src/
-    commonMain/     Pure-Kotlin vision algorithms + ViewModel + theme
-    androidMain/    MainActivity, MarkeraScreen, CameraX preview,
-                    ONNX Runtime HoleDetector, Material You dynamic colors
-    iosMain/        MainViewController placeholder + HoleDetector iOS stub
-    commonTest/     detection post-processing unit tests
-iosApp/             Placeholder README — scaffold the Xcode project later
-```
+Att **poängsätta serier i precisionsskytte automatiskt** via en Android- och
+iOS-app, och sedan spara dem till en lokal databas och eventuellt en backend
+([webshooter](https://github.com/)). Resultaten ska kunna exporteras och delas
+till CSV, Excel m.m.
 
-## Building Android
+## Lösningsförsök
 
-The ONNX model `best.onnx` (~99 MB) is **not** committed to the repository.
-Drop it into `composeApp/src/androidMain/assets/best.onnx` before building.
+### 1. Träna modellen på hål
 
-The app has two product flavors:
+Träna modellen att detektera hål, och räkna poäng utifrån avståndet mellan
+"mitten" och 6:e/7:e ringen.
 
-- **`camera`** — the shipping app; live CameraX preview from a back camera.
-- **`mock`** — an emulator/dev flavor that fakes the camera by replaying a
-  random sample of dataset images bundled at build time (the
-  `prepareMockFrames` Gradle task). Detection runs automatically on each
-  loaded image; installs side by side via the `.mock` application-id suffix.
+**Resultat:** Fungerar dåligt. Detekteringen av mitten är väldigt skakig och
+hamnar nästan alltid fel, vilket leder till felaktiga poäng. Även detekteringen
+av 6:e–7:e ringen skulle behöva förbättras.
+
+![Försök 1 — håldetektering](docs/images/forsok-1.png)
+
+### 2. Träna modellen att markera poäng
+
+Träna modellen att markera poäng direkt, inte bara hål.
+
+**Resultat:** Fungerade bra på verifieringsdatan, men dåligt i praktiken. Ett
+större träningsdataset skulle eventuellt hjälpa, men det är svårt att skapa och
+väldigt tidskrävande. Framför allt de lägre poängen — som är ovanligare i
+träningsdatan — fick mer eller mindre slumpmässig poängsättning.
+
+![Försök 2 — poängmarkering](docs/images/forsok-2.png)
+
+### 3. Träna modellen på hål + geometrisk mitt (pågående)
+
+Träna modellen på hål (ingen "vibe-kodning"), detektera siffrorna och dra två
+linjer — en vertikal och en horisontell — så att de passerar genom mitten på så
+många sifferboxar som möjligt. Skärningspunkten för dessa linjer är ellipsens
+centrum.
+
+**Resultat:** Okänt — implementationen pågår.
+
+![Försök 3 — linjeskärning](docs/images/forsok-3.png)
+
+## Teknisk översikt
+
+Appen är ett enda `:composeApp`-KMP-modul med `commonMain`, `androidMain` och
+`iosMain`. Håldetekteringen körs med en YOLOv8 ONNX-modell. Poäng matas idag in
+manuellt via väljarna på skärmen.
+
+### Bygga för Android
+
+ONNX-modellen `best.onnx` (~99 MB) är **inte** incheckad i repot. Lägg den i
+`composeApp/src/androidMain/assets/best.onnx` innan du bygger.
+
+Appen har två produktflavors:
+
+- **`camera`** — appen som levereras; live CameraX-förhandsvisning från
+  baksideskameran.
+- **`mock`** — en emulator-/utvecklingsflavor som fejkar kameran genom att spela
+  upp ett slumpmässigt urval av dataset-bilder. Detektering körs automatiskt på
+  varje inläst bild.
 
 ```sh
-./gradlew :composeApp:installCameraDebug   # real camera, on a device
-./gradlew :composeApp:installMockDebug     # emulator, no camera needed
+./gradlew :composeApp:installCameraDebug   # riktig kamera, på en enhet
+./gradlew :composeApp:installMockDebug     # emulator, ingen kamera behövs
 ```
 
-Install on a device or emulator (API 24+); the `camera` flavor needs a back
-camera.
-
-### Emulator memory
-
-The model runs at a 1536×1536 input, and on Android the input tensor and the
-decoded frames live on the Java heap. An emulator with the default RAM/heap
-can hit the `lowmemorykiller` mid-inference (the app dies and returns to the
-launcher). Give the AVD headroom — in `~/.android/avd/<name>.avd/config.ini`
-(or Device Manager → edit device):
-
-```
-hw.ramSize=12288   # ~12 GB
-vm.heapSize=2048   # ~2 GB per-app heap
-```
-
-Cold-boot the emulator after changing `hw.ramSize` so the new value applies.
-
-## Running tests
+### Köra tester
 
 ```sh
 ./gradlew :composeApp:testDebugUnitTest
 ```
 
-## iOS
+### iOS
 
-`HoleDetector` is currently a stub on iOS (returns no detections). To
-scaffold an Xcode project that consumes the shared framework, follow
-`iosApp/README.md`.
-
-## Notable conventions
-
-- **No DI framework** — `HoleDetector` and the ViewModel are constructed
-  inline in `MarkeraScreen`.
-- **Android-only UI** — `MarkeraScreen` and friends live in `androidMain`
-  (CameraX, `android.graphics.Bitmap`).
-- **AGP 9.x opt-outs** — `gradle.properties` sets `android.builtInKotlin=false`
-  and `android.newDsl=false` so the single `:composeApp` module can apply
-  both `com.android.application` and `org.jetbrains.kotlin.multiplatform`.
+`HoleDetector` är för närvarande en stub på iOS (returnerar inga detekteringar).
+Följ `iosApp/README.md` för att skapa ett Xcode-projekt som använder det delade
+ramverket.
