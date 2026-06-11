@@ -69,8 +69,22 @@ fun MarkeraScreen() {
     val snapshotVm: MarkeraSnapshotViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val detector: HoleDetector = remember {
-        val bytes = context.assets.open(MODEL_ASSET).use { it.readBytes() }
-        HoleDetector(bytes, inputSize = MODEL_INPUT_SIZE)
+        // Stream the asset to a plain file once and hand ONNX Runtime the
+        // path: the native runtime reads the ~80 MB model directly, instead
+        // of readBytes() staging it on the Java heap (which OOMed small heaps).
+        // Re-copied after each app update (the asset may have changed); the
+        // temp-file + rename keeps an interrupted copy from being trusted.
+        val modelFile = java.io.File(context.filesDir, MODEL_ASSET)
+        val apkTime = context.packageManager
+            .getPackageInfo(context.packageName, 0).lastUpdateTime
+        if (!modelFile.exists() || modelFile.lastModified() < apkTime) {
+            val tmp = java.io.File(context.filesDir, "$MODEL_ASSET.tmp")
+            context.assets.open(MODEL_ASSET).use { input ->
+                tmp.outputStream().use { input.copyTo(it) }
+            }
+            check(tmp.renameTo(modelFile)) { "could not move $tmp into place" }
+        }
+        HoleDetector(modelFile.absolutePath, inputSize = MODEL_INPUT_SIZE)
     }
     val digitDetector: DigitDetector = remember { DigitDetector() }
     DisposableEffect(detector, digitDetector) {
@@ -238,7 +252,7 @@ fun MarkeraScreen() {
                 onClick = if (isFrozen) onResumeLive else onDetectClick,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                    .padding(end = 16.dp, bottom = 56.dp),
             ) {
                 if (isFrozen) {
                     Icon(

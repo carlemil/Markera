@@ -7,7 +7,7 @@ package se.kjellstrand.markera.vision
 // The shape of detect() is identical to Android — only the inference glue
 // changes.
 actual class HoleDetector actual constructor(
-    @Suppress("UNUSED_PARAMETER") modelBytes: ByteArray,
+    @Suppress("UNUSED_PARAMETER") modelPath: String,
     inputSize: Int,
 ) {
     actual val inputSize: Int = inputSize

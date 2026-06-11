@@ -9,8 +9,12 @@ package se.kjellstrand.markera.vision
  * tensor rather than on a platform-specific image type, so the
  * Android/iOS image-handling code stays at the call site and the
  * expect/actual surface stays minimal.
+ *
+ * The model is loaded from [modelPath] (a plain file on disk) so the
+ * runtime can read the ~80 MB model natively instead of via a Java-heap
+ * byte array, which OOMs small heaps.
  */
-expect class HoleDetector(modelBytes: ByteArray, inputSize: Int) {
+expect class HoleDetector(modelPath: String, inputSize: Int) {
 
     val inputSize: Int
 

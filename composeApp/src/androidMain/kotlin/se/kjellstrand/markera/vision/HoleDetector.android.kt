@@ -8,13 +8,17 @@ import kotlinx.coroutines.withContext
 import java.nio.FloatBuffer
 
 actual class HoleDetector actual constructor(
-    modelBytes: ByteArray,
+    modelPath: String,
     inputSize: Int,
 ) {
     actual val inputSize: Int = inputSize
 
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
-    private val session: OrtSession = env.createSession(modelBytes, OrtSession.SessionOptions())
+
+    // Loading by path lets the native runtime read the model file directly,
+    // keeping the ~80 MB model off the Java heap (readBytes() of the asset
+    // peaked at 2-3x the model size and OOMed small heaps).
+    private val session: OrtSession = env.createSession(modelPath, OrtSession.SessionOptions())
     private val inputName: String = session.inputNames.first()
     private val inputShape: LongArray = longArrayOf(1L, 3L, inputSize.toLong(), inputSize.toLong())
 
