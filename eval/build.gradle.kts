@@ -10,12 +10,13 @@ kotlin {
 
 // Reuse the *real* pure-Kotlin vision pipeline (post-processing, calibration,
 // ellipse fit, hit scoring, …) straight from commonMain so this evaluation
-// harness exercises the same code the app runs. Only HoleDetector.kt is an
-// expect/actual (onnxruntime-android); we exclude it and provide a desktop
-// ONNX Runtime detector + the RawDetection/Detection data classes instead.
+// harness exercises the same code the app runs. The expect/actual files
+// (HoleDetector: onnxruntime-android, DigitDetector/PlatformImage: ML Kit)
+// cannot compile in a plain JVM module, so we exclude them; a desktop ONNX
+// Runtime detector + the RawDetection/Detection data classes stand in.
 sourceSets["main"].kotlin {
     srcDir("../composeApp/src/commonMain/kotlin/se/kjellstrand/markera/vision")
-    exclude("**/HoleDetector.kt")
+    exclude("**/HoleDetector.kt", "**/DigitDetector.kt", "**/PlatformImage.kt")
 }
 
 dependencies {
