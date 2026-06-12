@@ -70,7 +70,7 @@ fun MarkeraScreen() {
     val uiState by viewModel.uiState.collectAsState()
     val detector: HoleDetector = remember {
         // Stream the asset to a plain file once and hand ONNX Runtime the
-        // path: the native runtime reads the ~80 MB model directly, instead
+        // path: the native runtime reads the ~40 MB model directly, instead
         // of readBytes() staging it on the Java heap (which OOMed small heaps).
         // Re-copied after each app update (the asset may have changed); the
         // temp-file + rename keeps an interrupted copy from being trusted.
