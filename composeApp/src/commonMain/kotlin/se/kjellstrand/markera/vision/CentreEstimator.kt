@@ -144,7 +144,13 @@ private fun resolveRow(
     if (raw.size == RELAXED_ROW_FLOOR && imageMid > 0f) {
         val a = coordAlong(raw[0], axis)
         val b = coordAlong(raw[1], axis)
-        if (min(a, b) < imageMid && max(a, b) > imageMid) return raw
+        val straddles = min(a, b) < imageMid && max(a, b) > imageMid
+        // The pair must also look like its row: small perpendicular drift
+        // relative to its along-axis span (same band as cleanRow). A tilted or
+        // diagonal pair would otherwise throw the fitted line far off.
+        val along = abs(a - b)
+        val perp = abs(coordPerp(raw[0], axis) - coordPerp(raw[1], axis))
+        if (straddles && along > 0f && perp <= config.rowBandFraction * along) return raw
     }
     return null
 }
@@ -152,6 +158,10 @@ private fun resolveRow(
 /** Position of [d]'s centre along [axis] (its x for AXIS_X, its y for AXIS_Y). */
 private fun coordAlong(d: DigitDetection, axis: Pt): Float =
     d.cx * axis.x + d.cy * axis.y
+
+/** Position of [d]'s centre across [axis] (its y for AXIS_X, its x for AXIS_Y). */
+private fun coordPerp(d: DigitDetection, axis: Pt): Float =
+    d.cx * axis.y + d.cy * axis.x
 
 /**
  * Drop digits whose perpendicular offset from the row's [axis] line is large.

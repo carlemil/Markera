@@ -156,6 +156,20 @@ class CentreEstimatorTest {
     }
 
     @Test
+    fun `a tilted straddling pair is rejected by the row guard`() {
+        val cx = 100f
+        val cy = 200f
+        // The horizontal pair straddles cx but drifts ±15 in y over a 100-wide
+        // span (30 > 0.2*100), so it is not a level row.
+        val digits = listOf(
+            digit(cx - 60f, cy - 15f, 6), digit(cx + 40f, cy + 15f, 7),
+            digit(cx, cy - 60f, 6), digit(cx, cy + 40f, 7),
+        )
+        val e = estimateCentre(digits, imageWidth = 200, imageHeight = 400)
+        assertEquals(CentreMethod.NONE, e.method)
+    }
+
+    @Test
     fun `the relaxed rule needs the image size`() {
         val cx = 100f
         val cy = 200f

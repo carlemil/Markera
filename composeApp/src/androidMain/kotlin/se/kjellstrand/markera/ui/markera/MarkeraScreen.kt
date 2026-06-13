@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,8 +35,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -48,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.min
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.HoleDetector
@@ -294,6 +298,9 @@ private fun Viewport(
                 onError = onError,
                 modifier = Modifier.fillMaxSize(),
             )
+            // Framing guide on the live viewfinder only — a centred circle
+            // (~70% of the viewport) with a small crosshair at its centre.
+            ViewfinderGuide(modifier = Modifier.fillMaxSize())
         }
         DetectionOverlay(
             detections = uiState.detections,
@@ -302,6 +309,40 @@ private fun Viewport(
             imageWidth = uiState.imageWidth,
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+/**
+ * Static aiming guide drawn over the live preview: a centred circle whose
+ * diameter is ~70% of the smaller viewport dimension, plus a crosshair at its
+ * centre. Purely a framing aid — it does not affect detection.
+ */
+@Composable
+private fun ViewfinderGuide(modifier: Modifier = Modifier) {
+    val guideColor = Color(0xCCFFFFFF)
+    Canvas(modifier = modifier) {
+        val centre = Offset(size.width / 2f, size.height / 2f)
+        val radius = 0.35f * min(size.width, size.height)
+        val stroke = 3.dp.toPx()
+        drawCircle(
+            color = guideColor,
+            radius = radius,
+            center = centre,
+            style = Stroke(width = stroke),
+        )
+        val arm = 16.dp.toPx()
+        drawLine(
+            color = guideColor,
+            start = Offset(centre.x - arm, centre.y),
+            end = Offset(centre.x + arm, centre.y),
+            strokeWidth = stroke,
+        )
+        drawLine(
+            color = guideColor,
+            start = Offset(centre.x, centre.y - arm),
+            end = Offset(centre.x, centre.y + arm),
+            strokeWidth = stroke,
         )
     }
 }
