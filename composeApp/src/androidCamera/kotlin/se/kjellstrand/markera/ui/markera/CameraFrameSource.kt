@@ -38,9 +38,11 @@ private class CameraFrameSource(private val previewView: PreviewView) : FrameSou
 fun rememberFrameSource(): FrameSource {
     val context = LocalContext.current
     val previewView = remember {
-        // Fit-centre so the live preview matches the frozen snapshot and the
-        // fit-centre DetectionOverlay (boxes align on non-square frames).
-        PreviewView(context).apply { scaleType = PreviewView.ScaleType.FIT_CENTER }
+        // Fill-centre so the live preview spans the full viewport width (the
+        // portrait frame is cropped top/bottom rather than letterboxed). The
+        // frozen snapshot and DetectionOverlay still use fit-centre, so boxes
+        // align on the captured full frame.
+        PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
     }
     return remember { CameraFrameSource(previewView) }
 }

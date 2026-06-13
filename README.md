@@ -36,12 +36,26 @@ data — were scored more or less at random.
 
 ### 3. Train on holes + a geometric centre (in progress)
 
-Train the model on holes (no "vibe coding"), detect the digits, and draw two
-lines — one vertical and one horizontal — so that they pass through the centre
-of as many digit boxes as possible. The intersection of those lines is the
-ellipse centre.
+Train the model on holes, then find the target centre geometrically from the
+printed ring digits instead of asking the model for it:
 
-**Result:** Unknown — implementation in progress.
+1. Detect holes with the YOLOv8 ONNX model.
+2. Read the ring digits with ML Kit's on-device text recogniser.
+3. Keep only the **outer 6–9** labels — they sit at fixed positions and line up
+   cleanly, whereas the inner 1–5 are closer to the centre and may not align.
+4. Split the digits into a horizontal and a vertical row by orientation, pivoting
+   on the **median** so a stray misread can't drag the split.
+5. Fit a total-least-squares line through each row; their intersection is the
+   centre. A sparse row still resolves from just two digits when they straddle
+   the image centre along that axis and form a roughly level row.
+
+**Result:** Promising where enough outer digits are readable — the centre lands
+convincingly, including on tilted/perspective shots, and a stray digit no longer
+throws it off. It still returns "no centre" on the hard frames (heavily-pasted
+close-ups where a whole digit row is unreadable). Validated by an on-device
+harness that renders annotated 3×3 mosaics over the dataset for eyeballing.
+Turning the centre into an automatic score — and detecting the black ellipse
+(the 6/7 ring boundary) to recover scale — is the next step.
 
 ## Technical overview
 

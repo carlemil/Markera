@@ -23,6 +23,17 @@ fun ImageProxy.toUprightBitmap(): Bitmap {
 }
 
 /**
+ * Centre-crop [this] to a square (side = the shorter edge). Matches the
+ * FILL_CENTER live preview so the frozen frame, detections, and centre all
+ * operate on the same square the user framed. Returns [this] if already square.
+ */
+fun Bitmap.centerSquare(): Bitmap {
+    if (width == height) return this
+    val side = min(width, height)
+    return Bitmap.createBitmap(this, (width - side) / 2, (height - side) / 2, side, side)
+}
+
+/**
  * Letterbox-scale [this] into a square of [inputSize], copy into a CHW
  * float array normalised to 0..1. Matches the inverse transform that
  * `DetectionPostProcess.mapToImageSpace` performs.

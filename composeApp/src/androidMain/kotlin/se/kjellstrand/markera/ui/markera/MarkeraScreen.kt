@@ -4,6 +4,12 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,11 +18,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
@@ -36,9 +47,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -51,7 +64,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.sin
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.HoleDetector
@@ -126,7 +142,9 @@ fun MarkeraScreen() {
 
     val onDetectClick: () -> Unit = onDetect@{
         if (uiState.isProcessing) return@onDetect
-        val snapshot = frameSource.capture() ?: return@onDetect
+        // Square the frame to match the FILL_CENTER live preview, so what the
+        // user framed is exactly what gets analysed and shown frozen.
+        val snapshot = (frameSource.capture() ?: return@onDetect).centerSquare()
         // Freeze the frame immediately so the user sees the static image
         // the model will analyse instead of the live preview.
         snapshotVm.set(snapshot)
@@ -184,7 +202,13 @@ fun MarkeraScreen() {
         if (frameSource.autoDetectKey != null) onDetectClick()
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            // Edge-to-edge draws under the status bar / camera notch; inset the
+            // content down so the top row clears the cutout.
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+    ) {
         val isPortrait = maxHeight >= maxWidth
 
         if (!cameraGranted) {
@@ -309,6 +333,87 @@ private fun Viewport(
             imageWidth = uiState.imageWidth,
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),
+        )
+        if (uiState.isProcessing) {
+            ScanningOverlay(modifier = Modifier.fillMaxSize())
+        }
+    }
+}
+
+/**
+ * Radar-sweep "working" animation shown over the frozen frame while hole and
+ * centre detection run. A green sweep line orbits the viewport centre with a
+ * fading trail; fixed blips flash as the sweep passes over them. Indeterminate
+ * — it just loops until [MarkeraUiState.isProcessing] clears.
+ */
+@Composable
+private fun ScanningOverlay(modifier: Modifier = Modifier) {
+    val sweep = rememberInfiniteTransition(label = "scan")
+    val angle by sweep.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1300, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "angle",
+    )
+    val green = Color(0xFF00E676)
+    // Fixed targets the sweep "discovers": (angle°, radius fraction).
+    val blips = remember {
+        listOf(35f to 0.8f, 110f to 0.55f, 200f to 0.9f, 255f to 0.4f, 320f to 0.68f)
+    }
+    Box(
+        modifier = modifier.background(Color.Black.copy(alpha = 0.35f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val centre = Offset(size.width / 2f, size.height / 2f)
+            val maxR = 0.42f * min(size.width, size.height)
+            val faint = green.copy(alpha = 0.18f)
+            for (i in 1..3) {
+                drawCircle(faint, radius = maxR * i / 3f, center = centre, style = Stroke(2f))
+            }
+            drawLine(faint, Offset(centre.x - maxR, centre.y), Offset(centre.x + maxR, centre.y), 1.5f)
+            drawLine(faint, Offset(centre.x, centre.y - maxR), Offset(centre.x, centre.y + maxR), 1.5f)
+            // Rotating trail: brightest at the leading line, fading behind it.
+            rotate(angle, centre) {
+                drawCircle(
+                    brush = Brush.sweepGradient(
+                        0f to Color.Transparent,
+                        0.85f to Color.Transparent,
+                        1f to green.copy(alpha = 0.45f),
+                        center = centre,
+                    ),
+                    radius = maxR,
+                    center = centre,
+                )
+            }
+            val rad = (angle * PI / 180.0).toFloat()
+            drawLine(
+                green,
+                start = centre,
+                end = Offset(centre.x + cos(rad) * maxR, centre.y + sin(rad) * maxR),
+                strokeWidth = 3f,
+            )
+            // Each blip flares as the sweep passes, then fades over ~70°.
+            blips.forEach { (blipAngle, r) ->
+                val since = ((angle - blipAngle) % 360f + 360f) % 360f
+                val alpha = (1f - since / 70f).coerceIn(0f, 1f)
+                if (alpha > 0f) {
+                    val br = (blipAngle * PI / 180.0).toFloat()
+                    val p = Offset(centre.x + cos(br) * maxR * r, centre.y + sin(br) * maxR * r)
+                    drawCircle(green.copy(alpha = alpha), radius = 5f + 5f * alpha, center = p)
+                }
+            }
+        }
+        Text(
+            text = "SCANNING TARGET…",
+            color = green,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
         )
     }
 }
