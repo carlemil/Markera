@@ -150,7 +150,7 @@ fun MarkeraScreen() {
 
                 val (rawCount, detections) = holesJob.await()
                 val digits = digitsJob.await()
-                val centre = estimateCentre(digits)
+                val centre = estimateCentre(digits, snapshot.width, snapshot.height)
                 Log.d(
                     TAG,
                     "snapshot ${snapshot.width}x${snapshot.height}: " +

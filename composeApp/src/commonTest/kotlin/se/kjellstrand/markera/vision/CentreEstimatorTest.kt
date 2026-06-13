@@ -128,6 +128,47 @@ class CentreEstimatorTest {
     }
 
     @Test
+    fun `two straddling digits per row resolve via the relaxed rule`() {
+        val cx = 100f
+        val cy = 200f
+        // One digit each side of the centre on each row, asymmetrically placed.
+        val digits = listOf(
+            digit(cx - 60f, cy, 6), digit(cx + 40f, cy, 7),
+            digit(cx, cy - 60f, 6), digit(cx, cy + 40f, 7),
+        )
+        // Image centre (100, 200) lies between each pair.
+        val e = estimateCentre(digits, imageWidth = 200, imageHeight = 400)
+        assertEquals(CentreMethod.LINE_INTERSECTION, e.method)
+        assertCentre(e, cx, cy, tol = 1f)
+    }
+
+    @Test
+    fun `two same-side digits do not resolve`() {
+        val cx = 100f
+        val cy = 200f
+        // Both horizontal digits sit right of the image centre — extrapolation.
+        val digits = listOf(
+            digit(cx + 20f, cy, 6), digit(cx + 60f, cy, 7),
+            digit(cx, cy - 60f, 6), digit(cx, cy + 40f, 7),
+        )
+        val e = estimateCentre(digits, imageWidth = 200, imageHeight = 400)
+        assertEquals(CentreMethod.NONE, e.method)
+    }
+
+    @Test
+    fun `the relaxed rule needs the image size`() {
+        val cx = 100f
+        val cy = 200f
+        val digits = listOf(
+            digit(cx - 60f, cy, 6), digit(cx + 40f, cy, 7),
+            digit(cx, cy - 60f, 6), digit(cx, cy + 40f, 7),
+        )
+        // Without image dimensions the straddle test cannot run, so NONE.
+        val e = estimateCentre(digits)
+        assertEquals(CentreMethod.NONE, e.method)
+    }
+
+    @Test
     fun `a digit sitting at the cross centre does not break resolution`() {
         val digits = target(100f, 200f).toMutableList()
         digits += digit(100f, 200f, 5)
