@@ -182,6 +182,13 @@ class BlackRingMosaicTest {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.drawImage(img, 0, 0, null)
         val stroke = maxOf(2f, img.width / 320f)
+        // Seed centre + seed-radius circle and the scan window (diagnostic).
+        g.stroke = BasicStroke(maxOf(1f, stroke / 2f))
+        g.color = Color(0x55, 0x99, 0xFF, 0x70)
+        for (rf in doubleArrayOf(0.78, 1.0, 1.22)) {
+            val rr = edge.seedR * rf
+            g.draw(Ellipse2D.Double(edge.seedCx - rr, edge.seedCy - rr, 2 * rr, 2 * rr))
+        }
         // Sampled rim points (orange) — should sit on the black/white edge.
         g.color = Color(0xFF, 0xA0, 0x00)
         val d = maxOf(3f, img.width / 220f)

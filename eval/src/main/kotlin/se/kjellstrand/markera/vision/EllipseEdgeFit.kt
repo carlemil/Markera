@@ -26,11 +26,73 @@ class EdgeFitResult(
     val rms: Double,
 )
 
+/** Bilinear luminance sample, clamped to the image. */
+private fun sampleLum(gray: ByteArray, width: Int, height: Int, x: Double, y: Double): Double {
+    val xi = x.coerceIn(0.0, (width - 1).toDouble())
+    val yi = y.coerceIn(0.0, (height - 1).toDouble())
+    val x0 = xi.toInt()
+    val y0 = yi.toInt()
+    val x1 = min(x0 + 1, width - 1)
+    val y1 = min(y0 + 1, height - 1)
+    val fx = xi - x0
+    val fy = yi - y0
+    val p00 = (gray[y0 * width + x0].toInt() and 0xFF).toDouble()
+    val p10 = (gray[y0 * width + x1].toInt() and 0xFF).toDouble()
+    val p01 = (gray[y1 * width + x0].toInt() and 0xFF).toDouble()
+    val p11 = (gray[y1 * width + x1].toInt() and 0xFF).toDouble()
+    val a = p00 + (p10 - p00) * fx
+    val b = p01 + (p11 - p01) * fx
+    return a + (b - a) * fy
+}
+
 /**
- * Cast [rays] rays outward from the seed and, on each, take the OUTERMOST
- * dark->light luminance crossing of [threshold] within [rMin]..[rMax]
- * (sub-pixel by linear interpolation). Interior holes/pasters lie at smaller
- * radius than the rim, so the outermost crossing skips them. Returns [x, y].
+ * Estimate the black-disk rim radius from an angle-averaged radial luminance
+ * profile about (cx, cy). Printed ring lines, digits, holes and pasters average
+ * out, leaving one strong dark->light step at the rim. Returns the radius of the
+ * steepest rise within [rLo, rHi], or -1 if none stands out.
+ */
+fun estimateDiskRadius(
+    gray: ByteArray,
+    width: Int,
+    height: Int,
+    cx: Double,
+    cy: Double,
+    rLo: Double,
+    rHi: Double,
+    rays: Int = 180,
+): Double {
+    val n = rHi.toInt() + 1
+    if (n < 4) return -1.0
+    val prof = DoubleArray(n)
+    for (ri in 0 until n) {
+        var s = 0.0
+        for (a in 0 until rays) {
+            val ang = 2.0 * PI * a / rays
+            s += sampleLum(gray, width, height, cx + cos(ang) * ri, cy + sin(ang) * ri)
+        }
+        prof[ri] = s / rays
+    }
+    val k = 6
+    var bestR = -1.0
+    var bestSlope = 0.0
+    var r = max(rLo.toInt(), k)
+    while (r < min(rHi.toInt(), n - k - 1)) {
+        val slope = prof[r + k] - prof[r - k]
+        if (slope > bestSlope) {
+            bestSlope = slope
+            bestR = r.toDouble()
+        }
+        r++
+    }
+    return bestR
+}
+
+/**
+ * Cast [rays] rays and, on each, take the strongest dark->light edge within a
+ * narrow band around the expected rim radius [expectedR] (+/- [bandFrac]). The
+ * band excludes interior ring lines (smaller radius) and exterior digits/paper
+ * (larger radius), so the rim is unambiguous. Sub-pixel via the [threshold]
+ * crossing at the gradient peak. Returns [x, y].
  */
 fun radialEdgePoints(
     gray: ByteArray,
@@ -38,50 +100,103 @@ fun radialEdgePoints(
     height: Int,
     seedCx: Double,
     seedCy: Double,
-    rMin: Double,
-    rMax: Double,
+    expectedR: Double,
     threshold: Int,
+    bandFrac: Double = 0.22,
     rays: Int = 360,
 ): List<DoubleArray> {
-    fun lum(x: Double, y: Double): Double {
-        val xi = x.coerceIn(0.0, (width - 1).toDouble())
-        val yi = y.coerceIn(0.0, (height - 1).toDouble())
-        val x0 = xi.toInt()
-        val y0 = yi.toInt()
-        val x1 = min(x0 + 1, width - 1)
-        val y1 = min(y0 + 1, height - 1)
-        val fx = xi - x0
-        val fy = yi - y0
-        val p00 = (gray[y0 * width + x0].toInt() and 0xFF).toDouble()
-        val p10 = (gray[y0 * width + x1].toInt() and 0xFF).toDouble()
-        val p01 = (gray[y1 * width + x0].toInt() and 0xFF).toDouble()
-        val p11 = (gray[y1 * width + x1].toInt() and 0xFF).toDouble()
-        val a = p00 + (p10 - p00) * fx
-        val b = p01 + (p11 - p01) * fx
-        return a + (b - a) * fy
-    }
-
-    val out = ArrayList<DoubleArray>(rays)
+    val rLo = max(2.0, (1.0 - bandFrac) * expectedR)
+    val rHi = min((1.0 + bandFrac) * expectedR, 0.5 * min(width, height) - 2.0)
+    if (rHi <= rLo + 2) return emptyList()
     val thr = threshold.toDouble()
+    val out = ArrayList<DoubleArray>(rays)
     for (i in 0 until rays) {
         val ang = 2.0 * PI * i / rays
         val dx = cos(ang)
         val dy = sin(ang)
-        var prevR = rMin
-        var prevL = lum(seedCx + dx * rMin, seedCy + dy * rMin)
+        // Find the radius of the strongest positive (dark->light) gradient.
+        var bestSlope = 0.0
         var bestR = -1.0
-        var r = rMin + 1.0
-        while (r <= rMax) {
-            val l = lum(seedCx + dx * r, seedCy + dy * r)
-            if (prevL <= thr && l > thr) {
-                val t = if (l != prevL) (thr - prevL) / (l - prevL) else 0.5
-                bestR = prevR + (r - prevR) * t
+        var prevL = sampleLum(gray, width, height, seedCx + dx * rLo, seedCy + dy * rLo)
+        var r = rLo + 1.0
+        while (r <= rHi) {
+            val l = sampleLum(gray, width, height, seedCx + dx * r, seedCy + dy * r)
+            val slope = l - prevL
+            if (slope > bestSlope && (prevL <= thr || l > thr)) {
+                bestSlope = slope
+                // sub-pixel: where it crosses thr between r-1 and r, else midpoint
+                bestR = if (prevL <= thr && l > thr && l != prevL) {
+                    (r - 1.0) + (thr - prevL) / (l - prevL)
+                } else {
+                    r - 0.5
+                }
             }
-            prevR = r
             prevL = l
             r += 1.0
         }
-        if (bestR > 0.0) out.add(doubleArrayOf(seedCx + dx * bestR, seedCy + dy * bestR))
+        // Require a real edge (contrast), not flat noise.
+        if (bestR > 0.0 && bestSlope > 12.0) {
+            out.add(doubleArrayOf(seedCx + dx * bestR, seedCy + dy * bestR))
+        }
+    }
+    return out
+}
+
+/** Radius of ellipse [e] from its centre at image-frame polar angle [theta]. */
+private fun ellipseRadiusAt(e: FittedEllipse, theta: Double): Double {
+    val a = e.semiMajor.toDouble()
+    val b = e.semiMinor.toDouble()
+    val c = cos(theta - e.rotationRad.toDouble())
+    val s = sin(theta - e.rotationRad.toDouble())
+    val denom = sqrt(b * b * c * c + a * a * s * s)
+    return if (denom > 1e-9) a * b / denom else a
+}
+
+/**
+ * Re-sample the rim with each ray's band centred on ellipse [e]'s own radius at
+ * that angle, so a tilted (elliptical) rim is followed tightly. Used as a second
+ * pass after a first circular-band fit.
+ */
+fun radialEdgePointsAround(
+    gray: ByteArray,
+    width: Int,
+    height: Int,
+    e: FittedEllipse,
+    threshold: Int,
+    bandFrac: Double = 0.15,
+    rays: Int = 360,
+): List<DoubleArray> {
+    val ox = e.cx.toDouble()
+    val oy = e.cy.toDouble()
+    val thr = threshold.toDouble()
+    val out = ArrayList<DoubleArray>(rays)
+    for (i in 0 until rays) {
+        val ang = 2.0 * PI * i / rays
+        val dx = cos(ang)
+        val dy = sin(ang)
+        val expR = ellipseRadiusAt(e, ang)
+        val rLo = max(2.0, (1.0 - bandFrac) * expR)
+        val rHi = min((1.0 + bandFrac) * expR, 0.5 * min(width, height) - 2.0)
+        if (rHi <= rLo + 2) continue
+        var bestSlope = 0.0
+        var bestR = -1.0
+        var prevL = sampleLum(gray, width, height, ox + dx * rLo, oy + dy * rLo)
+        var r = rLo + 1.0
+        while (r <= rHi) {
+            val l = sampleLum(gray, width, height, ox + dx * r, oy + dy * r)
+            val slope = l - prevL
+            if (slope > bestSlope && (prevL <= thr || l > thr)) {
+                bestSlope = slope
+                bestR = if (prevL <= thr && l > thr && l != prevL) {
+                    (r - 1.0) + (thr - prevL) / (l - prevL)
+                } else {
+                    r - 0.5
+                }
+            }
+            prevL = l
+            r += 1.0
+        }
+        if (bestR > 0.0 && bestSlope > 12.0) out.add(doubleArrayOf(ox + dx * bestR, oy + dy * bestR))
     }
     return out
 }
@@ -266,13 +381,29 @@ fun calibrateBlackRingEdge(
     }
     val seedCx = seed?.centroidX?.toDouble() ?: imgCx
     val seedCy = seed?.centroidY?.toDouble() ?: imgCy
-    val seedR = seed?.let { sqrt(it.pixelCount.toDouble() / PI) } ?: guideRadiusPx.toDouble()
 
-    val rMax = min(1.6 * seedR, 0.49 * minAxis)
-    val pts = radialEdgePoints(gray, width, height, seedCx, seedCy, 0.4 * seedR, rMax, threshold)
+    // Robust rim radius from the angle-averaged profile (ring lines/digits/holes
+    // average out). Search broadly; fall back to the blob radius / guide radius.
+    val blobR = seed?.let { sqrt(it.pixelCount.toDouble() / PI) } ?: guideRadiusPx.toDouble()
+    val profR = estimateDiskRadius(gray, width, height, seedCx, seedCy, 0.12 * minAxis, 0.49 * minAxis)
+    val seedR = if (profR > 0) profR else blobR
+
+    var pts = radialEdgePoints(gray, width, height, seedCx, seedCy, seedR, threshold)
     if (pts.size < 24) return EdgeFitResult(null, pts, seedCx, seedCy, seedR, 0.0)
-
-    val fitted = fitEllipseRobust(pts) ?: return EdgeFitResult(null, pts, seedCx, seedCy, seedR, 0.0)
+    var fitted = fitEllipseRobust(pts) ?: return EdgeFitResult(null, pts, seedCx, seedCy, seedR, 0.0)
+    // Second pass: re-anchor each ray's band on the first ellipse's radius so a
+    // tilted rim (radius varies with angle) is followed tightly.
+    run {
+        val e0 = fitted.first
+        val pts2 = radialEdgePointsAround(gray, width, height, e0, threshold)
+        if (pts2.size >= 24) {
+            val f2 = fitEllipseRobust(pts2)
+            if (f2 != null) {
+                pts = pts2
+                fitted = f2
+            }
+        }
+    }
     val (e, rms) = fitted
     if (e.semiMajor < 0.1 * minAxis || e.semiMajor > 0.5 * minAxis) {
         return EdgeFitResult(null, pts, seedCx, seedCy, seedR, rms)
