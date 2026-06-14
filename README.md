@@ -14,48 +14,74 @@ app, then save the results to a local database and possibly a backend
 > Note: persistence, backend sync, and export are goals — they are not
 > implemented yet. Today scores are entered manually via the on-screen pickers.
 
-## Solution attempts
+## Approaches we've tried
 
-### 1. Train the model on holes
+Automatic scoring needs two things from the photo: the **centre** of the rings
+and the **scale** (where each ring is). Below is what we've tried for each, what
+failed and why, and what worked.
 
-Train the model to detect holes, then compute the score from the distance
-between the "centre" and the 6th/7th ring.
+### Detect holes, score against a detected centre — failed
 
-**Result:** Works poorly. Detecting the centre is very jittery and almost always
-lands in the wrong place, which leads to incorrect scores. The 6th–7th ring
-detection would also need to be improved.
+Train a model to find the bullet holes, then score each hole from its distance
+to the centre and the 6/7 ring.
 
-### 2. Train the model to mark scores
+**Why it failed:** the centre estimate was very jittery and usually landed in the
+wrong place, so the scores were wrong. It also leaned on a 6/7-ring detection
+that wasn't good enough.
 
-Train the model to mark scores directly, not just holes.
+### Train the model to mark scores directly — failed in practice
 
-**Result:** Worked well on the verification data, but poorly in practice. A
-larger training dataset might help, but it is hard to create and very
-time-consuming. The lower scores in particular — which are rarer in the training
-data — were scored more or less at random.
+Skip the geometry and train the model to output the scores.
 
-### 3. Train on holes + a geometric centre (in progress)
+**Why it failed:** good on the held-out validation images, poor in real use. The
+rarer low scores were essentially guessed, and growing the dataset enough is slow
+and hard.
 
-Train the model on holes, then find the target centre geometrically from the
-printed ring digits instead of asking the model for it:
+### Centre from the printed digits — works
 
-1. Detect holes with the YOLOv8 ONNX model.
-2. Read the ring digits with ML Kit's on-device text recogniser.
-3. Keep only the **outer 6–9** labels — they sit at fixed positions and line up
-   cleanly, whereas the inner 1–5 are closer to the centre and may not align.
-4. Split the digits into a horizontal and a vertical row by orientation, pivoting
-   on the **median** so a stray misread can't drag the split.
-5. Fit a total-least-squares line through each row; their intersection is the
-   centre. A sparse row still resolves from just two digits when they straddle
-   the image centre along that axis and form a roughly level row.
+Read the ring digits with on-device OCR (ML Kit), keep the outer **6–9** (they
+sit at fixed, well-aligned positions; the inner 1–5 can be off), split them into
+a horizontal and a vertical row, fit a line through each, and intersect.
 
-**Result:** Promising where enough outer digits are readable — the centre lands
-convincingly, including on tilted/perspective shots, and a stray digit no longer
-throws it off. It still returns "no centre" on the hard frames (heavily-pasted
-close-ups where a whole digit row is unreadable). Validated by an on-device
-harness that renders annotated 3×3 mosaics over the dataset for eyeballing.
-Turning the centre into an automatic score — and detecting the black ellipse
-(the 6/7 ring boundary) to recover scale — is the next step.
+**Why it works:** the digit rows are physically anchored to the true centre. Made
+robust with a **median-based** row split (a stray misread can't drag it) and a
+relaxed rule that accepts a two-digit row only when the pair straddles the centre.
+It returns "no centre" — on purpose, rather than guess — when the black is so
+heavily pasted that the 6–9 digits can't be read.
+
+### Black 6/7 ring: ellipse from the dark blob — partly worked
+
+Otsu threshold → connected-component dark blob → ellipse from the blob's pixel
+moments (a tilted circle projects to an ellipse, so an ellipse is the right
+shape).
+
+**Why it fell short:** it fit the *filled region*, not the edge, so pasters that
+bloat or dent the blob pulled it off, and it sometimes locked onto a small
+cluster of dark pasters. An "expected size ≈ viewfinder circle" prior removed the
+worst false positives but didn't fix the region-vs-edge mismatch.
+
+### Black 6/7 ring: fit to the edge — better, not enough
+
+Sample the black→white edge directly (radial scan, then gradient edges + RANSAC)
+and fit a conic to those points.
+
+**Why it's still short:** a first version latched onto the wrong edge — printed
+numbers and the paper edge *outside* the black — and produced garbage; anchoring
+the search to a profile-estimated rim radius fixed that. The RANSAC version
+(keeping only radially-outward edges, contrast-weighted, with a coverage check)
+is precise on well-framed targets and robust to interior pasters, but it can fit
+the *wrong concentric ring*, and cut-off targets fail. Only ~30% of fits land on
+the true 6/7 ring; we need ~95%.
+
+### Black 6/7 ring: let the digits identify the ring — in progress
+
+The rings are concentric, equally-spaced circles, so under mild perspective they
+project to ellipses that share a centre, rotation and aspect ratio (scaled
+copies — *not* confocal). The already-detected 6–9 digit boxes give the centre
+and, through their labelled radii, the ring spacing — so we can predict exactly
+where the 6/7 boundary is and which detected ellipse it should be, then snap that
+to the real edge for precision. Self-calibrating from the digits, with no
+hard-coded target spec. Currently being wired into the on-device pipeline.
 
 ## Technical overview
 
