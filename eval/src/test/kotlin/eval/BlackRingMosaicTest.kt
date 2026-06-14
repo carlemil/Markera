@@ -2,9 +2,10 @@ package eval
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import se.kjellstrand.markera.vision.EdgeFitResult
 import se.kjellstrand.markera.vision.TargetCalibration
 import se.kjellstrand.markera.vision.calibrateBlackRing
-import se.kjellstrand.markera.vision.calibrateFromGrayscale
+import se.kjellstrand.markera.vision.calibrateBlackRingEdge
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.RenderingHints
@@ -16,28 +17,25 @@ import javax.imageio.ImageIO
 import kotlin.math.min
 
 /**
- * Compares the recovered generic black-7-ring selector against the tightened
- * one (guide-circle radius prior + image-centre prior) over the dataset, and
- * writes one annotated 3x3 mosaic set per selector so we can see how the false
- * positives and NO-FITs improve. Mirrors the app's square capture (centre-crop
- * + downscale).
+ * Compares the moment-based black-ring fit (tight, guide-circle prior) against
+ * the new edge-based fit (radial rim sampling + direct ellipse fit) over the
+ * dataset, and writes annotated 3x3 mosaics for each. The edge mosaic also
+ * draws the sampled rim points so it can be checked that the ellipse sits on
+ * the actual black/white boundary. Mirrors the app's square capture.
  *
  *   ./gradlew :eval:test --tests "eval.BlackRingMosaicTest" \
- *       -Dmosaic.images="D:/ml/holes/dataset/images"
+ *       -Dmosaic.images="D:/ml/holes/newDataset"
  */
 class BlackRingMosaicTest {
 
     private val imagesDir = System.getProperty("mosaic.images", "D:/ml/holes/dataset/images")
     private val workSize = 1024
-
-    // The app frames the target inside the viewfinder circle (radius 0.35 of
-    // the viewport); in the square work image that is this many pixels.
     private val guideRadiusPx = 0.35f * workSize
     private val cols = 3
     private val rows = 3
 
     @Test
-    fun `compares baseline vs tightened black-ring fit`() {
+    fun `compares moment fit vs edge fit`() {
         val dir = File(imagesDir)
         assertTrue("images dir not found: $imagesDir", dir.isDirectory)
         val all = dir.walkTopDown()
@@ -49,47 +47,48 @@ class BlackRingMosaicTest {
 
         val results = all.map { processOne(it) }
         val outDir = File("build/mosaic").apply { mkdirs() }
-        writeMosaics(outDir, "black_ring_base_mosaic", results.map { it.baseTile })
         writeMosaics(outDir, "black_ring_tight_mosaic", results.map { it.tightTile })
+        writeMosaics(outDir, "black_ring_edge_mosaic", results.map { it.edgeTile })
 
-        val baseFit = results.count { it.base != null }
         val tightFit = results.count { it.tight != null }
-        val bothFit = results.count { it.base != null && it.tight != null }
-        val droppedByTight = results.filter { it.base != null && it.tight == null }
-        val gainedByTight = results.filter { it.base == null && it.tight != null }
+        val edgeFit = results.count { it.edge.calib != null }
+        val rmsValues = results.mapNotNull { if (it.edge.calib != null) it.edge.rms else null }.sorted()
+        val medianRms = if (rmsValues.isEmpty()) 0.0 else rmsValues[rmsValues.size / 2]
 
-        println("[blackring] === comparison ===")
-        println("[blackring] baseline fits : $baseFit/${results.size}")
-        println("[blackring] tightened fits: $tightFit/${results.size}")
-        println("[blackring] both fit      : $bothFit")
-        println("[blackring] dropped by tightening (likely false positives): ${droppedByTight.size}")
-        droppedByTight.forEach { println("[blackring]    - ${it.name}  base a=${it.base!!.semiMajorPx.toInt()}") }
-        println("[blackring] gained by tightening: ${gainedByTight.size}")
-        gainedByTight.forEach { println("[blackring]    + ${it.name}  tight a=${it.tight!!.semiMajorPx.toInt()}") }
-
-        assertTrue("no mosaic written", File(outDir, "black_ring_tight_mosaic_0.png").isFile)
+        println("[blackring] === moment (tight) vs edge ===")
+        println("[blackring] tight fits: $tightFit/${results.size}")
+        println("[blackring] edge fits : $edgeFit/${results.size}  median rim RMS=%.2f px".format(medianRms))
+        results.forEach { r ->
+            val e = r.edge.calib
+            if (e != null) {
+                println("[blackring]   ${r.name}: a=%.0f b=%.0f rms=%.2f pts=%d".format(e.semiMajorPx, e.semiMinorPx, r.edge.rms, r.edge.points.size))
+            } else {
+                println("[blackring]   ${r.name}: edge NO FIT (pts=${r.edge.points.size})")
+            }
+        }
+        assertTrue("no mosaic written", File(outDir, "black_ring_edge_mosaic_0.png").isFile)
     }
 
     private class TileResult(
         val name: String,
-        val base: TargetCalibration?,
         val tight: TargetCalibration?,
-        val baseTile: BufferedImage,
+        val edge: EdgeFitResult,
         val tightTile: BufferedImage,
+        val edgeTile: BufferedImage,
     )
 
     private fun processOne(file: File): TileResult {
         val src = ImageIO.read(file) ?: error("could not decode ${file.name}")
         val work = squareDownscale(src, workSize)
         val gray = toGray(work)
-        val base = calibrateFromGrayscale(gray, work.width, work.height)
         val tight = calibrateBlackRing(gray, work.width, work.height, guideRadiusPx)
+        val edge = calibrateBlackRingEdge(gray, work.width, work.height, guideRadiusPx)
         return TileResult(
             name = file.name,
-            base = base,
             tight = tight,
-            baseTile = annotate(work, base, file.name, drawGuide = false),
+            edge = edge,
             tightTile = annotate(work, tight, file.name, drawGuide = true),
+            edgeTile = annotateEdge(work, edge, file.name),
         )
     }
 
@@ -102,7 +101,6 @@ class BlackRingMosaicTest {
         }
     }
 
-    /** Centre-crop to a square, then scale to [size]x[size]. */
     private fun squareDownscale(src: BufferedImage, size: Int): BufferedImage {
         val side = min(src.width, src.height)
         val x = (src.width - side) / 2
@@ -132,48 +130,71 @@ class BlackRingMosaicTest {
         return out
     }
 
-    private fun annotate(
-        img: BufferedImage,
-        calib: TargetCalibration?,
-        name: String,
-        drawGuide: Boolean,
-    ): BufferedImage {
+    private fun drawEllipse(g: java.awt.Graphics2D, c: TargetCalibration, stroke: Float) {
+        g.color = Color(0x00, 0xE6, 0x76)
+        g.stroke = BasicStroke(stroke)
+        val tx = AffineTransform()
+        tx.translate(c.centerX.toDouble(), c.centerY.toDouble())
+        tx.rotate(c.rotationRad.toDouble())
+        g.draw(
+            tx.createTransformedShape(
+                Ellipse2D.Double(
+                    -c.semiMajorPx.toDouble(),
+                    -c.semiMinorPx.toDouble(),
+                    2.0 * c.semiMajorPx,
+                    2.0 * c.semiMinorPx,
+                ),
+            ),
+        )
+        g.color = Color(0xFF, 0x17, 0x44)
+        val arm = 18f * stroke
+        g.drawLine((c.centerX - arm).toInt(), c.centerY.toInt(), (c.centerX + arm).toInt(), c.centerY.toInt())
+        g.drawLine(c.centerX.toInt(), (c.centerY - arm).toInt(), c.centerX.toInt(), (c.centerY + arm).toInt())
+    }
+
+    private fun annotate(img: BufferedImage, calib: TargetCalibration?, name: String, drawGuide: Boolean): BufferedImage {
         val out = BufferedImage(img.width, img.height, BufferedImage.TYPE_INT_RGB)
         val g = out.createGraphics()
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.drawImage(img, 0, 0, null)
         val stroke = maxOf(2f, img.width / 320f)
         if (drawGuide) {
-            // Faint guide-circle prior used by the tightened selector.
             g.color = Color(0x55, 0xFF, 0xFF, 0x80)
             g.stroke = BasicStroke(maxOf(1f, stroke / 2f))
             val r = guideRadiusPx
             g.draw(Ellipse2D.Double((img.width / 2f - r).toDouble(), (img.height / 2f - r).toDouble(), (2 * r).toDouble(), (2 * r).toDouble()))
         }
         if (calib != null) {
-            g.color = Color(0x00, 0xE6, 0x76)
-            g.stroke = BasicStroke(stroke)
-            val tx = AffineTransform()
-            tx.translate(calib.centerX.toDouble(), calib.centerY.toDouble())
-            tx.rotate(calib.rotationRad.toDouble())
-            val ell = Ellipse2D.Double(
-                -calib.semiMajorPx.toDouble(),
-                -calib.semiMinorPx.toDouble(),
-                2.0 * calib.semiMajorPx,
-                2.0 * calib.semiMinorPx,
-            )
-            g.draw(tx.createTransformedShape(ell))
-            g.color = Color(0xFF, 0x17, 0x44)
-            val arm = img.width / 40f
-            val cx = calib.centerX
-            val cy = calib.centerY
-            g.drawLine((cx - arm).toInt(), cy.toInt(), (cx + arm).toInt(), cy.toInt())
-            g.drawLine(cx.toInt(), (cy - arm).toInt(), cx.toInt(), (cy + arm).toInt())
+            drawEllipse(g, calib, stroke)
             g.color = Color.WHITE
             g.drawString("%s  conf=%.2f".format(name, calib.confidence), 12, img.height - 14)
         } else {
             g.color = Color(0xFF, 0x17, 0x44)
             g.drawString("$name  NO FIT", 12, img.height - 14)
+        }
+        g.dispose()
+        return out
+    }
+
+    private fun annotateEdge(img: BufferedImage, edge: EdgeFitResult, name: String): BufferedImage {
+        val out = BufferedImage(img.width, img.height, BufferedImage.TYPE_INT_RGB)
+        val g = out.createGraphics()
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g.drawImage(img, 0, 0, null)
+        val stroke = maxOf(2f, img.width / 320f)
+        // Sampled rim points (orange) — should sit on the black/white edge.
+        g.color = Color(0xFF, 0xA0, 0x00)
+        val d = maxOf(3f, img.width / 220f)
+        for (p in edge.points) {
+            g.fillOval((p[0] - d / 2).toInt(), (p[1] - d / 2).toInt(), d.toInt(), d.toInt())
+        }
+        if (edge.calib != null) {
+            drawEllipse(g, edge.calib, stroke)
+            g.color = Color.WHITE
+            g.drawString("%s  rms=%.1fpx".format(name, edge.rms), 12, img.height - 14)
+        } else {
+            g.color = Color(0xFF, 0x17, 0x44)
+            g.drawString("$name  edge NO FIT", 12, img.height - 14)
         }
         g.dispose()
         return out
