@@ -10,19 +10,17 @@ import kotlin.math.sqrt
  * Tightened black-7-ring calibration. Same Otsu -> connected-components ->
  * ellipse-fit core as [calibrateFromGrayscale], but blob selection is anchored
  * to a prior: the app frames the target inside the viewfinder guide circle, so
- * the black ring should be roughly [expectedRadiusPx] and centred on
- * ([seedCx], [seedCy]) — the digit-line centre when known, else the image
- * centre. Blobs are scored by solidity x radius-prior x centre-prior, which
- * suppresses the small, very-central paster-cluster blobs the generic selector
- * locked onto.
+ * the black ring should be roughly [expectedRadiusPx] and centred in the frame.
+ * Blobs are scored by solidity x radius-prior x centre-prior, which suppresses
+ * the small, very-central paster-cluster blobs the generic selector locked
+ * onto. (A digit-line-centre seed was tried and dropped: it never differed from
+ * the image centre on framed-centred targets.)
  */
 fun calibrateBlackRing(
     gray: ByteArray,
     width: Int,
     height: Int,
     expectedRadiusPx: Float,
-    seedCx: Float = width / 2f,
-    seedCy: Float = height / 2f,
 ): TargetCalibration? {
     if (width <= 0 || height <= 0 || gray.size < width * height) return null
     val threshold = otsuThreshold(gray, width, height)
@@ -52,8 +50,8 @@ fun calibrateBlackRing(
         if (solidity < 0.5) return@mapNotNull null
         val rz = (rEst - expectedRadiusPx) / radiusSigma
         val radiusWeight = exp(-(rz * rz).toDouble())
-        val dx = b.centroidX - seedCx
-        val dy = b.centroidY - seedCy
+        val dx = b.centroidX - width / 2f
+        val dy = b.centroidY - height / 2f
         val dist = sqrt((dx * dx + dy * dy).toDouble()).toFloat()
         val cz = dist / centreSigma
         val centreWeight = exp(-(cz * cz).toDouble())
