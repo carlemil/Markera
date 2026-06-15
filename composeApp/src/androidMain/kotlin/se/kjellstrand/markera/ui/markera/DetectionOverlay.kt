@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.markera
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,11 +11,14 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
+import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.TargetLine
 import kotlin.math.PI
 import kotlin.math.min
@@ -34,11 +38,13 @@ fun DetectionOverlay(
     digits: List<DigitDetection> = emptyList(),
     centre: CentreEstimate? = null,
     ring: FittedEllipse? = null,
+    scores: List<HitScore> = emptyList(),
     boxColor: Color = Color(0xFF00E676),
     digitColor: Color = Color(0xFF00B0FF),
     centreColor: Color = Color(0xFFFF1744),
     rowLineColor: Color = Color(0xFFFFC400),
     ringColor: Color = Color(0xFF00E676),
+    scoreColor: Color = Color(0xFFFFFFFF),
     strokeWidthPx: Float = 4f,
 ) {
     Canvas(modifier = modifier) {
@@ -72,6 +78,25 @@ fun DetectionOverlay(
                 size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
                 style = Stroke(width = strokeWidthPx),
             )
+        }
+
+        // Ring-value label at each scored hole's centre ("X" for inner-ten).
+        if (scores.isNotEmpty()) {
+            val labelPaint = Paint().apply {
+                isAntiAlias = true
+                color = scoreColor.toArgb()
+                textSize = (14f * scale).coerceIn(22f, 64f)
+                textAlign = Paint.Align.CENTER
+                setShadowLayer(6f, 0f, 2f, android.graphics.Color.BLACK)
+                isFakeBoldText = true
+            }
+            scores.forEach { hit ->
+                val label = if (hit.isInnerTen) "X" else hit.ring.toString()
+                val x = hit.centerXpx * scale + offsetX
+                // Sit the label just below the hole centre, baseline-adjusted.
+                val y = hit.centerYpx * scale + offsetY - labelPaint.ascent() / 2f
+                drawContext.canvas.nativeCanvas.drawText(label, x, y, labelPaint)
+            }
         }
 
         digits.forEach { d ->

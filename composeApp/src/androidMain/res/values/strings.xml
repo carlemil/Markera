@@ -5,4 +5,5 @@
     <string name="markera_detect">Detektera</string>
     <string name="markera_resume_live">Tillbaka till kamera</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
+    <string name="markera_total">Summa: %1$d</string>
 </resources>

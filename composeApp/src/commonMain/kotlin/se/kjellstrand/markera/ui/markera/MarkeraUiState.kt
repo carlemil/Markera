@@ -4,6 +4,7 @@ import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
+import se.kjellstrand.markera.vision.HitScore
 
 data class MarkeraUiState(
     val detections: List<Detection> = emptyList(),
@@ -11,6 +12,8 @@ data class MarkeraUiState(
     val centre: CentreEstimate? = null,
     /** Digit-predicted 6/7 boundary, snapped to the black->white edge. */
     val ring: FittedEllipse? = null,
+    /** Per-hole ring scores, inner-X first; the first five fill the pickers. */
+    val scores: List<HitScore> = emptyList(),
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
     val phase: ScanPhase = ScanPhase.IDLE,

@@ -82,6 +82,7 @@ import se.kjellstrand.markera.vision.fit67RingFromDigits
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
 import se.kjellstrand.markera.vision.refine67ToEdge
+import se.kjellstrand.markera.vision.scoreHits
 
 private const val TAG = "Markera"
 private const val CONFIDENCE_THRESHOLD = 0.35f
@@ -193,13 +194,20 @@ fun MarkeraScreen() {
                     ),
                     detector.inputSize, snapshot.width, snapshot.height,
                 )
+                // Score each hole against the digit centre and the 6/7 ring.
+                val scores = if (centre.method != CentreMethod.NONE && ring != null) {
+                    scoreHits(detections, centre, ring)
+                } else {
+                    emptyList()
+                }
                 Log.d(
                     TAG,
                     "snapshot ${snapshot.width}x${snapshot.height}: " +
                         "raw=${raws.size} kept=${detections.size} " +
-                        "digits=${digits.size} centre=${centre.method} ring=${ring != null}",
+                        "digits=${digits.size} centre=${centre.method} ring=${ring != null} " +
+                        "scores=${scores.map { if (it.isInnerTen) "X" else it.ring.toString() }}",
                 )
-                viewModel.onHolesDetected(detections)
+                viewModel.onHolesDetected(detections, scores)
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
                 viewModel.setError(errorInference)
@@ -349,6 +357,7 @@ private fun Viewport(
             digits = uiState.digits,
             centre = uiState.centre,
             ring = uiState.ring,
+            scores = uiState.scores,
             imageWidth = uiState.imageWidth,
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),
@@ -360,6 +369,21 @@ private fun Viewport(
                 imageWidth = uiState.imageWidth,
                 imageHeight = uiState.imageHeight,
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+        // Series total (X counts as 10), tracking the pickers so it follows
+        // any manual edit. Shown once a scored series exists.
+        if (uiState.scores.isNotEmpty()) {
+            val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
+            Text(
+                text = stringResource(R.string.markera_total, total),
+                color = Color(0xFF00E676),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    shadow = Shadow(color = Color.Black, offset = Offset(0f, 2f), blurRadius = 10f),
+                ),
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp),
             )
         }
     }

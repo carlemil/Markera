@@ -5,6 +5,7 @@ import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
+import se.kjellstrand.markera.vision.HitScore
 
 interface MarkeraViewModel {
     val uiState: StateFlow<MarkeraUiState>
@@ -24,8 +25,11 @@ interface MarkeraViewModel {
         imageHeight: Int,
     )
 
-    /** Phase 2 done: publish the holes and return to idle. */
-    fun onHolesDetected(detections: List<Detection>)
+    /**
+     * Phase 2 done: publish the holes and their [scores], auto-fill the score
+     * pickers from the top hits, and return to idle.
+     */
+    fun onHolesDetected(detections: List<Detection>, scores: List<HitScore>)
 
     /** Clear detection overlay state. */
     fun clearResults()

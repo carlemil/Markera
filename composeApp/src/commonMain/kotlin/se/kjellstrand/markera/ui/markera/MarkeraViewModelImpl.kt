@@ -9,6 +9,7 @@ import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
+import se.kjellstrand.markera.vision.HitScore
 
 class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
 
@@ -22,6 +23,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 digits = emptyList(),
                 centre = null,
                 ring = null,
+                scores = emptyList(),
                 imageWidth = 0,
                 imageHeight = 0,
                 phase = ScanPhase.GEOMETRY,
@@ -51,8 +53,21 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         }
     }
 
-    override fun onHolesDetected(detections: List<Detection>) {
-        _uiState.update { it.copy(detections = detections, phase = ScanPhase.IDLE, error = null) }
+    override fun onHolesDetected(detections: List<Detection>, scores: List<HitScore>) {
+        // Auto-fill the pickers from the top hits (inner-X -> index 11, else the
+        // ring value), padded to the picker count. Still user-editable afterwards.
+        val picks = scores.take(SCORE_PICKER_COUNT)
+            .map { if (it.isInnerTen) SCORE_PICKER_INNER_TEN else it.ring }
+        val topScores = List(SCORE_PICKER_COUNT) { i -> picks.getOrElse(i) { 0 } }
+        _uiState.update {
+            it.copy(
+                detections = detections,
+                scores = scores,
+                topScores = topScores,
+                phase = ScanPhase.IDLE,
+                error = null,
+            )
+        }
     }
 
     override fun clearResults() {
@@ -62,6 +77,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 digits = emptyList(),
                 centre = null,
                 ring = null,
+                scores = emptyList(),
                 imageWidth = 0,
                 imageHeight = 0,
                 phase = ScanPhase.IDLE,
