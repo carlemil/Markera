@@ -9,9 +9,14 @@ import se.kjellstrand.markera.vision.FittedEllipse
 interface MarkeraViewModel {
     val uiState: StateFlow<MarkeraUiState>
 
-    /** Push the result of one inference pass on a frozen snapshot. */
-    fun onFrameAnalysed(
-        detections: List<Detection>,
+    /** Begin a detect pass: clear the stale overlay and enter the geometry phase. */
+    fun startDetect()
+
+    /**
+     * Phase 1 done: publish the centre and 6/7 ring (and the digits behind
+     * them) and enter the holes phase, where the spinner runs.
+     */
+    fun onGeometryReady(
         digits: List<DigitDetection>,
         centre: CentreEstimate?,
         ring: FittedEllipse?,
@@ -19,10 +24,11 @@ interface MarkeraViewModel {
         imageHeight: Int,
     )
 
+    /** Phase 2 done: publish the holes and return to idle. */
+    fun onHolesDetected(detections: List<Detection>)
+
     /** Clear detection overlay state. */
     fun clearResults()
-
-    fun setProcessing(isProcessing: Boolean)
 
     fun setError(message: String?)
 

@@ -15,8 +15,22 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
     private val _uiState = MutableStateFlow(MarkeraUiState())
     override val uiState: StateFlow<MarkeraUiState> = _uiState.asStateFlow()
 
-    override fun onFrameAnalysed(
-        detections: List<Detection>,
+    override fun startDetect() {
+        _uiState.update {
+            it.copy(
+                detections = emptyList(),
+                digits = emptyList(),
+                centre = null,
+                ring = null,
+                imageWidth = 0,
+                imageHeight = 0,
+                phase = ScanPhase.GEOMETRY,
+                error = null,
+            )
+        }
+    }
+
+    override fun onGeometryReady(
         digits: List<DigitDetection>,
         centre: CentreEstimate?,
         ring: FittedEllipse?,
@@ -25,16 +39,20 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
     ) {
         _uiState.update {
             it.copy(
-                detections = detections,
                 digits = digits,
                 centre = centre,
                 ring = ring,
                 imageWidth = imageWidth,
                 imageHeight = imageHeight,
-                isProcessing = false,
+                detections = emptyList(),
+                phase = ScanPhase.HOLES,
                 error = null,
             )
         }
+    }
+
+    override fun onHolesDetected(detections: List<Detection>) {
+        _uiState.update { it.copy(detections = detections, phase = ScanPhase.IDLE, error = null) }
     }
 
     override fun clearResults() {
@@ -46,19 +64,15 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 ring = null,
                 imageWidth = 0,
                 imageHeight = 0,
-                isProcessing = false,
+                phase = ScanPhase.IDLE,
                 error = null,
                 topScores = List(SCORE_PICKER_COUNT) { 0 },
             )
         }
     }
 
-    override fun setProcessing(isProcessing: Boolean) {
-        _uiState.update { it.copy(isProcessing = isProcessing) }
-    }
-
     override fun setError(message: String?) {
-        _uiState.update { it.copy(error = message, isProcessing = false) }
+        _uiState.update { it.copy(error = message, phase = ScanPhase.IDLE) }
     }
 
     override fun setTopScoreAt(index: Int, value: Int) {

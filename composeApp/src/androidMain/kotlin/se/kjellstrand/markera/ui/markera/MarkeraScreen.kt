@@ -47,11 +47,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -61,7 +64,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.PI
@@ -69,8 +71,10 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 import se.kjellstrand.markera.R
+import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.DigitDetector
+import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HoleDetector
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
@@ -144,41 +148,23 @@ fun MarkeraScreen() {
     val errorInference = stringResource(R.string.markera_error_inference)
 
     val onDetectClick: () -> Unit = onDetect@{
-        if (uiState.isProcessing) return@onDetect
+        if (uiState.phase != ScanPhase.IDLE) return@onDetect
         // Square the frame to match the FILL_CENTER live preview, so what the
         // user framed is exactly what gets analysed and shown frozen.
         val snapshot = (frameSource.capture() ?: return@onDetect).centerSquare()
         // Freeze the frame immediately so the user sees the static image
         // the model will analyse instead of the live preview.
         snapshotVm.set(snapshot)
-        viewModel.setProcessing(true)
+        viewModel.startDetect()
         coroutineScope.launch {
             try {
-                // Hole detection (ONNX) and digit OCR (ML Kit) are independent,
-                // so run them concurrently and join before publishing results.
-                val holesJob = async {
-                    // The raw frame goes straight to the model — no perspective
-                    // warp or centre detection, only the model-input letterbox.
-                    val input = withContext(Dispatchers.Default) {
-                        snapshot.toModelInput(detector.inputSize)
-                    }
-                    val raws = detector.detect(input)
-                    val kept = nonMaxSuppression(
-                        filterByConfidence(raws, CONFIDENCE_THRESHOLD),
-                        IOU_THRESHOLD,
-                    )
-                    raws.size to mapToImageSpace(
-                        kept, detector.inputSize, snapshot.width, snapshot.height,
-                    )
-                }
-                val digitsJob = async { digitDetector.detect(snapshot) }
-
-                val (rawCount, detections) = holesJob.await()
-                val digits = digitsJob.await()
+                // Phase 1 — geometry: digit OCR -> centre -> 6/7 ring. Runs
+                // first and with no spinner (it's fast, and the spinner is
+                // drawn from this geometry). Predict the boundary from the
+                // labelled digits, then snap it to the black->white edge; the
+                // q-sweep fit and grayscale edge scan are CPU-bound, so off-main.
+                val digits = digitDetector.detect(snapshot)
                 val centre = estimateCentre(digits, snapshot.width, snapshot.height)
-                // Predict the 6/7 boundary from the labelled digits, then snap
-                // it to the real black->white edge. Off the main thread: the
-                // q-sweep fit and the grayscale edge scan are CPU-bound.
                 val ring = if (centre.method != CentreMethod.NONE) {
                     withContext(Dispatchers.Default) {
                         fit67RingFromDigits(digits, centre)?.let { predicted ->
@@ -190,15 +176,30 @@ fun MarkeraScreen() {
                 } else {
                     null
                 }
+                // Publish the geometry and switch the spinner on: it now orbits
+                // the detected centre, sized to the ring, while the holes run.
+                viewModel.onGeometryReady(digits, centre, ring, snapshot.width, snapshot.height)
+
+                // Phase 2 — holes: the slow ONNX pass, with the spinner up. The
+                // raw frame goes straight to the model — only the input letterbox.
+                val input = withContext(Dispatchers.Default) {
+                    snapshot.toModelInput(detector.inputSize)
+                }
+                val raws = detector.detect(input)
+                val detections = mapToImageSpace(
+                    nonMaxSuppression(
+                        filterByConfidence(raws, CONFIDENCE_THRESHOLD),
+                        IOU_THRESHOLD,
+                    ),
+                    detector.inputSize, snapshot.width, snapshot.height,
+                )
                 Log.d(
                     TAG,
                     "snapshot ${snapshot.width}x${snapshot.height}: " +
-                        "raw=$rawCount kept=${detections.size} " +
+                        "raw=${raws.size} kept=${detections.size} " +
                         "digits=${digits.size} centre=${centre.method} ring=${ring != null}",
                 )
-                viewModel.onFrameAnalysed(
-                    detections, digits, centre, ring, snapshot.width, snapshot.height,
-                )
+                viewModel.onHolesDetected(detections)
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
                 viewModel.setError(errorInference)
@@ -352,20 +353,34 @@ private fun Viewport(
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),
         )
-        if (uiState.isProcessing) {
-            ScanningOverlay(modifier = Modifier.fillMaxSize())
+        if (uiState.phase == ScanPhase.HOLES) {
+            ScanningOverlay(
+                centre = uiState.centre,
+                ring = uiState.ring,
+                imageWidth = uiState.imageWidth,
+                imageHeight = uiState.imageHeight,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }
 
 /**
- * Radar-sweep "working" animation shown over the frozen frame while hole and
- * centre detection run. A green sweep line orbits the viewport centre with a
- * fading trail; fixed blips flash as the sweep passes over them. Indeterminate
- * — it just loops until [MarkeraUiState.isProcessing] clears.
+ * Radar-sweep "working" animation shown over the frozen frame while hole
+ * detection runs. The sweep orbits the detected [centre] and is sized to the
+ * detected 6/7 [ring], so it scans exactly the target the geometry phase found;
+ * with no centre/ring it falls back to the viewport centre and a fixed radius.
+ * A green sweep line drags a fading trail; fixed blips flash as it passes.
+ * Indeterminate — it loops until the [ScanPhase.HOLES] phase clears.
  */
 @Composable
-private fun ScanningOverlay(modifier: Modifier = Modifier) {
+private fun ScanningOverlay(
+    centre: CentreEstimate?,
+    ring: FittedEllipse?,
+    imageWidth: Int,
+    imageHeight: Int,
+    modifier: Modifier = Modifier,
+) {
     val sweep = rememberInfiniteTransition(label = "scan")
     val angle by sweep.animateFloat(
         initialValue = 0f,
@@ -386,41 +401,95 @@ private fun ScanningOverlay(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val centre = Offset(size.width / 2f, size.height / 2f)
-            val maxR = 0.42f * min(size.width, size.height)
-            val faint = green.copy(alpha = 0.18f)
-            for (i in 1..3) {
-                drawCircle(faint, radius = maxR * i / 3f, center = centre, style = Stroke(2f))
+            // Anchor the radar to the detected 6/7 ellipse — its centre, both
+            // semi-axes and tilt — using the same fit-centre letterbox as the
+            // DetectionOverlay, so the sweep traces the green ellipse drawn
+            // underneath. With no ring, fall back to a circle at the detected
+            // centre; with no geometry at all, the viewport centre.
+            val s = if (imageWidth > 0 && imageHeight > 0) {
+                min(size.width / imageWidth, size.height / imageHeight)
+            } else {
+                1f
             }
-            drawLine(faint, Offset(centre.x - maxR, centre.y), Offset(centre.x + maxR, centre.y), 1.5f)
-            drawLine(faint, Offset(centre.x, centre.y - maxR), Offset(centre.x, centre.y + maxR), 1.5f)
-            // Rotating trail: brightest at the leading line, fading behind it.
-            rotate(angle, centre) {
+            val offsetX = (size.width - imageWidth * s) / 2f
+            val offsetY = (size.height - imageHeight * s) / 2f
+            val pivot: Offset
+            val a: Float // canvas semi-major
+            val b: Float // canvas semi-minor
+            val rot: Float // ellipse tilt, radians
+            if (ring != null && imageWidth > 0 && imageHeight > 0) {
+                pivot = Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
+                a = ring.semiMajor * s
+                b = ring.semiMinor * s
+                rot = ring.rotationRad
+            } else {
+                val r = 0.42f * min(size.width, size.height)
+                pivot = if (centre != null && centre.method != CentreMethod.NONE && imageWidth > 0) {
+                    Offset(centre.x * s + offsetX, centre.y * s + offsetY)
+                } else {
+                    Offset(size.width / 2f, size.height / 2f)
+                }
+                a = r
+                b = r
+                rot = 0f
+            }
+            val rotDeg = (rot * 180.0 / PI).toFloat()
+            val ct = cos(rot)
+            val st = sin(rot)
+            // Point on the tilted ellipse at parameter [t], at radius fraction [f].
+            fun onEllipse(t: Float, f: Float = 1f): Offset {
+                val lx = a * f * cos(t)
+                val ly = b * f * sin(t)
+                return Offset(pivot.x + lx * ct - ly * st, pivot.y + lx * st + ly * ct)
+            }
+
+            val faint = green.copy(alpha = 0.18f)
+            // Concentric guide ellipses, tilted with the ring.
+            for (i in 1..3) {
+                val fa = a * i / 3f
+                val fb = b * i / 3f
+                rotate(rotDeg, pivot) {
+                    drawOval(
+                        color = faint,
+                        topLeft = Offset(pivot.x - fa, pivot.y - fb),
+                        size = Size(fa * 2f, fb * 2f),
+                        style = Stroke(2f),
+                    )
+                }
+            }
+            // Crosshair along the ellipse's major and minor axes.
+            drawLine(faint, onEllipse(0f), onEllipse(PI.toFloat()), 1.5f)
+            drawLine(faint, onEllipse((PI / 2.0).toFloat()), onEllipse((3.0 * PI / 2.0).toFloat()), 1.5f)
+            // Rotating trail: a filled sweep gradient transformed into ellipse
+            // space (a fill, so the anisotropic scale doesn't distort strokes).
+            // rotate(angle) before scale spins it in circle space, so its bright
+            // leading edge lands on the same ellipse parameter as the sweep line.
+            withTransform({
+                translate(pivot.x, pivot.y)
+                rotate(rotDeg, Offset.Zero)
+                scale(a, b, Offset.Zero)
+                rotate(angle, Offset.Zero)
+            }) {
                 drawCircle(
                     brush = Brush.sweepGradient(
                         0f to Color.Transparent,
                         0.85f to Color.Transparent,
                         1f to green.copy(alpha = 0.45f),
-                        center = centre,
+                        center = Offset.Zero,
                     ),
-                    radius = maxR,
-                    center = centre,
+                    radius = 1f,
+                    center = Offset.Zero,
                 )
             }
+            // Leading sweep line, from centre out to the ellipse edge.
             val rad = (angle * PI / 180.0).toFloat()
-            drawLine(
-                green,
-                start = centre,
-                end = Offset(centre.x + cos(rad) * maxR, centre.y + sin(rad) * maxR),
-                strokeWidth = 3f,
-            )
+            drawLine(green, start = pivot, end = onEllipse(rad), strokeWidth = 3f)
             // Each blip flares as the sweep passes, then fades over ~70°.
             blips.forEach { (blipAngle, r) ->
                 val since = ((angle - blipAngle) % 360f + 360f) % 360f
                 val alpha = (1f - since / 70f).coerceIn(0f, 1f)
                 if (alpha > 0f) {
-                    val br = (blipAngle * PI / 180.0).toFloat()
-                    val p = Offset(centre.x + cos(br) * maxR * r, centre.y + sin(br) * maxR * r)
+                    val p = onEllipse((blipAngle * PI / 180.0).toFloat(), r)
                     drawCircle(green.copy(alpha = alpha), radius = 5f + 5f * alpha, center = p)
                 }
             }
@@ -428,7 +497,10 @@ private fun ScanningOverlay(modifier: Modifier = Modifier) {
         Text(
             text = "SCANNING TARGET…",
             color = green,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium.copy(
+                // Strong black drop shadow so the text reads over the target.
+                shadow = Shadow(color = Color.Black, offset = Offset(0f, 2f), blurRadius = 10f),
+            ),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp),

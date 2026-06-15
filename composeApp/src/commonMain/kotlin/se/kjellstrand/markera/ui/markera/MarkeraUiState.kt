@@ -13,7 +13,7 @@ data class MarkeraUiState(
     val ring: FittedEllipse? = null,
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
-    val isProcessing: Boolean = false,
+    val phase: ScanPhase = ScanPhase.IDLE,
     val error: String? = null,
     /**
      * Top-hit scores in descending order. Each value is a picker
@@ -23,6 +23,13 @@ data class MarkeraUiState(
      */
     val topScores: List<Int> = List(SCORE_PICKER_COUNT) { 0 },
 )
+
+/**
+ * The two-phase detect pipeline. [GEOMETRY] (digit OCR -> centre -> 6/7 ring)
+ * runs first with no spinner; once it publishes, [HOLES] runs the slow ONNX
+ * pass with the spinner orbiting the detected centre. [IDLE] otherwise.
+ */
+enum class ScanPhase { IDLE, GEOMETRY, HOLES }
 
 const val SCORE_PICKER_COUNT = 5
 const val SCORE_PICKER_INNER_TEN = 11
