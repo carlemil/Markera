@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.update
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
+import se.kjellstrand.markera.vision.FittedEllipse
 
 class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
 
@@ -18,6 +19,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         detections: List<Detection>,
         digits: List<DigitDetection>,
         centre: CentreEstimate?,
+        ring: FittedEllipse?,
         imageWidth: Int,
         imageHeight: Int,
     ) {
@@ -26,6 +28,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 detections = detections,
                 digits = digits,
                 centre = centre,
+                ring = ring,
                 imageWidth = imageWidth,
                 imageHeight = imageHeight,
                 isProcessing = false,
@@ -40,6 +43,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 detections = emptyList(),
                 digits = emptyList(),
                 centre = null,
+                ring = null,
                 imageWidth = 0,
                 imageHeight = 0,
                 isProcessing = false,

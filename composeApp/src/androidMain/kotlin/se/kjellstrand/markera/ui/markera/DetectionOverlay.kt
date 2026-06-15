@@ -9,11 +9,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
+import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.TargetLine
+import kotlin.math.PI
 import kotlin.math.min
 
 /**
@@ -30,10 +33,12 @@ fun DetectionOverlay(
     modifier: Modifier = Modifier,
     digits: List<DigitDetection> = emptyList(),
     centre: CentreEstimate? = null,
+    ring: FittedEllipse? = null,
     boxColor: Color = Color(0xFF00E676),
     digitColor: Color = Color(0xFF00B0FF),
     centreColor: Color = Color(0xFFFF1744),
     rowLineColor: Color = Color(0xFFFFC400),
+    ringColor: Color = Color(0xFF00E676),
     strokeWidthPx: Float = 4f,
 ) {
     Canvas(modifier = modifier) {
@@ -41,6 +46,24 @@ fun DetectionOverlay(
         val scale = min(size.width / imageWidth, size.height / imageHeight)
         val offsetX = (size.width - imageWidth * scale) / 2f
         val offsetY = (size.height - imageHeight * scale) / 2f
+
+        // 6/7 boundary ellipse: rotate the canvas about the ellipse centre and
+        // draw an axis-aligned oval, matching the fit's (semiMajor, semiMinor,
+        // rotationRad) parametrisation.
+        if (ring != null) {
+            val ecx = ring.cx * scale + offsetX
+            val ecy = ring.cy * scale + offsetY
+            val a = ring.semiMajor * scale
+            val b = ring.semiMinor * scale
+            rotate(degrees = (ring.rotationRad * 180.0 / PI).toFloat(), pivot = Offset(ecx, ecy)) {
+                drawOval(
+                    color = ringColor,
+                    topLeft = Offset(ecx - a, ecy - b),
+                    size = Size(a * 2f, b * 2f),
+                    style = Stroke(width = strokeWidthPx + 2f),
+                )
+            }
+        }
 
         detections.forEach { d ->
             drawRect(

@@ -3,11 +3,14 @@ package se.kjellstrand.markera.ui.markera
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
+import se.kjellstrand.markera.vision.FittedEllipse
 
 data class MarkeraUiState(
     val detections: List<Detection> = emptyList(),
     val digits: List<DigitDetection> = emptyList(),
     val centre: CentreEstimate? = null,
+    /** Digit-predicted 6/7 boundary, snapped to the black->white edge. */
+    val ring: FittedEllipse? = null,
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
     val isProcessing: Boolean = false,

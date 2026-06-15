@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.vision
 
-import java.util.Random
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -10,6 +9,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 /** A gradient edge pixel kept as a rim candidate. */
 class EdgePix(val x: Double, val y: Double, val mag: Double)

@@ -69,12 +69,15 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 import se.kjellstrand.markera.R
+import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.HoleDetector
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
+import se.kjellstrand.markera.vision.fit67RingFromDigits
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
+import se.kjellstrand.markera.vision.refine67ToEdge
 
 private const val TAG = "Markera"
 private const val CONFIDENCE_THRESHOLD = 0.35f
@@ -173,14 +176,28 @@ fun MarkeraScreen() {
                 val (rawCount, detections) = holesJob.await()
                 val digits = digitsJob.await()
                 val centre = estimateCentre(digits, snapshot.width, snapshot.height)
+                // Predict the 6/7 boundary from the labelled digits, then snap
+                // it to the real black->white edge. Off the main thread: the
+                // q-sweep fit and the grayscale edge scan are CPU-bound.
+                val ring = if (centre.method != CentreMethod.NONE) {
+                    withContext(Dispatchers.Default) {
+                        fit67RingFromDigits(digits, centre)?.let { predicted ->
+                            refine67ToEdge(
+                                snapshot.toGrayscale(), snapshot.width, snapshot.height, predicted,
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
                 Log.d(
                     TAG,
                     "snapshot ${snapshot.width}x${snapshot.height}: " +
                         "raw=$rawCount kept=${detections.size} " +
-                        "digits=${digits.size} centre=${centre.method}",
+                        "digits=${digits.size} centre=${centre.method} ring=${ring != null}",
                 )
                 viewModel.onFrameAnalysed(
-                    detections, digits, centre, snapshot.width, snapshot.height,
+                    detections, digits, centre, ring, snapshot.width, snapshot.height,
                 )
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
@@ -330,6 +347,7 @@ private fun Viewport(
             detections = uiState.detections,
             digits = uiState.digits,
             centre = uiState.centre,
+            ring = uiState.ring,
             imageWidth = uiState.imageWidth,
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),

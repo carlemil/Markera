@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.StateFlow
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
+import se.kjellstrand.markera.vision.FittedEllipse
 
 interface MarkeraViewModel {
     val uiState: StateFlow<MarkeraUiState>
@@ -13,6 +14,7 @@ interface MarkeraViewModel {
         detections: List<Detection>,
         digits: List<DigitDetection>,
         centre: CentreEstimate?,
+        ring: FittedEllipse?,
         imageWidth: Int,
         imageHeight: Int,
     )

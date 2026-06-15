@@ -73,15 +73,24 @@ is precise on well-framed targets and robust to interior pasters, but it can fit
 the *wrong concentric ring*, and cut-off targets fail. Only ~30% of fits land on
 the true 6/7 ring; we need ~95%.
 
-### Black 6/7 ring: let the digits identify the ring — in progress
+### Black 6/7 ring: let the digits identify the ring — works
 
 The rings are concentric, equally-spaced circles, so under mild perspective they
 project to ellipses that share a centre, rotation and aspect ratio (scaled
 copies — *not* confocal). The already-detected 6–9 digit boxes give the centre
 and, through their labelled radii, the ring spacing — so we can predict exactly
-where the 6/7 boundary is and which detected ellipse it should be, then snap that
-to the real edge for precision. Self-calibrating from the digits, with no
-hard-coded target spec. Currently being wired into the on-device pipeline.
+where the 6/7 boundary is, then snap that to the real edge for precision.
+Self-calibrating from the digits (sweep the ring-width fraction `q` and keep the
+value whose digit-mapped points fit a single ellipse best), with no hard-coded
+target spec.
+
+**Why it works:** using the digit *labels* guarantees we land on the 6/7 ring,
+not some other concentric ring — the failure mode that capped the RANSAC version
+at ~30%. The edge-refine step is a no-op fallback when the rim is occluded or
+cut off, so the digit prediction is never made worse. On the on-device test set
+(`BlackRing67Test`, 38 photos) every image produced a centre, a prediction and
+an edge-refined ellipse, and the refined ellipse traced the true 6/7 boundary —
+including heavily-pastered targets that broke the dark-blob method.
 
 ## Technical overview
 

@@ -34,6 +34,25 @@ fun Bitmap.centerSquare(): Bitmap {
 }
 
 /**
+ * Pack [this] into a row-major 8-bit luma [ByteArray] (Rec. 601 weights),
+ * the input the `vision` edge/ellipse routines expect. One byte per pixel,
+ * no padding or rescale, so pixel coordinates match the bitmap.
+ */
+fun Bitmap.toGrayscale(): ByteArray {
+    val pixels = IntArray(width * height)
+    getPixels(pixels, 0, width, 0, 0, width, height)
+    val out = ByteArray(width * height)
+    for (i in pixels.indices) {
+        val p = pixels[i]
+        val r = (p shr 16) and 0xFF
+        val g = (p shr 8) and 0xFF
+        val b = p and 0xFF
+        out[i] = ((r * 299 + g * 587 + b * 114) / 1000).toByte()
+    }
+    return out
+}
+
+/**
  * Letterbox-scale [this] into a square of [inputSize], copy into a CHW
  * float array normalised to 0..1. Matches the inverse transform that
  * `DetectionPostProcess.mapToImageSpace` performs.
