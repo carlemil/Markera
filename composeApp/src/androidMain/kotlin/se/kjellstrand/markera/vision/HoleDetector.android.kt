@@ -3,7 +3,6 @@ package se.kjellstrand.markera.vision
 import ai.onnxruntime.OnnxJavaType
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtException
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.TensorInfo
 import ai.onnxruntime.platform.Fp16Conversions
@@ -97,19 +96,13 @@ actual class HoleDetector actual constructor(
         // higher user-facing threshold via filterByConfidence().
         const val PREFILTER_CONFIDENCE = 0.01f
 
-        // XNNPACK runs fp32 convolutions noticeably faster than the default
-        // CPU EP on ARM. It brings its own thread pool, so the session's
-        // intra-op pool is shrunk to one thread to avoid oversubscription.
-        // Capped at 4 threads to stay on the big cores of big.LITTLE SoCs.
+        // Default CPU execution provider. XNNPACK was faster on paper but
+        // caused intermittent native crashes in OrtSession.run on-device
+        // (libonnxruntime, fp16 path); the plain CPU EP is stable. Intra-op
+        // pool capped at 4 threads to stay on the big cores of big.LITTLE SoCs.
         fun buildSessionOptions(): OrtSession.SessionOptions {
             val opts = OrtSession.SessionOptions()
-            try {
-                val threads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
-                opts.addXnnpack(mapOf("intra_op_num_threads" to threads.toString()))
-                opts.setIntraOpNumThreads(1)
-            } catch (e: OrtException) {
-                Log.w(TAG, "XNNPACK unavailable, using default CPU provider", e)
-            }
+            opts.setIntraOpNumThreads(Runtime.getRuntime().availableProcessors().coerceIn(1, 4))
             return opts
         }
     }
