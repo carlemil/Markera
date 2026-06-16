@@ -161,17 +161,15 @@ fun MarkeraScreen() {
             try {
                 // Phase 1 — geometry: digit OCR -> centre -> 6/7 ring. Runs
                 // first and with no spinner (it's fast, and the spinner is
-                // drawn from this geometry). Predict the boundary from the
-                // labelled digits, then snap it to the black->white edge; the
-                // q-sweep fit and grayscale edge scan are CPU-bound, so off-main.
+                // drawn from this geometry). The digits give a circle seed at
+                // the centre; refine snaps it to the black->white edge. The
+                // seed fit and grayscale edge scan are CPU-bound, so off-main.
                 val digits = digitDetector.detect(snapshot)
                 val centre = estimateCentre(digits, snapshot.width, snapshot.height)
                 val ring = if (centre.method != CentreMethod.NONE) {
                     withContext(Dispatchers.Default) {
-                        fit67RingFromDigits(digits, centre)?.let { predicted ->
-                            refine67ToEdge(
-                                snapshot.toGrayscale(), snapshot.width, snapshot.height, predicted,
-                            )
+                        fit67RingFromDigits(digits, centre)?.let { seed ->
+                            refine67ToEdge(snapshot.toGrayscale(), snapshot.width, snapshot.height, seed)
                         }
                     }
                 } else {
@@ -430,29 +428,30 @@ private fun ScanningOverlay(
             // DetectionOverlay, so the sweep traces the green ellipse drawn
             // underneath. With no ring, fall back to a circle at the detected
             // centre; with no geometry at all, the viewport centre.
-            val s = if (imageWidth > 0 && imageHeight > 0) {
-                min(size.width / imageWidth, size.height / imageHeight)
-            } else {
-                1f
-            }
+            val hasImage = imageWidth > 0 && imageHeight > 0
+            val s = if (hasImage) min(size.width / imageWidth, size.height / imageHeight) else 1f
             val offsetX = (size.width - imageWidth * s) / 2f
             val offsetY = (size.height - imageHeight * s) / 2f
-            val pivot: Offset
+            // Pivot the sweep on the true target centre — the digit-row line
+            // intersection — falling back to the ring centre, then the viewport.
+            val pivot = when {
+                centre != null && centre.method != CentreMethod.NONE && hasImage ->
+                    Offset(centre.x * s + offsetX, centre.y * s + offsetY)
+                ring != null && hasImage ->
+                    Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
+                else -> Offset(size.width / 2f, size.height / 2f)
+            }
+            // Outer ellipse shape = the detected 6/7 ring (same semi-axes + tilt);
+            // a plain circle when there's no ring yet.
             val a: Float // canvas semi-major
             val b: Float // canvas semi-minor
             val rot: Float // ellipse tilt, radians
-            if (ring != null && imageWidth > 0 && imageHeight > 0) {
-                pivot = Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
+            if (ring != null && hasImage) {
                 a = ring.semiMajor * s
                 b = ring.semiMinor * s
                 rot = ring.rotationRad
             } else {
                 val r = 0.42f * min(size.width, size.height)
-                pivot = if (centre != null && centre.method != CentreMethod.NONE && imageWidth > 0) {
-                    Offset(centre.x * s + offsetX, centre.y * s + offsetY)
-                } else {
-                    Offset(size.width / 2f, size.height / 2f)
-                }
                 a = r
                 b = r
                 rot = 0f
