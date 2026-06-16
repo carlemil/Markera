@@ -46,6 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -66,6 +67,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
@@ -122,6 +124,12 @@ fun MarkeraScreen() {
         }
     }
     val coroutineScope = rememberCoroutineScope()
+    // Synchronous re-entry guard. uiState.phase is bridged from a flow via
+    // collectAsState and lags a frame, so two rapid taps could both read IDLE
+    // and launch concurrent ONNX runs — which crashes natively. This is set on
+    // the main thread before launch, so a second tap is rejected immediately.
+    // The FAB is also disabled while a scan runs (below) to avoid the jank.
+    val detecting = remember { AtomicBoolean(false) }
     // The active frame source is chosen at build time by the product flavor:
     // `camera` → live CameraX preview, `mock` → random images from disk.
     val frameSource = rememberFrameSource()
@@ -149,10 +157,11 @@ fun MarkeraScreen() {
     val errorInference = stringResource(R.string.markera_error_inference)
 
     val onDetectClick: () -> Unit = onDetect@{
-        if (uiState.phase != ScanPhase.IDLE) return@onDetect
         // Square the frame to match the FILL_CENTER live preview, so what the
         // user framed is exactly what gets analysed and shown frozen.
         val snapshot = (frameSource.capture() ?: return@onDetect).centerSquare()
+        // Claim the detector; reject re-entry until this pass finishes.
+        if (!detecting.compareAndSet(false, true)) return@onDetect
         // Freeze the frame immediately so the user sees the static image
         // the model will analyse instead of the live preview.
         snapshotVm.set(snapshot)
@@ -209,6 +218,8 @@ fun MarkeraScreen() {
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
                 viewModel.setError(errorInference)
+            } finally {
+                detecting.set(false)
             }
         }
     }
@@ -300,11 +311,16 @@ fun MarkeraScreen() {
 
         if (cameraGranted) {
             val isFrozen = snapshotVm.snapshot != null
+            // Disabled (and dimmed) while a scan runs: the native ONNX call
+            // can't be aborted, so swallow taps until it finishes rather than
+            // queue/restart and make the UI janky.
+            val processing = uiState.phase != ScanPhase.IDLE
             FloatingActionButton(
-                onClick = if (isFrozen) onResumeLive else onDetectClick,
+                onClick = { if (!processing) (if (isFrozen) onResumeLive else onDetectClick)() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 56.dp),
+                    .padding(end = 16.dp, bottom = 56.dp)
+                    .alpha(if (processing) 0.4f else 1f),
             ) {
                 if (isFrozen) {
                     Icon(
