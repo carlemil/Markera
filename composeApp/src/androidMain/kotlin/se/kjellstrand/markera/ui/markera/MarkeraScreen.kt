@@ -49,13 +49,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -457,6 +456,15 @@ private fun ScanningOverlay(
                     Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
                 else -> Offset(size.width / 2f, size.height / 2f)
             }
+            // The ellipse-based elements (rotating tip, guide rings, trail,
+            // blips) ride the *detected* ellipse, centred on the ring centre —
+            // so the sweep's outer point traces the green 6/7 ellipse exactly.
+            // The sweep line still springs from the digit-centre pivot.
+            val ec = if (ring != null && hasImage) {
+                Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
+            } else {
+                pivot
+            }
             // Outer ellipse shape = the detected 6/7 ring (same semi-axes + tilt);
             // a plain circle when there's no ring yet.
             val a: Float // canvas semi-major
@@ -475,11 +483,12 @@ private fun ScanningOverlay(
             val rotDeg = (rot * 180.0 / PI).toFloat()
             val ct = cos(rot)
             val st = sin(rot)
-            // Point on the tilted ellipse at parameter [t], at radius fraction [f].
+            // Point on the detected (tilted) ellipse at parameter [t], radius
+            // fraction [f] — centred on the ring centre [ec].
             fun onEllipse(t: Float, f: Float = 1f): Offset {
                 val lx = a * f * cos(t)
                 val ly = b * f * sin(t)
-                return Offset(pivot.x + lx * ct - ly * st, pivot.y + lx * st + ly * ct)
+                return Offset(ec.x + lx * ct - ly * st, ec.y + lx * st + ly * ct)
             }
 
             val faint = green.copy(alpha = 0.18f)
@@ -487,10 +496,10 @@ private fun ScanningOverlay(
             for (i in 1..3) {
                 val fa = a * i / 3f
                 val fb = b * i / 3f
-                rotate(rotDeg, pivot) {
+                rotate(rotDeg, ec) {
                     drawOval(
                         color = faint,
-                        topLeft = Offset(pivot.x - fa, pivot.y - fb),
+                        topLeft = Offset(ec.x - fa, ec.y - fb),
                         size = Size(fa * 2f, fb * 2f),
                         style = Stroke(2f),
                     )
@@ -499,28 +508,26 @@ private fun ScanningOverlay(
             // Crosshair along the ellipse's major and minor axes.
             drawLine(faint, onEllipse(0f), onEllipse(PI.toFloat()), 1.5f)
             drawLine(faint, onEllipse((PI / 2.0).toFloat()), onEllipse((3.0 * PI / 2.0).toFloat()), 1.5f)
-            // Rotating trail: a filled sweep gradient transformed into ellipse
-            // space (a fill, so the anisotropic scale doesn't distort strokes).
-            // rotate(angle) before scale spins it in circle space, so its bright
-            // leading edge lands on the same ellipse parameter as the sweep line.
-            withTransform({
-                translate(pivot.x, pivot.y)
-                rotate(rotDeg, Offset.Zero)
-                scale(a, b, Offset.Zero)
-                rotate(angle, Offset.Zero)
-            }) {
-                drawCircle(
-                    brush = Brush.sweepGradient(
-                        0f to Color.Transparent,
-                        0.85f to Color.Transparent,
-                        1f to green.copy(alpha = 0.45f),
-                        center = Offset.Zero,
-                    ),
-                    radius = 1f,
-                    center = Offset.Zero,
-                )
+            // Fading trail: a wedge swept from the pivot (the red crosshair) out
+            // to the detected ellipse, brightest at the leading sweep line and
+            // fading behind it. Built from the same onEllipse() points, so it
+            // springs from the crosshair yet its outer edge rides the ellipse.
+            val trailSpanDeg = 70f
+            val trailSteps = 28
+            for (i in 0 until trailSteps) {
+                val t0 = ((angle - trailSpanDeg * (1f - i / trailSteps.toFloat())) * PI / 180.0).toFloat()
+                val t1 = ((angle - trailSpanDeg * (1f - (i + 1) / trailSteps.toFloat())) * PI / 180.0).toFloat()
+                val p0 = onEllipse(t0)
+                val p1 = onEllipse(t1)
+                val wedge = Path().apply {
+                    moveTo(pivot.x, pivot.y)
+                    lineTo(p0.x, p0.y)
+                    lineTo(p1.x, p1.y)
+                    close()
+                }
+                drawPath(wedge, color = green.copy(alpha = 0.45f * (i + 1) / trailSteps.toFloat()))
             }
-            // Leading sweep line, from centre out to the ellipse edge.
+            // Leading sweep line, from the crosshair out to the ellipse edge.
             val rad = (angle * PI / 180.0).toFloat()
             drawLine(green, start = pivot, end = onEllipse(rad), strokeWidth = 3f)
             // Each blip flares as the sweep passes, then fades over ~70°.
