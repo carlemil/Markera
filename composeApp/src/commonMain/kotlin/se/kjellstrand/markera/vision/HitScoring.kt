@@ -28,6 +28,8 @@ data class HitScore(
     /** Hole bbox centre in source-image pixels (for overlay labelling). */
     val centerXpx: Float,
     val centerYpx: Float,
+    /** Hole bbox top edge (image px) — for placing the label above the hole. */
+    val topYpx: Float,
     /** Distance from the target centre to the hole centre, in mm. */
     val distanceMm: Double,
     val ring: Int,
@@ -75,6 +77,7 @@ fun scoreHits(
         HitScore(
             centerXpx = cx,
             centerYpx = cy,
+            topYpx = d.top,
             distanceMm = distMm,
             ring = ringForDistance(edgeMm),
             isInnerTen = edgeMm <= INNER_TEN_RADIUS_MM,

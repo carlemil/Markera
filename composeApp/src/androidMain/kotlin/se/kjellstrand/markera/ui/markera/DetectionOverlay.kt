@@ -85,7 +85,7 @@ fun DetectionOverlay(
             val labelPaint = Paint().apply {
                 isAntiAlias = true
                 color = scoreColor.toArgb()
-                textSize = (14f * scale).coerceIn(22f, 64f)
+                textSize = (28f * scale).coerceIn(44f, 128f)
                 textAlign = Paint.Align.CENTER
                 setShadowLayer(6f, 0f, 2f, android.graphics.Color.BLACK)
                 isFakeBoldText = true
@@ -93,8 +93,9 @@ fun DetectionOverlay(
             scores.forEach { hit ->
                 val label = if (hit.isInnerTen) "X" else hit.ring.toString()
                 val x = hit.centerXpx * scale + offsetX
-                // Sit the label just below the hole centre, baseline-adjusted.
-                val y = hit.centerYpx * scale + offsetY - labelPaint.ascent() / 2f
+                // Float the label just above the hole box (digits/X have no
+                // descenders, so the baseline sits clear of the box top).
+                val y = hit.topYpx * scale + offsetY - labelPaint.textSize * 0.2f
                 drawContext.canvas.nativeCanvas.drawText(label, x, y, labelPaint)
             }
         }
