@@ -40,7 +40,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +56,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -287,6 +285,8 @@ fun MarkeraScreen() {
                         processing = processing,
                         uiState = uiState,
                         onValueChange = viewModel::setTopScoreAt,
+                        onScan = onDetectClick,
+                        onResume = onResumeLive,
                         onSave = onStub,
                         onShare = onStub,
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -298,6 +298,8 @@ fun MarkeraScreen() {
                             processing = processing,
                             uiState = uiState,
                             onValueChange = viewModel::setTopScoreAt,
+                            onScan = onDetectClick,
+                            onResume = onResumeLive,
                             onSave = onStub,
                             onShare = onStub,
                             landscape = true,
@@ -328,38 +330,6 @@ fun MarkeraScreen() {
             )
         }
 
-        if (cameraGranted) {
-            val isFrozen = snapshotVm.snapshot != null
-            // Disabled (and dimmed) while a scan runs: the native ONNX call
-            // can't be aborted, so swallow taps until it finishes rather than
-            // queue/restart and make the UI janky. Colour distinguishes the two
-            // actions: scan (primary) vs new shot (secondary).
-            val processing = uiState.phase != ScanPhase.IDLE
-            FloatingActionButton(
-                onClick = { if (!processing) (if (isFrozen) onResumeLive else onDetectClick)() },
-                containerColor = if (isFrozen) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.primaryContainer
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp)
-                    .alpha(if (processing) 0.4f else 1f),
-            ) {
-                if (isFrozen) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = stringResource(R.string.markera_resume_live),
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.PhotoCamera,
-                        contentDescription = stringResource(R.string.markera_detect),
-                    )
-                }
-            }
-        }
     }
     }
 }
@@ -408,6 +378,8 @@ private fun BottomArea(
     processing: Boolean,
     uiState: MarkeraUiState,
     onValueChange: (index: Int, value: Int) -> Unit,
+    onScan: () -> Unit,
+    onResume: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
@@ -420,8 +392,18 @@ private fun BottomArea(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            !isFrozen -> LiveHint()
-            else -> ResultsContent(uiState, onValueChange, onSave, onShare, landscape)
+            !isFrozen -> Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                LiveHint()
+                PrimaryActionButton(
+                    text = stringResource(R.string.markera_detect),
+                    icon = Icons.Default.PhotoCamera,
+                    onClick = onScan,
+                )
+            }
+            else -> ResultsContent(uiState, onValueChange, onResume, onSave, onShare, landscape)
         }
     }
 }
@@ -451,29 +433,42 @@ private fun LiveHint() {
 private fun ResultsContent(
     uiState: MarkeraUiState,
     onValueChange: (index: Int, value: Int) -> Unit,
+    onResume: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
     landscape: Boolean,
 ) {
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
-    if (landscape) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            TotalBadge(total)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        TotalBadge(total)
+        if (landscape) {
             ScorePickerVerticalColumn(values = uiState.topScores, onValueChange = onValueChange)
-            ActionRow(onSave, onShare)
-        }
-    } else {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            TotalBadge(total)
+        } else {
             ScorePickerHorizontalRow(values = uiState.topScores, onValueChange = onValueChange)
-            ActionRow(onSave, onShare)
         }
+        // New-shot action sits above Save/Share.
+        PrimaryActionButton(
+            text = stringResource(R.string.markera_resume_live),
+            icon = Icons.Default.Refresh,
+            onClick = onResume,
+        )
+        ActionRow(onSave, onShare)
+    }
+}
+
+@Composable
+private fun PrimaryActionButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+) {
+    Button(onClick = onClick) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text)
     }
 }
 
