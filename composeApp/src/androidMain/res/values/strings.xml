@@ -5,5 +5,11 @@
     <string name="markera_detect">Detektera</string>
     <string name="markera_resume_live">Tillbaka till kamera</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
-    <string name="markera_total">Summa: %1$d</string>
+    <string name="markera_total_label">Summa</string>
+    <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
+    <string name="markera_analyzing">Analyserar träffar…</string>
+    <string name="markera_save">Spara</string>
+    <string name="markera_share">Dela</string>
+    <string name="markera_coming_soon">Kommer snart</string>
+    <string name="markera_toggle_debug">Visa detektionsdata</string>
 </resources>

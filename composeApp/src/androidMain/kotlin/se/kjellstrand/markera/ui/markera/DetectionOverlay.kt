@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
 import android.graphics.Paint
+import android.graphics.RectF
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,13 +22,17 @@ import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.TargetLine
 import kotlin.math.PI
+import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Draws image-space [Detection] boxes, recognised [digits], the fitted
- * digit-row lines, and the estimated [centre] crosshair scaled into this
- * Composable's canvas, using fit-centre letterboxing so everything lines up
- * with a PreviewView / Image that uses the same scale type.
+ * Draws the scoring result over the frozen frame, fit-centre letterboxed to
+ * line up with the Image/PreviewView: the 6/7 [ring], the [centre] crosshair, a
+ * marker + ring-value label per scored hole.
+ *
+ * [showDebug] adds the raw detection data — hole boxes, recognised [digits]
+ * boxes and the fitted digit-row lines — for diagnostics; the default clean
+ * view shows only the result.
  */
 @Composable
 fun DetectionOverlay(
@@ -39,12 +44,14 @@ fun DetectionOverlay(
     centre: CentreEstimate? = null,
     ring: FittedEllipse? = null,
     scores: List<HitScore> = emptyList(),
+    showDebug: Boolean = false,
     boxColor: Color = Color(0xFF00E676),
     digitColor: Color = Color(0xFF00B0FF),
     centreColor: Color = Color(0xFFFF1744),
     rowLineColor: Color = Color(0xFFFFC400),
     ringColor: Color = Color(0xFF00E676),
     scoreColor: Color = Color(0xFFFFFFFF),
+    holeColor: Color = Color(0xFF00E676),
     strokeWidthPx: Float = 4f,
 ) {
     Canvas(modifier = modifier) {
@@ -71,16 +78,37 @@ fun DetectionOverlay(
             }
         }
 
+        // Holes: a full box in debug, otherwise just a small marker dot — the
+        // hole itself is already visible in the photo.
         detections.forEach { d ->
-            drawRect(
-                color = boxColor,
-                topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
-                size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
-                style = Stroke(width = strokeWidthPx),
-            )
+            if (showDebug) {
+                drawRect(
+                    color = boxColor,
+                    topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
+                    size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
+                    style = Stroke(width = strokeWidthPx),
+                )
+            } else {
+                val hx = (d.left + d.right) / 2f * scale + offsetX
+                val hy = (d.top + d.bottom) / 2f * scale + offsetY
+                drawCircle(holeColor, radius = max(3f, strokeWidthPx * 1.1f), center = Offset(hx, hy))
+            }
         }
 
-        // Ring-value label at each scored hole's centre ("X" for inner-ten).
+        // Recognised digit boxes — debug only.
+        if (showDebug) {
+            digits.forEach { d ->
+                drawRect(
+                    color = digitColor,
+                    topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
+                    size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
+                    style = Stroke(width = strokeWidthPx),
+                )
+            }
+        }
+
+        // Ring-value label above each scored hole ("X" for inner-ten), nudged up
+        // to avoid overlapping labels in dense clusters.
         if (scores.isNotEmpty()) {
             val labelPaint = Paint().apply {
                 isAntiAlias = true
@@ -90,36 +118,41 @@ fun DetectionOverlay(
                 setShadowLayer(6f, 0f, 2f, android.graphics.Color.BLACK)
                 isFakeBoldText = true
             }
-            scores.forEach { hit ->
+            val gap = labelPaint.textSize * 0.15f
+            val placed = ArrayList<RectF>(scores.size)
+            // Place top holes first so lower labels stack above them.
+            scores.sortedBy { it.topYpx }.forEach { hit ->
                 val label = if (hit.isInnerTen) "X" else hit.ring.toString()
+                val w = labelPaint.measureText(label)
                 val x = hit.centerXpx * scale + offsetX
-                // Float the label just above the hole box (digits/X have no
-                // descenders, so the baseline sits clear of the box top).
-                val y = hit.topYpx * scale + offsetY - labelPaint.textSize * 0.2f
-                drawContext.canvas.nativeCanvas.drawText(label, x, y, labelPaint)
+                var baseline = hit.topYpx * scale + offsetY - labelPaint.textSize * 0.2f
+                var top = baseline - labelPaint.textSize
+                var guard = 0
+                while (guard++ <= placed.size) {
+                    val hitRect = placed.firstOrNull { r ->
+                        x + w / 2f > r.left && x - w / 2f < r.right && baseline > r.top && top < r.bottom
+                    } ?: break
+                    baseline = hitRect.top - gap
+                    top = baseline - labelPaint.textSize
+                }
+                drawContext.canvas.nativeCanvas.drawText(label, x, baseline, labelPaint)
+                placed.add(RectF(x - w / 2f, top, x + w / 2f, baseline))
             }
         }
 
-        digits.forEach { d ->
-            drawRect(
-                color = digitColor,
-                topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
-                size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
-                style = Stroke(width = strokeWidthPx),
-            )
-        }
-
         if (centre != null && centre.method != CentreMethod.NONE) {
-            // The fitted row lines are infinite; draw them long and clip to
-            // the image area so they don't bleed into the letterbox bars.
-            clipRect(
-                left = offsetX,
-                top = offsetY,
-                right = offsetX + imageWidth * scale,
-                bottom = offsetY + imageHeight * scale,
-            ) {
-                listOfNotNull(centre.horizontalLine, centre.verticalLine).forEach { line ->
-                    drawRowLine(line, scale, offsetX, offsetY, rowLineColor, strokeWidthPx / 2f)
+            // Fitted digit-row lines — debug only (infinite lines, clipped to
+            // the image area so they don't bleed into the letterbox bars).
+            if (showDebug) {
+                clipRect(
+                    left = offsetX,
+                    top = offsetY,
+                    right = offsetX + imageWidth * scale,
+                    bottom = offsetY + imageHeight * scale,
+                ) {
+                    listOfNotNull(centre.horizontalLine, centre.verticalLine).forEach { line ->
+                        drawRowLine(line, scale, offsetX, offsetY, rowLineColor, strokeWidthPx / 2f)
+                    }
                 }
             }
 

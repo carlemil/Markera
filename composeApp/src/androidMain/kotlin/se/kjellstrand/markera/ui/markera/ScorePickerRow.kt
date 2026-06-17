@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.markera
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,26 +26,32 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import kotlin.math.absoluteValue
 
-private val PICKER_GAP = 4.dp
-private val SLIDER_ITEM_WIDTH = 40.dp
-private val SLIDER_ITEM_HEIGHT = 44.dp
+private val PICKER_GAP = 6.dp
+private val SLIDER_ITEM_WIDTH = 44.dp
+private val SLIDER_ITEM_HEIGHT = 48.dp
 private const val SLIDER_VISIBLE_ITEMS = 3
-private const val SIDE_ITEM_MIN_ALPHA = 0.25f
+private const val SIDE_ITEM_MIN_ALPHA = 0.18f
+private const val SIDE_ITEM_MIN_SCALE = 0.72f
+private val HIGHLIGHT_SHAPE = RoundedCornerShape(10.dp)
 
-/** Linear fade: 1.0 at offset 0, [SIDE_ITEM_MIN_ALPHA] at offset ≥ 1. */
-private fun PagerState.pageAlpha(page: Int): Float {
-    val offset = ((currentPage - page) + currentPageOffsetFraction).absoluteValue
-    val t = offset.coerceIn(0f, 1f)
-    return 1f - (1f - SIDE_ITEM_MIN_ALPHA) * t
-}
+/** Distance of [page] from the settled centre, 0f (centred) … 1f (a step away). */
+private fun PagerState.pageOffset(page: Int): Float =
+    (((currentPage - page) + currentPageOffsetFraction).absoluteValue).coerceIn(0f, 1f)
+
+private fun PagerState.pageAlpha(page: Int) =
+    1f - (1f - SIDE_ITEM_MIN_ALPHA) * pageOffset(page)
+
+private fun PagerState.pageScale(page: Int) =
+    1f - (1f - SIDE_ITEM_MIN_SCALE) * pageOffset(page)
 
 /**
- * Horizontal sliding picker built on [HorizontalPager]. The selected
- * value is whichever item is centred in the viewport (highlighted with
- * a rounded border). User swipes left/right to change.
+ * Horizontal sliding picker built on [HorizontalPager]. The selected value is
+ * whichever item is centred in the viewport — highlighted with a tinted, bordered
+ * slot; neighbours fade and shrink so the control reads as a slider, not a grid.
  */
 @Composable
 private fun HorizontalSlidingScorePicker(
@@ -74,40 +81,21 @@ private fun HorizontalSlidingScorePicker(
             .height(SLIDER_ITEM_HEIGHT),
         contentAlignment = Alignment.Center,
     ) {
+        SelectionSlot(Modifier.width(SLIDER_ITEM_WIDTH).fillMaxHeight())
         HorizontalPager(
             state = pagerState,
             pageSize = PageSize.Fixed(SLIDER_ITEM_WIDTH),
             contentPadding = PaddingValues(horizontal = SLIDER_ITEM_WIDTH * sideCount),
             modifier = Modifier.fillMaxSize(),
         ) { page ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(pagerState.pageAlpha(page)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = SCORE_PICKER_LABELS[page],
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
+            PageLabel(SCORE_PICKER_LABELS[page], pagerState.pageAlpha(page), pagerState.pageScale(page))
         }
-        Box(
-            modifier = Modifier
-                .width(SLIDER_ITEM_WIDTH)
-                .fillMaxHeight()
-                .border(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(6.dp),
-                ),
-        )
     }
 }
 
 /**
- * Vertical mirror of [HorizontalSlidingScorePicker] — same look, but
- * the user swipes up/down and the centred item is highlighted.
+ * Vertical mirror of [HorizontalSlidingScorePicker] — the user swipes up/down
+ * and the centred item is highlighted.
  */
 @Composable
 private fun VerticalSlidingScorePicker(
@@ -137,38 +125,43 @@ private fun VerticalSlidingScorePicker(
             .height(SLIDER_ITEM_HEIGHT * SLIDER_VISIBLE_ITEMS),
         contentAlignment = Alignment.Center,
     ) {
+        SelectionSlot(Modifier.fillMaxWidth().height(SLIDER_ITEM_HEIGHT))
         VerticalPager(
             state = pagerState,
             pageSize = PageSize.Fixed(SLIDER_ITEM_HEIGHT),
             contentPadding = PaddingValues(vertical = SLIDER_ITEM_HEIGHT * sideCount),
             modifier = Modifier.fillMaxSize(),
         ) { page ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(pagerState.pageAlpha(page)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = SCORE_PICKER_LABELS[page],
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
+            PageLabel(SCORE_PICKER_LABELS[page], pagerState.pageAlpha(page), pagerState.pageScale(page))
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(SLIDER_ITEM_HEIGHT)
-                .border(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(6.dp),
-                ),
-        )
     }
 }
 
-/** Portrait — vertical sliding pickers in a row above the viewport. */
+/** The fixed, highlighted centre slot showing the current selection. */
+@Composable
+private fun SelectionSlot(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
+            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE),
+    )
+}
+
+/** One pager cell: the value, faded and shrunk by how far it is off-centre. */
+@Composable
+private fun PageLabel(label: String, alpha: Float, scale: Float) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .scale(scale),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.titleLarge)
+    }
+}
+
+/** Portrait — vertical sliding pickers in a row. */
 @Composable
 fun ScorePickerHorizontalRow(
     values: List<Int>,
@@ -185,7 +178,7 @@ fun ScorePickerHorizontalRow(
     }
 }
 
-/** Landscape — horizontal sliding pickers in a column left of the viewport. */
+/** Landscape — horizontal sliding pickers in a column. */
 @Composable
 fun ScorePickerVerticalColumn(
     values: List<Int>,

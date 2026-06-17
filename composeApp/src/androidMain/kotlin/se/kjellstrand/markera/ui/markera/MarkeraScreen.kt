@@ -24,17 +24,28 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,8 +72,10 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
+import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -154,6 +167,11 @@ fun MarkeraScreen() {
     }
 
     val errorInference = stringResource(R.string.markera_error_inference)
+    // Off by default — the clean result view. Toggle in the top bar reveals the
+    // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
+    var showDebug by remember { mutableStateOf(false) }
+    val comingSoon = stringResource(R.string.markera_coming_soon)
+    val onStub: () -> Unit = { Toast.makeText(context, comingSoon, Toast.LENGTH_SHORT).show() }
 
     val onDetectClick: () -> Unit = onDetect@{
         // Square the frame to match the FILL_CENTER live preview, so what the
@@ -236,12 +254,13 @@ fun MarkeraScreen() {
         if (frameSource.autoDetectKey != null) onDetectClick()
     }
 
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            // Edge-to-edge draws under the status bar / camera notch; inset the
-            // content down so the top row clears the cutout.
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+            // Edge-to-edge draws under the status bar / nav bar; keep content
+            // clear of both, while the preview stays full-bleed horizontally.
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
     ) {
         val isPortrait = maxHeight >= maxWidth
 
@@ -250,48 +269,49 @@ fun MarkeraScreen() {
                 onGrantClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
             )
         } else {
-            // Pickers and viewport live in disjoint slots so they never
-            // overlap: portrait stacks them vertically, landscape places
-            // pickers to the left of the viewport.
-            if (isPortrait) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    ScorePickerHorizontalRow(
-                        values = uiState.topScores,
-                        onValueChange = viewModel::setTopScoreAt,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(16.dp),
-                    )
+            val isFrozen = snapshotVm.snapshot != null
+            val processing = uiState.phase != ScanPhase.IDLE
+            Column(modifier = Modifier.fillMaxSize()) {
+                MarkeraTopBar(showDebug = showDebug, onToggleDebug = { showDebug = !showDebug })
+                if (isPortrait) {
                     Viewport(
                         snapshotVm = snapshotVm,
                         uiState = uiState,
                         frameSource = frameSource,
+                        showDebug = showDebug,
                         onError = { viewModel.setError(it.message) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .align(Alignment.CenterHorizontally),
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
-                }
-            } else {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    ScorePickerVerticalColumn(
-                        values = uiState.topScores,
-                        onValueChange = viewModel::setTopScoreAt,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .padding(16.dp),
-                    )
-                    Viewport(
-                        snapshotVm = snapshotVm,
+                    BottomArea(
+                        isFrozen = isFrozen,
+                        processing = processing,
                         uiState = uiState,
-                        frameSource = frameSource,
-                        onError = { viewModel.setError(it.message) },
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .aspectRatio(1f)
-                            .align(Alignment.CenterVertically),
+                        onValueChange = viewModel::setTopScoreAt,
+                        onSave = onStub,
+                        onShare = onStub,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
                     )
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        BottomArea(
+                            isFrozen = isFrozen,
+                            processing = processing,
+                            uiState = uiState,
+                            onValueChange = viewModel::setTopScoreAt,
+                            onSave = onStub,
+                            onShare = onStub,
+                            landscape = true,
+                            modifier = Modifier.fillMaxHeight().weight(1f),
+                        )
+                        Viewport(
+                            snapshotVm = snapshotVm,
+                            uiState = uiState,
+                            frameSource = frameSource,
+                            showDebug = showDebug,
+                            onError = { viewModel.setError(it.message) },
+                            modifier = Modifier.fillMaxHeight().aspectRatio(1f),
+                        )
+                    }
                 }
             }
         }
@@ -312,13 +332,19 @@ fun MarkeraScreen() {
             val isFrozen = snapshotVm.snapshot != null
             // Disabled (and dimmed) while a scan runs: the native ONNX call
             // can't be aborted, so swallow taps until it finishes rather than
-            // queue/restart and make the UI janky.
+            // queue/restart and make the UI janky. Colour distinguishes the two
+            // actions: scan (primary) vs new shot (secondary).
             val processing = uiState.phase != ScanPhase.IDLE
             FloatingActionButton(
                 onClick = { if (!processing) (if (isFrozen) onResumeLive else onDetectClick)() },
+                containerColor = if (isFrozen) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.primaryContainer
+                },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 56.dp)
+                    .padding(end = 16.dp, bottom = 16.dp)
                     .alpha(if (processing) 0.4f else 1f),
             ) {
                 if (isFrozen) {
@@ -335,6 +361,161 @@ fun MarkeraScreen() {
             }
         }
     }
+    }
+}
+
+/** Slim top bar: app name + a toggle that reveals the raw detection overlay. */
+@Composable
+private fun MarkeraTopBar(
+    showDebug: Boolean,
+    onToggleDebug: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.weight(1f))
+        IconButton(onClick = onToggleDebug) {
+            Icon(
+                imageVector = Icons.Default.Tune,
+                contentDescription = stringResource(R.string.markera_toggle_debug),
+                tint = if (showDebug) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Area below (portrait) or beside (landscape) the viewport: a live hint before
+ * the first scan, a "working" line while detecting, and the results (total +
+ * editable score pickers + actions) once a frame has been scored.
+ */
+@Composable
+private fun BottomArea(
+    isFrozen: Boolean,
+    processing: Boolean,
+    uiState: MarkeraUiState,
+    onValueChange: (index: Int, value: Int) -> Unit,
+    onSave: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+    landscape: Boolean = false,
+) {
+    Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+        when {
+            processing -> Text(
+                text = stringResource(R.string.markera_analyzing),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            !isFrozen -> LiveHint()
+            else -> ResultsContent(uiState, onValueChange, onSave, onShare, landscape)
+        }
+    }
+}
+
+@Composable
+private fun LiveHint() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Default.PhotoCamera,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(32.dp),
+        )
+        Text(
+            text = stringResource(R.string.markera_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun ResultsContent(
+    uiState: MarkeraUiState,
+    onValueChange: (index: Int, value: Int) -> Unit,
+    onSave: () -> Unit,
+    onShare: () -> Unit,
+    landscape: Boolean,
+) {
+    val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
+    if (landscape) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            TotalBadge(total)
+            ScorePickerVerticalColumn(values = uiState.topScores, onValueChange = onValueChange)
+            ActionRow(onSave, onShare)
+        }
+    } else {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            TotalBadge(total)
+            ScorePickerHorizontalRow(values = uiState.topScores, onValueChange = onValueChange)
+            ActionRow(onSave, onShare)
+        }
+    }
+}
+
+@Composable
+private fun TotalBadge(total: Int) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.markera_total_label),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Text(
+                text = total.toString(),
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionRow(onSave: () -> Unit, onShare: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FilledTonalButton(onClick = onSave) {
+            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.markera_save))
+        }
+        OutlinedButton(onClick = onShare) {
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.markera_share))
+        }
+    }
 }
 
 @Composable
@@ -342,6 +523,7 @@ private fun Viewport(
     snapshotVm: MarkeraSnapshotViewModel,
     uiState: MarkeraUiState,
     frameSource: FrameSource,
+    showDebug: Boolean,
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -371,6 +553,7 @@ private fun Viewport(
             centre = uiState.centre,
             ring = uiState.ring,
             scores = uiState.scores,
+            showDebug = showDebug,
             imageWidth = uiState.imageWidth,
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),
@@ -382,21 +565,6 @@ private fun Viewport(
                 imageWidth = uiState.imageWidth,
                 imageHeight = uiState.imageHeight,
                 modifier = Modifier.fillMaxSize(),
-            )
-        }
-        // Series total (X counts as 10), tracking the pickers so it follows
-        // any manual edit. Shown once a scored series exists.
-        if (uiState.scores.isNotEmpty()) {
-            val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
-            Text(
-                text = stringResource(R.string.markera_total, total),
-                color = Color(0xFF00E676),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    shadow = Shadow(color = Color.Black, offset = Offset(0f, 2f), blurRadius = 10f),
-                ),
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(12.dp),
             )
         }
     }
