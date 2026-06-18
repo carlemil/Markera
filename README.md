@@ -9,7 +9,9 @@ The app scoring a target in real time:
   Your browser can't play the embedded video — <a href="docs/videos/demo.mp4">download it here</a>.
 </video>
 
-![The Markera app](docs/images/hero.png)
+<video src="https://github.com/carlemil/Markera/raw/master/docs/videos/markera-hero.mp4" controls width="640">
+  Your browser can't play the embedded video — <a href="docs/videos/markera-hero.mp4">download it here</a>.
+</video>
 
 ## Goal
 
