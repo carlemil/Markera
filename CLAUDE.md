@@ -36,7 +36,21 @@ device at `/data/local/tmp/ring-eval/` (with an `index.txt`) and write annotated
 overlays to the app's `filesDir`, pulled back via `run-as`.
 
 The `:eval` module is a JVM tool that evaluates the hole-detection ONNX model against
-dataset images (the `/eval` project skill drives it).
+dataset images (the `/eval` project skill drives it):
+
+```sh
+./gradlew :eval:test --tests "eval.HoleDetectionMosaicTest" --rerun-tasks \
+  -Dmosaic.seed=42   # optional; also -Dmosaic.images=<dir>, -Dmosaic.model=<path>
+```
+
+It compiles the app's real `vision/` sources straight from `commonMain` (excluding the
+expect/actual platform files, with a desktop ONNX Runtime standing in), so edits to
+`vision/` affect both the app and `:eval`. The training dataset lives outside the repo
+at `D:/ml/holes/dataset/images/train` (the default `mosaic.images`).
+
+Project skills exist for the routine workflows: `/deploy` (build + adb install/launch on
+the USB phone), `/eval` (detection-quality mosaic), `/release` (version bump + Play
+internal track; only the `camera` flavor is ever released).
 
 ### Model asset (required to build/run)
 
@@ -92,6 +106,25 @@ README's "Approaches" section says which is which.
   StateFlow via `collectAsState` and lags a frame, so detection is guarded by a
   synchronous `AtomicBoolean` (set on the main thread before launch) to prevent
   concurrent runs; the scan button is disabled while a pass is in flight.
+
+### Webshooter competition marking (`webshooter/` + `ui/competition/`)
+
+The app replicates webshooter.se's mobile "markering" flow with the camera auto-scoring
+as score entry. `webshooter/` (commonMain, JVM-unit-tested) holds the Ktor API client
+(`WebshooterApi`, OAuth2 password grant against `https://test.webshooter.se/api/v4.1.9/`),
+lean DTOs (`ignoreUnknownKeys`; booleans arrive as both `true/false` and `0/1` →
+`LenientBoolean`), `laravelFormEncode` (the save/registration endpoints are Laravel
+bracket-array form posts — `audit[shots][0]=X`), `ShotMapping` (picker 0..10 → shots,
+11 → `"X"`), `MarkingLogic` (resume/skip/locked/isSelf decisions) and
+`MarkingWizardViewModel` (plain class + `dispose()`, deliberately *not* an androidx
+ViewModel so polling/claims die with the screen). Android side: `AppNavHost` (sealed-class
+back stack, hoists the single `TargetScanController` + `FrameSource` above navigation),
+`DataStoreTokenStore`, and the competition screens. Real captured API fixtures live in
+`composeApp/src/androidUnitTest/resources/webshooter/`. The mock flavor runs the whole
+wizard on an emulator against the test server ("Testa mobilregistrering", competition 244).
+
+Gotcha: kotlinx-serialization omits fields equal to their defaults — the OAuth
+`LoginRequest` fields must stay non-defaulted or the grant envelope silently drops.
 
 ### UI
 

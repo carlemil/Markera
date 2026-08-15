@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import se.kjellstrand.markera.ui.markera.MarkeraScreen
+import se.kjellstrand.markera.ui.AppNavHost
 import se.kjellstrand.markera.ui.theme.MarkeraTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MarkeraTheme {
-                MarkeraScreen()
+                AppNavHost()
             }
         }
     }
