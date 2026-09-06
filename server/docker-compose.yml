@@ -1,0 +1,14 @@
+services:
+  markera-server:
+    build: .
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/markera.db
+    volumes:
+      - markera-data:/data
+
+volumes:
+  markera-data:
