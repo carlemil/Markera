@@ -39,7 +39,7 @@ private const val IMAGE_MAX_DIM = 1024
  * The scanned frame as a modest JPEG for the backend — the thumbnail in the
  * history list is all it feeds, so 1024 px on the longer side is plenty.
  */
-suspend fun encodeSeriesJpeg(image: Bitmap): ByteArray = withContext(Dispatchers.Default) {
+suspend fun encodeSeriesJpeg(image: Bitmap): EncodedImage = withContext(Dispatchers.Default) {
     val longest = maxOf(image.width, image.height)
     val scaled = if (longest > IMAGE_MAX_DIM) {
         val s = IMAGE_MAX_DIM.toFloat() / longest
@@ -50,7 +50,8 @@ suspend fun encodeSeriesJpeg(image: Bitmap): ByteArray = withContext(Dispatchers
     ByteArrayOutputStream().use { out ->
         scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
         if (scaled !== image) scaled.recycle()
-        out.toByteArray()
+        // The size reported is the *source* one the hole coordinates are in.
+        EncodedImage(out.toByteArray(), image.width, image.height)
     }
 }
 

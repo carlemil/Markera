@@ -52,6 +52,8 @@ fun DetectionOverlay(
     ringColor: Color = Color(0xFF00E676),
     scoreColor: Color = Color(0xFFFFFFFF),
     holeColor: Color = Color(0xFF00E676),
+    /** Holes the user tapped in by hand, marker and label. */
+    manualColor: Color = Color(0xFFFFB74D),
     strokeWidthPx: Float = 4f,
 ) {
     Canvas(modifier = modifier) {
@@ -79,19 +81,32 @@ fun DetectionOverlay(
         }
 
         // Holes: a full box in debug, otherwise just a small marker dot — the
-        // hole itself is already visible in the photo.
-        detections.forEach { d ->
-            if (showDebug) {
+        // hole itself is already visible in the photo. The dots come from the
+        // scores when there are any, since only those know which holes the user
+        // placed by hand (drawn orange); unscored frames fall back to the boxes.
+        val dotRadius = max(3f, strokeWidthPx * 1.1f)
+        if (showDebug) {
+            detections.forEach { d ->
                 drawRect(
                     color = boxColor,
                     topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
                     size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
                     style = Stroke(width = strokeWidthPx),
                 )
-            } else {
+            }
+        } else if (scores.isNotEmpty()) {
+            scores.forEach { hit ->
+                drawCircle(
+                    color = if (hit.manual) manualColor else holeColor,
+                    radius = dotRadius,
+                    center = Offset(hit.centerXpx * scale + offsetX, hit.centerYpx * scale + offsetY),
+                )
+            }
+        } else {
+            detections.forEach { d ->
                 val hx = (d.left + d.right) / 2f * scale + offsetX
                 val hy = (d.top + d.bottom) / 2f * scale + offsetY
-                drawCircle(holeColor, radius = max(3f, strokeWidthPx * 1.1f), center = Offset(hx, hy))
+                drawCircle(holeColor, radius = dotRadius, center = Offset(hx, hy))
             }
         }
 
@@ -123,6 +138,7 @@ fun DetectionOverlay(
             // Place top holes first so lower labels stack above them.
             scores.sortedBy { it.topYpx }.forEach { hit ->
                 val label = if (hit.isInnerTen) "X" else hit.ring.toString()
+                labelPaint.color = (if (hit.manual) manualColor else scoreColor).toArgb()
                 val w = labelPaint.measureText(label)
                 val x = hit.centerXpx * scale + offsetX
                 var baseline = hit.topYpx * scale + offsetY - labelPaint.textSize * 0.2f

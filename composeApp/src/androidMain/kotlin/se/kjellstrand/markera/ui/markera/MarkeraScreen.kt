@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -77,6 +78,12 @@ fun MarkeraScreen(
     var showDebug by remember { mutableStateOf(false) }
     val onDetectClick: () -> Unit = {
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
+    }
+    // Tap a hole the detector missed: scored and added as a manual hit. The gap
+    // keeps a mis-tap next to a marked hole from doubling it.
+    val minGapPx = with(LocalDensity.current) { 24.dp.toPx() }
+    val onPhotoTap: (Float, Float, Float, Float) -> Unit = { x, y, w, h ->
+        scanController.addManualHit(viewModel, snapshotVm.snapshot, x, y, w, h, minGapPx)
     }
 
     val recorder = LocalSeriesRecorder.current
@@ -126,6 +133,7 @@ fun MarkeraScreen(
                         showDebug = showDebug,
                         onError = { viewModel.setError(it.message) },
                         onAutoDetect = onDetectClick,
+                        onPhotoTap = onPhotoTap,
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
                     BottomArea(
@@ -158,6 +166,7 @@ fun MarkeraScreen(
                             showDebug = showDebug,
                             onError = { viewModel.setError(it.message) },
                             onAutoDetect = onDetectClick,
+                            onPhotoTap = onPhotoTap,
                             modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                         )
                     }

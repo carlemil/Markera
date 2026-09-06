@@ -15,6 +15,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -41,6 +43,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -140,6 +143,38 @@ class TargetScanController(
             }
         }
         return true
+    }
+
+    /**
+     * The user tapped a hole the detector missed, at [tapX],[tapY] in a
+     * [viewW]x[viewH] viewport showing [snapshot] fit-centred. Scores that point
+     * with the same geometry as the scan and adds it as a manual hole, then
+     * re-publishes the series so the pending save includes it. Ignored without
+     * geometry, mid-scan, off the image, or within [minGapPx] (viewport px) of a
+     * hole that is already there.
+     */
+    fun addManualHit(
+        viewModel: MarkeraViewModel,
+        snapshot: Bitmap?,
+        tapX: Float,
+        tapY: Float,
+        viewW: Float,
+        viewH: Float,
+        minGapPx: Float,
+    ) {
+        val state = viewModel.uiState.value
+        if (snapshot == null || state.phase != ScanPhase.IDLE) return
+        val centre = state.centre?.takeIf { it.method != CentreMethod.NONE } ?: return
+        val ring = state.ring ?: return
+        val (ix, iy) = viewportToImage(
+            tapX, tapY, viewW, viewH, state.imageWidth, state.imageHeight,
+        ) ?: return
+        val scale = min(viewW / state.imageWidth, viewH / state.imageHeight)
+        val detection = manualDetection(ix, iy, state.detections, minGapPx / scale) ?: return
+        val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
+            ?: return
+        viewModel.addManualHit(detection, hit)
+        onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot)
     }
 
     private suspend fun runPipeline(snapshot: Bitmap, viewModel: MarkeraViewModel) {
@@ -263,6 +298,10 @@ fun rememberCameraPermission(frameSource: FrameSource): CameraPermissionState {
  * overlays. In the mock flavor a fresh frame auto-triggers [onAutoDetect] —
  * gate it with [autoDetectEnabled] so wizard steps that are not capturing
  * (confirm/locked/summary) don't fire scans.
+ *
+ * [onPhotoTap] (viewport px + viewport size) receives taps on the frozen frame
+ * once there is geometry to score them against — that is manual hole marking;
+ * leave it null on screens that don't offer it.
  */
 @Composable
 fun TargetScanner(
@@ -274,6 +313,7 @@ fun TargetScanner(
     modifier: Modifier = Modifier,
     autoDetectEnabled: Boolean = true,
     onAutoDetect: () -> Unit = {},
+    onPhotoTap: ((x: Float, y: Float, viewW: Float, viewH: Float) -> Unit)? = null,
 ) {
     // Mock flavor: run detection automatically each time a fresh frame is
     // loaded from disk (the key changes), so no tap is needed. The camera
@@ -281,8 +321,24 @@ fun TargetScanner(
     LaunchedEffect(frameSource.autoDetectKey, autoDetectEnabled) {
         if (autoDetectEnabled && frameSource.autoDetectKey != null) onAutoDetect()
     }
-    Box(modifier = modifier) {
-        val frozen = snapshotVm.snapshot
+    val frozen = snapshotVm.snapshot
+    // Tapping adds a missed hole — only on a frozen frame that has been scored.
+    val tappable = onPhotoTap != null && frozen != null &&
+        uiState.centre != null && uiState.ring != null && uiState.phase == ScanPhase.IDLE
+    val tap by rememberUpdatedState(onPhotoTap)
+    Box(
+        modifier = if (tappable) {
+            // Keyed on the flag, not the lambda: a lambda key restarts the
+            // gesture detector on every recomposition. `tap` stays current.
+            modifier.pointerInput(true) {
+                detectTapGestures { p ->
+                    tap?.invoke(p.x, p.y, size.width.toFloat(), size.height.toFloat())
+                }
+            }
+        } else {
+            modifier
+        },
+    ) {
         if (frozen != null) {
             Image(
                 bitmap = frozen.asImageBitmap(),

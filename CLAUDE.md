@@ -160,5 +160,9 @@ in `iosMain/series/` but no host app yet.
 toggle) → square `Viewport` (live preview or frozen frame + `DetectionOverlay`) →
 results area (total badge, editable `ScorePickerRow`, actions). `DetectionOverlay`'s
 `showDebug` gates the raw detection boxes/digit boxes/row-lines; the clean view shows
-only ring + centre + hole markers + score labels. `topScores` are picker indices 0–10
+only ring + centre + hole markers + score labels. Tapping a missed hole on the frozen
+frame adds it: `TargetScanController.addManualHit` scores that point with the same
+geometry (`ManualHit.kt` holds the pure viewport→image and box-sizing maths) and it is
+drawn orange, `manual = true`, so it saves with no `detected*` values.
+`topScores` are picker indices 0–10
 plus 11 = inner-X. Theme is a deliberate dark, green-accented scheme (no dynamic color).

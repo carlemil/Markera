@@ -31,6 +31,12 @@ interface MarkeraViewModel {
      */
     fun onHolesDetected(detections: List<Detection>, scores: List<HitScore>)
 
+    /**
+     * A hole the user tapped on the frozen frame: append it to the results and
+     * fill the next free picker slot with its score, like a detected one.
+     */
+    fun addManualHit(detection: Detection, hit: HitScore)
+
     /** Clear detection overlay state. */
     fun clearResults()
 

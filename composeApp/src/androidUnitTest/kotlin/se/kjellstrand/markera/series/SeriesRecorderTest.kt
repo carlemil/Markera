@@ -54,6 +54,10 @@ class SeriesRecorderTest {
 
     private val jpeg = byteArrayOf(-1, -40, 4, 2)
 
+    // The fake Bitmap above cannot report a size, so the encoder carries it —
+    // which is what the real one does too (the source size, not the JPEG's).
+    private val encoded = EncodedImage(jpeg, 1200, 1200)
+
     private fun recorder(
         signedIn: Boolean = true,
         stored: Caliber = Caliber.NONE,
@@ -61,7 +65,7 @@ class SeriesRecorderTest {
         imageStatus: HttpStatusCode = HttpStatusCode.NoContent,
         // The pre-image tests below count series requests only; their default
         // encoder fails, so nothing is uploaded unless a test asks for it.
-        encodeJpeg: suspend (PlatformImage) -> ByteArray = { error("no encoder") },
+        encodeJpeg: suspend (PlatformImage) -> EncodedImage = { error("no encoder") },
     ): SeriesRecorder {
         val engine = MockEngine { request ->
             recorded += request
@@ -257,7 +261,7 @@ class SeriesRecorderTest {
 
     @Test
     fun theScannedFrameIsUploadedUnderTheReturnedId() {
-        val recorder = recorder(stored = Caliber.MM9, encodeJpeg = { jpeg })
+        val recorder = recorder(stored = Caliber.MM9, encodeJpeg = { encoded })
 
         recorder.onSeriesDetected(scores, image)
         recorder.commit(noPicks)
@@ -265,7 +269,7 @@ class SeriesRecorderTest {
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         awaitRequests(2)
         val upload = recorded.last()
-        assertEquals("http://host:8090/series/1/image", upload.url.toString())
+        assertEquals("http://host:8090/series/1/image?width=1200&height=1200", upload.url.toString())
         assertEquals(ContentType.Image.JPEG, upload.body.contentType)
         assertContentEquals(jpeg, (upload.body as OutgoingContent.ByteArrayContent).bytes())
     }
@@ -275,7 +279,7 @@ class SeriesRecorderTest {
         val recorder = recorder(
             stored = Caliber.MM9,
             imageStatus = HttpStatusCode.InternalServerError,
-            encodeJpeg = { jpeg },
+            encodeJpeg = { encoded },
         )
 
         recorder.onSeriesDetected(scores, image)

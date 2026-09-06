@@ -135,11 +135,15 @@ class SeriesApiTest {
         val api = api(token = "tok") { respond("", HttpStatusCode.NoContent) }
         val jpeg = byteArrayOf(-1, -40, -1, 0, 1, 2)
 
-        api.postSeriesImage(7, jpeg)
+        api.postSeriesImage(7, jpeg, width = 1200, height = 1200)
 
         val request = recorded.single()
         assertEquals(HttpMethod.Post, request.method)
-        assertEquals("http://host:8080/series/7/image", request.url.toString())
+        // The size the hole coordinates are in travels with the image.
+        assertEquals(
+            "http://host:8080/series/7/image?width=1200&height=1200",
+            request.url.toString(),
+        )
         assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])
         assertEquals(ContentType.Image.JPEG, request.body.contentType)
         assertContentEquals(jpeg, (request.body as OutgoingContent.ByteArrayContent).bytes())

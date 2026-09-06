@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -88,10 +89,16 @@ class SeriesApi(
     suspend fun listSeries(): List<SeriesDto> =
         client.get("$base/series") { auth() }.parseOrThrow()
 
-    /** The scanned snapshot for a saved series — a raw JPEG body, no multipart. */
-    suspend fun postSeriesImage(id: Long, jpeg: ByteArray) {
+    /**
+     * The scanned snapshot for a saved series — a raw JPEG body, no multipart.
+     * [width]/[height] are the source-pixel size the hole coordinates are in, so
+     * the server can scale the markers onto the (possibly downscaled) image.
+     */
+    suspend fun postSeriesImage(id: Long, jpeg: ByteArray, width: Int, height: Int) {
         client.post("$base/series/$id/image") {
             auth()
+            parameter("width", width)
+            parameter("height", height)
             contentType(ContentType.Image.JPEG)
             setBody(jpeg)
         }.throwIfError()

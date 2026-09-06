@@ -70,6 +70,24 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         }
     }
 
+    override fun addManualHit(detection: Detection, hit: HitScore) {
+        _uiState.update {
+            val scores = it.scores + hit
+            // Positional, exactly like onHolesDetected: hole i is picker slot i.
+            val slot = scores.size - 1
+            val pick = if (hit.isInnerTen) SCORE_PICKER_INNER_TEN else hit.ring
+            it.copy(
+                detections = it.detections + detection,
+                scores = scores,
+                topScores = if (slot < SCORE_PICKER_COUNT) {
+                    it.topScores.toMutableList().apply { this[slot] = pick }
+                } else {
+                    it.topScores
+                },
+            )
+        }
+    }
+
     override fun clearResults() {
         _uiState.update {
             it.copy(

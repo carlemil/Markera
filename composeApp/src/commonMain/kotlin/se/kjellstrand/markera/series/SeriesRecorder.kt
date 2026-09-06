@@ -24,6 +24,13 @@ sealed interface SaveStatus {
 }
 
 /**
+ * A scanned frame ready to upload. [width]/[height] are the *source* pixels the
+ * hole coordinates refer to, not the (downscaled) JPEG's — the server needs them
+ * to place the hit markers over the image it stores.
+ */
+class EncodedImage(val bytes: ByteArray, val width: Int, val height: Int)
+
+/**
  * Auto-saves every scanned series to the backend. Fed by
  * `TargetScanController.onSeriesDetected`, so free marking and the competition
  * wizard share one instance.
@@ -39,7 +46,7 @@ class SeriesRecorder(
     private val session: BackendSessionRepository,
     private val readCaliber: suspend () -> Caliber,
     private val writeCaliber: suspend (Caliber) -> Unit,
-    private val encodeJpeg: suspend (PlatformImage) -> ByteArray,
+    private val encodeJpeg: suspend (PlatformImage) -> EncodedImage,
     private val scope: CoroutineScope,
 ) {
     private val _caliber = MutableStateFlow(Caliber.NONE)
@@ -156,7 +163,8 @@ class SeriesRecorder(
             // downgrades an already-saved series.
             if (image == null) return@launch
             try {
-                api.postSeriesImage(id, encodeJpeg(image))
+                val encoded = encodeJpeg(image)
+                api.postSeriesImage(id, encoded.bytes, encoded.width, encoded.height)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
