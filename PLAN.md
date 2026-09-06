@@ -64,7 +64,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 6 | iOS: Apple sign-in actual (AuthenticationServices), ATS exception; compile on the Mac mini | done (compiled + linked only; no iOS host app yet) |
 | 7 | App Android: series history screen (Home card → list of saved series: time, caliber, total, per-hole scores; loading/empty/error/signed-out states) | done |
 | 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | done |
-| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN"; decide reverse-proxy + cert approach when picked up) | todo |
+| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
 ## API (server)
 
@@ -79,6 +79,18 @@ GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...],
 POST /series/{id}/image  Bearer, raw image/jpeg body (≤ 5 MB) -> 204
 GET  /series/{id}/image  Bearer     -> 200 image/jpeg | 404
 ```
+
+## HTTPS recipe (task 9, apply the day the backend leaves the LAN)
+
+No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
+
+1. Give the Mac mini a public hostname (a domain or DDNS) and forward 443 → the Mac.
+2. Add a `caddy` service to `server/docker-compose.yml` in front of `markera-server:8080`
+   (Caddyfile: `<host> { reverse_proxy markera-server:8080 }`; `caddy_data` volume for the
+   Let's Encrypt state). Stop publishing 8090 on the host.
+3. App: `markera.backend.url=https://<host>` in `gradle.properties`; drop the cleartext
+   entry for 192.168.1.191 from `network_security_config.xml`.
+4. Set `DEV_AUTH=false` in `server/.env` before exposing anything — `/auth/dev` is a free login.
 
 ## Follow-ups / out of scope
 
