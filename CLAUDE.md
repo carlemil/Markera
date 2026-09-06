@@ -126,6 +126,26 @@ wizard on an emulator against the test server ("Testa mobilregistrering", compet
 Gotcha: kotlinx-serialization omits fields equal to their defaults — the OAuth
 `LoginRequest` fields must stay non-defaulted or the grant envelope silently drops.
 
+### Series backend + auto-save (`server/`, `series/`)
+
+`server/` is a **standalone Gradle project** (not in the root build, so it can
+`docker build` without the Android SDK): Ktor + SQLite, exchanges a Google/Apple ID
+token (`POST /auth/google|apple`) for an opaque session token, `POST/GET /series`.
+`POST /auth/dev` exists only with `DEV_AUTH=true` (the mock flavor signs in with it).
+It runs in Docker on the Mac mini (`ssh macmini`, Colima, `~/source/Markera/server`,
+host port **8090** — 8080 there belongs to another site). `PLAN.md` holds the design
+decisions and the still-open user actions (Google/Apple client ids).
+
+App side: `series/` (commonMain, JVM-unit-tested) has `Caliber`, `SeriesApi`,
+`BackendSessionRepository` and `SeriesRecorder`. `TargetScanController.onSeriesDetected`
+feeds every scored scan to the recorder (hoisted in `AppNavHost`, exposed via
+`LocalSeriesRecorder`): signed out → hint, caliber `-` → chooser dialog, else POST.
+The caliber chip lives in the shared `TargetScanner` viewport. Sign-in is a
+flavor-specific `signInWithProvider` (camera: Credential Manager + `googleid`, needs
+`markera.google.client.id` in `local.properties`; mock: dev endpoint). Backend URL is
+the Gradle property `markera.backend.url` (BuildConfig). iOS has the same entry points
+in `iosMain/series/` but no host app yet.
+
 ### UI
 
 `MarkeraScreen` (androidMain) is the single screen: top bar (with a debug-overlay
