@@ -71,7 +71,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 6 | iOS: Apple sign-in actual (AuthenticationServices), ATS exception; compile on the Mac mini | done (compiled + linked only; no iOS host app yet) |
 | 7 | App Android: series history screen (Home card → list of saved series: time, caliber, total, per-hole scores; loading/empty/error/signed-out states) | done |
 | 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | done |
-| 10 | Admin web UI in the server (`/admin`): users → their series → series details with holes + image; server-rendered HTML, no login, enabled only by `ADMIN_UI=true` (LAN-only deployment); tests; deploy on the Mac mini | todo |
+| 10 | Admin web UI in the server (`/admin`): users → their series → series details with holes + image; server-rendered HTML, no login, enabled only by `ADMIN_UI=true` (LAN-only deployment); tests; deploy on the Mac mini | done |
 | 11 | App: defer the auto-save until the user leaves the frozen frame ("Tillbaka till kamera" in free marking; moving on from a scanned lane in the wizard); rescans discard; caliber dialog moves to that moment. Same commit (amended 2026-09-06): the caliber chip shows only the caliber, moves out of the viewport to the left of the total score, equal height with it; save outcome (and the signed-out hint) becomes a Toast | todo |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
@@ -87,6 +87,7 @@ POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x,y,ring,inner
 GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...], hasImage}]
 POST /series/{id}/image  Bearer, raw image/jpeg body (≤ 5 MB) -> 204
 GET  /series/{id}/image  Bearer     -> 200 image/jpeg | 404
+GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, no auth, only with ADMIN_UI=true
 ```
 
 ## HTTPS recipe (task 9, apply the day the backend leaves the LAN)

@@ -38,6 +38,8 @@ data class Config(
     val devAuth: Boolean,
     /** JPEG snapshots live here as `<seriesId>.jpg`; defaults next to the database so Docker's volume holds both. */
     val imagesDir: String = defaultImagesDir(dbPath),
+    /** Read-only `/admin` pages, no login: LAN-only deployments. */
+    val adminUi: Boolean = false,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -51,6 +53,7 @@ data class Config(
                 appleBundleId = System.getenv("APPLE_BUNDLE_ID")?.ifBlank { null },
                 devAuth = System.getenv("DEV_AUTH") == "true",
                 imagesDir = System.getenv("IMAGES_DIR")?.ifBlank { null } ?: defaultImagesDir(dbPath),
+                adminUi = System.getenv("ADMIN_UI") == "true",
             )
         }
     }
@@ -171,10 +174,12 @@ fun Application.markeraModule(config: Config, db: Db) {
             }
             call.respondFile(file)
         }
+
+        if (config.adminUi) adminRoutes(db, images)
     }
 }
 
-private fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seriesId.jpg")
+internal fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seriesId.jpg")
 
 /** Resolves `{id}` for the authenticated caller, responding 401/404 (and returning null) when it is not theirs. */
 private suspend fun RoutingContext.ownedSeries(db: Db): Long? {

@@ -6,6 +6,9 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.Statement
 
+/** A user plus how many series they have; only the admin pages need it. */
+data class UserRow(val id: Long, val provider: String, val subject: String, val createdAt: String, val seriesCount: Int)
+
 /**
  * SQLite storage. Schema is created on first use.
  *
@@ -111,6 +114,40 @@ class Db(dbPath: String) : AutoCloseable {
             st.executeBatch()
         }
         return seriesId
+    }
+
+    @Synchronized
+    fun listUsers(): List<UserRow> = queryUsers("")
+
+    @Synchronized
+    fun getUser(userId: Long): UserRow? = queryUsers("WHERE u.id = $userId").firstOrNull()
+
+    /** [filter] is built from Longs only — never interpolate anything a client can control. */
+    private fun queryUsers(filter: String): List<UserRow> {
+        val users = mutableListOf<UserRow>()
+        conn.prepareStatement(
+            """SELECT u.id, u.provider, u.subject, u.created_at, COUNT(s.id)
+               FROM users u LEFT JOIN series s ON s.user_id = u.id $filter
+               GROUP BY u.id ORDER BY u.id DESC"""
+        ).use { st ->
+            st.executeQuery().use { rs ->
+                while (rs.next()) {
+                    users += UserRow(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5))
+                }
+            }
+        }
+        return users
+    }
+
+    @Synchronized
+    fun getSeries(seriesId: Long): Series? {
+        conn.prepareStatement("SELECT id, timestamp, caliber FROM series WHERE id = ?").use { st ->
+            st.setLong(1, seriesId)
+            st.executeQuery().use { rs ->
+                if (!rs.next()) return null
+                return Series(rs.getLong(1), rs.getString(2), rs.getString(3), holesOf(seriesId))
+            }
+        }
     }
 
     @Synchronized
