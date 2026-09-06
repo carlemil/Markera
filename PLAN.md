@@ -63,7 +63,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 5 | App: auto-save flow (controller emits series → saver → caliber dialog → POST), caliber badge in viewport, save status; emulator end-to-end against the Mac mini | done |
 | 6 | iOS: Apple sign-in actual (AuthenticationServices), ATS exception; compile on the Mac mini | done (compiled + linked only; no iOS host app yet) |
 | 7 | App Android: series history screen (Home card → list of saved series: time, caliber, total, per-hole scores; loading/empty/error/signed-out states) | done |
-| 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | todo |
+| 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | done |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN"; decide reverse-proxy + cert approach when picked up) | todo |
 
 ## API (server)
@@ -75,7 +75,9 @@ POST /auth/apple  {idToken}        -> 200 {token, userId}
 POST /auth/dev    {subject}        -> 200 {token, userId}   (DEV_AUTH=true only)
 POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x,y,ring,innerTen,distanceMm}]}
                                    -> 201 {id}
-GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...]}]
+GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...], hasImage}]
+POST /series/{id}/image  Bearer, raw image/jpeg body (≤ 5 MB) -> 204
+GET  /series/{id}/image  Bearer     -> 200 image/jpeg | 404
 ```
 
 ## Follow-ups / out of scope

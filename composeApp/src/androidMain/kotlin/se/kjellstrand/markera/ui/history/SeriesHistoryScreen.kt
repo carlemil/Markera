@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.history
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,11 +31,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import java.time.Instant
@@ -53,6 +62,9 @@ fun SeriesHistoryScreen(services: SeriesServices, onBack: () -> Unit) {
     var series by remember { mutableStateOf<List<SeriesDto>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
+    // Thumbnails are small and few; one map for the screen beats a real image
+    // loader (no Coil in this app).
+    val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
 
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
@@ -95,7 +107,9 @@ fun SeriesHistoryScreen(services: SeriesServices, onBack: () -> Unit) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(series!!, key = { it.id }) { SeriesCard(it) }
+                    items(series!!, key = { it.id }) {
+                        SeriesCard(it, services, thumbnails)
+                    }
                 }
             }
         }
@@ -108,41 +122,73 @@ private fun Centered(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SeriesCard(series: SeriesDto) {
+private fun SeriesCard(
+    series: SeriesDto,
+    services: SeriesServices,
+    thumbnails: MutableMap<Long, ImageBitmap>,
+) {
+    if (series.hasImage) {
+        LaunchedEffect(series.id) {
+            if (thumbnails[series.id] != null) return@LaunchedEffect
+            try {
+                val bytes = services.api.getSeriesImage(series.id)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let {
+                    thumbnails[series.id] = it.asImageBitmap()
+                }
+            } catch (_: Throwable) {
+                // No thumbnail is the whole fallback.
+            }
+        }
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            thumbnails[series.id]?.let {
+                Image(
+                    bitmap = it,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Column {
-                    Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = if (series.caliber == "-") "–" else series.caliber,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Text(
-                        text = if (series.caliber == "-") "–" else series.caliber,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = series.total().toString(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 Text(
-                    text = series.total().toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    text = series.scoreLine(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = series.scoreLine(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

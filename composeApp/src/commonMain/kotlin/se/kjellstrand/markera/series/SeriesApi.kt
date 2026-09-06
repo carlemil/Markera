@@ -43,7 +43,12 @@ class SeriesApi(
     private val base = baseUrl.trimEnd('/')
 
     private suspend inline fun <reified T> HttpResponse.parseOrThrow(): T {
-        if (status.value in 200..299) return body()
+        throwIfError()
+        return body()
+    }
+
+    private suspend fun HttpResponse.throwIfError() {
+        if (status.value in 200..299) return
         val text = bodyAsText()
         val error = try {
             webshooterJson.decodeFromString<ApiErrorDto>(text).error
@@ -82,4 +87,16 @@ class SeriesApi(
 
     suspend fun listSeries(): List<SeriesDto> =
         client.get("$base/series") { auth() }.parseOrThrow()
+
+    /** The scanned snapshot for a saved series — a raw JPEG body, no multipart. */
+    suspend fun postSeriesImage(id: Long, jpeg: ByteArray) {
+        client.post("$base/series/$id/image") {
+            auth()
+            contentType(ContentType.Image.JPEG)
+            setBody(jpeg)
+        }.throwIfError()
+    }
+
+    suspend fun getSeriesImage(id: Long): ByteArray =
+        client.get("$base/series/$id/image") { auth() }.parseOrThrow()
 }

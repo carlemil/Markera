@@ -69,6 +69,7 @@ import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.HoleDetector
+import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.fit67RingFromDigits
@@ -101,11 +102,12 @@ class TargetScanController(
     private val detecting = AtomicBoolean(false)
 
     /**
-     * Called with the scored holes after every successful scan, for the
-     * auto-save to the series backend. Set by the nav host, so free marking
-     * and the competition wizard both feed the same recorder.
+     * Called with the scored holes and the frame they came from after every
+     * successful scan, for the auto-save to the series backend. Set by the nav
+     * host, so free marking and the competition wizard both feed the same
+     * recorder.
      */
-    var onSeriesDetected: ((List<HitScore>) -> Unit)? = null
+    var onSeriesDetected: ((List<HitScore>, PlatformImage) -> Unit)? = null
 
     fun close() {
         detector.close()
@@ -194,7 +196,7 @@ class TargetScanController(
                 "scores=${scores.map { if (it.isInnerTen) "X" else it.ring.toString() }}",
         )
         viewModel.onHolesDetected(detections, scores)
-        if (scores.isNotEmpty()) onSeriesDetected?.invoke(scores)
+        if (scores.isNotEmpty()) onSeriesDetected?.invoke(scores, snapshot)
     }
 }
 

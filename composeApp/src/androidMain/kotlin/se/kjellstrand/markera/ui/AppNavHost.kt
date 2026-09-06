@@ -49,6 +49,7 @@ import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.encodeSeriesJpeg
 import se.kjellstrand.markera.series.signInWithProvider
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.competition.CompetitionListScreen
@@ -99,6 +100,7 @@ fun AppNavHost() {
             session = seriesServices.session,
             readCaliber = seriesServices.store::readCaliber,
             writeCaliber = seriesServices.store::writeCaliber,
+            encodeJpeg = ::encodeSeriesJpeg,
             scope = scope,
         ).also { scanController.onSeriesDetected = it::onSeriesDetected }
     }

@@ -9,11 +9,14 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
@@ -108,7 +111,7 @@ class SeriesApiTest {
     fun listSeriesParsesArray() = runBlocking {
         val api = api(token = "tok") {
             json(
-                """[{"id":1,"timestamp":"2026-09-06T10:00:00Z","caliber":"22lr",
+                """[{"id":1,"timestamp":"2026-09-06T10:00:00Z","caliber":"22lr","hasImage":true,
                    "holes":[{"x":1.5,"y":2.5,"ring":10,"innerTen":true,"distanceMm":8.0}]},
                    {"id":2,"timestamp":"2026-09-06T11:00:00Z","caliber":"-","holes":[]}]""",
             )
@@ -120,5 +123,42 @@ class SeriesApiTest {
         assertEquals("22lr", series[0].caliber)
         assertEquals(HoleDto(1.5, 2.5, 10, true, 8.0), series[0].holes.single())
         assertTrue(series[1].holes.isEmpty())
+        // Defaulted, so series stored before image upload existed still parse.
+        assertTrue(series[0].hasImage)
+        assertFalse(series[1].hasImage)
+    }
+
+    @Test
+    fun postSeriesImageSendsRawJpegBytes() = runBlocking {
+        val api = api(token = "tok") { respond("", HttpStatusCode.NoContent) }
+        val jpeg = byteArrayOf(-1, -40, -1, 0, 1, 2)
+
+        api.postSeriesImage(7, jpeg)
+
+        val request = recorded.single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertEquals("http://host:8080/series/7/image", request.url.toString())
+        assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])
+        assertEquals(ContentType.Image.JPEG, request.body.contentType)
+        assertContentEquals(jpeg, (request.body as OutgoingContent.ByteArrayContent).bytes())
+    }
+
+    @Test
+    fun getSeriesImageReturnsTheBody() = runBlocking {
+        val jpeg = byteArrayOf(-1, -40, 9, 9)
+        val api = api(token = "tok") {
+            respond(jpeg, headers = headersOf(HttpHeaders.ContentType, "image/jpeg"))
+        }
+
+        assertContentEquals(jpeg, api.getSeriesImage(7))
+        assertEquals("http://host:8080/series/7/image", recorded.single().url.toString())
+    }
+
+    @Test
+    fun missingImageThrowsWithTheServerMessage() {
+        val api = api(token = "tok") { json("""{"error":"no image"}""", HttpStatusCode.NotFound) }
+
+        val e = assertFailsWith<SeriesApiException> { runBlocking { api.getSeriesImage(7) } }
+        assertEquals("no image", e.message)
     }
 }

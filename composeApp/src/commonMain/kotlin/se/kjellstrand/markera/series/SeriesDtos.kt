@@ -31,6 +31,8 @@ data class SeriesDto(
     val timestamp: String,
     val caliber: String,
     val holes: List<HoleDto>,
+    /** Defaulted so series stored before image upload existed still parse. */
+    val hasImage: Boolean = false,
 )
 
 @Serializable

@@ -1,12 +1,16 @@
 package se.kjellstrand.markera.series
 
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.ktor.client.engine.okhttp.OkHttp
+import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.BuildConfig
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
@@ -26,6 +30,27 @@ class SeriesServices(context: Context) {
         api = SeriesApi(client, BuildConfig.BACKEND_URL, tokenProvider = { repo.currentToken })
         repo = BackendSessionRepository(api, store)
         session = repo
+    }
+}
+
+private const val IMAGE_MAX_DIM = 1024
+
+/**
+ * The scanned frame as a modest JPEG for the backend — the thumbnail in the
+ * history list is all it feeds, so 1024 px on the longer side is plenty.
+ */
+suspend fun encodeSeriesJpeg(image: Bitmap): ByteArray = withContext(Dispatchers.Default) {
+    val longest = maxOf(image.width, image.height)
+    val scaled = if (longest > IMAGE_MAX_DIM) {
+        val s = IMAGE_MAX_DIM.toFloat() / longest
+        Bitmap.createScaledBitmap(image, (image.width * s).toInt(), (image.height * s).toInt(), true)
+    } else {
+        image
+    }
+    ByteArrayOutputStream().use { out ->
+        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
+        if (scaled !== image) scaled.recycle()
+        out.toByteArray()
     }
 }
 
