@@ -43,6 +43,10 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 - **Admin UI** (task 10, requested 2026-09-06): lives in the Ktor server, plain server-rendered
   HTML from string templates (no template/HTML dependency), read-only, no auth. Gated by
   `ADMIN_UI=true` so a future public deployment cannot expose it by accident.
+- **Save timing** (task 11, requested 2026-09-06): a scan is only *pending* while its frozen
+  frame is on screen; the POST (and the caliber dialog when the caliber is `-`) happens when the
+  user returns to the camera. Edited picker values are NOT folded into the saved holes (the
+  pickers are sorted, holes are positional) — open question for the user.
 - Sub-agents run on `opus`.
 
 ## User actions needed (cannot be done by the orchestrator)
@@ -68,6 +72,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 7 | App Android: series history screen (Home card → list of saved series: time, caliber, total, per-hole scores; loading/empty/error/signed-out states) | done |
 | 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | done |
 | 10 | Admin web UI in the server (`/admin`): users → their series → series details with holes + image; server-rendered HTML, no login, enabled only by `ADMIN_UI=true` (LAN-only deployment); tests; deploy on the Mac mini | todo |
+| 11 | App: defer the auto-save until the user leaves the frozen frame ("Tillbaka till kamera" in free marking; moving on from a scanned lane in the wizard); rescans discard; caliber dialog moves to that moment; status chip stays visible on the live view until the next scan | todo |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
 ## API (server)
