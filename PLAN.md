@@ -45,8 +45,20 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
   `ADMIN_UI=true` so a future public deployment cannot expose it by accident.
 - **Save timing** (task 11, requested 2026-09-06): a scan is only *pending* while its frozen
   frame is on screen; the POST (and the caliber dialog when the caliber is `-`) happens when the
-  user returns to the camera. Edited picker values are NOT folded into the saved holes (the
-  pickers are sorted, holes are positional) — open question for the user.
+  user returns to the camera.
+- **Edited scores** (task 15, requested 2026-09-06, for training data later): the score
+  pickers are *positional* — `topScores[i]` is built from `scores[i]` (`MarkeraViewModelImpl.
+  onHolesDetected`, first `SCORE_PICKER_COUNT` = 5 holes, padded with 0) and edited in place —
+  so picker slot `i` maps back onto detected hole `i`. Each saved hole carries both the value
+  the user confirmed (`ring`, `innerTen`, the existing fields — history totals and the admin
+  pages keep using them) and what the detector said (`detectedRing`, `detectedInnerTen`;
+  `null` for a hole the user added by hand in an empty slot, which then has no
+  `x`/`y`/`distanceMm` either — those become nullable). `edited` is derived (`ring`/`innerTen`
+  differ from the detected pair, or the pair is null), not stored. A detected hole the user
+  sets to 0 is kept as a 0 (a false-positive signal). Detected holes beyond the 5 picker
+  slots are saved unedited. Merging happens in the app (`SeriesRecorder.commit(topScores)`);
+  the server only stores. Ordering: server half first and deployed (the server JSON is strict
+  about unknown keys), then the app half.
 - Sub-agents run on `opus`.
 
 ## User actions needed (cannot be done by the orchestrator)
@@ -76,6 +88,10 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 12 | App: score pickers stop showing the previous/next value; tapping a score opens a dialpad-style dialog (0–10 + X) that sets it (queued 2026-09-06 behind task 11, same results area) | done |
 | 13 | Server: users get a `name` (Google: `name` claim, else `email`; Apple: `email`; dev: the subject), refreshed at every login, shown on the admin pages | done |
 | 14 | App: caliber dialog rows half as tall, "Ingen vald" for no caliber, dialpad order 0–10 then X (orchestrator-applied, 2026-09-06) | done |
+| 15a | Server: holes gain `detected_ring`/`detected_inner_ten` (nullable) and `x`/`y`/`distance_mm` become nullable (table rebuilt in the migration); DTO `Hole` mirrors it with defaults so old clients still post; admin series page marks edited holes (detected → chosen) and the series lists show an edited count; tests; deploy | queued |
+| 15b | App: `SeriesRecorder.commit(topScores)` merges the picker values into the pending holes per the pinned decision (`SeriesDtos` helper, unit-tested); `MarkeraScreen` (Spara) and the wizard (lane change) pass the current `topScores`; phone check that an edited series shows as edited on `/admin` | queued |
+| 16 | App: remove the "Dela" share button (nothing to share for now); orchestrator-applied | queued |
+| 17 | Admin UI: whole table rows clickable wherever a row has exactly one target page (users → user, series → series) | queued |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
 ## API (server)
@@ -85,7 +101,7 @@ GET  /health                       -> 200 {"status":"ok"}
 POST /auth/google {idToken}        -> 200 {token, userId}
 POST /auth/apple  {idToken}        -> 200 {token, userId}
 POST /auth/dev    {subject}        -> 200 {token, userId}   (DEV_AUTH=true only)
-POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x,y,ring,innerTen,distanceMm}]}
+POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x?,y?,ring,innerTen,distanceMm?,detectedRing?,detectedInnerTen?}]}
                                    -> 201 {id}
 GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...], hasImage}]
 POST /series/{id}/image  Bearer, raw image/jpeg body (≤ 5 MB) -> 204
