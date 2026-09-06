@@ -2,166 +2,106 @@ package se.kjellstrand.markera.ui.markera
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PageSize
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.VerticalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlin.math.absoluteValue
+import se.kjellstrand.markera.R
 
 private val PICKER_GAP = 6.dp
-private val SLIDER_ITEM_WIDTH = 44.dp
-private val SLIDER_ITEM_HEIGHT = 48.dp
-private const val SLIDER_VISIBLE_ITEMS = 3
-private const val SIDE_ITEM_MIN_ALPHA = 0.18f
-private const val SIDE_ITEM_MIN_SCALE = 0.72f
+private val PICKER_ITEM_WIDTH = 44.dp
+private val PICKER_ITEM_HEIGHT = 48.dp
+private val DIALPAD_KEY_SIZE = 72.dp
 private val HIGHLIGHT_SHAPE = RoundedCornerShape(10.dp)
 
-/** Distance of [page] from the settled centre, 0f (centred) … 1f (a step away). */
-private fun PagerState.pageOffset(page: Int): Float =
-    (((currentPage - page) + currentPageOffsetFraction).absoluteValue).coerceIn(0f, 1f)
-
-private fun PagerState.pageAlpha(page: Int) =
-    1f - (1f - SIDE_ITEM_MIN_ALPHA) * pageOffset(page)
-
-private fun PagerState.pageScale(page: Int) =
-    1f - (1f - SIDE_ITEM_MIN_SCALE) * pageOffset(page)
+/** Dialpad layout: 0 1 2 / 3 4 5 / 6 7 8 / 9 10 X, as picker indices. */
+private val DIALPAD_KEYS = listOf(
+    listOf(0, 1, 2),
+    listOf(3, 4, 5),
+    listOf(6, 7, 8),
+    listOf(9, 10, SCORE_PICKER_INNER_TEN),
+)
 
 /**
- * Horizontal sliding picker built on [HorizontalPager]. The selected value is
- * whichever item is centred in the viewport — highlighted with a tinted, bordered
- * slot; neighbours fade and shrink so the control reads as a slider, not a grid.
+ * One hole's score: a highlighted box showing only the current value. Tapping it
+ * opens a dialpad dialog; picking a key reports it and closes.
  */
 @Composable
-private fun HorizontalSlidingScorePicker(
+private fun ScoreBox(
     value: Int,
     onValueChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pageCount = SCORE_PICKER_LABELS.size
-    val pagerState = rememberPagerState(
-        initialPage = value.coerceIn(0, SCORE_PICKER_INNER_TEN),
-        pageCount = { pageCount },
-    )
-
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.collect { settled ->
-            if (settled != value) onValueChange(settled)
-        }
-    }
-    LaunchedEffect(value) {
-        if (pagerState.currentPage != value) pagerState.scrollToPage(value)
-    }
-
-    val sideCount = SLIDER_VISIBLE_ITEMS / 2
+    var showDialog by remember { mutableStateOf(false) }
     Box(
         modifier = modifier
-            .width(SLIDER_ITEM_WIDTH * SLIDER_VISIBLE_ITEMS)
-            .height(SLIDER_ITEM_HEIGHT),
-        contentAlignment = Alignment.Center,
-    ) {
-        SelectionSlot(Modifier.width(SLIDER_ITEM_WIDTH).fillMaxHeight())
-        HorizontalPager(
-            state = pagerState,
-            pageSize = PageSize.Fixed(SLIDER_ITEM_WIDTH),
-            contentPadding = PaddingValues(horizontal = SLIDER_ITEM_WIDTH * sideCount),
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            PageLabel(SCORE_PICKER_LABELS[page], pagerState.pageAlpha(page), pagerState.pageScale(page))
-        }
-    }
-}
-
-/**
- * Vertical mirror of [HorizontalSlidingScorePicker] — the user swipes up/down
- * and the centred item is highlighted.
- */
-@Composable
-private fun VerticalSlidingScorePicker(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val pageCount = SCORE_PICKER_LABELS.size
-    val pagerState = rememberPagerState(
-        initialPage = value.coerceIn(0, SCORE_PICKER_INNER_TEN),
-        pageCount = { pageCount },
-    )
-
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.settledPage }.collect { settled ->
-            if (settled != value) onValueChange(settled)
-        }
-    }
-    LaunchedEffect(value) {
-        if (pagerState.currentPage != value) pagerState.scrollToPage(value)
-    }
-
-    val sideCount = SLIDER_VISIBLE_ITEMS / 2
-    Box(
-        modifier = modifier
-            .width(SLIDER_ITEM_WIDTH)
-            .height(SLIDER_ITEM_HEIGHT * SLIDER_VISIBLE_ITEMS),
-        contentAlignment = Alignment.Center,
-    ) {
-        SelectionSlot(Modifier.fillMaxWidth().height(SLIDER_ITEM_HEIGHT))
-        VerticalPager(
-            state = pagerState,
-            pageSize = PageSize.Fixed(SLIDER_ITEM_HEIGHT),
-            contentPadding = PaddingValues(vertical = SLIDER_ITEM_HEIGHT * sideCount),
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            PageLabel(SCORE_PICKER_LABELS[page], pagerState.pageAlpha(page), pagerState.pageScale(page))
-        }
-    }
-}
-
-/** The fixed, highlighted centre slot showing the current selection. */
-@Composable
-private fun SelectionSlot(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
+            .width(PICKER_ITEM_WIDTH)
+            .height(PICKER_ITEM_HEIGHT)
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
-            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE),
-    )
+            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE)
+            .clickable { showDialog = true },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = SCORE_PICKER_LABELS[value.coerceIn(0, SCORE_PICKER_INNER_TEN)],
+            style = MaterialTheme.typography.titleLarge,
+        )
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {},
+            title = { Text(stringResource(R.string.score_pick_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
+                    DIALPAD_KEYS.forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
+                            row.forEach { key ->
+                                DialpadKey(key) {
+                                    onValueChange(key)
+                                    showDialog = false
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        )
+    }
 }
 
-/** One pager cell: the value, faded and shrunk by how far it is off-centre. */
 @Composable
-private fun PageLabel(label: String, alpha: Float, scale: Float) {
+private fun DialpadKey(value: Int, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .alpha(alpha)
-            .scale(scale),
+            .size(DIALPAD_KEY_SIZE)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
+            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, style = MaterialTheme.typography.titleLarge)
+        Text(text = SCORE_PICKER_LABELS[value], style = MaterialTheme.typography.headlineSmall)
     }
 }
 
-/** Portrait — vertical sliding pickers in a row. */
+/** Portrait — the score boxes in a row. */
 @Composable
 fun ScorePickerHorizontalRow(
     values: List<Int>,
@@ -173,12 +113,12 @@ fun ScorePickerHorizontalRow(
         horizontalArrangement = Arrangement.spacedBy(PICKER_GAP),
     ) {
         values.forEachIndexed { i, v ->
-            VerticalSlidingScorePicker(value = v, onValueChange = { onValueChange(i, it) })
+            ScoreBox(value = v, onValueChange = { onValueChange(i, it) })
         }
     }
 }
 
-/** Landscape — horizontal sliding pickers in a column. */
+/** Landscape — the score boxes in a column. */
 @Composable
 fun ScorePickerVerticalColumn(
     values: List<Int>,
@@ -190,7 +130,7 @@ fun ScorePickerVerticalColumn(
         verticalArrangement = Arrangement.spacedBy(PICKER_GAP),
     ) {
         values.forEachIndexed { i, v ->
-            HorizontalSlidingScorePicker(value = v, onValueChange = { onValueChange(i, it) })
+            ScoreBox(value = v, onValueChange = { onValueChange(i, it) })
         }
     }
 }
