@@ -41,7 +41,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 
 ## User actions needed (cannot be done by the orchestrator)
 
-- [ ] Google Cloud Console: an OAuth **Web** client ID (used as the token audience on the
+- [x] Google Cloud Console (done 2026-09-06; Web client id in local.properties + Mac .env, Android client with debug SHA-1): an OAuth **Web** client ID (used as the token audience on the
       backend and as `serverClientId` in the app) and an **Android** client ID with the
       debug/release SHA-1 for `se.kjellstrand.markera`. Put the Web client ID in
       `local.properties` as `markera.google.client.id=...` and in the Mac mini's
