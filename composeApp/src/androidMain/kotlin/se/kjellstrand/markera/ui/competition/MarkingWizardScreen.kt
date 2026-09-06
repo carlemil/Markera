@@ -66,6 +66,7 @@ import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.ScanPhase
 import se.kjellstrand.markera.ui.markera.ScorePickerHorizontalRow
 import se.kjellstrand.markera.ui.markera.TargetScanController
+import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanner
 import se.kjellstrand.markera.ui.markera.TotalBadge
 import se.kjellstrand.markera.ui.markera.rememberCameraPermission
@@ -120,9 +121,11 @@ fun MarkingWizardScreen(
     val permission = rememberCameraPermission(frameSource)
     val errorInference = stringResource(R.string.markera_error_inference)
 
+    val recorder = LocalSeriesRecorder.current
     val resetScanner = {
         snapshotVm.clear()
         markeraVm.clearResults()
+        recorder?.clear()
         frameSource.onResumeLive()
     }
     val startScan = {

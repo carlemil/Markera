@@ -23,6 +23,14 @@
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
 
+    <!-- Series auto-save -->
+    <string name="series_caliber_title">Välj kaliber</string>
+    <string name="series_status_signed_out">Logga in för att spara</string>
+    <string name="series_status_needs_caliber">Välj kaliber</string>
+    <string name="series_status_saving">Sparar…</string>
+    <string name="series_status_saved">Sparad</string>
+    <string name="series_status_failed">Kunde inte spara</string>
+
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>
     <string name="login_email">E-post</string>

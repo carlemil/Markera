@@ -2,6 +2,7 @@ package se.kjellstrand.markera.ui
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,18 +12,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,8 +45,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.BackendAuth
+import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.signInWithProvider
+import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.competition.CompetitionListScreen
 import se.kjellstrand.markera.ui.competition.LoginScreen
 import se.kjellstrand.markera.ui.competition.MarkingGroupsScreen
@@ -77,6 +87,20 @@ fun AppNavHost() {
     val frameSource = rememberFrameSource()
     val scanController = rememberTargetScanController()
 
+    // Auto-save: every scan the shared controller completes is offered to the
+    // recorder, whichever screen started it.
+    val scope = rememberCoroutineScope()
+    val recorder = remember {
+        SeriesRecorder(
+            api = seriesServices.api,
+            session = seriesServices.session,
+            readCaliber = seriesServices.store::readCaliber,
+            writeCaliber = seriesServices.store::writeCaliber,
+            scope = scope,
+        ).also { scanController.onSeriesDetected = it::onSeriesDetected }
+    }
+    DisposableEffect(recorder) { onDispose { recorder.dispose() } }
+
     var stack by remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
     val current = stack.last()
     val push: (Screen) -> Unit = { stack = stack + it }
@@ -90,6 +114,7 @@ fun AppNavHost() {
     val session by services.sessionRepository.session.collectAsState()
     val backendAuth by seriesServices.session.auth.collectAsState()
 
+    CompositionLocalProvider(LocalSeriesRecorder provides recorder) {
     when (val screen = current) {
         Screen.Home -> HomeScreen(
             onFreeMarking = { push(Screen.FreeMarking) },
@@ -138,6 +163,47 @@ fun AppNavHost() {
             onExit = pop,
         )
     }
+    }
+
+    val caliberDialogOpen by recorder.caliberDialogOpen.collectAsState()
+    if (caliberDialogOpen) {
+        val caliber by recorder.caliber.collectAsState()
+        CaliberDialog(
+            selected = caliber,
+            onSelect = recorder::selectCaliber,
+            onDismiss = recorder::dismissCaliberDialog,
+        )
+    }
+}
+
+/** Tags the scanned series; shown automatically while the caliber is "-". */
+@Composable
+private fun CaliberDialog(
+    selected: Caliber,
+    onSelect: (Caliber) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.series_caliber_title)) },
+        confirmButton = {},
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Caliber.entries.forEach { caliber ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(caliber) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = caliber == selected, onClick = { onSelect(caliber) })
+                        Text(caliber.label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+    )
 }
 
 /** Start screen: free marking (standalone scanner) or competition marking. */

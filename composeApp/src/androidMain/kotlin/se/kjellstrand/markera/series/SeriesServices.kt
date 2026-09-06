@@ -18,12 +18,13 @@ class SeriesServices(context: Context) {
 
     val session: BackendSessionRepository
     val api: SeriesApi
+    val store = DataStoreBackendTokenStore(context)
 
     init {
         val client = createWebshooterHttpClient(OkHttp.create())
         lateinit var repo: BackendSessionRepository
         api = SeriesApi(client, BuildConfig.BACKEND_URL, tokenProvider = { repo.currentToken })
-        repo = BackendSessionRepository(api, DataStoreBackendTokenStore(context))
+        repo = BackendSessionRepository(api, store)
         session = repo
     }
 }
@@ -39,6 +40,15 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         val token = stringPreferencesKey("token")
         val userId = longPreferencesKey("user_id")
         val provider = stringPreferencesKey("provider")
+        val caliber = stringPreferencesKey("caliber")
+    }
+
+    /** The chosen caliber shares this store but survives [clear] (sign-out). */
+    suspend fun readCaliber(): Caliber =
+        Caliber.fromLabel(dataStore.data.first()[Keys.caliber] ?: "")
+
+    suspend fun writeCaliber(caliber: Caliber) {
+        dataStore.edit { it[Keys.caliber] = caliber.label }
     }
 
     override suspend fun read(): BackendAuth? {
@@ -60,6 +70,11 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
     }
 
     override suspend fun clear() {
-        dataStore.edit { it.clear() }
+        // Only the login — the caliber is a device preference, not part of it.
+        dataStore.edit { prefs ->
+            prefs.remove(Keys.token)
+            prefs.remove(Keys.userId)
+            prefs.remove(Keys.provider)
+        }
     }
 }

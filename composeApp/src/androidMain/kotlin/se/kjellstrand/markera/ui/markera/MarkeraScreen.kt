@@ -83,9 +83,11 @@ fun MarkeraScreen(
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
     }
 
+    val recorder = LocalSeriesRecorder.current
     val onResumeLive: () -> Unit = {
         snapshotVm.clear()
         viewModel.clearResults()
+        recorder?.clear()
         frameSource.onResumeLive()
     }
 
