@@ -11,6 +11,7 @@ import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
@@ -106,6 +107,111 @@ class ApiTest {
 
         val stranger = client.devAuth("stranger")
         assertEquals(emptyList(), client.get("/series") { bearerAuth(stranger.token) }.body<List<Series>>())
+    }
+
+    @Test
+    fun detectedManualAndTypedHolesRoundTrip() = apiTest { client ->
+        val me = client.devAuth("me")
+        val holes = listOf(
+            Hole(1.0, 2.0, 9, false, 31.2, detectedRing = 9),            // detected, confirmed as-is
+            Hole(1.0, 2.0, 10, true, 8.0, 8, false),                     // detected, edited to X
+            Hole(-3.5, 4.25, 7, false, 60.0),                            // manual: placed by hand, no detection
+            Hole(null, null, 5, false, null),                            // typed into an empty picker slot
+        )
+        client.createSeries(me.token, series().copy(holes = holes))
+
+        val stored: List<Series> = client.get("/series") { bearerAuth(me.token) }.body()
+        assertEquals(holes, stored.single().holes)
+    }
+
+    @Test
+    fun holesWithoutTheDetectedFieldsStillPost() = apiTest { client ->
+        val me = client.devAuth("me")
+        // The shape an old app build posts: no detectedRing/detectedInnerTen at all.
+        val response = client.post("/series") {
+            bearerAuth(me.token)
+            setBody(
+                TextContent(
+                    """{"timestamp":"2026-09-06T12:34:56Z","caliber":"9mm",""" +
+                        """"holes":[{"x":1.0,"y":2.0,"ring":9,"innerTen":false,"distanceMm":31.2}]}""",
+                    ContentType.Application.Json,
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+
+        val hole = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes.single()
+        assertEquals(Hole(1.0, 2.0, 9, false, 31.2, null, null), hole)
+    }
+
+    @Test
+    fun oldDatabasesGainTheDetectedColumns() {
+        val dbFile = File.createTempFile("markera-old-holes", ".db").also { it.delete(); it.deleteOnExit() }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().use { st ->
+                st.executeUpdate(
+                    """CREATE TABLE users (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         provider TEXT NOT NULL, subject TEXT NOT NULL, created_at TEXT NOT NULL,
+                         UNIQUE(provider, subject))"""
+                )
+                st.executeUpdate(
+                    """CREATE TABLE series (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         user_id INTEGER NOT NULL REFERENCES users(id),
+                         timestamp TEXT NOT NULL, caliber TEXT NOT NULL, created_at TEXT NOT NULL)"""
+                )
+                st.executeUpdate(
+                    """CREATE TABLE holes (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         series_id INTEGER NOT NULL REFERENCES series(id),
+                         x REAL NOT NULL, y REAL NOT NULL, ring INTEGER NOT NULL,
+                         inner_ten INTEGER NOT NULL, distance_mm REAL NOT NULL)"""
+                )
+                st.executeUpdate("INSERT INTO users(provider, subject, created_at) VALUES ('google', 'old', 'then')")
+                st.executeUpdate(
+                    "INSERT INTO series(user_id, timestamp, caliber, created_at) VALUES (1, 'then', '9mm', 'then')"
+                )
+                st.executeUpdate(
+                    "INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm) VALUES (1, 1.0, 2.0, 9, 1, 31.2)"
+                )
+            }
+        }
+        // The old row survives with unknown detector values, and a new hole with nulls now fits.
+        Db(dbFile.path).use { db ->
+            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, null, null)), db.getSeries(1)?.holes)
+            db.insertSeries(1, "2026-09-06T12:34:56Z", "9mm", listOf(Hole(null, null, 5, false, null)))
+        }
+        // Reopening must not run the rebuild again.
+        Db(dbFile.path).use { db ->
+            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, null, null)), db.getSeries(1)?.holes)
+            assertEquals(listOf(Hole(null, null, 5, false, null)), db.getSeries(2)?.holes)
+        }
+    }
+
+    @Test
+    fun adminMarksEditedManualAndTypedHoles() = apiTest(adminUi = true) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(
+            me.token,
+            series().copy(
+                holes = listOf(
+                    Hole(1.0, 2.0, 9, false, 31.2, 9, false),   // untouched detection
+                    Hole(1.0, 2.0, 9, false, 31.2, 8, false),   // 8 -> 9
+                    Hole(1.0, 2.0, 10, true, 8.0, 10, false),   // 10 -> X
+                    Hole(-3.5, 4.25, 7, false, 60.0),           // manual
+                    Hole(null, null, 5, false, null),           // typed
+                ),
+            ),
+        )
+
+        val seriesPage = client.get("/admin/series/$id").bodyAsText()
+        assertTrue("<td>8 &rarr; 9</td>" in seriesPage, seriesPage)
+        assertTrue("<td>10 &rarr; X</td>" in seriesPage, seriesPage)
+        assertTrue("<td>manual</td>" in seriesPage && "<td>typed</td>" in seriesPage, seriesPage)
+
+        // The four non-plain holes are counted on the user's series list.
+        assertTrue("<td>4</td>" in client.get("/admin/users/${me.userId}").bodyAsText())
     }
 
     @Test

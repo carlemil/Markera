@@ -14,3 +14,9 @@ Env vars: `PORT` (8080), `DB_PATH` (`./data/markera.db`), `IMAGES_DIR` (`<DB_PAT
 API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
 `POST /series` / `GET /series` with `Authorization: Bearer <token>`,
 `POST /series/{id}/image` (raw `image/jpeg` body ≤ 5 MB → 204) / `GET /series/{id}/image`.
+
+A hole is `{x, y, ring, innerTen, distanceMm, detectedRing, detectedInnerTen}`. `ring`/`innerTen` is what
+the user confirmed, `detectedRing`/`detectedInnerTen` what the detector said (both optional, omitted or
+null when there was no detection — kept for training data). `x`/`y`/`distanceMm` may be null. The three
+kinds are derived, not stored: **detected** = `detectedRing != null` (**edited** when the confirmed pair
+differs from the detected one), **manual** = `x != null` without a detection, **typed** = `x == null`.

@@ -4,6 +4,7 @@ import java.io.File
 import java.security.SecureRandom
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.ResultSet
 import java.sql.Statement
 
 /** A user plus how many series they have; only the admin pages need it. */
@@ -58,16 +59,22 @@ class Db(dbPath: String) : AutoCloseable {
                      caliber TEXT NOT NULL,
                      created_at TEXT NOT NULL)"""
             )
-            st.executeUpdate(
-                """CREATE TABLE IF NOT EXISTS holes (
-                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                     series_id INTEGER NOT NULL REFERENCES series(id),
-                     x REAL NOT NULL,
-                     y REAL NOT NULL,
-                     ring INTEGER NOT NULL,
-                     inner_ten INTEGER NOT NULL,
-                     distance_mm REAL NOT NULL)"""
-            )
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
+            // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
+            // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
+            val holeColumns = st.executeQuery("PRAGMA table_info(holes)").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("name")) }
+            }
+            if ("detected_ring" !in holeColumns) {
+                st.executeUpdate("DROP TABLE IF EXISTS holes_new")
+                st.executeUpdate("CREATE TABLE holes_new ($HOLE_COLUMNS)")
+                st.executeUpdate(
+                    """INSERT INTO holes_new(id, series_id, x, y, ring, inner_ten, distance_mm)
+                       SELECT id, series_id, x, y, ring, inner_ten, distance_mm FROM holes"""
+                )
+                st.executeUpdate("DROP TABLE holes")
+                st.executeUpdate("ALTER TABLE holes_new RENAME TO holes")
+            }
         }
     }
 
@@ -117,15 +124,18 @@ class Db(dbPath: String) : AutoCloseable {
             it.generatedKeys.use { rs -> rs.next(); seriesId = rs.getLong(1) }
         }
         conn.prepareStatement(
-            "INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm) VALUES (?, ?, ?, ?, ?, ?)"
+            """INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
         ).use { st ->
             for (h in holes) {
                 st.setLong(1, seriesId)
-                st.setDouble(2, h.x)
-                st.setDouble(3, h.y)
+                st.setObject(2, h.x)
+                st.setObject(3, h.y)
                 st.setInt(4, h.ring)
                 st.setInt(5, if (h.innerTen) 1 else 0)
-                st.setDouble(6, h.distanceMm)
+                st.setObject(6, h.distanceMm)
+                st.setObject(7, h.detectedRing)
+                st.setObject(8, h.detectedInnerTen?.let { if (it) 1 else 0 })
                 st.addBatch()
             }
             st.executeBatch()
@@ -194,12 +204,16 @@ class Db(dbPath: String) : AutoCloseable {
     private fun holesOf(seriesId: Long): List<Hole> {
         val holes = mutableListOf<Hole>()
         conn.prepareStatement(
-            "SELECT x, y, ring, inner_ten, distance_mm FROM holes WHERE series_id = ? ORDER BY id"
+            """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten
+               FROM holes WHERE series_id = ? ORDER BY id"""
         ).use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
                 while (rs.next()) {
-                    holes += Hole(rs.getDouble(1), rs.getDouble(2), rs.getInt(3), rs.getInt(4) != 0, rs.getDouble(5))
+                    holes += Hole(
+                        rs.doubleOrNull(1), rs.doubleOrNull(2), rs.getInt(3), rs.getInt(4) != 0, rs.doubleOrNull(5),
+                        rs.intOrNull(6), rs.intOrNull(7)?.let { it != 0 },
+                    )
                 }
             }
         }
@@ -210,5 +224,20 @@ class Db(dbPath: String) : AutoCloseable {
 
     private companion object {
         val random = SecureRandom()
+
+        const val HOLE_COLUMNS =
+            """id INTEGER PRIMARY KEY AUTOINCREMENT,
+               series_id INTEGER NOT NULL REFERENCES series(id),
+               x REAL,
+               y REAL,
+               ring INTEGER NOT NULL,
+               inner_ten INTEGER NOT NULL,
+               distance_mm REAL,
+               detected_ring INTEGER,
+               detected_inner_ten INTEGER"""
     }
 }
+
+private fun ResultSet.doubleOrNull(index: Int) = getDouble(index).takeIf { !wasNull() }
+
+private fun ResultSet.intOrNull(index: Int) = getInt(index).takeIf { !wasNull() }

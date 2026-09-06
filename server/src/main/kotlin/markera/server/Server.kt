@@ -63,8 +63,22 @@ const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 val CALIBERS = setOf("-", "22lr", "32", "38", "357", "45", "44", "9mm", "10mm")
 
+/**
+ * One shot. [ring]/[innerTen] is what the user confirmed; [detectedRing]/[detectedInnerTen] what the
+ * detector said (null when there was no detection). Kinds are derived, never stored: detected =
+ * `detectedRing != null`, manual = placed by hand on the photo (`x != null`, no detection), typed =
+ * a score keyed into an empty picker slot (`x == null`).
+ */
 @Serializable
-data class Hole(val x: Double, val y: Double, val ring: Int, val innerTen: Boolean, val distanceMm: Double)
+data class Hole(
+    val x: Double?,
+    val y: Double?,
+    val ring: Int,
+    val innerTen: Boolean,
+    val distanceMm: Double?,
+    val detectedRing: Int? = null,
+    val detectedInnerTen: Boolean? = null,
+)
 
 @Serializable
 data class Series(

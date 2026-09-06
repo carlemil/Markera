@@ -44,6 +44,7 @@ fun Route.adminRoutes(db: Db, images: File) {
                 esc(s.caliber),
                 s.holes.size,
                 s.holes.sumOf { it.ring },
+                s.holes.count { kind(it).isNotEmpty() },
                 if (imageFile(images, s.id).isFile) "&#10003;" else "",
             )
         }
@@ -51,7 +52,7 @@ fun Route.adminRoutes(db: Db, images: File) {
             page(
                 user.name ?: "${user.provider} / ${user.subject}",
                 """<a href="/admin">&larr; users</a>""" +
-                    table(listOf("id", "timestamp", "caliber", "holes", "total", "image"), rows),
+                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image"), rows),
             )
         )
     }
@@ -60,7 +61,7 @@ fun Route.adminRoutes(db: Db, images: File) {
         val seriesId = pathId()
         val series = db.getSeries(seriesId) ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId)
-        val holes = series.holes.joinToString("") { row(it.x, it.y, it.ring, it.innerTen, it.distanceMm) }
+        val holes = series.holes.joinToString("") { row(it.x, it.y, it.ring, it.innerTen, it.distanceMm, kind(it)) }
         val image = if (imageFile(images, seriesId).isFile) """<img src="/admin/series/$seriesId/image">""" else ""
         respondHtml(
             page(
@@ -68,7 +69,7 @@ fun Route.adminRoutes(db: Db, images: File) {
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
                     "<p>${time(series.timestamp)} &middot; ${esc(series.caliber)} &middot; " +
                     "total ${series.holes.sumOf { it.ring }}</p>" +
-                    table(listOf("x", "y", "ring", "innerTen", "distanceMm"), holes) +
+                    table(listOf("x", "y", "ring", "innerTen", "distanceMm", "kind"), holes) +
                     image,
             )
         )
@@ -79,6 +80,16 @@ fun Route.adminRoutes(db: Db, images: File) {
         if (file.isFile) call.respondFile(file) else notFound("No image")
     }
 }
+
+/** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
+private fun kind(h: Hole) = when {
+    h.detectedRing == null -> if (h.x == null) "typed" else "manual"
+    h.ring != h.detectedRing || h.innerTen != (h.detectedInnerTen == true) ->
+        "${score(h.detectedRing, h.detectedInnerTen == true)} &rarr; ${score(h.ring, h.innerTen)}"
+    else -> ""
+}
+
+private fun score(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()
 
 private fun RoutingContext.pathId() = call.parameters["id"]?.toLongOrNull() ?: -1L
 
@@ -91,8 +102,8 @@ private fun esc(value: String) = value
     .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
 /** Cells are already-escaped HTML or numbers; every string taken from the database goes through [esc] first. */
-private fun row(vararg cells: Any) = cells.joinToString("", "<tr>", "</tr>") {
-    "<td>${if (it is Double) round2(it) else it}</td>"
+private fun row(vararg cells: Any?) = cells.joinToString("", "<tr>", "</tr>") {
+    "<td>${if (it is Double) round2(it) else it ?: ""}</td>"
 }
 
 /** At most two decimals, no trailing zeros: 1.23456 -> 1.23, 4.25 -> 4.25, 8.0 -> 8. */
