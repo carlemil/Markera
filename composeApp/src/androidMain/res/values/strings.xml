@@ -12,6 +12,7 @@
     <string name="markera_coming_soon">Kommer snart</string>
     <string name="markera_toggle_debug">Visa detektionsdata</string>
     <string name="markera_back">Tillbaka</string>
+    <string name="score_pick_title">Poäng</string>
 
     <!-- Home -->
     <string name="home_free_marking">Fri markering</string>
@@ -26,6 +27,7 @@
 
     <!-- Series auto-save -->
     <string name="series_caliber_title">Välj kaliber</string>
+    <string name="series_caliber_none">Ingen vald</string>
     <string name="series_status_saved">Sparad</string>
     <string name="series_status_failed">Kunde inte spara</string>
 

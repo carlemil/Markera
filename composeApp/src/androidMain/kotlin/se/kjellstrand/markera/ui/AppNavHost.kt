@@ -23,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import se.kjellstrand.markera.R
@@ -214,17 +216,24 @@ private fun CaliberDialog(
         title = { Text(stringResource(R.string.series_caliber_title)) },
         confirmButton = {},
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Caliber.entries.forEach { caliber ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(caliber) }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = caliber == selected, onClick = { onSelect(caliber) })
-                        Text(caliber.label, style = MaterialTheme.typography.bodyLarge)
+            // Compact rows: the whole row is the tap target, so the radio's 48 dp minimum is off.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Caliber.entries.forEach { caliber ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(caliber) }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = caliber == selected, onClick = { onSelect(caliber) })
+                            Text(
+                                if (caliber == Caliber.NONE) stringResource(R.string.series_caliber_none) else caliber.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
                     }
                 }
             }
