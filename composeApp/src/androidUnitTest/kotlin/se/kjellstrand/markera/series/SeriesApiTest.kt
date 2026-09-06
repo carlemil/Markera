@@ -84,8 +84,10 @@ class SeriesApiTest {
         assertEquals("http://host:8080/series", recorded.single().url.toString())
         assertEquals(request, webshooterJson.decodeFromString<SeriesRequest>(sentBody))
         assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
-        // innerTen has no default, so false values must still be on the wire.
-        assertEquals(2, Regex("innerTen").findAll(sentBody).count(), sentBody)
+        // innerTen has no default, so false values must still be on the wire
+        // (quoted, so the detectedInnerTen keys don't count).
+        assertEquals(2, Regex(""""innerTen"""").findAll(sentBody).count(), sentBody)
+        assertTrue(""""detectedRing":10""" in sentBody, sentBody)
     }
 
     @Test

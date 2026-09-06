@@ -79,10 +79,12 @@ fun MarkeraScreen(
 
     val recorder = LocalSeriesRecorder.current
     val onResumeLive: () -> Unit = {
+        // Read the pickers before clearResults() wipes them.
+        val picks = uiState.topScores
         snapshotVm.clear()
         viewModel.clearResults()
-        // Leaving the frozen frame is what saves the scan.
-        recorder?.commit()
+        // Leaving the frozen frame is what saves the scan, with the edited scores.
+        recorder?.commit(picks)
         frameSource.onResumeLive()
     }
 

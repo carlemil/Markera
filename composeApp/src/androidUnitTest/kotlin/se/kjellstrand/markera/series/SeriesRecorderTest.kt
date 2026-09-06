@@ -40,6 +40,9 @@ class SeriesRecorderTest {
         HitScore(3f, 4f, 0f, 60.0, 8, false),
     )
 
+    /** Most tests are about *when* a series is saved, not about the picker edits. */
+    private val noPicks = emptyList<Int>()
+
     // PlatformImage is android.graphics.Bitmap, which a JVM unit test cannot
     // construct (every method of the mockable android.jar throws, and there is
     // no Robolectric here). An uninitialised instance is enough: the recorder
@@ -113,7 +116,7 @@ class SeriesRecorderTest {
         assertEquals(SaveStatus.SignedOut, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
 
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertTrue(recorded.isEmpty())
     }
@@ -122,7 +125,7 @@ class SeriesRecorderTest {
     fun aCaliberChosenFromTheChipAfterAnEarlierSaveDoesNotPostTheNewScan() {
         val recorder = recorder(stored = Caliber.LR22)
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
 
         recorder.onSeriesDetected(scores, image)
@@ -131,7 +134,7 @@ class SeriesRecorderTest {
         assertEquals(SaveStatus.Pending, recorder.status.value)
         assertEquals(1, recorded.size)
 
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         assertEquals(2, recorded.size)
@@ -148,7 +151,7 @@ class SeriesRecorderTest {
         assertFalse(recorder.caliberDialogOpen.value)
         assertTrue(recorded.isEmpty())
 
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
         assertEquals("http://host:8090/series", recorded.single().url.toString())
@@ -161,7 +164,7 @@ class SeriesRecorderTest {
 
         recorder.onSeriesDetected(scores, image)
         recorder.onSeriesDetected(listOf(HitScore(9f, 9f, 0f, 90.0, 6, false)), image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         assertEquals(1, recorded.size)
@@ -173,14 +176,14 @@ class SeriesRecorderTest {
     fun dismissingTheDialogKeepsTheSeriesPendingForTheNextCommit() {
         val recorder = recorder(stored = Caliber.NONE)
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         recorder.dismissCaliberDialog()
 
         assertFalse(recorder.caliberDialogOpen.value)
         assertTrue(recorded.isEmpty())
 
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertTrue(recorder.caliberDialogOpen.value)
         assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
@@ -195,7 +198,7 @@ class SeriesRecorderTest {
         assertEquals(SaveStatus.Pending, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
 
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
         assertTrue(recorder.caliberDialogOpen.value)
@@ -216,7 +219,7 @@ class SeriesRecorderTest {
     fun selectingNoneKeepsTheSeriesPending() {
         val recorder = recorder(stored = Caliber.NONE)
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         recorder.selectCaliber(Caliber.NONE)
 
@@ -234,7 +237,7 @@ class SeriesRecorderTest {
         val recorder = recorder(stored = Caliber.LR22)
 
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
         assertFalse(recorder.caliberDialogOpen.value)
@@ -247,7 +250,7 @@ class SeriesRecorderTest {
         val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.InternalServerError)
 
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertIs<SaveStatus.Failed>(recorder.awaitDone())
     }
@@ -257,7 +260,7 @@ class SeriesRecorderTest {
         val recorder = recorder(stored = Caliber.MM9, encodeJpeg = { jpeg })
 
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         awaitRequests(2)
@@ -276,11 +279,42 @@ class SeriesRecorderTest {
         )
 
         recorder.onSeriesDetected(scores, image)
-        recorder.commit()
+        recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         awaitRequests(2)
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.status.value)
+    }
+
+    @Test
+    fun commitSavesThePickerValuesAlongsideWhatWasDetected() {
+        val recorder = recorder(stored = Caliber.LR22)
+
+        recorder.onSeriesDetected(scores, image)
+        // Hit 1 corrected 10X -> 9, hit 2 rejected, a sixth-ring hit typed in.
+        recorder.commit(listOf(9, 0, 6, 0, 0))
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertTrue(""""ring":9,"innerTen":false,"distanceMm":10.0,"detectedRing":10""" in sentBody, sentBody)
+        assertTrue(""""ring":0,"innerTen":false,"distanceMm":60.0,"detectedRing":8""" in sentBody, sentBody)
+        assertTrue(""""ring":6,"innerTen":false}""" in sentBody, sentBody)
+        assertEquals(3, Regex(""""ring"""").findAll(sentBody).count(), sentBody)
+    }
+
+    @Test
+    fun theCaliberDialogSavesTheSameEditedSeries() {
+        val recorder = recorder(stored = Caliber.NONE)
+
+        recorder.onSeriesDetected(scores, image)
+        recorder.commit(listOf(9, 0))
+
+        assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
+
+        recorder.selectCaliber(Caliber.MM9)
+
+        assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
+        assertTrue(""""ring":9,"innerTen":false,"distanceMm":10.0,"detectedRing":10""" in sentBody, sentBody)
+        assertTrue(""""ring":0,"innerTen":false,"distanceMm":60.0,"detectedRing":8""" in sentBody, sentBody)
     }
 
     @Test
@@ -293,7 +327,7 @@ class SeriesRecorderTest {
         assertEquals(SaveStatus.Idle, recorder.status.value)
 
         // Nothing left to save: neither a commit nor a caliber posts anything.
-        recorder.commit()
+        recorder.commit(noPicks)
         assertEquals(SaveStatus.Idle, recorder.status.value)
         recorder.selectCaliber(Caliber.MM9)
         runBlocking { recorder.caliber.first { it == Caliber.MM9 } }

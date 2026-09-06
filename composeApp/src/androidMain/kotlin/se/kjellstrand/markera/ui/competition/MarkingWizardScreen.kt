@@ -125,9 +125,11 @@ fun MarkingWizardScreen(
     // Back to a live viewfinder; [save] the scan we are leaving behind (moving
     // on to another lane) or drop it (a rescan of this one).
     val resetScanner = { save: Boolean ->
+        // Read the pickers before clearResults() wipes them.
+        val picks = markeraState.topScores
         snapshotVm.clear()
         markeraVm.clearResults()
-        if (save) recorder?.commit() else recorder?.clear()
+        if (save) recorder?.commit(picks) else recorder?.clear()
         frameSource.onResumeLive()
     }
     val startScan = {

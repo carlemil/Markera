@@ -3,19 +3,29 @@ package se.kjellstrand.markera.series
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.serialization.Serializable
+import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.vision.HitScore
 
 /**
  * The Markera backend payloads (see `server/`). Deliberately duplicated
  * rather than shared: `server/` is a standalone Gradle project.
  */
+/**
+ * One hole. [ring]/[innerTen] are the *confirmed* values (what the user left in
+ * the pickers); [detectedRing]/[detectedInnerTen] are what the detector said, so
+ * the pair is training data. Three shapes, all derived, no flag column:
+ * detected (`detectedRing != null`), manual (a position but no detection) and
+ * typed (a picker value with no hole at all — everything nullable is null).
+ */
 @Serializable
 data class HoleDto(
-    val x: Double,
-    val y: Double,
+    val x: Double?,
+    val y: Double?,
     val ring: Int,
     val innerTen: Boolean,
-    val distanceMm: Double,
+    val distanceMm: Double?,
+    val detectedRing: Int? = null,
+    val detectedInnerTen: Boolean? = null,
 )
 
 @Serializable
@@ -53,7 +63,30 @@ fun HitScore.toHoleDto(): HoleDto = HoleDto(
     ring = ring,
     innerTen = isInnerTen,
     distanceMm = distanceMm,
+    detectedRing = if (manual) null else ring,
+    detectedInnerTen = if (manual) null else isInnerTen,
 )
+
+/**
+ * Overlay the score pickers on the detected holes: picker slot `i` is hole `i`
+ * (see `MarkeraViewModelImpl.onHolesDetected`), so its value becomes that hole's
+ * confirmed ring — a 0 included, which marks the detection as a false positive.
+ * A value past the last hole is a hole the detector missed and the user typed
+ * (no position, no detection); a 0 there is just an empty slot. Holes past the
+ * end of [topScores] keep what they had.
+ */
+fun SeriesRequest.withPicks(topScores: List<Int>): SeriesRequest = copy(
+    holes = holes.mapIndexed { i, hole ->
+        topScores.getOrNull(i)?.let { hole.copy(ring = pickRing(it), innerTen = pickInnerTen(it)) }
+            ?: hole
+    } + topScores.drop(holes.size).filter { it > 0 }.map {
+        HoleDto(x = null, y = null, ring = pickRing(it), innerTen = pickInnerTen(it), distanceMm = null)
+    },
+)
+
+private fun pickRing(pick: Int) = if (pick == SCORE_PICKER_INNER_TEN) 10 else pick
+
+private fun pickInnerTen(pick: Int) = pick == SCORE_PICKER_INNER_TEN
 
 fun seriesRequest(
     scores: List<HitScore>,

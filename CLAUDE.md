@@ -140,7 +140,10 @@ App side: `series/` (commonMain, JVM-unit-tested) has `Caliber`, `SeriesApi`,
 `BackendSessionRepository` and `SeriesRecorder`. `TargetScanController.onSeriesDetected`
 feeds every scored scan to the recorder (hoisted in `AppNavHost`, exposed via
 `LocalSeriesRecorder`). A scan is only *pending* while its frozen frame is on screen;
-`recorder.commit()` (the "Spara" button in free marking, moving on from a lane in the wizard)
+`recorder.commit(topScores)` (the "Spara" button in free marking, moving on from a lane in the
+wizard) merges the picker values into the pending request via `withPicks` — so a `HoleDto`'s
+`ring`/`innerTen` are what the user confirmed and `detectedRing`/`detectedInnerTen` what the
+detector said (null for a hand-placed or typed-in hole) — then
 saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then the scanned frame
 goes up as a ≤1024 px JPEG (`POST /series/{id}/image`; a failed upload never fails the
 series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).

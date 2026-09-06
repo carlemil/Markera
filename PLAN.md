@@ -93,7 +93,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 13 | Server: users get a `name` (Google: `name` claim, else `email`; Apple: `email`; dev: the subject), refreshed at every login, shown on the admin pages | done |
 | 14 | App: caliber dialog rows half as tall, "Ingen vald" for no caliber, dialpad order 0–10 then X (orchestrator-applied, 2026-09-06) | done |
 | 15a | Server: holes gain `detected_ring`/`detected_inner_ten` (nullable) and `x`/`y`/`distance_mm` become nullable (table rebuilt in the migration); DTO `Hole` mirrors it with defaults so old clients still post; admin series page marks edited holes (detected → chosen) and the series lists show an edited count; tests; deploy | done |
-| 15b | App: `SeriesRecorder.commit(topScores)` merges the picker values into the pending holes per the pinned decision (`SeriesDtos` helper, unit-tested); `MarkeraScreen` (Spara) and the wizard (lane change) pass the current `topScores`; phone check that an edited series shows as edited on `/admin` | queued |
+| 15b | App: `SeriesRecorder.commit(topScores)` merges the picker values into the pending holes per the pinned decision (`SeriesDtos` helper, unit-tested); `MarkeraScreen` (Spara) and the wizard (lane change) pass the current `topScores`; phone check that an edited series shows as edited on `/admin` | done |
 | 16 | App: remove the "Dela" share button (nothing to share for now); orchestrator-applied | done |
 | 17 | Admin UI: whole table rows clickable wherever a row has exactly one target page (users → user, series → series) | queued |
 | 18a | Admin series page: draw the holes on the photo (positions are in source-image px of the uploaded JPEG, same aspect, so scale by the rendered size), detected and manual in different colours, with the confirmed score as label; typed holes have no position and stay list-only | queued |
@@ -131,6 +131,12 @@ No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
    `/auth/dev` is a free login and `/admin` shows every user's series without one.
 
 ## Follow-ups / out of scope
+
+- Wizard: corrections made in the wizard's own Confirm picker (`wizardVm.updateShot`) are not
+  what `resetScanner(save = true)` passes to `recorder.commit` (it passes the scanner's
+  `topScores`), so a series saved from the wizard carries the detector values, not the lane's
+  edits. Low priority while the competition entry is hidden (task 20); fix = commit with the
+  lane's shots at lane confirmation.
 
 - ~~Image upload alongside a series~~ → task 8.
 - ~~Series history screen in the app~~ → task 7.

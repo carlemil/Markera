@@ -79,9 +79,13 @@ class SeriesRecorder(
         _status.value = SaveStatus.Pending
     }
 
-    /** Back to the live view: save what is pending (asking for a caliber first). */
-    fun commit() {
-        if (pending == null) return
+    /**
+     * Back to the live view: save what is pending (asking for a caliber first).
+     * [topScores] are the picker values as the user left them — merged in here,
+     * so the caliber dialog's later [selectCaliber] posts the edited series too.
+     */
+    fun commit(topScores: List<Int>) {
+        pending = pending?.withPicks(topScores) ?: return
         saveRequested = true
         val caliber = _caliber.value
         if (caliber == Caliber.NONE) {

@@ -34,6 +34,8 @@ data class HitScore(
     val distanceMm: Double,
     val ring: Int,
     val isInnerTen: Boolean,
+    /** Placed by hand rather than by the detector — saved without a detected ring. */
+    val manual: Boolean = false,
 )
 
 /**
