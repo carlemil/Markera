@@ -114,6 +114,14 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     @Synchronized
+    fun seriesOwner(seriesId: Long): Long? {
+        conn.prepareStatement("SELECT user_id FROM series WHERE id = ?").use {
+            it.setLong(1, seriesId)
+            it.executeQuery().use { rs -> return if (rs.next()) rs.getLong(1) else null }
+        }
+    }
+
+    @Synchronized
     fun listSeries(userId: Long): List<Series> {
         val series = mutableListOf<Series>()
         conn.prepareStatement(

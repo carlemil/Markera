@@ -7,6 +7,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -16,21 +17,36 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ApiTest {
 
+    private lateinit var imagesDir: File
+
     private fun apiTest(devAuth: Boolean = true, block: suspend ApplicationTestBuilder.(HttpClient) -> Unit) =
         testApplication {
             val dbFile = File.createTempFile("markera-test", ".db").also { it.delete(); it.deleteOnExit() }
-            application { markeraModule(Config(0, dbFile.path, null, null, devAuth), Db(dbFile.path)) }
+            imagesDir = File(dbFile.path + "-images").also { it.deleteOnExit() }
+            application { markeraModule(Config(0, dbFile.path, null, null, devAuth, imagesDir.path), Db(dbFile.path)) }
             val client = createClient { install(ClientContentNegotiation) { json() } }
             block(client)
         }
 
     private suspend fun HttpClient.devAuth(subject: String): AuthResponse =
         post("/auth/dev") { contentType(ContentType.Application.Json); setBody(DevAuthRequest(subject)) }.body()
+
+    private suspend fun HttpClient.createSeries(token: String): Long = post("/series") {
+        bearerAuth(token); contentType(ContentType.Application.Json); setBody(series())
+    }.body<IdResponse>().id
+
+    private suspend fun HttpClient.putImage(
+        token: String,
+        seriesId: Long,
+        bytes: ByteArray,
+        type: ContentType = ContentType.Image.JPEG,
+    ) = post("/series/$seriesId/image") { bearerAuth(token); contentType(type); setBody(bytes) }
 
     private fun series(timestamp: String = "2026-09-06T12:34:56Z", caliber: String = "9mm") = SeriesRequest(
         timestamp = timestamp,
@@ -104,6 +120,72 @@ class ApiTest {
         assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth("nope") }.status)
         val post = client.post("/series") {
             bearerAuth("nope"); contentType(ContentType.Application.Json); setBody(series())
+        }
+        assertEquals(HttpStatusCode.Unauthorized, post.status)
+    }
+
+    @Test
+    fun imageRoundTripsAndShowsUpInTheSeriesList() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        assertEquals(listOf(false), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.hasImage })
+
+        val jpeg = ByteArray(4096) { (it % 251).toByte() }
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, jpeg).status)
+
+        val download = client.get("/series/$id/image") { bearerAuth(me.token) }
+        assertEquals(HttpStatusCode.OK, download.status)
+        assertEquals(ContentType.Image.JPEG, download.contentType()?.withoutParameters())
+        assertContentEquals(jpeg, download.bodyAsBytes())
+        assertEquals(listOf(true), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.hasImage })
+    }
+
+    @Test
+    fun imagesOfOtherUsersAndUnknownSeriesAre404() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        client.putImage(me.token, id, ByteArray(16))
+        val stranger = client.devAuth("stranger").token
+
+        for (target in listOf(id, 999L)) {
+            assertEquals(HttpStatusCode.NotFound, client.putImage(stranger, target, ByteArray(16)).status)
+            assertEquals(HttpStatusCode.NotFound, client.get("/series/$target/image") { bearerAuth(stranger) }.status)
+        }
+        assertEquals(HttpStatusCode.NotFound, client.get("/series/999/image") { bearerAuth(me.token) }.status)
+        // The owner's image survived the strangers' attempts.
+        assertContentEquals(ByteArray(16), client.get("/series/$id/image") { bearerAuth(me.token) }.bodyAsBytes())
+    }
+
+    @Test
+    fun missingImageIs404() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        val response = client.get("/series/$id/image") { bearerAuth(me.token) }
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("no image", response.body<ErrorResponse>().error)
+    }
+
+    @Test
+    fun imageUploadRejectsWrongTypeAndOversizedBodies() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+
+        val wrongType = client.putImage(me.token, id, "not a jpeg".toByteArray(), ContentType.Text.Plain)
+        assertEquals(HttpStatusCode.UnsupportedMediaType, wrongType.status)
+
+        val tooBig = client.putImage(me.token, id, ByteArray(6 * 1024 * 1024))
+        assertEquals(HttpStatusCode.PayloadTooLarge, tooBig.status)
+
+        assertEquals(emptyList(), imagesDir.listFiles().orEmpty().map { it.name })
+        assertEquals(HttpStatusCode.NotFound, client.get("/series/$id/image") { bearerAuth(me.token) }.status)
+    }
+
+    @Test
+    fun imageRoutesNeedAValidBearerToken() = apiTest { client ->
+        val id = client.createSeries(client.devAuth("me").token)
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/series/$id/image").status)
+        val post = client.post("/series/$id/image") {
+            contentType(ContentType.Image.JPEG); setBody(ByteArray(16))
         }
         assertEquals(HttpStatusCode.Unauthorized, post.status)
     }

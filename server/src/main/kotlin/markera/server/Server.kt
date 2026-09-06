@@ -2,6 +2,7 @@ package markera.server
 
 import com.auth0.jwt.exceptions.JWTVerificationException
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -11,14 +12,22 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.Instant
 
 data class Config(
@@ -27,17 +36,27 @@ data class Config(
     val googleClientId: String?,
     val appleBundleId: String?,
     val devAuth: Boolean,
+    /** JPEG snapshots live here as `<seriesId>.jpg`; defaults next to the database so Docker's volume holds both. */
+    val imagesDir: String = defaultImagesDir(dbPath),
 ) {
     companion object {
-        fun fromEnv() = Config(
-            port = System.getenv("PORT")?.toIntOrNull() ?: 8080,
-            dbPath = System.getenv("DB_PATH")?.ifBlank { null } ?: "./data/markera.db",
-            googleClientId = System.getenv("GOOGLE_CLIENT_ID")?.ifBlank { null },
-            appleBundleId = System.getenv("APPLE_BUNDLE_ID")?.ifBlank { null },
-            devAuth = System.getenv("DEV_AUTH") == "true",
-        )
+        fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
+
+        fun fromEnv(): Config {
+            val dbPath = System.getenv("DB_PATH")?.ifBlank { null } ?: "./data/markera.db"
+            return Config(
+                port = System.getenv("PORT")?.toIntOrNull() ?: 8080,
+                dbPath = dbPath,
+                googleClientId = System.getenv("GOOGLE_CLIENT_ID")?.ifBlank { null },
+                appleBundleId = System.getenv("APPLE_BUNDLE_ID")?.ifBlank { null },
+                devAuth = System.getenv("DEV_AUTH") == "true",
+                imagesDir = System.getenv("IMAGES_DIR")?.ifBlank { null } ?: defaultImagesDir(dbPath),
+            )
+        }
     }
 }
+
+const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 val CALIBERS = setOf("-", "22lr", "32", "38", "357", "45", "44", "9mm", "10mm")
 
@@ -45,7 +64,13 @@ val CALIBERS = setOf("-", "22lr", "32", "38", "357", "45", "44", "9mm", "10mm")
 data class Hole(val x: Double, val y: Double, val ring: Int, val innerTen: Boolean, val distanceMm: Double)
 
 @Serializable
-data class Series(val id: Long, val timestamp: String, val caliber: String, val holes: List<Hole>)
+data class Series(
+    val id: Long,
+    val timestamp: String,
+    val caliber: String,
+    val holes: List<Hole>,
+    val hasImage: Boolean = false,
+)
 
 @Serializable
 data class SeriesRequest(val timestamp: String, val caliber: String, val holes: List<Hole>)
@@ -79,6 +104,7 @@ fun Application.markeraModule(config: Config, db: Db) {
         }
     }
 
+    val images = File(config.imagesDir).also { it.mkdirs() }
     val google = config.googleClientId?.let { googleVerifier(it) }
     val apple = config.appleBundleId?.let { appleVerifier(it) }
 
@@ -110,9 +136,55 @@ fun Application.markeraModule(config: Config, db: Db) {
 
         get("/series") {
             val userId = authenticate(db) ?: return@get
-            call.respond(db.listSeries(userId))
+            call.respond(db.listSeries(userId).map { it.copy(hasImage = imageFile(images, it.id).isFile) })
+        }
+
+        post("/series/{id}/image") {
+            val seriesId = ownedSeries(db) ?: return@post
+            if (call.request.contentType().withoutParameters() != ContentType.Image.JPEG) {
+                call.respond(HttpStatusCode.UnsupportedMediaType, ErrorResponse("expected image/jpeg"))
+                return@post
+            }
+            val declared = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+            if (declared != null && declared > MAX_IMAGE_BYTES) {
+                call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("image must be at most $MAX_IMAGE_BYTES bytes"))
+                return@post
+            }
+            val bytes = call.receiveChannel().readRemaining(MAX_IMAGE_BYTES + 1L).readByteArray()
+            if (bytes.size > MAX_IMAGE_BYTES) {
+                call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("image must be at most $MAX_IMAGE_BYTES bytes"))
+                return@post
+            }
+            val target = imageFile(images, seriesId)
+            val tmp = File(images, "$seriesId.jpg.tmp")
+            tmp.writeBytes(bytes)
+            Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        get("/series/{id}/image") {
+            val seriesId = ownedSeries(db) ?: return@get
+            val file = imageFile(images, seriesId)
+            if (!file.isFile) {
+                call.respond(HttpStatusCode.NotFound, ErrorResponse("no image"))
+                return@get
+            }
+            call.respondFile(file)
         }
     }
+}
+
+private fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seriesId.jpg")
+
+/** Resolves `{id}` for the authenticated caller, responding 401/404 (and returning null) when it is not theirs. */
+private suspend fun RoutingContext.ownedSeries(db: Db): Long? {
+    val userId = authenticate(db) ?: return null
+    val seriesId = call.parameters["id"]?.toLongOrNull()
+    if (seriesId == null || db.seriesOwner(seriesId) != userId) {
+        call.respond(HttpStatusCode.NotFound, ErrorResponse("unknown series"))
+        return null
+    }
+    return seriesId
 }
 
 /** Resolves the Bearer session token, responding 401 (and returning null) when it is missing or unknown. */
