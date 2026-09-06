@@ -28,12 +28,11 @@ fun Route.adminRoutes(db: Db, images: File) {
                 esc(u.provider),
                 "$link${esc(u.subject)}</a>",
                 esc(u.name.orEmpty()),
-                time(u.createdAt),
                 u.seriesCount,
                 href = "/admin/users/${u.id}",
             )
         }
-        respondHtml(page("Users", table(listOf("id", "provider", "subject", "name", "created", "series"), rows)))
+        respondHtml(page("Users", table(listOf("id", "provider", "subject", "name", "series"), rows)))
     }
 
     get("/admin/users/{id}") {
