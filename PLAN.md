@@ -51,14 +51,18 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
   onHolesDetected`, first `SCORE_PICKER_COUNT` = 5 holes, padded with 0) and edited in place —
   so picker slot `i` maps back onto detected hole `i`. Each saved hole carries both the value
   the user confirmed (`ring`, `innerTen`, the existing fields — history totals and the admin
-  pages keep using them) and what the detector said (`detectedRing`, `detectedInnerTen`;
-  `null` for a hole the user added by hand in an empty slot, which then has no
-  `x`/`y`/`distanceMm` either — those become nullable). `edited` is derived (`ring`/`innerTen`
-  differ from the detected pair, or the pair is null), not stored. A detected hole the user
-  sets to 0 is kept as a 0 (a false-positive signal). Detected holes beyond the 5 picker
-  slots are saved unedited. Merging happens in the app (`SeriesRecorder.commit(topScores)`);
-  the server only stores. Ordering: server half first and deployed (the server JSON is strict
-  about unknown keys), then the app half.
+  pages keep using them) and what the detector said (`detectedRing`, `detectedInnerTen`,
+  `null` when the detector said nothing). Three kinds of hole, all derived, nothing stored
+  for the kind itself: **detected** (`detectedRing != null`; `edited` = the confirmed pair
+  differs from the detected pair), **manual** (task 18: placed by a tap on the frozen photo,
+  so it has `x`/`y`/`distanceMm` scored by the same ellipse geometry, but `detected*` null),
+  **typed** (a score entered in an empty picker slot: `x`/`y`/`distanceMm` null — those become
+  nullable — and `detected*` null). A detected hole the user sets to 0 is kept as a 0 (a
+  false-positive signal). Detected holes beyond the 5 picker slots are saved unedited.
+  Merging happens in the app (`SeriesRecorder.commit(topScores)`); the server only stores.
+  Ordering: server half first and deployed (the server JSON is strict about unknown keys),
+  then the app half. `HitScore` gains `manual: Boolean = false` so the DTO mapping and the
+  overlay colour know the kind.
 - Sub-agents run on `opus`.
 
 ## User actions needed (cannot be done by the orchestrator)
@@ -92,6 +96,8 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 15b | App: `SeriesRecorder.commit(topScores)` merges the picker values into the pending holes per the pinned decision (`SeriesDtos` helper, unit-tested); `MarkeraScreen` (Spara) and the wizard (lane change) pass the current `topScores`; phone check that an edited series shows as edited on `/admin` | queued |
 | 16 | App: remove the "Dela" share button (nothing to share for now); orchestrator-applied | done |
 | 17 | Admin UI: whole table rows clickable wherever a row has exactly one target page (users → user, series → series) | queued |
+| 18a | Admin series page: draw the holes on the photo (positions are in source-image px of the uploaded JPEG, same aspect, so scale by the rendered size), detected and manual in different colours, with the confirmed score as label; typed holes have no position and stay list-only | queued |
+| 18b | App: manual marking — a tap on the frozen frame (not on an existing marker) adds a `manual` hole at that image point, scored with the current centre + ring, appended to `scores`, filling the next free picker slot, re-emitted to the recorder as the pending series; overlay draws manual markers in their own colour; no tap effect without geometry | queued |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
 ## API (server)
