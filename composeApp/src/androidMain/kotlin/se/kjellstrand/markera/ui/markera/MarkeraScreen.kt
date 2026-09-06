@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui.markera
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,13 +27,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -67,7 +63,6 @@ fun MarkeraScreen(
     scanController: TargetScanController = rememberTargetScanController(),
     onBack: (() -> Unit)? = null,
 ) {
-    val context = LocalContext.current
     val viewModel: MarkeraViewModelImpl = viewModel { MarkeraViewModelImpl() }
     val snapshotVm: MarkeraSnapshotViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
@@ -78,9 +73,6 @@ fun MarkeraScreen(
     // Off by default — the clean result view. Toggle in the top bar reveals the
     // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
     var showDebug by remember { mutableStateOf(false) }
-    val comingSoon = stringResource(R.string.markera_coming_soon)
-    val onStub: () -> Unit = { Toast.makeText(context, comingSoon, Toast.LENGTH_SHORT).show() }
-
     val onDetectClick: () -> Unit = {
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
     }
@@ -132,7 +124,6 @@ fun MarkeraScreen(
                         onValueChange = viewModel::setTopScoreAt,
                         onScan = onDetectClick,
                         onResume = onResumeLive,
-                        onShare = onStub,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                 } else {
@@ -144,7 +135,6 @@ fun MarkeraScreen(
                             onValueChange = viewModel::setTopScoreAt,
                             onScan = onDetectClick,
                             onResume = onResumeLive,
-                            onShare = onStub,
                             landscape = true,
                             modifier = Modifier.fillMaxHeight().weight(1f),
                         )
@@ -234,7 +224,6 @@ private fun BottomArea(
     onValueChange: (index: Int, value: Int) -> Unit,
     onScan: () -> Unit,
     onResume: () -> Unit,
-    onShare: () -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false,
 ) {
@@ -256,7 +245,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onValueChange, onResume, onShare, landscape)
+            else -> ResultsContent(uiState, onValueChange, onResume, landscape)
         }
     }
 }
@@ -287,7 +276,6 @@ private fun ResultsContent(
     uiState: MarkeraUiState,
     onValueChange: (index: Int, value: Int) -> Unit,
     onResume: () -> Unit,
-    onShare: () -> Unit,
     landscape: Boolean,
 ) {
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
@@ -301,13 +289,11 @@ private fun ResultsContent(
         } else {
             ScorePickerHorizontalRow(values = uiState.topScores, onValueChange = onValueChange)
         }
-        // New-shot action sits above Save/Share.
         PrimaryActionButton(
             text = stringResource(R.string.markera_resume_live),
             icon = Icons.Default.Refresh,
             onClick = onResume,
         )
-        ActionRow(onShare)
     }
 }
 
@@ -380,17 +366,6 @@ private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier)
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
-        }
-    }
-}
-
-@Composable
-private fun ActionRow(onShare: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onShare) {
-            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.markera_share))
         }
     }
 }

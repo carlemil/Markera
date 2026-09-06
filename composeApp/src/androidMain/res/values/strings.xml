@@ -8,8 +8,6 @@
     <string name="markera_total_label">Summa</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
     <string name="markera_analyzing">Analyserar träffar…</string>
-    <string name="markera_share">Dela</string>
-    <string name="markera_coming_soon">Kommer snart</string>
     <string name="markera_toggle_debug">Visa detektionsdata</string>
     <string name="markera_back">Tillbaka</string>
     <string name="score_pick_title">Poäng</string>
