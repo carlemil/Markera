@@ -48,3 +48,20 @@ struct ComposeView: UIViewControllerRepresentable {
 ```sh
 ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 ```
+
+## Backend + Sign in with Apple
+
+Entry points live in `composeApp/src/iosMain/.../series/`: `SeriesServices`
+(HTTP client → `SeriesApi` → `BackendSessionRepository`, token in
+`NSUserDefaults`) and `signInWithProvider(session)` (AuthenticationServices,
+call it from the main thread).
+
+Xcode target setup:
+
+- Enable the **Sign in with Apple** capability (entitlement
+  `com.apple.developer.applesignin`).
+- The target's bundle id must equal `APPLE_BUNDLE_ID` in the server's `.env` —
+  the backend verifies it as the identity token's audience.
+- The backend is plain HTTP on the LAN, so add an ATS exception in `Info.plist`:
+  `NSAppTransportSecurity` → `NSExceptionDomains` → `192.168.1.191` →
+  `NSExceptionAllowsInsecureHTTPLoads = YES`.

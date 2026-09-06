@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalForeignApi::class)
+
 package se.kjellstrand.markera.vision
 
-import platform.CoreGraphics.CGImageRef
+import kotlinx.cinterop.ExperimentalForeignApi
 
-actual typealias PlatformImage = CGImageRef
+// The pointed-at struct, not `CGImageRef`: an `actual typealias` must resolve to
+// a class, and CGImageRef is itself a typealias for a nullable CPointer.
+actual typealias PlatformImage = cnames.structs.CGImage

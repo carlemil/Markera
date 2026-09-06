@@ -1,4 +1,8 @@
+@file:OptIn(ExperimentalForeignApi::class)
+
 package se.kjellstrand.markera.vision
+
+import kotlinx.cinterop.ExperimentalForeignApi
 
 // TODO: swap this stub for an Apple Vision-backed implementation once an iOS
 // host app exists. Use VNRecognizeTextRequest (recognitionLevel = Accurate,
