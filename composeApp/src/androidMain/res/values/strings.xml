@@ -19,6 +19,9 @@
     <string name="home_free_marking_hint">Skanna en tavla utan tävling</string>
     <string name="home_competition">Tävling</string>
     <string name="home_competition_hint">Markera i en Webshooter-tävling</string>
+    <string name="home_sign_in">Logga in för att spara serier</string>
+    <string name="home_signed_in">Inloggad via %1$s</string>
+    <string name="home_sign_out">Logga ut</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>

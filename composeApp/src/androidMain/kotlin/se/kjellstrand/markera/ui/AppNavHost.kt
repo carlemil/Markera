@@ -1,8 +1,10 @@
 package se.kjellstrand.markera.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,23 +16,30 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import se.kjellstrand.markera.R
+import se.kjellstrand.markera.series.BackendAuth
+import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.signInWithProvider
 import se.kjellstrand.markera.ui.competition.CompetitionListScreen
 import se.kjellstrand.markera.ui.competition.LoginScreen
 import se.kjellstrand.markera.ui.competition.MarkingGroupsScreen
@@ -64,6 +73,7 @@ sealed interface Screen {
 fun AppNavHost() {
     val context = LocalContext.current
     val services = remember { WebshooterServices(context) }
+    val seriesServices = remember { SeriesServices(context) }
     val frameSource = rememberFrameSource()
     val scanController = rememberTargetScanController()
 
@@ -76,7 +86,9 @@ fun AppNavHost() {
 
     // Restore a persisted login once at startup.
     LaunchedEffect(Unit) { services.sessionRepository.restore() }
+    LaunchedEffect(Unit) { seriesServices.session.restore() }
     val session by services.sessionRepository.session.collectAsState()
+    val backendAuth by seriesServices.session.auth.collectAsState()
 
     when (val screen = current) {
         Screen.Home -> HomeScreen(
@@ -84,6 +96,8 @@ fun AppNavHost() {
             onCompetition = {
                 push(if (session != null) Screen.Competitions else Screen.Login)
             },
+            backendAuth = backendAuth,
+            seriesServices = seriesServices,
         )
 
         Screen.FreeMarking -> MarkeraScreen(
@@ -131,6 +145,8 @@ fun AppNavHost() {
 private fun HomeScreen(
     onFreeMarking: () -> Unit,
     onCompetition: () -> Unit,
+    backendAuth: BackendAuth?,
+    seriesServices: SeriesServices,
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -159,6 +175,50 @@ private fun HomeScreen(
                 icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
                 onClick = onCompetition,
             )
+            Spacer(Modifier.height(16.dp))
+            AccountRow(backendAuth, seriesServices)
+        }
+    }
+}
+
+/** Markera-backend account: sign in to save scanned series, or sign out. */
+@Composable
+private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+
+    if (busy) {
+        CircularProgressIndicator(Modifier.size(24.dp))
+        return
+    }
+    if (auth == null) {
+        TextButton(onClick = {
+            busy = true
+            scope.launch {
+                try {
+                    // LocalContext inside MainActivity is the Activity, which is
+                    // what Credential Manager needs in the camera flavor.
+                    signInWithProvider(context, seriesServices.session)
+                } catch (t: Throwable) {
+                    Toast.makeText(context, t.message ?: t.toString(), Toast.LENGTH_LONG).show()
+                } finally {
+                    busy = false
+                }
+            }
+        }) {
+            Text(stringResource(R.string.home_sign_in))
+        }
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.home_signed_in, auth.provider.replaceFirstChar { it.uppercase() }),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = { scope.launch { seriesServices.session.signOut() } }) {
+                Text(stringResource(R.string.home_sign_out))
+            }
         }
     }
 }

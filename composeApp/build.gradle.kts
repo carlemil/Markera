@@ -9,6 +9,7 @@ import org.gradle.api.tasks.TaskAction
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.File
+import java.util.Properties
 import java.util.Random
 import javax.imageio.ImageIO
 
@@ -72,6 +73,18 @@ kotlin {
     }
 }
 
+// The Markera series backend (see PLAN.md). Override with -Pmarkera.backend.url=...
+val backendUrl = (project.findProperty("markera.backend.url") as String?)
+    ?: "http://192.168.1.191:8090"
+
+// Google OAuth *Web* client id, used as `serverClientId` for Credential Manager.
+// Not in version control: put `markera.google.client.id=...` in local.properties.
+// Empty means "not configured" — the camera flavor's sign-in then fails loudly.
+val googleClientId: String = rootProject.file("local.properties").takeIf { it.exists() }
+    ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
+    ?.getProperty("markera.google.client.id")
+    ?: ""
+
 android {
     namespace = "se.kjellstrand.markera"
     compileSdk {
@@ -88,7 +101,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
     }
+
+    buildFeatures { buildConfig = true }
 
     buildTypes {
         release {
@@ -117,9 +135,12 @@ android {
         }
     }
 
+    // Must match the Kotlin/Android jvmTarget (21, from the toolchain): with
+    // buildConfig = true there is now a Java source (BuildConfig.java), and AGP
+    // rejects a Java/Kotlin target mismatch.
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
@@ -220,6 +241,11 @@ extensions.configure<ApplicationAndroidComponentsExtension> {
 }
 
 dependencies {
+    // Google sign-in only exists in the camera flavor; mock uses the dev endpoint.
+    "cameraImplementation"(libs.androidx.credentials)
+    "cameraImplementation"(libs.androidx.credentials.play.services.auth)
+    "cameraImplementation"(libs.googleid)
+
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
