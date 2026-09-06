@@ -4,6 +4,7 @@
     <string name="markera_grant_permission">Tillåt åtkomst</string>
     <string name="markera_detect">Detektera</string>
     <string name="markera_resume_live">Spara</string>
+    <string name="markera_reset">Återställ</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
     <string name="markera_total_label">Summa</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>

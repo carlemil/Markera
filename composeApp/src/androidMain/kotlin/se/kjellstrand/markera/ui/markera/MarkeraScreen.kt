@@ -27,8 +27,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +89,13 @@ fun MarkeraScreen(
         recorder?.commit(picks)
         frameSource.onResumeLive()
     }
+    // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
+    val onReset: () -> Unit = {
+        snapshotVm.clear()
+        viewModel.clearResults()
+        recorder?.clear()
+        frameSource.onResumeLive()
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     BoxWithConstraints(
@@ -126,6 +135,7 @@ fun MarkeraScreen(
                         onValueChange = viewModel::setTopScoreAt,
                         onScan = onDetectClick,
                         onResume = onResumeLive,
+                        onReset = onReset,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                 } else {
@@ -137,6 +147,7 @@ fun MarkeraScreen(
                             onValueChange = viewModel::setTopScoreAt,
                             onScan = onDetectClick,
                             onResume = onResumeLive,
+                            onReset = onReset,
                             landscape = true,
                             modifier = Modifier.fillMaxHeight().weight(1f),
                         )
@@ -226,6 +237,7 @@ private fun BottomArea(
     onValueChange: (index: Int, value: Int) -> Unit,
     onScan: () -> Unit,
     onResume: () -> Unit,
+    onReset: () -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false,
 ) {
@@ -247,7 +259,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onValueChange, onResume, landscape)
+            else -> ResultsContent(uiState, onValueChange, onResume, onReset, landscape)
         }
     }
 }
@@ -278,6 +290,7 @@ private fun ResultsContent(
     uiState: MarkeraUiState,
     onValueChange: (index: Int, value: Int) -> Unit,
     onResume: () -> Unit,
+    onReset: () -> Unit,
     landscape: Boolean,
 ) {
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
@@ -291,11 +304,18 @@ private fun ResultsContent(
         } else {
             ScorePickerHorizontalRow(values = uiState.topScores, onValueChange = onValueChange)
         }
-        PrimaryActionButton(
-            text = stringResource(R.string.markera_resume_live),
-            icon = Icons.Default.Refresh,
-            onClick = onResume,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onReset) {
+                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.markera_reset))
+            }
+            PrimaryActionButton(
+                text = stringResource(R.string.markera_resume_live),
+                icon = Icons.Default.Save,
+                onClick = onResume,
+            )
+        }
     }
 }
 
