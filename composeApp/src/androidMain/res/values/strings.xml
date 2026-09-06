@@ -19,6 +19,8 @@
     <string name="home_free_marking_hint">Skanna en tavla utan tävling</string>
     <string name="home_competition">Tävling</string>
     <string name="home_competition_hint">Markera i en Webshooter-tävling</string>
+    <string name="home_history">Historik</string>
+    <string name="home_history_hint">Sparade serier</string>
     <string name="home_sign_in">Logga in för att spara serier</string>
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
@@ -30,6 +32,12 @@
     <string name="series_status_saving">Sparar…</string>
     <string name="series_status_saved">Sparad</string>
     <string name="series_status_failed">Kunde inte spara</string>
+
+    <!-- Series history -->
+    <string name="history_title">Historik</string>
+    <string name="history_signed_out">Logga in för att se historik</string>
+    <string name="history_empty">Inga sparade serier än</string>
+    <string name="history_retry">Försök igen</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>

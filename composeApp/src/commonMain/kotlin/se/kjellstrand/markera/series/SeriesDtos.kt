@@ -36,6 +36,14 @@ data class SeriesDto(
 @Serializable
 data class BackendAuthResponse(val token: String, val userId: Long)
 
+/** An inner ten already carries ring 10, so a plain sum is the series total. */
+fun SeriesDto.total(): Int = holes.sumOf { it.ring }
+
+/** The hits highest first, `X` for an inner ten — e.g. `X 10 9 9 8`. */
+fun SeriesDto.scoreLine(): String =
+    holes.sortedWith(compareByDescending<HoleDto> { it.ring }.thenByDescending { it.innerTen })
+        .joinToString(" ") { if (it.innerTen) "X" else it.ring.toString() }
+
 /** Hole positions travel as raw source-image pixels; the server just stores them. */
 fun HitScore.toHoleDto(): HoleDto = HoleDto(
     x = centerXpx.toDouble(),

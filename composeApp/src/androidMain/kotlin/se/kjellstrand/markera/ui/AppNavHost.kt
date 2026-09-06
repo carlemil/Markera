@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -54,6 +55,7 @@ import se.kjellstrand.markera.ui.competition.CompetitionListScreen
 import se.kjellstrand.markera.ui.competition.LoginScreen
 import se.kjellstrand.markera.ui.competition.MarkingGroupsScreen
 import se.kjellstrand.markera.ui.competition.MarkingWizardScreen
+import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
@@ -63,6 +65,7 @@ import se.kjellstrand.markera.webshooter.WebshooterServices
 sealed interface Screen {
     data object Home : Screen
     data object FreeMarking : Screen
+    data object History : Screen
     data object Login : Screen
     data object Competitions : Screen
     data class MarkingGroups(val competitionId: Int) : Screen
@@ -121,6 +124,7 @@ fun AppNavHost() {
             onCompetition = {
                 push(if (session != null) Screen.Competitions else Screen.Login)
             },
+            onHistory = { push(Screen.History) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,
         )
@@ -130,6 +134,8 @@ fun AppNavHost() {
             scanController = scanController,
             onBack = pop,
         )
+
+        Screen.History -> SeriesHistoryScreen(services = seriesServices, onBack = pop)
 
         Screen.Login -> LoginScreen(
             services = services,
@@ -211,6 +217,7 @@ private fun CaliberDialog(
 private fun HomeScreen(
     onFreeMarking: () -> Unit,
     onCompetition: () -> Unit,
+    onHistory: () -> Unit,
     backendAuth: BackendAuth?,
     seriesServices: SeriesServices,
 ) {
@@ -240,6 +247,13 @@ private fun HomeScreen(
                 subtitle = stringResource(R.string.home_competition_hint),
                 icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
                 onClick = onCompetition,
+            )
+            Spacer(Modifier.height(16.dp))
+            HomeCard(
+                title = stringResource(R.string.home_history),
+                subtitle = stringResource(R.string.home_history_hint),
+                icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                onClick = onHistory,
             )
             Spacer(Modifier.height(16.dp))
             AccountRow(backendAuth, seriesServices)
