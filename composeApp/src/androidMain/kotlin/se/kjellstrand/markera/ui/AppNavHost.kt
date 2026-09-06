@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
@@ -105,6 +106,23 @@ fun AppNavHost() {
         ).also { scanController.onSeriesDetected = it::onSeriesDetected }
     }
     DisposableEffect(recorder) { onDispose { recorder.dispose() } }
+
+    // The only save feedback, for both screens: one toast per outcome. Collected
+    // (not read from the current value), so a recomposition never repeats it.
+    val savedText = stringResource(R.string.series_status_saved)
+    val failedText = stringResource(R.string.series_status_failed)
+    val signInText = stringResource(R.string.home_sign_in)
+    LaunchedEffect(recorder) {
+        recorder.status.collect { status ->
+            val message = when (status) {
+                is SaveStatus.Saved -> savedText
+                is SaveStatus.Failed -> "$failedText: ${status.message}"
+                SaveStatus.SignedOut -> signInText
+                else -> return@collect
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var stack by remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
     val current = stack.last()

@@ -2,10 +2,12 @@ package se.kjellstrand.markera.ui.markera
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -25,11 +28,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import se.kjellstrand.markera.R
+import se.kjellstrand.markera.series.SeriesRecorder
 
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
@@ -87,7 +89,8 @@ fun MarkeraScreen(
     val onResumeLive: () -> Unit = {
         snapshotVm.clear()
         viewModel.clearResults()
-        recorder?.clear()
+        // Leaving the frozen frame is what saves the scan.
+        recorder?.commit()
         frameSource.onResumeLive()
     }
 
@@ -129,7 +132,6 @@ fun MarkeraScreen(
                         onValueChange = viewModel::setTopScoreAt,
                         onScan = onDetectClick,
                         onResume = onResumeLive,
-                        onSave = onStub,
                         onShare = onStub,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
@@ -142,7 +144,6 @@ fun MarkeraScreen(
                             onValueChange = viewModel::setTopScoreAt,
                             onScan = onDetectClick,
                             onResume = onResumeLive,
-                            onSave = onStub,
                             onShare = onStub,
                             landscape = true,
                             modifier = Modifier.fillMaxHeight().weight(1f),
@@ -233,7 +234,6 @@ private fun BottomArea(
     onValueChange: (index: Int, value: Int) -> Unit,
     onScan: () -> Unit,
     onResume: () -> Unit,
-    onSave: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false,
@@ -256,7 +256,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onValueChange, onResume, onSave, onShare, landscape)
+            else -> ResultsContent(uiState, onValueChange, onResume, onShare, landscape)
         }
     }
 }
@@ -287,7 +287,6 @@ private fun ResultsContent(
     uiState: MarkeraUiState,
     onValueChange: (index: Int, value: Int) -> Unit,
     onResume: () -> Unit,
-    onSave: () -> Unit,
     onShare: () -> Unit,
     landscape: Boolean,
 ) {
@@ -308,7 +307,7 @@ private fun ResultsContent(
             icon = Icons.Default.Refresh,
             onClick = onResume,
         )
-        ActionRow(onSave, onShare)
+        ActionRow(onShare)
     }
 }
 
@@ -326,39 +325,68 @@ fun PrimaryActionButton(
     }
 }
 
+/**
+ * The scored total, with the caliber chip beside it at the same height. Both
+ * screens show their results through this, so the chip needs no other home.
+ */
 @Composable
 fun TotalBadge(total: Int) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shape = RoundedCornerShape(16.dp),
+    val recorder = LocalSeriesRecorder.current
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        if (recorder != null) CaliberChip(recorder, Modifier.fillMaxHeight())
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxHeight(),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.markera_total_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    text = total.toString(),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
+}
+
+/** The caliber the next series is tagged with; tap to change it. */
+@Composable
+private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier) {
+    val caliber by recorder.caliber.collectAsState()
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.clickable { recorder.openCaliberDialog() },
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = stringResource(R.string.markera_total_label),
+                text = caliber.label,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Text(
-                text = total.toString(),
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
 }
 
 @Composable
-private fun ActionRow(onSave: () -> Unit, onShare: () -> Unit) {
+private fun ActionRow(onShare: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        FilledTonalButton(onClick = onSave) {
-            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.markera_save))
-        }
         OutlinedButton(onClick = onShare) {
             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))

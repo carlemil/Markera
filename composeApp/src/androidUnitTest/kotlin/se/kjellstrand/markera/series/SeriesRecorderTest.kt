@@ -112,7 +112,78 @@ class SeriesRecorderTest {
 
         assertEquals(SaveStatus.SignedOut, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
+
+        recorder.commit()
+
         assertTrue(recorded.isEmpty())
+    }
+
+    @Test
+    fun aCaliberChosenFromTheChipAfterAnEarlierSaveDoesNotPostTheNewScan() {
+        val recorder = recorder(stored = Caliber.LR22)
+        recorder.onSeriesDetected(scores, image)
+        recorder.commit()
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+
+        recorder.onSeriesDetected(scores, image)
+        recorder.selectCaliber(Caliber.MM9)
+
+        assertEquals(SaveStatus.Pending, recorder.status.value)
+        assertEquals(1, recorded.size)
+
+        recorder.commit()
+
+        assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
+        assertEquals(2, recorded.size)
+        assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun detectionOnlyMakesTheSeriesPendingUntilCommit() {
+        val recorder = recorder(stored = Caliber.LR22)
+
+        recorder.onSeriesDetected(scores, image)
+
+        assertEquals(SaveStatus.Pending, recorder.status.value)
+        assertFalse(recorder.caliberDialogOpen.value)
+        assertTrue(recorded.isEmpty())
+
+        recorder.commit()
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals("http://host:8090/series", recorded.single().url.toString())
+        assertTrue(""""caliber":"22lr"""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun aSecondDetectionReplacesTheFirstPendingSeries() {
+        val recorder = recorder(stored = Caliber.MM9)
+
+        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(listOf(HitScore(9f, 9f, 0f, 90.0, 6, false)), image)
+        recorder.commit()
+
+        assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
+        assertEquals(1, recorded.size)
+        assertEquals(1, Regex("distanceMm").findAll(sentBody).count(), sentBody)
+        assertTrue(""""ring":6""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun dismissingTheDialogKeepsTheSeriesPendingForTheNextCommit() {
+        val recorder = recorder(stored = Caliber.NONE)
+        recorder.onSeriesDetected(scores, image)
+        recorder.commit()
+
+        recorder.dismissCaliberDialog()
+
+        assertFalse(recorder.caliberDialogOpen.value)
+        assertTrue(recorded.isEmpty())
+
+        recorder.commit()
+
+        assertTrue(recorder.caliberDialogOpen.value)
+        assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
     }
 
     @Test
@@ -120,6 +191,11 @@ class SeriesRecorderTest {
         val recorder = recorder(stored = Caliber.NONE)
 
         recorder.onSeriesDetected(scores, image)
+
+        assertEquals(SaveStatus.Pending, recorder.status.value)
+        assertFalse(recorder.caliberDialogOpen.value)
+
+        recorder.commit()
 
         assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
         assertTrue(recorder.caliberDialogOpen.value)
@@ -140,6 +216,7 @@ class SeriesRecorderTest {
     fun selectingNoneKeepsTheSeriesPending() {
         val recorder = recorder(stored = Caliber.NONE)
         recorder.onSeriesDetected(scores, image)
+        recorder.commit()
 
         recorder.selectCaliber(Caliber.NONE)
 
@@ -153,10 +230,11 @@ class SeriesRecorderTest {
     }
 
     @Test
-    fun storedCaliberSavesImmediatelyWithNoDialog() {
+    fun storedCaliberSavesOnCommitWithNoDialog() {
         val recorder = recorder(stored = Caliber.LR22)
 
         recorder.onSeriesDetected(scores, image)
+        recorder.commit()
 
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
         assertFalse(recorder.caliberDialogOpen.value)
@@ -169,6 +247,7 @@ class SeriesRecorderTest {
         val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.InternalServerError)
 
         recorder.onSeriesDetected(scores, image)
+        recorder.commit()
 
         assertIs<SaveStatus.Failed>(recorder.awaitDone())
     }
@@ -178,6 +257,7 @@ class SeriesRecorderTest {
         val recorder = recorder(stored = Caliber.MM9, encodeJpeg = { jpeg })
 
         recorder.onSeriesDetected(scores, image)
+        recorder.commit()
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         awaitRequests(2)
@@ -196,6 +276,7 @@ class SeriesRecorderTest {
         )
 
         recorder.onSeriesDetected(scores, image)
+        recorder.commit()
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
         awaitRequests(2)
@@ -211,7 +292,9 @@ class SeriesRecorderTest {
 
         assertEquals(SaveStatus.Idle, recorder.status.value)
 
-        // Nothing left to save, so choosing a caliber only stores the preference.
+        // Nothing left to save: neither a commit nor a caliber posts anything.
+        recorder.commit()
+        assertEquals(SaveStatus.Idle, recorder.status.value)
         recorder.selectCaliber(Caliber.MM9)
         runBlocking { recorder.caliber.first { it == Caliber.MM9 } }
         assertEquals(SaveStatus.Idle, recorder.status.value)

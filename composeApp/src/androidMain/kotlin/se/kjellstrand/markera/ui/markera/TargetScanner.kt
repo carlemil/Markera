@@ -15,22 +15,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,7 +56,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.R
-import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
@@ -318,9 +312,6 @@ fun TargetScanner(
             imageHeight = uiState.imageHeight,
             modifier = Modifier.fillMaxSize(),
         )
-        // Caliber + save status for the frozen frame, top-right of the viewport.
-        val recorder = LocalSeriesRecorder.current
-        if (frozen != null && recorder != null) CaliberChip(recorder)
         if (uiState.phase == ScanPhase.HOLES) {
             ScanningOverlay(
                 centre = uiState.centre,
@@ -339,47 +330,6 @@ fun TargetScanner(
  * there is nothing to save to (e.g. a preview).
  */
 val LocalSeriesRecorder = staticCompositionLocalOf<SeriesRecorder?> { null }
-
-/** Caliber badge + one-line save status; tap to open the caliber chooser. */
-@Composable
-private fun BoxScope.CaliberChip(recorder: SeriesRecorder) {
-    val caliber by recorder.caliber.collectAsState()
-    val status by recorder.status.collectAsState()
-    val statusText = when (status) {
-        SaveStatus.Idle -> null
-        SaveStatus.SignedOut -> stringResource(R.string.series_status_signed_out)
-        SaveStatus.NeedsCaliber -> stringResource(R.string.series_status_needs_caliber)
-        SaveStatus.Saving -> stringResource(R.string.series_status_saving)
-        is SaveStatus.Saved -> stringResource(R.string.series_status_saved)
-        is SaveStatus.Failed -> stringResource(R.string.series_status_failed)
-    }
-    Surface(
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .padding(8.dp)
-            .clickable { recorder.openCaliberDialog() },
-    ) {
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-        ) {
-            Text(
-                text = caliber.label,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            statusText?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
 
 /**
  * Radar-sweep "working" animation shown over the frozen frame while hole

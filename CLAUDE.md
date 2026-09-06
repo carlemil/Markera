@@ -139,10 +139,13 @@ decisions and the still-open user actions (Google/Apple client ids).
 App side: `series/` (commonMain, JVM-unit-tested) has `Caliber`, `SeriesApi`,
 `BackendSessionRepository` and `SeriesRecorder`. `TargetScanController.onSeriesDetected`
 feeds every scored scan to the recorder (hoisted in `AppNavHost`, exposed via
-`LocalSeriesRecorder`): signed out → hint, caliber `-` → chooser dialog, else POST, then the
-scanned frame goes up as a ≤1024 px JPEG (`POST /series/{id}/image`; a failed upload never
-fails the series). The history screen (`ui/history/`) lists series with thumbnails.
-The caliber chip lives in the shared `TargetScanner` viewport. Sign-in is a
+`LocalSeriesRecorder`). A scan is only *pending* while its frozen frame is on screen;
+`recorder.commit()` (the "Spara" button in free marking, moving on from a lane in the wizard)
+saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then the scanned frame
+goes up as a ≤1024 px JPEG (`POST /series/{id}/image`; a failed upload never fails the
+series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
+The history screen (`ui/history/`) lists series with thumbnails.
+The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is a
 flavor-specific `signInWithProvider` (camera: Credential Manager + `googleid`, needs
 `markera.google.client.id` in `local.properties`; mock: dev endpoint). Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS has the same entry points

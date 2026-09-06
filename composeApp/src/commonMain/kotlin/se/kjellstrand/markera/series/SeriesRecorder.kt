@@ -10,10 +10,13 @@ import kotlinx.coroutines.launch
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.PlatformImage
 
-/** What the viewport chip reports about the last detected series. */
+/** Where the last detected series got to. Only the terminal ones reach the UI. */
 sealed interface SaveStatus {
     data object Idle : SaveStatus
     data object SignedOut : SaveStatus
+
+    /** Scanned and held; saved when the user leaves the frozen frame. */
+    data object Pending : SaveStatus
     data object NeedsCaliber : SaveStatus
     data object Saving : SaveStatus
     data class Saved(val caliber: Caliber) : SaveStatus
@@ -25,8 +28,9 @@ sealed interface SaveStatus {
  * `TargetScanController.onSeriesDetected`, so free marking and the competition
  * wizard share one instance.
  *
- * A series with no caliber yet is held pending while the chooser is up — the
- * timestamp is the detection time, not the (later) save time. A plain class
+ * A scan only becomes *pending*: [commit] (the user leaving the frozen frame)
+ * is what saves it, and a rescan [clear]s it instead. The timestamp is the
+ * detection time, not the (later) save time. A plain class
  * with [dispose], not an androidx ViewModel: the in-flight save must die with
  * the screen that started it.
  */
@@ -54,6 +58,9 @@ class SeriesRecorder(
     private var pendingImage: PlatformImage? = null
     private var saveJob: Job? = null
 
+    /** True once [commit] asked for the save; until then a caliber choice only stores it. */
+    private var saveRequested = false
+
     init {
         // The stored value must not clobber a choice made before the read lands.
         scope.launch { _caliber.compareAndSet(Caliber.NONE, readCaliber()) }
@@ -66,9 +73,17 @@ class SeriesRecorder(
             _status.value = SaveStatus.SignedOut
             return
         }
-        val caliber = _caliber.value
-        pending = seriesRequest(scores, caliber)
+        pending = seriesRequest(scores, _caliber.value)
         pendingImage = image
+        saveRequested = false // a fresh scan waits for its own commit
+        _status.value = SaveStatus.Pending
+    }
+
+    /** Back to the live view: save what is pending (asking for a caliber first). */
+    fun commit() {
+        if (pending == null) return
+        saveRequested = true
+        val caliber = _caliber.value
         if (caliber == Caliber.NONE) {
             _status.value = SaveStatus.NeedsCaliber
             _caliberDialogOpen.value = true
@@ -77,6 +92,7 @@ class SeriesRecorder(
         }
     }
 
+    /** Chosen in the dialog or from the chip: stored, and saves a series [commit] is waiting for. */
     fun selectCaliber(caliber: Caliber) {
         _caliber.value = caliber
         _caliberDialogOpen.value = false
@@ -92,11 +108,12 @@ class SeriesRecorder(
         _caliberDialogOpen.value = false
     }
 
-    /** New shot / back to live: forget the last series and its status. */
+    /** Rescan: forget the pending series and its status, saving nothing. */
     fun clear() {
         saveJob?.cancel()
         pending = null
         pendingImage = null
+        saveRequested = false
         _status.value = SaveStatus.Idle
     }
 
@@ -106,11 +123,13 @@ class SeriesRecorder(
 
     /**
      * Persists [caliber] when asked, then posts the pending series. With no
-     * pending series, or with [Caliber.NONE] (nothing to tag it with), only the
-     * preference is written and the status is left as it was.
+     * pending series, none [commit]ted yet, or with [Caliber.NONE] (nothing to
+     * tag it with), only the preference is written and the status is left as it was.
      */
     private fun startSave(caliber: Caliber, persist: Boolean = false) {
-        val request = pending?.takeIf { caliber != Caliber.NONE }?.copy(caliber = caliber.label)
+        val request = pending
+            ?.takeIf { caliber != Caliber.NONE && saveRequested }
+            ?.copy(caliber = caliber.label)
         val image = pendingImage
         saveJob?.cancel()
         if (request != null) _status.value = SaveStatus.Saving

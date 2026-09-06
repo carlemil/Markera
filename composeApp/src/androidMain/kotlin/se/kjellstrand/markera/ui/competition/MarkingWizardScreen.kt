@@ -122,10 +122,12 @@ fun MarkingWizardScreen(
     val errorInference = stringResource(R.string.markera_error_inference)
 
     val recorder = LocalSeriesRecorder.current
-    val resetScanner = {
+    // Back to a live viewfinder; [save] the scan we are leaving behind (moving
+    // on to another lane) or drop it (a rescan of this one).
+    val resetScanner = { save: Boolean ->
         snapshotVm.clear()
         markeraVm.clearResults()
-        recorder?.clear()
+        if (save) recorder?.commit() else recorder?.clear()
         frameSource.onResumeLive()
     }
     val startScan = {
@@ -134,9 +136,9 @@ fun MarkingWizardScreen(
     }
 
     // A fresh lane (or an explicit rescan) always starts from a live viewfinder.
-    LaunchedEffect(state.stationIndex, state.laneIndex) { resetScanner() }
+    LaunchedEffect(state.stationIndex, state.laneIndex) { resetScanner(true) }
     LaunchedEffect(state.step) {
-        if (state.step is LaneStep.Entering && snapshotVm.snapshot != null) resetScanner()
+        if (state.step is LaneStep.Entering && snapshotVm.snapshot != null) resetScanner(false)
     }
 
     // A scan is complete when the pipeline returns to IDLE with a frozen frame
@@ -241,7 +243,7 @@ fun MarkingWizardScreen(
                         processing = markeraState.phase != ScanPhase.IDLE,
                         onScan = startScan,
                         onRescan = {
-                            resetScanner()
+                            resetScanner(false)
                             wizardVm.rescan()
                         },
                     )

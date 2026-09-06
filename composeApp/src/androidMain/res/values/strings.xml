@@ -3,12 +3,11 @@
     <string name="markera_camera_permission_required">Kameran behövs för att markera träffar. Tryck för att ge åtkomst.</string>
     <string name="markera_grant_permission">Tillåt åtkomst</string>
     <string name="markera_detect">Detektera</string>
-    <string name="markera_resume_live">Tillbaka till kamera</string>
+    <string name="markera_resume_live">Spara</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
     <string name="markera_total_label">Summa</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
     <string name="markera_analyzing">Analyserar träffar…</string>
-    <string name="markera_save">Spara</string>
     <string name="markera_share">Dela</string>
     <string name="markera_coming_soon">Kommer snart</string>
     <string name="markera_toggle_debug">Visa detektionsdata</string>
@@ -27,9 +26,6 @@
 
     <!-- Series auto-save -->
     <string name="series_caliber_title">Välj kaliber</string>
-    <string name="series_status_signed_out">Logga in för att spara</string>
-    <string name="series_status_needs_caliber">Välj kaliber</string>
-    <string name="series_status_saving">Sparar…</string>
     <string name="series_status_saved">Sparad</string>
     <string name="series_status_failed">Kunde inte spara</string>
 
