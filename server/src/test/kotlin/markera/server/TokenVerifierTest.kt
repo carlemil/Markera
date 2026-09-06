@@ -43,34 +43,46 @@ class TokenVerifierTest {
         issuer: String = "https://accounts.google.com",
         audience: String = "client-id",
         expiresAt: Instant = Instant.now().plusSeconds(600),
+        name: String? = null,
+        email: String? = null,
     ): String = JWT.create()
         .withKeyId("test-key")
         .withIssuer(issuer)
         .withAudience(audience)
         .withSubject("subject-123")
         .withExpiresAt(Date.from(expiresAt))
+        .apply { name?.let { withClaim("name", it) }; email?.let { withClaim("email", it) } }
         .sign(algorithm)
 
     @Test
     fun validTokenYieldsSubject() {
-        assertEquals("subject-123", verifier.subject(token()))
-        assertEquals("subject-123", verifier.subject(token(issuer = "accounts.google.com")))
+        assertEquals(Identity("subject-123", null), verifier.identity(token()))
+        assertEquals(Identity("subject-123", null), verifier.identity(token(issuer = "accounts.google.com")))
+    }
+
+    @Test
+    fun nameComesFromTheNameClaimThenEmail() {
+        val google = token(name = "Ada Lovelace", email = "ada@example.com")
+        assertEquals(Identity("subject-123", "Ada Lovelace"), verifier.identity(google))
+        // Apple sends no name.
+        assertEquals(Identity("subject-123", "ada@example.com"), verifier.identity(token(email = "ada@example.com")))
+        assertEquals(Identity("subject-123", "ada@example.com"), verifier.identity(token(name = " ", email = "ada@example.com")))
     }
 
     @Test
     fun wrongAudienceFails() {
-        assertFailsWith<JWTVerificationException> { verifier.subject(token(audience = "someone-elses-app")) }
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(audience = "someone-elses-app")) }
     }
 
     @Test
     fun wrongIssuerFails() {
-        assertFailsWith<JWTVerificationException> { verifier.subject(token(issuer = "https://evil.example")) }
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(issuer = "https://evil.example")) }
     }
 
     @Test
     fun expiredTokenFails() {
         assertFailsWith<JWTVerificationException> {
-            verifier.subject(token(expiresAt = Instant.now().minusSeconds(60)))
+            verifier.identity(token(expiresAt = Instant.now().minusSeconds(60)))
         }
     }
 
@@ -84,11 +96,11 @@ class TokenVerifierTest {
             .withSubject("subject-123")
             .withExpiresAt(Date.from(Instant.now().plusSeconds(600)))
             .sign(Algorithm.RSA256(other.public as RSAPublicKey, other.private as RSAPrivateKey))
-        assertFailsWith<JWTVerificationException> { verifier.subject(forged) }
+        assertFailsWith<JWTVerificationException> { verifier.identity(forged) }
     }
 
     @Test
     fun garbageTokenFails() {
-        assertFailsWith<JWTVerificationException> { verifier.subject("not-a-jwt") }
+        assertFailsWith<JWTVerificationException> { verifier.identity("not-a-jwt") }
     }
 }

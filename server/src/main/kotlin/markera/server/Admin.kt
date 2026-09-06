@@ -8,6 +8,12 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
 import java.io.File
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Read-only, unauthenticated admin pages. Registered only when `ADMIN_UI=true`, which must stay
@@ -17,9 +23,16 @@ fun Route.adminRoutes(db: Db, images: File) {
     get("/admin") {
         val rows = db.listUsers().joinToString("") { u ->
             val link = """<a href="/admin/users/${u.id}">"""
-            row("$link${u.id}</a>", esc(u.provider), "$link${esc(u.subject)}</a>", esc(u.createdAt), u.seriesCount)
+            row(
+                "$link${u.id}</a>",
+                esc(u.provider),
+                "$link${esc(u.subject)}</a>",
+                esc(u.name.orEmpty()),
+                time(u.createdAt),
+                u.seriesCount,
+            )
         }
-        respondHtml(page("Users", table(listOf("id", "provider", "subject", "created", "series"), rows)))
+        respondHtml(page("Users", table(listOf("id", "provider", "subject", "name", "created", "series"), rows)))
     }
 
     get("/admin/users/{id}") {
@@ -27,7 +40,7 @@ fun Route.adminRoutes(db: Db, images: File) {
         val rows = db.listSeries(user.id).joinToString("") { s ->
             row(
                 """<a href="/admin/series/${s.id}">${s.id}</a>""",
-                esc(s.timestamp),
+                time(s.timestamp),
                 esc(s.caliber),
                 s.holes.size,
                 s.holes.sumOf { it.ring },
@@ -36,7 +49,7 @@ fun Route.adminRoutes(db: Db, images: File) {
         }
         respondHtml(
             page(
-                "${user.provider} / ${user.subject}",
+                user.name ?: "${user.provider} / ${user.subject}",
                 """<a href="/admin">&larr; users</a>""" +
                     table(listOf("id", "timestamp", "caliber", "holes", "total", "image"), rows),
             )
@@ -53,7 +66,7 @@ fun Route.adminRoutes(db: Db, images: File) {
             page(
                 "Series ${series.id}",
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
-                    "<p>${esc(series.timestamp)} &middot; ${esc(series.caliber)} &middot; " +
+                    "<p>${time(series.timestamp)} &middot; ${esc(series.caliber)} &middot; " +
                     "total ${series.holes.sumOf { it.ring }}</p>" +
                     table(listOf("x", "y", "ring", "innerTen", "distanceMm"), holes) +
                     image,
@@ -78,7 +91,23 @@ private fun esc(value: String) = value
     .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
 /** Cells are already-escaped HTML or numbers; every string taken from the database goes through [esc] first. */
-private fun row(vararg cells: Any) = cells.joinToString("", "<tr>", "</tr>") { "<td>$it</td>" }
+private fun row(vararg cells: Any) = cells.joinToString("", "<tr>", "</tr>") {
+    "<td>${if (it is Double) round2(it) else it}</td>"
+}
+
+/** At most two decimals, no trailing zeros: 1.23456 -> 1.23, 4.25 -> 4.25, 8.0 -> 8. */
+private fun round2(value: Double) = "%.2f".format(Locale.ROOT, value).trimEnd('0').trimEnd('.')
+
+private val localMinutes = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
+private val sqliteUtc = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+/** ISO instants and SQLite's UTC `datetime('now')` shown as local wall clock; the raw value if unparsable. */
+private fun time(value: String): String {
+    val instant = runCatching { Instant.parse(value) }
+        .recoverCatching { LocalDateTime.parse(value, sqliteUtc).toInstant(ZoneOffset.UTC) }
+        .getOrNull() ?: return esc(value)
+    return localMinutes.format(instant)
+}
 
 private fun table(headers: List<String>, rows: String) =
     "<table><tr>${headers.joinToString("") { "<th>$it</th>" }}</tr>$rows</table>"

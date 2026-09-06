@@ -7,7 +7,14 @@ import java.sql.DriverManager
 import java.sql.Statement
 
 /** A user plus how many series they have; only the admin pages need it. */
-data class UserRow(val id: Long, val provider: String, val subject: String, val createdAt: String, val seriesCount: Int)
+data class UserRow(
+    val id: Long,
+    val provider: String,
+    val subject: String,
+    val name: String?,
+    val createdAt: String,
+    val seriesCount: Int,
+)
 
 /**
  * SQLite storage. Schema is created on first use.
@@ -29,8 +36,14 @@ class Db(dbPath: String) : AutoCloseable {
                      provider TEXT NOT NULL,
                      subject TEXT NOT NULL,
                      created_at TEXT NOT NULL,
+                     name TEXT,
                      UNIQUE(provider, subject))"""
             )
+            // Databases created before names existed.
+            val columns = st.executeQuery("PRAGMA table_info(users)").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("name")) }
+            }
+            if ("name" !in columns) st.executeUpdate("ALTER TABLE users ADD COLUMN name TEXT")
             st.executeUpdate(
                 """CREATE TABLE IF NOT EXISTS sessions (
                      token TEXT PRIMARY KEY,
@@ -59,10 +72,14 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     @Synchronized
-    fun upsertUser(provider: String, subject: String): Long {
+    fun upsertUser(provider: String, subject: String, name: String?): Long {
         conn.prepareStatement(
             "INSERT OR IGNORE INTO users(provider, subject, created_at) VALUES (?, ?, datetime('now'))"
         ).use { it.setString(1, provider); it.setString(2, subject); it.executeUpdate() }
+        if (name != null) {
+            conn.prepareStatement("UPDATE users SET name = ? WHERE provider = ? AND subject = ?")
+                .use { it.setString(1, name); it.setString(2, provider); it.setString(3, subject); it.executeUpdate() }
+        }
         conn.prepareStatement("SELECT id FROM users WHERE provider = ? AND subject = ?").use {
             it.setString(1, provider)
             it.setString(2, subject)
@@ -126,13 +143,15 @@ class Db(dbPath: String) : AutoCloseable {
     private fun queryUsers(filter: String): List<UserRow> {
         val users = mutableListOf<UserRow>()
         conn.prepareStatement(
-            """SELECT u.id, u.provider, u.subject, u.created_at, COUNT(s.id)
+            """SELECT u.id, u.provider, u.subject, u.name, u.created_at, COUNT(s.id)
                FROM users u LEFT JOIN series s ON s.user_id = u.id $filter
                GROUP BY u.id ORDER BY u.id DESC"""
         ).use { st ->
             st.executeQuery().use { rs ->
                 while (rs.next()) {
-                    users += UserRow(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5))
+                    users += UserRow(
+                        rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6)
+                    )
                 }
             }
         }

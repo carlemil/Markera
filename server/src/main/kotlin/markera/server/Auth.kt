@@ -9,26 +9,31 @@ import java.net.URI
 import java.security.interfaces.RSAPublicKey
 import java.util.concurrent.TimeUnit
 
-/** Verifies an RS256 provider ID token against a JWKS and returns its `sub`. */
+/** Who the provider says the caller is. Google tokens carry `name` and `email`, Apple's only `email`. */
+data class Identity(val subject: String, val name: String?)
+
+/** Verifies an RS256 provider ID token against a JWKS and returns its `sub` plus a display name. */
 class TokenVerifier(
     private val jwks: JwkProvider,
     private val audience: String,
     private val issuers: List<String>,
 ) {
     /** @throws JWTVerificationException if the signature, issuer, audience or expiry is wrong. */
-    fun subject(idToken: String): String {
+    fun identity(idToken: String): Identity {
         val decoded = JWT.decode(idToken)
         val key = try {
             jwks.get(decoded.keyId).publicKey as RSAPublicKey
         } catch (e: Exception) {
             throw JWTVerificationException("unknown key id ${decoded.keyId}", e)
         }
-        return JWT.require(Algorithm.RSA256(key, null))
+        val verified = JWT.require(Algorithm.RSA256(key, null))
             .withIssuer(*issuers.toTypedArray()) // java-jwt: passes when the claim matches any of them
             .withAudience(audience)
             .build()
             .verify(idToken)
-            .subject
+        val name = listOf("name", "email")
+            .firstNotNullOfOrNull { verified.getClaim(it).asString()?.ifBlank { null } }
+        return Identity(verified.subject, name)
     }
 }
 

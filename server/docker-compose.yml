@@ -7,6 +7,7 @@ services:
     env_file: .env
     environment:
       DB_PATH: /data/markera.db
+      TZ: Europe/Stockholm
     volumes:
       - markera-data:/data
 

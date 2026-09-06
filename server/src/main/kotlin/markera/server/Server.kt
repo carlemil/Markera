@@ -117,7 +117,10 @@ fun Application.markeraModule(config: Config, db: Db) {
         post("/auth/google") { providerAuth(db, "google", google) }
         post("/auth/apple") { providerAuth(db, "apple", apple) }
         if (config.devAuth) {
-            post("/auth/dev") { issueSession(db, "dev", call.receive<DevAuthRequest>().subject) }
+            post("/auth/dev") {
+                val subject = call.receive<DevAuthRequest>().subject
+                issueSession(db, "dev", Identity(subject, subject))
+            }
         }
 
         post("/series") {
@@ -205,16 +208,16 @@ private suspend fun RoutingContext.providerAuth(db: Db, provider: String, verifi
         call.respond(HttpStatusCode.ServiceUnavailable, ErrorResponse("$provider sign-in is not configured"))
         return
     }
-    val subject = try {
-        verifier.subject(call.receive<IdTokenRequest>().idToken)
+    val identity = try {
+        verifier.identity(call.receive<IdTokenRequest>().idToken)
     } catch (e: JWTVerificationException) {
         call.respond(HttpStatusCode.Unauthorized, ErrorResponse(e.message ?: "invalid id token"))
         return
     }
-    issueSession(db, provider, subject)
+    issueSession(db, provider, identity)
 }
 
-private suspend fun RoutingContext.issueSession(db: Db, provider: String, subject: String) {
-    val userId = db.upsertUser(provider, subject)
+private suspend fun RoutingContext.issueSession(db: Db, provider: String, identity: Identity) {
+    val userId = db.upsertUser(provider, identity.subject, identity.name)
     call.respond(AuthResponse(db.createSession(userId), userId))
 }

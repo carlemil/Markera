@@ -16,6 +16,10 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import java.io.File
+import java.sql.DriverManager
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -43,9 +47,10 @@ class ApiTest {
     private suspend fun HttpClient.devAuth(subject: String): AuthResponse =
         post("/auth/dev") { contentType(ContentType.Application.Json); setBody(DevAuthRequest(subject)) }.body()
 
-    private suspend fun HttpClient.createSeries(token: String): Long = post("/series") {
-        bearerAuth(token); contentType(ContentType.Application.Json); setBody(series())
-    }.body<IdResponse>().id
+    private suspend fun HttpClient.createSeries(token: String, request: SeriesRequest = series()): Long =
+        post("/series") {
+            bearerAuth(token); contentType(ContentType.Application.Json); setBody(request)
+        }.body<IdResponse>().id
 
     private suspend fun HttpClient.putImage(
         token: String,
@@ -222,6 +227,56 @@ class ApiTest {
         val image = client.get("/admin/series/$mySeries/image")
         assertEquals(HttpStatusCode.OK, image.status)
         assertContentEquals(jpeg, image.bodyAsBytes())
+    }
+
+    @Test
+    fun adminShowsTheLoginNameFormatsNumbersAndTimestamps() = apiTest(adminUi = true) { client ->
+        val me = client.devAuth("alice")
+        val id = client.createSeries(
+            me.token,
+            series().copy(holes = listOf(Hole(1.23456, 4.25, 9, false, 31.2))),
+        )
+
+        // The dev login stores the subject as the name: linked subject cell plus a plain name cell.
+        val users = client.get("/admin").bodyAsText()
+        assertTrue("""<td><a href="/admin/users/${me.userId}">alice</a></td><td>alice</td>""" in users, users)
+
+        val seriesPage = client.get("/admin/series/$id").bodyAsText()
+        assertTrue("<td>1.23</td>" in seriesPage, seriesPage)
+        assertTrue("<td>4.25</td>" in seriesPage && "<td>31.2</td>" in seriesPage, seriesPage)
+
+        val local = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
+            .format(Instant.parse("2026-09-06T12:34:56Z"))
+        assertTrue(local in seriesPage, "expected '$local' in $seriesPage")
+        assertTrue("2026-09-06T12:34:56Z" !in seriesPage, seriesPage)
+    }
+
+    @Test
+    fun oldDatabasesGainTheNameColumn() {
+        val dbFile = File.createTempFile("markera-old", ".db").also { it.delete(); it.deleteOnExit() }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().use { st ->
+                st.executeUpdate(
+                    """CREATE TABLE users (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         provider TEXT NOT NULL,
+                         subject TEXT NOT NULL,
+                         created_at TEXT NOT NULL,
+                         UNIQUE(provider, subject))"""
+                )
+                st.executeUpdate("INSERT INTO users(provider, subject, created_at) VALUES ('google', 'old', 'then')")
+            }
+        }
+        Db(dbFile.path).use { db ->
+            val users = db.listUsers()
+            assertEquals(listOf("old" to null), users.map { it.subject to it.name })
+            assertEquals(0, users.single().seriesCount)
+            db.upsertUser("google", "old", "Ada")
+            assertEquals("Ada", db.listUsers().single().name)
+            // A later login without a name never clears it.
+            db.upsertUser("google", "old", null)
+            assertEquals("Ada", db.listUsers().single().name)
+        }
     }
 
     @Test

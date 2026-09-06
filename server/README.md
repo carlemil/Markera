@@ -8,7 +8,8 @@ Ktor + SQLite backend for scanned series. Standalone Gradle build (not part of t
 
 Env vars: `PORT` (8080), `DB_PATH` (`./data/markera.db`), `IMAGES_DIR` (`<DB_PATH dir>/images`),
 `GOOGLE_CLIENT_ID`, `APPLE_BUNDLE_ID`, `DEV_AUTH` (`true` enables `POST /auth/dev`, never in production),
-`ADMIN_UI` (`true` serves the read-only, login-less `/admin` pages — users → series → holes + image; LAN only).
+`ADMIN_UI` (`true` serves the read-only, login-less `/admin` pages — users → series → holes + image; LAN only),
+`TZ` (the zone the admin pages show timestamps in; compose sets `Europe/Stockholm`).
 
 API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
 `POST /series` / `GET /series` with `Authorization: Bearer <token>`,
