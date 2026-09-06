@@ -30,6 +30,7 @@ fun Route.adminRoutes(db: Db, images: File) {
                 esc(u.name.orEmpty()),
                 time(u.createdAt),
                 u.seriesCount,
+                href = "/admin/users/${u.id}",
             )
         }
         respondHtml(page("Users", table(listOf("id", "provider", "subject", "name", "created", "series"), rows)))
@@ -46,6 +47,7 @@ fun Route.adminRoutes(db: Db, images: File) {
                 s.holes.sumOf { it.ring },
                 s.holes.count { kind(it).isNotEmpty() },
                 if (imageFile(images, s.id).isFile) "&#10003;" else "",
+                href = "/admin/series/${s.id}",
             )
         }
         respondHtml(
@@ -62,7 +64,9 @@ fun Route.adminRoutes(db: Db, images: File) {
         val series = db.getSeries(seriesId) ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId)
         val holes = series.holes.joinToString("") { row(it.x, it.y, it.ring, it.innerTen, it.distanceMm, kind(it)) }
-        val image = if (imageFile(images, seriesId).isFile) """<img src="/admin/series/$seriesId/image">""" else ""
+        val image = if (!imageFile(images, seriesId).isFile) "" else {
+            """<div class="shot"><img src="/admin/series/$seriesId/image">${markers(series)}</div>"""
+        }
         respondHtml(
             page(
                 "Series ${series.id}",
@@ -78,6 +82,23 @@ fun Route.adminRoutes(db: Db, images: File) {
     get("/admin/series/{id}/image") {
         val file = imageFile(images, pathId())
         if (file.isFile) call.respondFile(file) else notFound("No image")
+    }
+}
+
+/**
+ * The holes as absolutely positioned markers over the JPEG. `x`/`y` are pixels of the frame the app scored,
+ * and the upload keeps that frame's aspect, so the image fraction places them at any rendered size. Nothing
+ * is drawn for series stored before the upload carried the frame size, or for typed holes (no position).
+ */
+private fun markers(series: Series): String {
+    val width = series.imageWidth ?: return ""
+    val height = series.imageHeight ?: return ""
+    return series.holes.joinToString("") { h ->
+        val x = h.x ?: return@joinToString ""
+        val y = h.y ?: return@joinToString ""
+        val color = if (h.detectedRing == null) "#ffb74d" else "#9ccc65"
+        """<div class="hit" style="left:${round2(x / width * 100)}%;top:${round2(y / height * 100)}%;""" +
+            """border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
     }
 }
 
@@ -101,10 +122,14 @@ private suspend fun RoutingContext.respondHtml(html: String) = call.respondText(
 private fun esc(value: String) = value
     .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
-/** Cells are already-escaped HTML or numbers; every string taken from the database goes through [esc] first. */
-private fun row(vararg cells: Any?) = cells.joinToString("", "<tr>", "</tr>") {
-    "<td>${if (it is Double) round2(it) else it ?: ""}</td>"
-}
+/**
+ * Cells are already-escaped HTML or numbers; every string taken from the database goes through [esc] first.
+ * [href] (built from ids only) makes the whole row clickable — the id cell keeps its link for the no-JS case.
+ */
+private fun row(vararg cells: Any?, href: String? = null) =
+    cells.joinToString("", "<tr${href?.let { """ onclick="location.href='$it'"""" }.orEmpty()}>", "</tr>") {
+        "<td>${if (it is Double) round2(it) else it ?: ""}</td>"
+    }
 
 /** At most two decimals, no trailing zeros: 1.23456 -> 1.23, 4.25 -> 4.25, 8.0 -> 8. */
 private fun round2(value: Double) = "%.2f".format(Locale.ROOT, value).trimEnd('0').trimEnd('.')
@@ -131,5 +156,10 @@ h1{font-size:18px;margin:0 0 12px}
 table{border-collapse:collapse;margin-top:12px}
 th,td{border:1px solid #35402c;padding:4px 10px;text-align:left}
 th{background:#1c2416}
+tr[onclick]{cursor:pointer}
+tr[onclick]:hover td{background:#1c2416}
 img{display:block;max-width:480px;margin-top:12px;border:1px solid #35402c}
+.shot{position:relative;display:inline-block}
+.hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
+font-size:10px;line-height:20px;text-align:center;text-shadow:0 0 3px #000}
 </style></head><body><h1>${esc(title)}</h1>$body</body></html>"""

@@ -57,8 +57,18 @@ class Db(dbPath: String) : AutoCloseable {
                      user_id INTEGER NOT NULL REFERENCES users(id),
                      timestamp TEXT NOT NULL,
                      caliber TEXT NOT NULL,
-                     created_at TEXT NOT NULL)"""
+                     created_at TEXT NOT NULL,
+                     image_width INTEGER,
+                     image_height INTEGER)"""
             )
+            // Databases created before the image carried the frame size.
+            val seriesColumns = st.executeQuery("PRAGMA table_info(series)").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("name")) }
+            }
+            if ("image_width" !in seriesColumns) {
+                st.executeUpdate("ALTER TABLE series ADD COLUMN image_width INTEGER")
+                st.executeUpdate("ALTER TABLE series ADD COLUMN image_height INTEGER")
+            }
             st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
@@ -68,9 +78,10 @@ class Db(dbPath: String) : AutoCloseable {
             if ("detected_ring" !in holeColumns) {
                 st.executeUpdate("DROP TABLE IF EXISTS holes_new")
                 st.executeUpdate("CREATE TABLE holes_new ($HOLE_COLUMNS)")
+                // Holes saved before edits were recorded are the detector output verbatim.
                 st.executeUpdate(
-                    """INSERT INTO holes_new(id, series_id, x, y, ring, inner_ten, distance_mm)
-                       SELECT id, series_id, x, y, ring, inner_ten, distance_mm FROM holes"""
+                    """INSERT INTO holes_new(id, series_id, x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten)
+                       SELECT id, series_id, x, y, ring, inner_ten, distance_mm, ring, inner_ten FROM holes"""
                 )
                 st.executeUpdate("DROP TABLE holes")
                 st.executeUpdate("ALTER TABLE holes_new RENAME TO holes")
@@ -170,12 +181,20 @@ class Db(dbPath: String) : AutoCloseable {
 
     @Synchronized
     fun getSeries(seriesId: Long): Series? {
-        conn.prepareStatement("SELECT id, timestamp, caliber FROM series WHERE id = ?").use { st ->
+        conn.prepareStatement("$SERIES_SELECT WHERE id = ?").use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
                 if (!rs.next()) return null
-                return Series(rs.getLong(1), rs.getString(2), rs.getString(3), holesOf(seriesId))
+                return seriesRow(rs).copy(holes = holesOf(seriesId))
             }
+        }
+    }
+
+    /** The size of the frame the app measured the hole coordinates in; sent with the image upload. */
+    @Synchronized
+    fun setImageSize(seriesId: Long, width: Int, height: Int) {
+        conn.prepareStatement("UPDATE series SET image_width = ?, image_height = ? WHERE id = ?").use {
+            it.setInt(1, width); it.setInt(2, height); it.setLong(3, seriesId); it.executeUpdate()
         }
     }
 
@@ -190,13 +209,9 @@ class Db(dbPath: String) : AutoCloseable {
     @Synchronized
     fun listSeries(userId: Long): List<Series> {
         val series = mutableListOf<Series>()
-        conn.prepareStatement(
-            "SELECT id, timestamp, caliber FROM series WHERE user_id = ? ORDER BY timestamp DESC, id DESC"
-        ).use { st ->
+        conn.prepareStatement("$SERIES_SELECT WHERE user_id = ? ORDER BY timestamp DESC, id DESC").use { st ->
             st.setLong(1, userId)
-            st.executeQuery().use { rs ->
-                while (rs.next()) series += Series(rs.getLong(1), rs.getString(2), rs.getString(3), emptyList())
-            }
+            st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
         }
         return series.map { it.copy(holes = holesOf(it.id)) }
     }
@@ -224,6 +239,17 @@ class Db(dbPath: String) : AutoCloseable {
 
     private companion object {
         val random = SecureRandom()
+
+        const val SERIES_SELECT = "SELECT id, timestamp, caliber, image_width, image_height FROM series"
+
+        fun seriesRow(rs: ResultSet) = Series(
+            id = rs.getLong(1),
+            timestamp = rs.getString(2),
+            caliber = rs.getString(3),
+            holes = emptyList(),
+            imageWidth = rs.intOrNull(4),
+            imageHeight = rs.intOrNull(5),
+        )
 
         const val HOLE_COLUMNS =
             """id INTEGER PRIMARY KEY AUTOINCREMENT,

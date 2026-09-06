@@ -58,7 +58,8 @@ class ApiTest {
         seriesId: Long,
         bytes: ByteArray,
         type: ContentType = ContentType.Image.JPEG,
-    ) = post("/series/$seriesId/image") { bearerAuth(token); contentType(type); setBody(bytes) }
+        query: String = "",
+    ) = post("/series/$seriesId/image$query") { bearerAuth(token); contentType(type); setBody(bytes) }
 
     private fun series(timestamp: String = "2026-09-06T12:34:56Z", caliber: String = "9mm") = SeriesRequest(
         timestamp = timestamp,
@@ -195,16 +196,40 @@ class ApiTest {
                 )
             }
         }
-        // The old row survives with unknown detector values, and a new hole with nulls now fits.
+        // The old row was the detector's output verbatim, so it becomes an untouched detection.
         Db(dbFile.path).use { db ->
-            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, null, null)), db.getSeries(1)?.holes)
+            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, 9, true)), db.getSeries(1)?.holes)
             db.insertSeries(1, "2026-09-06T12:34:56Z", "9mm", listOf(Hole(null, null, 5, false, null)))
         }
         // Reopening must not run the rebuild again.
         Db(dbFile.path).use { db ->
-            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, null, null)), db.getSeries(1)?.holes)
+            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, 9, true)), db.getSeries(1)?.holes)
             assertEquals(listOf(Hole(null, null, 5, false, null)), db.getSeries(2)?.holes)
         }
+    }
+
+    @Test
+    fun imageSizeIsStoredAndPlacesMarkersOnTheAdminPhoto() = apiTest(adminUi = true) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(
+            me.token,
+            series().copy(
+                holes = listOf(
+                    Hole(25.0, 50.0, 9, false, 31.2, detectedRing = 9),  // detected: green
+                    Hole(75.0, 50.0, 7, false, 60.0),                    // manual: orange
+                    Hole(null, null, 5, false, null),                    // typed: no position, no marker
+                ),
+            ),
+        )
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200").status)
+
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
+        assertEquals(100 to 200, stored.imageWidth to stored.imageHeight)
+
+        val page = client.get("/admin/series/$id").bodyAsText()
+        assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65">9</div>""" in page, page)
+        assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d">7</div>""" in page, page)
+        assertEquals(2, Regex("""class="hit"""").findAll(page).count(), page)
     }
 
     @Test
@@ -347,6 +372,12 @@ class ApiTest {
         val seriesPage = client.get("/admin/series/$mySeries").bodyAsText()
         assertTrue("<td>31.2</td>" in seriesPage && "<td>true</td>" in seriesPage, seriesPage)
         assertTrue("""<img src="/admin/series/$mySeries/image">""" in seriesPage, seriesPage)
+        // Uploaded without the frame size, so the photo shows but carries no markers.
+        assertTrue("""class="hit"""" !in seriesPage, seriesPage)
+
+        // Whole rows navigate; the id cell keeps its link for the no-JS case.
+        assertTrue("""<tr onclick="location.href='/admin/users/${me.userId}'">""" in users, users)
+        assertTrue("""<tr onclick="location.href='/admin/series/$mySeries'">""" in userPage, userPage)
 
         val image = client.get("/admin/series/$mySeries/image")
         assertEquals(HttpStatusCode.OK, image.status)

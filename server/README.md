@@ -15,6 +15,11 @@ API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
 `POST /series` / `GET /series` with `Authorization: Bearer <token>`,
 `POST /series/{id}/image` (raw `image/jpeg` body ≤ 5 MB → 204) / `GET /series/{id}/image`.
 
+The image upload takes optional `?width=&height=` — the size, in source pixels, of the frame the hole
+coordinates were measured in (the JPEG is that frame downscaled, same aspect). They come back on the series
+as `imageWidth`/`imageHeight`, and the admin page uses them to draw the holes on the photo; without them the
+photo shows unmarked.
+
 A hole is `{x, y, ring, innerTen, distanceMm, detectedRing, detectedInnerTen}`. `ring`/`innerTen` is what
 the user confirmed, `detectedRing`/`detectedInnerTen` what the detector said (both optional, omitted or
 null when there was no detection — kept for training data). `x`/`y`/`distanceMm` may be null. The three

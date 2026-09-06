@@ -95,8 +95,8 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 15a | Server: holes gain `detected_ring`/`detected_inner_ten` (nullable) and `x`/`y`/`distance_mm` become nullable (table rebuilt in the migration); DTO `Hole` mirrors it with defaults so old clients still post; admin series page marks edited holes (detected → chosen) and the series lists show an edited count; tests; deploy | done |
 | 15b | App: `SeriesRecorder.commit(topScores)` merges the picker values into the pending holes per the pinned decision (`SeriesDtos` helper, unit-tested); `MarkeraScreen` (Spara) and the wizard (lane change) pass the current `topScores`; phone check that an edited series shows as edited on `/admin` | done |
 | 16 | App: remove the "Dela" share button (nothing to share for now); orchestrator-applied | done |
-| 17 | Admin UI: whole table rows clickable wherever a row has exactly one target page (users → user, series → series) | queued |
-| 18a | Admin series page: draw the holes on the photo (positions are in source-image px of the uploaded JPEG, same aspect, so scale by the rendered size), detected and manual in different colours, with the confirmed score as label; typed holes have no position and stay list-only | queued |
+| 17 | Admin UI: whole table rows clickable wherever a row has exactly one target page (users → user, series → series) | done |
+| 18a | Admin series page: draw the holes on the photo (positions are in source-image px of the uploaded JPEG, same aspect, so scale by the rendered size), detected and manual in different colours, with the confirmed score as label; typed holes have no position and stay list-only; the image upload takes `?width=&height=` (the scored frame's size) so markers scale onto the JPEG | done |
 | 18b | App: manual marking — a tap on the frozen frame (not on an existing marker) adds a `manual` hole at that image point, scored with the current centre + ring, appended to `scores`, filling the next free picker slot, re-emitted to the recorder as the pending series; overlay draws manual markers in their own colour; no tap effect without geometry | queued |
 | 19 | App: "Återställ" button beside "Spara" on the frozen frame (requested 2026-09-06 as "next to Detektera" — Detektera only exists in the live view, the frozen view shows Spara in its place): discards the scan (`recorder.clear()`, `clearResults()`, unfreeze, back to the live camera) without saving, for when the geometry/detection went wrong | queued |
 | 20 | App: hide the "Tävling" (competition) entry on Home until the user reprioritises it (requested 2026-09-06); the code stays, only the entry point goes | queued |
@@ -114,6 +114,7 @@ POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x?,y?,ring,inn
 GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...], hasImage}]
 POST /series/{id}/image  Bearer, raw image/jpeg body (≤ 5 MB) -> 204
 GET  /series/{id}/image  Bearer     -> 200 image/jpeg | 404
+POST /series/{id}/image?width=W&height=H   optional: size of the scored frame (markers on the admin photo)
 GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, no auth, only with ADMIN_UI=true
 ```
 

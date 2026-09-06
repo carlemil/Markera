@@ -88,6 +88,9 @@ data class Series(
     val caliber: String,
     val holes: List<Hole>,
     val hasImage: Boolean = false,
+    /** Size of the frame the holes were measured in, sent with the image; null for series uploaded before that. */
+    val imageWidth: Int? = null,
+    val imageHeight: Int? = null,
 )
 
 @Serializable
@@ -180,6 +183,11 @@ fun Application.markeraModule(config: Config, db: Db) {
             val tmp = File(images, "$seriesId.jpg.tmp")
             tmp.writeBytes(bytes)
             Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            // ?width=&height= is the size of the frame the hole coordinates were measured in, so the admin
+            // page can place markers on the (downscaled but same-aspect) JPEG. Nonsense values are ignored.
+            val width = call.request.queryParameters["width"]?.toIntOrNull()?.takeIf { it > 0 }
+            val height = call.request.queryParameters["height"]?.toIntOrNull()?.takeIf { it > 0 }
+            if (width != null && height != null) db.setImageSize(seriesId, width, height)
             call.respond(HttpStatusCode.NoContent)
         }
 
