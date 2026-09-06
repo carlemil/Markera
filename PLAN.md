@@ -40,6 +40,9 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
   as `/data/images/<id>.jpg` on the volume; upload happens after the series POST succeeds and
   its failure never fails the series. The recorder stays commonMain: JPEG encoding is injected
   (`encodeJpeg: suspend (PlatformImage) -> ByteArray`) like the caliber persistence.
+- **Admin UI** (task 10, requested 2026-09-06): lives in the Ktor server, plain server-rendered
+  HTML from string templates (no template/HTML dependency), read-only, no auth. Gated by
+  `ADMIN_UI=true` so a future public deployment cannot expose it by accident.
 - Sub-agents run on `opus`.
 
 ## User actions needed (cannot be done by the orchestrator)
@@ -64,6 +67,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 6 | iOS: Apple sign-in actual (AuthenticationServices), ATS exception; compile on the Mac mini | done (compiled + linked only; no iOS host app yet) |
 | 7 | App Android: series history screen (Home card → list of saved series: time, caliber, total, per-hole scores; loading/empty/error/signed-out states) | done |
 | 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | done |
+| 10 | Admin web UI in the server (`/admin`): users → their series → series details with holes + image; server-rendered HTML, no login, enabled only by `ADMIN_UI=true` (LAN-only deployment); tests; deploy on the Mac mini | todo |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
 ## API (server)
@@ -90,7 +94,8 @@ No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
    Let's Encrypt state). Stop publishing 8090 on the host.
 3. App: `markera.backend.url=https://<host>` in `gradle.properties`; drop the cleartext
    entry for 192.168.1.191 from `network_security_config.xml`.
-4. Set `DEV_AUTH=false` in `server/.env` before exposing anything — `/auth/dev` is a free login.
+4. Set `DEV_AUTH=false` and `ADMIN_UI=false` in `server/.env` before exposing anything —
+   `/auth/dev` is a free login and `/admin` shows every user's series without one.
 
 ## Follow-ups / out of scope
 
