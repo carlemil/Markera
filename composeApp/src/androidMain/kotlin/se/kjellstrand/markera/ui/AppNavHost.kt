@@ -270,13 +270,17 @@ private fun HomeScreen(
                 icon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(36.dp)) },
                 onClick = onFreeMarking,
             )
-            Spacer(Modifier.height(16.dp))
-            HomeCard(
-                title = stringResource(R.string.home_competition),
-                subtitle = stringResource(R.string.home_competition_hint),
-                icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                onClick = onCompetition,
-            )
+            // Competition marking is hidden until it is prioritised again (PLAN task 20);
+            // the wizard and its screens stay in place behind `onCompetition`.
+            if (SHOW_COMPETITION) {
+                Spacer(Modifier.height(16.dp))
+                HomeCard(
+                    title = stringResource(R.string.home_competition),
+                    subtitle = stringResource(R.string.home_competition_hint),
+                    icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                    onClick = onCompetition,
+                )
+            }
             Spacer(Modifier.height(16.dp))
             HomeCard(
                 title = stringResource(R.string.home_history),
@@ -331,6 +335,8 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
         }
     }
 }
+
+private const val SHOW_COMPETITION = false
 
 @Composable
 private fun HomeCard(

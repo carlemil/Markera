@@ -13,8 +13,8 @@
     <string name="score_pick_title">Poäng</string>
 
     <!-- Home -->
-    <string name="home_free_marking">Fri markering</string>
-    <string name="home_free_marking_hint">Skanna en tavla utan tävling</string>
+    <string name="home_free_marking">Markera</string>
+    <string name="home_free_marking_hint">Scanna en tavla</string>
     <string name="home_competition">Tävling</string>
     <string name="home_competition_hint">Markera i en Webshooter-tävling</string>
     <string name="home_history">Historik</string>
