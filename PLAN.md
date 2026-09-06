@@ -36,7 +36,10 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
   is `-`, then posts. Not logged in → no save, a "sign in to save" hint instead.
 - **Caliber badge** is drawn inside the shared `TargetScanner` viewport (top-right, frozen
   frame only); tapping it opens the chooser. One component serves both screens.
-- Images are **not** uploaded (request is holes + timestamp + caliber).
+- Images: task 8 adds `POST /series/{id}/image` as a raw `image/jpeg` body (no multipart), stored
+  as `/data/images/<id>.jpg` on the volume; upload happens after the series POST succeeds and
+  its failure never fails the series. The recorder stays commonMain: JPEG encoding is injected
+  (`encodeJpeg: suspend (PlatformImage) -> ByteArray`) like the caliber persistence.
 - Sub-agents run on `opus`.
 
 ## User actions needed (cannot be done by the orchestrator)
@@ -59,6 +62,9 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 4 | App Android: sign-in (`camera` flavor Google via Credential Manager, `mock` flavor dev auth), account row on Home, persisted session | done |
 | 5 | App: auto-save flow (controller emits series → saver → caliber dialog → POST), caliber badge in viewport, save status; emulator end-to-end against the Mac mini | done |
 | 6 | iOS: Apple sign-in actual (AuthenticationServices), ATS exception; compile on the Mac mini | done (compiled + linked only; no iOS host app yet) |
+| 7 | App Android: series history screen (Home card → list of saved series: time, caliber, total, per-hole scores; loading/empty/error/signed-out states) | todo |
+| 8 | Image upload: server `POST/GET /series/{id}/image` (raw JPEG on the volume, `hasImage` in the DTO); app posts the scanned snapshot (JPEG ≤1024 px) after a successful series save; thumbnails in history | todo |
+| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN"; decide reverse-proxy + cert approach when picked up) | todo |
 
 ## API (server)
 
@@ -74,6 +80,6 @@ GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...]}
 
 ## Follow-ups / out of scope
 
-- Image upload alongside a series.
-- Series history screen in the app.
-- HTTPS / exposing the backend outside the LAN.
+- ~~Image upload alongside a series~~ → task 8.
+- ~~Series history screen in the app~~ → task 7.
+- ~~HTTPS / exposing the backend outside the LAN~~ → task 9.
