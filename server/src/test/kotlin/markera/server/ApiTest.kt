@@ -145,6 +145,24 @@ class ApiTest {
     }
 
     @Test
+    fun typedHolesPostWithTheirNullsOmitted() = apiTest { client ->
+        val me = client.devAuth("me")
+        // The app omits null fields (explicitNulls = false): a typed hole is just ring + innerTen.
+        val response = client.post("/series") {
+            bearerAuth(me.token)
+            setBody(
+                TextContent(
+                    """{"timestamp":"2026-09-06T12:34:56Z","caliber":"9mm","holes":[{"ring":5,"innerTen":false}]}""",
+                    ContentType.Application.Json,
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val hole = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes.single()
+        assertEquals(Hole(null, null, 5, false, null), hole)
+    }
+
+    @Test
     fun oldDatabasesGainTheDetectedColumns() {
         val dbFile = File.createTempFile("markera-old-holes", ".db").also { it.delete(); it.deleteOnExit() }
         DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->

@@ -71,11 +71,12 @@ val CALIBERS = setOf("-", "22lr", "32", "38", "357", "45", "44", "9mm", "10mm")
  */
 @Serializable
 data class Hole(
-    val x: Double?,
-    val y: Double?,
+    // Defaults on every nullable: the app omits nulls instead of sending them.
+    val x: Double? = null,
+    val y: Double? = null,
     val ring: Int,
     val innerTen: Boolean,
-    val distanceMm: Double?,
+    val distanceMm: Double? = null,
     val detectedRing: Int? = null,
     val detectedInnerTen: Boolean? = null,
 )
