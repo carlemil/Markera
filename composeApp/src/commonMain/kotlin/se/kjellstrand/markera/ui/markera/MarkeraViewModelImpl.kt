@@ -88,7 +88,25 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         }
     }
 
-    override fun removeManualHit(index: Int) {
+    override fun moveHit(index: Int, detection: Detection, hit: HitScore) {
+        _uiState.update { state ->
+            if (index !in state.scores.indices || index !in state.detections.indices) {
+                return@update state
+            }
+            val pick = if (hit.isInnerTen) SCORE_PICKER_INNER_TEN else hit.ring
+            state.copy(
+                detections = state.detections.toMutableList().apply { this[index] = detection },
+                scores = state.scores.toMutableList().apply { this[index] = hit },
+                topScores = if (index < SCORE_PICKER_COUNT) {
+                    state.topScores.toMutableList().apply { this[index] = pick }
+                } else {
+                    state.topScores
+                },
+            )
+        }
+    }
+
+    override fun removeHit(index: Int) {
         _uiState.update { state ->
             if (index !in state.scores.indices || index !in state.detections.indices) {
                 return@update state

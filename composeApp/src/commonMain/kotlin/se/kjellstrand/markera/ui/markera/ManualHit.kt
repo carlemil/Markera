@@ -3,7 +3,6 @@ package se.kjellstrand.markera.ui.markera
 import kotlin.math.min
 import kotlin.math.sqrt
 import se.kjellstrand.markera.vision.Detection
-import se.kjellstrand.markera.vision.HitScore
 
 /** Side of a hand-placed hole box when the detector found nothing to size it from. */
 const val MANUAL_HOLE_FALLBACK_PX = 20f
@@ -53,23 +52,14 @@ fun manualDetection(
 }
 
 /**
- * Index of the hand-placed hole a tap at [x],[y] (image px) lands on: the
- * nearest hole within [minGapPx] whose score is [HitScore.manual] — tapping it
- * again removes it. -1 when the nearest hole in reach came from the detector
- * (that tap stays a mis-tap) or nothing is in reach. [detections] and [scores]
- * are index-aligned (hole i <-> score i).
+ * Index of the hole a touch at [x],[y] (image px) grabs: the nearest one within
+ * [maxDist], or -1 when nothing is in reach. Detected and hand-placed holes are
+ * equally grabbable — dragging moves them, a long press removes them.
  */
-fun manualHitAt(
-    x: Float,
-    y: Float,
-    detections: List<Detection>,
-    scores: List<HitScore>,
-    minGapPx: Float,
-): Int {
+fun nearestDetectionIndex(x: Float, y: Float, detections: List<Detection>, maxDist: Float): Int {
     var best = -1
-    var bestDist = minGapPx
+    var bestDist = maxDist
     detections.forEachIndexed { i, d ->
-        if (scores.getOrNull(i)?.manual != true) return@forEachIndexed
         val dx = x - (d.left + d.right) / 2f
         val dy = y - (d.top + d.bottom) / 2f
         val dist = sqrt(dx * dx + dy * dy)
@@ -79,4 +69,11 @@ fun manualHitAt(
         }
     }
     return best
+}
+
+/** The same hole box re-centred on [x],[y] (image px) — a dragged hole keeps its size. */
+fun Detection.movedTo(x: Float, y: Float): Detection {
+    val halfW = (right - left) / 2f
+    val halfH = (bottom - top) / 2f
+    return Detection(x - halfW, y - halfH, x + halfW, y + halfH, conf)
 }

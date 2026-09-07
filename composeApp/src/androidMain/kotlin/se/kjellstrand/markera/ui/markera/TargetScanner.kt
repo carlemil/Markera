@@ -15,7 +15,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,9 +42,9 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -149,44 +148,79 @@ class TargetScanController(
     }
 
     /**
-     * The user tapped a hole the detector missed, at [tapX],[tapY] in a
-     * [viewW]x[viewH] viewport showing [snapshot] fit-centred. Scores that point
-     * with the same geometry as the scan and adds it as a manual hole, then
-     * re-publishes the series so the pending save includes it. A tap within
-     * [minGapPx] (viewport px) of a hand-placed hole removes that hole instead;
-     * one that close to a *detected* hole is a mis-tap and does nothing. Also
-     * ignored without geometry, mid-scan or off the image.
+     * The user tapped a hole the detector missed, at [x],[y] in source-image px.
+     * Scores that point with the same geometry as the scan and adds it as a
+     * manual hole. A tap within [minGapPx] (image px) of an existing hole is a
+     * mis-tap and adds nothing.
      */
-    fun addManualHit(
+    fun addHit(
         viewModel: MarkeraViewModel,
         snapshot: Bitmap?,
-        tapX: Float,
-        tapY: Float,
-        viewW: Float,
-        viewH: Float,
+        x: Float,
+        y: Float,
         minGapPx: Float,
+    ) = editHoles(viewModel, snapshot) { state, centre, ring ->
+        val detection = manualDetection(x, y, state.detections, minGapPx) ?: return@editHoles false
+        val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
+            ?: return@editHoles false
+        viewModel.addManualHit(detection, hit)
+        true
+    }
+
+    /**
+     * The user dragged hole [index] to [x],[y] (source-image px). The hole keeps
+     * its box size and is rescored against the scan's own geometry; a detected
+     * hole keeps what the detector said about it in [HitScore.original], so it
+     * still saves its `detected*` values.
+     */
+    fun moveHit(
+        viewModel: MarkeraViewModel,
+        snapshot: Bitmap?,
+        index: Int,
+        x: Float,
+        y: Float,
+    ) = editHoles(viewModel, snapshot) { state, centre, ring ->
+        val old = state.scores.getOrNull(index) ?: return@editHoles false
+        val moved = state.detections.getOrNull(index)?.movedTo(x, y) ?: return@editHoles false
+        val hit = scoreHits(listOf(moved), centre, ring).firstOrNull() ?: return@editHoles false
+        viewModel.moveHit(
+            index,
+            moved,
+            hit.copy(
+                manual = old.manual,
+                original = if (old.manual) null else (old.original ?: old),
+            ),
+        )
+        true
+    }
+
+    /** The user long-pressed hole [index]: drop it, detected or hand-placed. */
+    fun removeHit(viewModel: MarkeraViewModel, snapshot: Bitmap?, index: Int) =
+        editHoles(viewModel, snapshot) { _, _, _ ->
+            viewModel.removeHit(index)
+            true
+        }
+
+    /**
+     * Runs one hole edit against the frozen scan's geometry and re-publishes the
+     * series, so the pending save carries the edit. Ignored without geometry or
+     * mid-scan; [edit] returns false when it changed nothing.
+     */
+    private fun editHoles(
+        viewModel: MarkeraViewModel,
+        snapshot: Bitmap?,
+        edit: (MarkeraUiState, CentreEstimate, FittedEllipse) -> Boolean,
     ) {
         val state = viewModel.uiState.value
         if (snapshot == null || state.phase != ScanPhase.IDLE) return
         val centre = state.centre?.takeIf { it.method != CentreMethod.NONE } ?: return
         val ring = state.ring ?: return
-        val (ix, iy) = viewportToImage(
-            tapX, tapY, viewW, viewH, state.imageWidth, state.imageHeight,
-        ) ?: return
-        val scale = min(viewW / state.imageWidth, viewH / state.imageHeight)
-        val gap = minGapPx / scale
-        val geometry = geometryDto(centre, ring)
-        val existing = manualHitAt(ix, iy, state.detections, state.scores, gap)
-        if (existing >= 0) {
-            viewModel.removeManualHit(existing)
-            onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot, geometry)
-            return
-        }
-        val detection = manualDetection(ix, iy, state.detections, gap) ?: return
-        val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
-            ?: return
-        viewModel.addManualHit(detection, hit)
-        onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot, geometry)
+        if (!edit(state, centre, ring)) return
+        onSeriesDetected?.invoke(
+            viewModel.uiState.value.scores,
+            snapshot,
+            geometryDto(centre, ring),
+        )
     }
 
     private suspend fun runPipeline(snapshot: Bitmap, viewModel: MarkeraViewModel) {
@@ -308,14 +342,28 @@ fun rememberCameraPermission(frameSource: FrameSource): CameraPermissionState {
 }
 
 /**
+ * Editing the holes on the frozen frame: add one where the user taps, move the
+ * one they drag, remove the one they long-press. All coordinates are
+ * source-image px. Null on screens that don't offer editing (then the frame
+ * doesn't zoom either).
+ */
+class HoleEditing(
+    val add: (x: Float, y: Float, reach: Float) -> Unit,
+    val move: (index: Int, x: Float, y: Float) -> Unit,
+    val remove: (index: Int) -> Unit,
+)
+
+/** How close a touch has to land to a hole to grab it. */
+private val GRAB_RADIUS = 24.dp
+
+/**
  * The scanning viewport: live preview (or frozen snapshot) + detection
  * overlays. In the mock flavor a fresh frame auto-triggers [onAutoDetect] —
  * gate it with [autoDetectEnabled] so wizard steps that are not capturing
  * (confirm/locked/summary) don't fire scans.
  *
- * [onPhotoTap] (viewport px + viewport size) receives taps on the frozen frame
- * once there is geometry to score them against — that is manual hole marking;
- * leave it null on screens that don't offer it.
+ * With [editing] set, a frozen frame that has been scored also pinch-zooms and
+ * takes hole edits (see [HoleEditing]); the live preview never does.
  */
 @Composable
 fun TargetScanner(
@@ -327,7 +375,7 @@ fun TargetScanner(
     modifier: Modifier = Modifier,
     autoDetectEnabled: Boolean = true,
     onAutoDetect: () -> Unit = {},
-    onPhotoTap: ((x: Float, y: Float, viewW: Float, viewH: Float) -> Unit)? = null,
+    editing: HoleEditing? = null,
 ) {
     // Mock flavor: run detection automatically each time a fresh frame is
     // loaded from disk (the key changes), so no tap is needed. The camera
@@ -336,33 +384,40 @@ fun TargetScanner(
         if (autoDetectEnabled && frameSource.autoDetectKey != null) onAutoDetect()
     }
     val frozen = snapshotVm.snapshot
-    // Tapping adds a missed hole — only on a frozen frame that has been scored.
-    val tappable = onPhotoTap != null && frozen != null &&
+    // Editing (and with it the zoom) only on a frozen frame that has been scored.
+    val editable = editing != null && frozen != null &&
         uiState.centre != null && uiState.ring != null && uiState.phase == ScanPhase.IDLE
-    val tap by rememberUpdatedState(onPhotoTap)
+    // The gesture loop is not recomposed, so it must read these through the
+    // latest-value states rather than the values captured when it started.
+    val state by rememberUpdatedState(uiState)
+    val edit by rememberUpdatedState(editing)
+    // A new frame (or clearing one) starts unzoomed.
+    val zoomPan = rememberZoomPan(frozen)
+    val grabPx = with(LocalDensity.current) { GRAB_RADIUS.toPx() }
     Box(
-        modifier = if (tappable) {
-            // Keyed on the flag, not the lambda: a lambda key restarts the
-            // gesture detector on every recomposition. `tap` stays current.
-            modifier.pointerInput(true) {
-                detectTapGestures { p ->
-                    tap?.invoke(p.x, p.y, size.width.toFloat(), size.height.toFloat())
-                }
-            }
+        modifier = if (editable) {
+            modifier.photoGestures(
+                t = zoomPan,
+                imageW = uiState.imageWidth,
+                imageH = uiState.imageHeight,
+                grabPx = grabPx,
+                // Keyed on the frame, not the lambdas: a lambda key would
+                // restart the gesture loop on every recomposition.
+                key = frozen,
+                holeAt = { x, y, reach ->
+                    nearestDetectionIndex(x, y, state.detections, reach)
+                },
+                onMove = { i, x, y -> edit?.move(i, x, y) },
+                onAdd = { x, y, reach -> edit?.add(x, y, reach) },
+                onRemove = { i -> edit?.remove(i) },
+            )
         } else {
             modifier
         },
     ) {
-        if (frozen != null) {
-            Image(
-                bitmap = frozen.asImageBitmap(),
-                contentDescription = null,
-                // Fit-centre so the DetectionOverlay boxes (also fit-centre)
-                // line up with the holes in this non-square snapshot.
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
+        // The preview stays outside the zoom layer: it is a SurfaceView, which
+        // ignores a graphicsLayer transform anyway, and it never zooms.
+        if (frozen == null) {
             frameSource.Preview(
                 onError = onError,
                 modifier = Modifier.fillMaxSize(),
@@ -371,17 +426,29 @@ fun TargetScanner(
             // (~70% of the viewport) with a small crosshair at its centre.
             ViewfinderGuide(modifier = Modifier.fillMaxSize())
         }
-        DetectionOverlay(
-            detections = uiState.detections,
-            digits = uiState.digits,
-            centre = uiState.centre,
-            ring = uiState.ring,
-            scores = uiState.scores,
-            showDebug = showDebug,
-            imageWidth = uiState.imageWidth,
-            imageHeight = uiState.imageHeight,
-            modifier = Modifier.fillMaxSize(),
-        )
+        Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
+            if (frozen != null) {
+                Image(
+                    bitmap = frozen.asImageBitmap(),
+                    contentDescription = null,
+                    // Fit-centre so the DetectionOverlay boxes (also fit-centre)
+                    // line up with the holes in this non-square snapshot.
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            DetectionOverlay(
+                detections = uiState.detections,
+                digits = uiState.digits,
+                centre = uiState.centre,
+                ring = uiState.ring,
+                scores = uiState.scores,
+                showDebug = showDebug,
+                imageWidth = uiState.imageWidth,
+                imageHeight = uiState.imageHeight,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         if (uiState.phase == ScanPhase.HOLES) {
             ScanningOverlay(
                 centre = uiState.centre,

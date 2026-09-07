@@ -38,6 +38,21 @@ class SeriesDtosTest {
     }
 
     @Test
+    fun aMovedDetectedHoleKeepsWhatTheDetectorSaid() {
+        val detected = HitScore(12f, 34f, 30f, 42.5, 9, false)
+        // Dragged onto the ten ring: the confirmed values move, detected* don't.
+        val moved = HitScore(20f, 40f, 36f, 20.0, 10, true, original = detected)
+        assertEquals(HoleDto(20.0, 40.0, 10, true, 20.0, 9, false, 12.0, 34.0), moved.toHoleDto())
+    }
+
+    @Test
+    fun aMovedManualHoleStillCarriesNoDetectedValues() {
+        val placed = HitScore(1f, 2f, 0f, 5.0, 10, true, manual = true)
+        val moved = placed.copy(centerXpx = 9f, distanceMm = 8.0, ring = 9, original = placed)
+        assertEquals(HoleDto(9.0, 2.0, 9, true, 8.0, null, null), moved.toHoleDto())
+    }
+
+    @Test
     fun aManualHoleCarriesNoDetectedValues() {
         val hit = HitScore(1f, 2f, 0f, 5.0, 10, true, manual = true)
         assertEquals(HoleDto(1.0, 2.0, 10, true, 5.0, null, null), hit.toHoleDto())

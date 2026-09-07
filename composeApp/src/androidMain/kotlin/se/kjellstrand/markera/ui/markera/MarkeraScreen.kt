@@ -46,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -79,11 +78,17 @@ fun MarkeraScreen(
     val onDetectClick: () -> Unit = {
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
     }
-    // Tap a hole the detector missed: scored and added as a manual hit. The gap
-    // keeps a mis-tap next to a marked hole from doubling it.
-    val minGapPx = with(LocalDensity.current) { 24.dp.toPx() }
-    val onPhotoTap: (Float, Float, Float, Float) -> Unit = { x, y, w, h ->
-        scanController.addManualHit(viewModel, snapshotVm.snapshot, x, y, w, h, minGapPx)
+    // Editing the frozen frame: tap adds the hole the detector missed (the reach
+    // keeps a mis-tap next to a marked hole from doubling it), drag moves one,
+    // long press removes one. Each edit re-publishes the pending series.
+    val editing = remember(scanController) {
+        HoleEditing(
+            add = { x, y, reach ->
+                scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach)
+            },
+            move = { i, x, y -> scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y) },
+            remove = { i -> scanController.removeHit(viewModel, snapshotVm.snapshot, i) },
+        )
     }
 
     val recorder = LocalSeriesRecorder.current
@@ -133,7 +138,7 @@ fun MarkeraScreen(
                         showDebug = showDebug,
                         onError = { viewModel.setError(it.message) },
                         onAutoDetect = onDetectClick,
-                        onPhotoTap = onPhotoTap,
+                        editing = editing,
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
                     BottomArea(
@@ -166,7 +171,7 @@ fun MarkeraScreen(
                             showDebug = showDebug,
                             onError = { viewModel.setError(it.message) },
                             onAutoDetect = onDetectClick,
-                            onPhotoTap = onPhotoTap,
+                            editing = editing,
                             modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                         )
                     }

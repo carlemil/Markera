@@ -72,12 +72,41 @@ class ManualHitTest {
     }
 
     @Test
-    fun aTapFindsAManualHoleButNeverADetectedOne() {
+    fun aTouchGrabsTheNearestHoleInReach() {
         val holes = listOf(box(100f, 100f, 10f), box(300f, 100f, 10f))
-        val scores = listOf(hit(ring = 9), hit(ring = 8, manual = true))
-        assertEquals(1, manualHitAt(310f, 100f, holes, scores, minGapPx = 24f))
-        assertEquals(-1, manualHitAt(110f, 100f, holes, scores, minGapPx = 24f))
-        assertEquals(-1, manualHitAt(300f, 400f, holes, scores, minGapPx = 24f))
+        assertEquals(1, nearestDetectionIndex(310f, 100f, holes, maxDist = 24f))
+        assertEquals(0, nearestDetectionIndex(110f, 100f, holes, maxDist = 24f))
+        assertEquals(-1, nearestDetectionIndex(300f, 400f, holes, maxDist = 24f))
+    }
+
+    @Test
+    fun aDraggedHoleKeepsItsBoxSize() {
+        assertEquals(box(50f, 60f, 10f), box(100f, 100f, 10f).movedTo(50f, 60f))
+    }
+
+    @Test
+    fun movingAHoleRescoresItAndRefreshesItsPickerSlot() {
+        val vm = MarkeraViewModelImpl()
+        vm.onHolesDetected(List(2) { box(it * 100f, 0f, 10f) }, List(2) { hit(ring = 7) })
+
+        val moved = box(500f, 500f, 10f)
+        vm.moveHit(1, moved, hit(ring = 10, inner = true))
+
+        assertEquals(2, vm.uiState.value.scores.size)
+        assertEquals(moved, vm.uiState.value.detections[1])
+        assertEquals(10, vm.uiState.value.scores[1].ring)
+        assertEquals(listOf(7, SCORE_PICKER_INNER_TEN, 0, 0, 0), vm.uiState.value.topScores)
+    }
+
+    @Test
+    fun movingAHoleThatIsNotThereChangesNothing() {
+        val vm = MarkeraViewModelImpl()
+        vm.onHolesDetected(listOf(box(0f, 0f, 10f)), listOf(hit(ring = 7)))
+
+        vm.moveHit(3, box(1f, 1f, 10f), hit(ring = 10))
+
+        assertEquals(1, vm.uiState.value.scores.size)
+        assertEquals(listOf(7, 0, 0, 0, 0), vm.uiState.value.topScores)
     }
 
     @Test
@@ -87,7 +116,7 @@ class ManualHitTest {
         vm.setTopScoreAt(2, SCORE_PICKER_INNER_TEN) // user corrected the third slot
         assertEquals(listOf(7, 8, SCORE_PICKER_INNER_TEN, 0, 0), vm.uiState.value.topScores)
 
-        vm.removeManualHit(1)
+        vm.removeHit(1)
 
         assertEquals(2, vm.uiState.value.scores.size)
         assertEquals(2, vm.uiState.value.detections.size)
@@ -101,7 +130,7 @@ class ManualHitTest {
         vm.onHolesDetected(six, List(5) { hit(ring = 5 + it) } + hit(ring = 10, inner = true))
         assertEquals(listOf(5, 6, 7, 8, 9), vm.uiState.value.topScores)
 
-        vm.removeManualHit(2)
+        vm.removeHit(2)
 
         assertEquals(5, vm.uiState.value.scores.size)
         assertEquals(listOf(5, 6, 8, 9, SCORE_PICKER_INNER_TEN), vm.uiState.value.topScores)
@@ -113,7 +142,7 @@ class ManualHitTest {
         val seven = List(7) { box(it * 100f, 0f, 10f) }
         vm.onHolesDetected(seven, List(7) { hit(ring = 6) })
 
-        vm.removeManualHit(5)
+        vm.removeHit(5)
 
         assertEquals(6, vm.uiState.value.scores.size)
         assertEquals(6, vm.uiState.value.detections.size)

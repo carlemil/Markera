@@ -121,18 +121,26 @@ fun SeriesDto.scoreLine(): String =
     holes.sortedWith(compareByDescending<HoleDto> { it.ring }.thenByDescending { it.innerTen })
         .joinToString(" ") { if (it.innerTen) "X" else it.ring.toString() }
 
-/** Hole positions travel as raw source-image pixels; the server just stores them. */
-fun HitScore.toHoleDto(): HoleDto = HoleDto(
-    x = centerXpx.toDouble(),
-    y = centerYpx.toDouble(),
-    ring = ring,
-    innerTen = isInnerTen,
-    distanceMm = distanceMm,
-    detectedRing = if (manual) null else ring,
-    detectedInnerTen = if (manual) null else isInnerTen,
-    detectedX = if (manual) null else centerXpx.toDouble(),
-    detectedY = if (manual) null else centerYpx.toDouble(),
-)
+/**
+ * Hole positions travel as raw source-image pixels; the server just stores them.
+ * A hole the user dragged carries [HitScore.original] — the detector's own
+ * position and score — so `detected*` stay what the model said while `x`/`y`/
+ * `ring` become what the user confirmed. A hand-placed hole has no `detected*`.
+ */
+fun HitScore.toHoleDto(): HoleDto {
+    val detected = if (manual) null else (original ?: this)
+    return HoleDto(
+        x = centerXpx.toDouble(),
+        y = centerYpx.toDouble(),
+        ring = ring,
+        innerTen = isInnerTen,
+        distanceMm = distanceMm,
+        detectedRing = detected?.ring,
+        detectedInnerTen = detected?.isInnerTen,
+        detectedX = detected?.centerXpx?.toDouble(),
+        detectedY = detected?.centerYpx?.toDouble(),
+    )
+}
 
 /** The user changed the score the detector reported for this hole. */
 fun HoleDto.isEdited(): Boolean =

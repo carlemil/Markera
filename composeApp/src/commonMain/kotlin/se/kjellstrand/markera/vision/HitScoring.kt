@@ -36,6 +36,12 @@ data class HitScore(
     val isInnerTen: Boolean,
     /** Placed by hand rather than by the detector — saved without a detected ring. */
     val manual: Boolean = false,
+    /**
+     * What the detector originally reported for this hole, kept when the user
+     * drags it somewhere else — that pair (detected vs. corrected) is the
+     * training signal. Null while the hole still sits where it was found.
+     */
+    val original: HitScore? = null,
 )
 
 /**
