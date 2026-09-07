@@ -377,7 +377,7 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
             scope.launch {
                 try {
                     // LocalContext inside MainActivity is the Activity, which is
-                    // what Credential Manager needs in the camera flavor.
+                    // what Credential Manager needs.
                     signInWithProvider(context, seriesServices.session)
                 } catch (t: Throwable) {
                     Toast.makeText(context, t.message ?: t.toString(), Toast.LENGTH_LONG).show()

@@ -225,8 +225,6 @@ fun MarkingWizardScreen(
                             uiState = markeraState,
                             showDebug = false,
                             onError = { markeraVm.setError(it.message) },
-                            autoDetectEnabled = step is LaneStep.Entering,
-                            onAutoDetect = startScan,
                             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                         )
                     }

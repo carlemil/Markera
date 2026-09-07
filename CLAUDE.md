@@ -8,18 +8,13 @@ goal and a history of detection approaches tried (and which are in use vs. aband
 
 ## Build & test commands
 
-Tasks are **product-flavored** (dimension `source`: `camera` and `mock`), so the
-generic `debug` task names are ambiguous — always name the flavor:
-
 ```sh
-./gradlew :composeApp:assembleCameraDebug      # real-camera app (needs a back camera)
-./gradlew :composeApp:assembleMockDebug        # emulator/dev: replays dataset images
-./gradlew :composeApp:installCameraDebug
-./gradlew :composeApp:installMockDebug
+./gradlew :composeApp:assembleDebug     # the app (needs a back camera)
+./gradlew :composeApp:installDebug
 
-./gradlew :composeApp:testCameraDebugUnitTest  # JVM unit tests (NOT testDebugUnitTest — ambiguous)
+./gradlew :composeApp:testDebugUnitTest # JVM unit tests
 # single test class:
-./gradlew :composeApp:testCameraDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
+./gradlew :composeApp:testDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```
 
 Instrumented (`androidTest`) tests don't accept `--tests`; select with the runner arg,
@@ -27,7 +22,7 @@ and pin to one device with `ANDROID_SERIAL` (the task runs on every connected de
 including emulators):
 
 ```sh
-ANDROID_SERIAL=<serial> ./gradlew :composeApp:connectedCameraDebugAndroidTest \
+ANDROID_SERIAL=<serial> ./gradlew :composeApp:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=se.kjellstrand.markera.BlackRing67Test
 ```
 
@@ -50,7 +45,7 @@ at `D:/ml/holes/dataset/images/train` (the default `mosaic.images`).
 
 Project skills exist for the routine workflows: `/deploy` (build + adb install/launch on
 the USB phone), `/eval` (detection-quality mosaic), `/release` (version bump + Play
-internal track; only the `camera` flavor is ever released).
+internal track).
 
 ### Model asset (required to build/run)
 
@@ -60,18 +55,10 @@ internal track; only the `camera` flavor is ever released).
 
 ## Architecture
 
-Single `:composeApp` KMP module — `commonMain` / `androidMain` / `iosMain`, plus
-flavor source sets `androidCamera` and `androidMock`. iOS `HoleDetector`/`DigitDetector`
-are stubs; Android is the working platform.
-
-### Frame source is chosen at build time by the flavor
-
-`FrameSource` (androidMain interface) is provided by a flavor-specific
-`rememberFrameSource()`: `androidCamera/CameraFrameSource` (live CameraX preview) vs
-`androidMock/MockFrameSource` (replays a random sample of dataset images bundled by the
-`prepareMockFrames` Gradle task; auto-detects each frame, so the mock flavor runs the
-full pipeline on an emulator with no camera). The mock app installs side by side via the
-`.mock` applicationId suffix.
+Single `:composeApp` KMP module — `commonMain` / `androidMain` / `iosMain`. iOS
+`HoleDetector`/`DigitDetector` are stubs; Android is the working platform. The frame
+fed into detection comes from `FrameSource` (androidMain) — `CameraFrameSource`, a live
+CameraX preview, via `rememberFrameSource()`.
 
 ### The scoring pipeline (the core, in `vision/`)
 
@@ -120,8 +107,8 @@ bracket-array form posts — `audit[shots][0]=X`), `ShotMapping` (picker 0..10 �
 ViewModel so polling/claims die with the screen). Android side: `AppNavHost` (sealed-class
 back stack, hoists the single `TargetScanController` + `FrameSource` above navigation),
 `DataStoreTokenStore`, and the competition screens. Real captured API fixtures live in
-`composeApp/src/androidUnitTest/resources/webshooter/`. The mock flavor runs the whole
-wizard on an emulator against the test server ("Testa mobilregistrering", competition 244).
+`composeApp/src/androidUnitTest/resources/webshooter/`. The test server's
+"Testa mobilregistrering" (competition 244) is the wizard's dev target.
 
 Gotcha: kotlinx-serialization omits fields equal to their defaults — the OAuth
 `LoginRequest` fields must stay non-defaulted or the grant envelope silently drops.
@@ -131,7 +118,7 @@ Gotcha: kotlinx-serialization omits fields equal to their defaults — the OAuth
 `server/` is a **standalone Gradle project** (not in the root build, so it can
 `docker build` without the Android SDK): Ktor + SQLite, exchanges a Google/Apple ID
 token (`POST /auth/google|apple`) for an opaque session token, `POST/GET /series`.
-`POST /auth/dev` exists only with `DEV_AUTH=true` (the mock flavor signs in with it).
+`POST /auth/dev` exists only with `DEV_AUTH=true`.
 It runs in Docker on the Mac mini (`ssh macmini`, Colima, `~/source/Markera/server`,
 bound to 127.0.0.1:**8090** — 8080 there belongs to another site — and published as `https://markera.duckdns.org` by the Mac's host Caddy). `PLAN.md` holds the design
 decisions and the still-open user actions (Google/Apple client ids).
@@ -148,9 +135,9 @@ saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then 
 goes up as a ≤1024 px JPEG (`POST /series/{id}/image`; a failed upload never fails the
 series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
 The history screen (`ui/history/`) lists series with thumbnails.
-The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is a
-flavor-specific `signInWithProvider` (camera: Credential Manager + `googleid`, needs
-`markera.google.client.id` in `local.properties`; mock: dev endpoint). Backend URL is
+The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
+`signInWithProvider` (Credential Manager + `googleid`, needs
+`markera.google.client.id` in `local.properties`). Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS has the same entry points
 in `iosMain/series/` but no host app yet.
 

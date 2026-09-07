@@ -1,6 +1,6 @@
 ---
 name: release
-description: Bump minor version and deploy Markera to the Google Play internal test track. Invoke as /release [liveVersion]. Specialized for this repo — :composeApp module, the camera flavor, Swedish release notes.
+description: Bump minor version and deploy Markera to the Google Play internal test track. Invoke as /release [liveVersion]. Specialized for this repo — :composeApp module, Swedish release notes.
 user_invocable: true
 ---
 
@@ -9,8 +9,7 @@ user_invocable: true
 Specialized for the **Markera** repo:
 - Module: **`:composeApp`** (build file `composeApp/build.gradle.kts`).
 - App is a **Compose Multiplatform** project; the Android main source set lives under `composeApp/src/androidMain/`.
-- Product flavors: **`camera`** (the real-camera shipping app — this is what we release) and **`mock`** (an emulator-only flavor that fakes the camera from bundled dataset images — **never released**).
-- `applicationId = "se.kjellstrand.markera"` (the `camera` flavor has no suffix; `mock` adds `.mock`).
+- `applicationId = "se.kjellstrand.markera"` (no product flavors — plain `debug`/`release` build types).
 - Version lives **inside `defaultConfig`** as `versionCode = <N>` and `versionName = "<X>.<Y>.<Z>"` — not as top-level `val`s.
 - Primary locale: **Swedish** (`sv-SE`). No prebuilt database.
 
@@ -152,7 +151,7 @@ Write Swedish release notes to:
 ```
 composeApp/src/androidMain/play/release-notes/sv-SE/default.txt
 ```
-Create parent directories if needed. (If Step 5's publish later reports it found no release notes, the Play plugin may resolve the main source set differently — fall back to `composeApp/src/main/play/release-notes/sv-SE/default.txt` or the flavor dir `composeApp/src/camera/play/release-notes/sv-SE/default.txt`.)
+Create parent directories if needed. (If Step 5's publish later reports it found no release notes, the Play plugin may resolve the main source set differently — fall back to `composeApp/src/main/play/release-notes/sv-SE/default.txt`.)
 
 Rules:
 - **Write in Swedish.**
@@ -167,16 +166,15 @@ Rules:
 
 ## Step 4 — Build the signed AAB
 
-Build the **camera** flavor (the shipping app — never `mock`):
 ```
-./gradlew :composeApp:bundleCameraRelease --no-daemon
+./gradlew :composeApp:bundleRelease --no-daemon
 ```
 
 Wait for it to complete. If it fails, show the error output and stop.
 
 The built AAB will be at:
 ```
-composeApp/build/outputs/bundle/cameraRelease/composeApp-camera-release.aab
+composeApp/build/outputs/bundle/release/composeApp-release.aab
 ```
 
 ---
@@ -184,7 +182,7 @@ composeApp/build/outputs/bundle/cameraRelease/composeApp-camera-release.aab
 ## Step 5 — Upload to Google Play internal test track
 
 ```
-./gradlew :composeApp:publishCameraReleaseBundle --no-daemon
+./gradlew :composeApp:publishReleaseBundle --no-daemon
 ```
 
 Wait for it to complete. If it fails, show the error output and stop.

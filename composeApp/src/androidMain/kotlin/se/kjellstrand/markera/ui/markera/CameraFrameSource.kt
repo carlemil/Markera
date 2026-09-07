@@ -8,14 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * [FrameSource] for the `camera` flavor: a live CameraX preview. The caller
- * owns the [PreviewView] so [capture] can pull an on-demand snapshot.
+ * [FrameSource] backed by a live CameraX preview. The caller owns the
+ * [PreviewView] so [capture] can pull an on-demand snapshot.
  */
 private class CameraFrameSource(private val previewView: PreviewView) : FrameSource {
     override val requiresCameraPermission = true
-
-    // On-demand only: detection runs when the user taps the FAB.
-    override val autoDetectKey: Int? = null
 
     @Composable
     override fun Preview(onError: (Throwable) -> Unit, modifier: Modifier) {

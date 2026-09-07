@@ -137,7 +137,6 @@ fun MarkeraScreen(
                         uiState = uiState,
                         showDebug = showDebug,
                         onError = { viewModel.setError(it.message) },
-                        onAutoDetect = onDetectClick,
                         editing = editing,
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
@@ -168,7 +167,6 @@ fun MarkeraScreen(
                             uiState = uiState,
                             showDebug = showDebug,
                             onError = { viewModel.setError(it.message) },
-                            onAutoDetect = onDetectClick,
                             editing = editing,
                             modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                         )

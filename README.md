@@ -157,21 +157,11 @@ The ONNX model `best.onnx` (~80 MB) is **not** committed to the repository. Drop
 it into `composeApp/src/androidMain/assets/best.onnx` before building. The model
 runs at a 1536×1536 input.
 
-The app has two product flavors (dimension `source`):
-
-- **`camera`** — the shipping app; live CameraX preview from the back camera.
-- **`mock`** — an emulator/dev flavor that fakes the camera by replaying a
-  random sample of dataset images bundled at build time (the `prepareMockFrames`
-  Gradle task). Detection runs automatically on each loaded image, and it
-  installs side by side via the `.mock` application-id suffix.
-
 ```sh
-./gradlew :composeApp:installCameraDebug   # real camera, on a device
-./gradlew :composeApp:installMockDebug     # emulator, no camera needed
+./gradlew :composeApp:installDebug
 ```
 
-Install on a device or emulator (API 24+); the `camera` flavor needs a back
-camera.
+Install on a device (API 24+); the app needs a back camera.
 
 ### Running tests
 

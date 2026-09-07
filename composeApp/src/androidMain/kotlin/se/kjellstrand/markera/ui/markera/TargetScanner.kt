@@ -336,8 +336,7 @@ class CameraPermissionState(
 fun rememberCameraPermission(frameSource: FrameSource): CameraPermissionState {
     val context = LocalContext.current
     val requiresPermission = frameSource.requiresCameraPermission
-    // `granted` doubles as the "ready to use" gate; flavors that need
-    // no camera (mock) report ready immediately.
+    // `granted` doubles as the "ready to use" gate.
     var granted by remember {
         mutableStateOf(
             !requiresPermission ||
@@ -371,9 +370,7 @@ private val GRAB_RADIUS = 24.dp
 
 /**
  * The scanning viewport: live preview (or frozen snapshot) + detection
- * overlays. In the mock flavor a fresh frame auto-triggers [onAutoDetect] —
- * gate it with [autoDetectEnabled] so wizard steps that are not capturing
- * (confirm/locked/summary) don't fire scans.
+ * overlays.
  *
  * With [editing] set, a frozen frame that has been scored also pinch-zooms and
  * takes hole edits (see [HoleEditing]); the live preview never does.
@@ -386,16 +383,8 @@ fun TargetScanner(
     showDebug: Boolean,
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
-    autoDetectEnabled: Boolean = true,
-    onAutoDetect: () -> Unit = {},
     editing: HoleEditing? = null,
 ) {
-    // Mock flavor: run detection automatically each time a fresh frame is
-    // loaded from disk (the key changes), so no tap is needed. The camera
-    // flavor reports a null key and stays manual.
-    LaunchedEffect(frameSource.autoDetectKey, autoDetectEnabled) {
-        if (autoDetectEnabled && frameSource.autoDetectKey != null) onAutoDetect()
-    }
     val frozen = snapshotVm.snapshot
     // Editing (and with it the zoom) only on a frozen frame that has been scored.
     val editable = editing != null && frozen != null &&

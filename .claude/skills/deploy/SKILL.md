@@ -1,15 +1,14 @@
 ---
 name: deploy
-description: Build the camera flavor and install + launch it on the USB-connected phone. Invoke as /deploy [mock]. Project-specific — :composeApp cameraDebug via adb; includes USB-mode and lockscreen troubleshooting.
+description: Build the app and install + launch it on the USB-connected phone. Invoke as /deploy. Project-specific — :composeApp debug APK via adb; includes USB-mode and lockscreen troubleshooting.
 user_invocable: true
 ---
 
 # Deploy: Build, Install and Launch on the Phone
 
 Builds the debug APK, installs it on the physically connected Android phone over
-adb, launches it, and verifies it reached the foreground. The default is the
-`camera` flavor (the real app, needs a back camera). Pass `mock` as the argument
-to deploy the emulator/dev flavor instead (applicationId suffix `.mock`).
+adb, launches it, and verifies it reached the foreground. The app needs a back
+camera.
 
 Perform these steps in order. The build (Step 1) and the device check (Step 2)
 are independent — run them in parallel; the build takes the longest.
@@ -21,11 +20,8 @@ are independent — run them in parallel; the build takes the longest.
 From the project root (background it; it takes ~30 s warm, a few minutes cold):
 
 ```
-.\gradlew.bat :composeApp:assembleCameraDebug
+.\gradlew.bat :composeApp:assembleDebug
 ```
-
-For the `mock` argument use `:composeApp:assembleMockDebug` instead, and
-substitute `mock` for `camera` in every path/id below.
 
 If the build fails with "model not found"-style asset errors, the ONNX model is
 missing at `composeApp/src/androidMain/assets/best.onnx` (~40 MB, not in git);
@@ -34,7 +30,7 @@ tell the user and stop.
 The APK lands at:
 
 ```
-composeApp\build\outputs\apk\camera\debug\composeApp-camera-debug.apk
+composeApp\build\outputs\apk\debug\composeApp-debug.apk
 ```
 
 ---
@@ -68,7 +64,7 @@ Use `adb -s <serial> ...` for every later command in case more devices appear.
 ## Step 3 — Install
 
 ```
-adb -s <serial> install -r "D:\source\Markera\composeApp\build\outputs\apk\camera\debug\composeApp-camera-debug.apk"
+adb -s <serial> install -r "D:\source\Markera\composeApp\build\outputs\apk\debug\composeApp-debug.apk"
 ```
 
 Expect `Success`. `INSTALL_FAILED_UPDATE_INCOMPATIBLE` means a Play-signed or
@@ -82,8 +78,6 @@ differently-signed build is on the phone — ask the user before uninstalling
 ```
 adb -s <serial> shell monkey -p se.kjellstrand.markera -c android.intent.category.LAUNCHER 1
 ```
-
-(For the mock flavor the package is `se.kjellstrand.markera.mock`.)
 
 Then verify it is actually running in the foreground:
 
@@ -104,7 +98,7 @@ unsecured phone; a PIN/fingerprint lock needs the user — ask them to unlock.
 
 ## Step 5 — Report
 
-State the variant deployed, the device serial, and the verification result
+State the device serial, and the verification result
 (pid + top activity). If the user's request implies exercising a change (not
 just deploying), the detect flow can be driven and observed with:
 

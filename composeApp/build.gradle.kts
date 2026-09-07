@@ -1,17 +1,4 @@
-import com.android.build.api.variant.ApplicationAndroidComponentsExtension
-import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.ListProperty
-import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.TaskAction
-import java.awt.RenderingHints
-import java.awt.image.BufferedImage
-import java.io.File
 import java.util.Properties
-import java.util.Random
-import javax.imageio.ImageIO
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -70,6 +57,9 @@ kotlin {
             implementation(libs.mlkit.text.recognition)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.datastore.preferences)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.googleid)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -83,7 +73,7 @@ val backendUrl = (project.findProperty("markera.backend.url") as String?)
 
 // Google OAuth *Web* client id, used as `serverClientId` for Credential Manager.
 // Not in version control: put `markera.google.client.id=...` in local.properties.
-// Empty means "not configured" — the camera flavor's sign-in then fails loudly.
+// Empty means "not configured" — sign-in then fails loudly.
 val googleClientId: String = rootProject.file("local.properties").takeIf { it.exists() }
     ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
     ?.getProperty("markera.google.client.id")
@@ -139,23 +129,6 @@ android {
         }
     }
 
-    // The frame source is swapped at build time per flavor:
-    //   camera → live CameraX preview (real device)
-    //   mock   → random images bundled from the hole dataset (emulator)
-    // Build/install the emulator variant with e.g. :composeApp:installMockDebug.
-    flavorDimensions += "source"
-    productFlavors {
-        create("camera") {
-            dimension = "source"
-            isDefault = true
-        }
-        create("mock") {
-            dimension = "source"
-            applicationIdSuffix = ".mock"
-            versionNameSuffix = "-mock"
-        }
-    }
-
     // Must match the Kotlin/Android jvmTarget (21, from the toolchain): with
     // buildConfig = true there is now a Java source (BuildConfig.java), and AGP
     // rejects a Java/Kotlin target mismatch.
@@ -171,108 +144,7 @@ play {
     defaultToAppBundles.set(true)
 }
 
-// ---- Mock camera frames ----------------------------------------------------
-// Copies a random sample of dataset images into the `mock` flavor's generated
-// assets (under fake_frames/) plus an index.txt the app reads at runtime.
-// Override defaults with -Pmock.frames.count, -Pmock.frames.seed, and
-// -Pmock.frames.dirs (";"-separated absolute dirs). Bump the seed to refresh
-// the bundled pool.
-abstract class PrepareMockFramesTask : DefaultTask() {
-    @get:Input abstract val count: Property<Int>
-    @get:Input abstract val seed: Property<Long>
-    @get:Input abstract val maxDim: Property<Int>
-    @get:Input abstract val sourceDirs: ListProperty<String>
-
-    // Wired to the mock variant's generated assets dir by the Variant API.
-    @get:OutputDirectory abstract val outputDir: DirectoryProperty
-
-    @TaskAction
-    fun prepare() {
-        val framesDir = File(outputDir.get().asFile, "fake_frames")
-        framesDir.deleteRecursively()
-        framesDir.mkdirs()
-        val exts = setOf("jpg", "jpeg", "png", "webp", "bmp")
-        val all = sourceDirs.get().flatMap { d ->
-            val f = File(d)
-            if (f.isDirectory) f.listFiles()?.toList().orEmpty() else emptyList()
-        }.filter { it.isFile && it.extension.lowercase() in exts }
-        if (all.isEmpty()) {
-            logger.warn(
-                "prepareMockFrames: no images found in ${sourceDirs.get()} — " +
-                    "the mock flavor will show a blank preview."
-            )
-        }
-        val picked = all.shuffled(Random(seed.get())).take(count.get())
-        val limit = maxDim.get()
-        val index = StringBuilder()
-        picked.forEachIndexed { i, src ->
-            // The model only ever sees 1280 px, so downscale large dataset
-            // photos to keep the mock APK small. Re-encode to JPEG, or fall
-            // back to copying the original if it can't be decoded.
-            val name = if (downscaleToJpeg(src, File(framesDir, "frame_%03d.jpg".format(i)), limit)) {
-                "frame_%03d.jpg".format(i)
-            } else {
-                "frame_%03d.%s".format(i, src.extension.lowercase())
-                    .also { src.copyTo(File(framesDir, it), overwrite = true) }
-            }
-            index.appendLine(name)
-        }
-        File(framesDir, "index.txt").writeText(index.toString())
-        logger.lifecycle("prepareMockFrames: bundled ${picked.size} of ${all.size} dataset images (≤${limit}px)")
-    }
-
-    private fun downscaleToJpeg(src: File, dst: File, maxDim: Int): Boolean = try {
-        val img = ImageIO.read(src)
-        if (img == null) {
-            false
-        } else {
-            val scale = minOf(1.0, maxDim.toDouble() / maxOf(img.width, img.height))
-            val w = maxOf(1, (img.width * scale).toInt())
-            val h = maxOf(1, (img.height * scale).toInt())
-            val out = BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
-            val g = out.createGraphics()
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-            g.drawImage(img, 0, 0, w, h, null)
-            g.dispose()
-            ImageIO.write(out, "jpg", dst)
-            true
-        }
-    } catch (t: Throwable) {
-        logger.warn("prepareMockFrames: could not transcode ${src.name}, copying as-is", t)
-        false
-    }
-}
-
-val mockFramesCount = (project.findProperty("mock.frames.count") as String?)?.toIntOrNull() ?: 25
-val mockFramesSeed = (project.findProperty("mock.frames.seed") as String?)?.toLongOrNull() ?: 1234L
-val mockFramesMaxDim = (project.findProperty("mock.frames.maxdim") as String?)?.toIntOrNull() ?: 1600
-val mockFramesDirsProp = (project.findProperty("mock.frames.dirs") as String?)
-    ?: "D:/ml/holes/dataset/images/val;D:/ml/holes/dataset/images/train"
-
-val prepareMockFrames = tasks.register<PrepareMockFramesTask>("prepareMockFrames") {
-    count.set(mockFramesCount)
-    seed.set(mockFramesSeed)
-    maxDim.set(mockFramesMaxDim)
-    sourceDirs.set(mockFramesDirsProp.split(";", ",").map { it.trim() }.filter { it.isNotEmpty() })
-}
-
-// Feed the generated frames into the mock flavor's assets via the Variant API,
-// which also carries the task dependency automatically.
-extensions.configure<ApplicationAndroidComponentsExtension> {
-    onVariants(selector().withFlavor("source" to "mock")) { variant ->
-        variant.sources.assets?.addGeneratedSourceDirectory(
-            prepareMockFrames,
-            PrepareMockFramesTask::outputDir,
-        )
-    }
-}
-
 dependencies {
-    // Google sign-in only exists in the camera flavor; mock uses the dev endpoint.
-    "cameraImplementation"(libs.androidx.credentials)
-    "cameraImplementation"(libs.androidx.credentials.play.services.auth)
-    "cameraImplementation"(libs.googleid)
-
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
