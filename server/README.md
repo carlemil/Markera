@@ -38,5 +38,7 @@ confirmed pair differs from the detected one, **moved** when `x`/`y` differ from
 any user's series). The admin series page is the editor for it: pick a score per hole, delete holes, drag
 the markers on the photo (which clears that hole's `distanceMm`), click the photo to add one, then Save.
 Adding by clicking needs a photo with a stored frame size; otherwise "Add hole" adds a position-less one.
+The score is split in two columns: a read-only `detected` one (struck through once overridden) and an
+editable `manual` one, whose empty option reverts the hole to the detected score.
 Every other `/admin` page is read-only, and all of them round millimetres and pixel positions to whole
 numbers.

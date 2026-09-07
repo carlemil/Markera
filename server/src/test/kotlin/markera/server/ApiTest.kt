@@ -460,7 +460,7 @@ class ApiTest {
         assertTrue("""<a href="/admin/series/$mySeries">""" in userPage, userPage)
 
         val seriesPage = client.admin("/admin/series/$mySeries").bodyAsText()
-        // Whole millimetres, and the X hole's select shows X.
+        // Whole millimetres, and the X hole (manual, so no empty option) has X selected.
         assertTrue("<td>31</td>" in seriesPage, seriesPage)
         assertTrue("""<option value="X" selected>X</option>""" in seriesPage, seriesPage)
         assertTrue("""<img src="/admin/series/$mySeries/image">""" in seriesPage, seriesPage)
@@ -505,7 +505,13 @@ class ApiTest {
         val me = client.devAuth("me")
         val id = client.createSeries(
             me.token,
-            series().copy(holes = listOf(Hole(25.0, 50.0, 9, false, 31.2, 9, false, 25.0, 50.0))),
+            series().copy(
+                holes = listOf(
+                    Hole(25.0, 50.0, 9, false, 31.2, 9, false, 25.0, 50.0),    // detected, unedited
+                    Hole(30.0, 60.0, 10, true, 8.0, 8, false, 30.0, 60.0),     // detected 8, confirmed X
+                    Hole(75.0, 50.0, 7, false, 60.0),                          // manual: no detection
+                ),
+            ),
         )
         client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200")
 
@@ -513,9 +519,29 @@ class ApiTest {
         // The starting state the script edits, holes and frame size included.
         assertTrue("""<script type="application/json" id="series">""" in page, page)
         assertTrue(""""detectedX":25.0""" in page && """"imageWidth":100""" in page, page)
-        // One score select per hole (plus the blank one in the row template), with 9 selected.
-        assertTrue("""<option value="9" selected>9</option>""" in page, page)
-        assertEquals(2, Regex("""<select class="score">""").findAll(page).count(), page)
+        assertTrue("<th>detected</th><th>manual</th>" in page, page)
+        // Unedited detection: plain detected cell, and the manual select sits on its empty option.
+        assertTrue(
+            """<tr data-i="0"><td>25</td><td>50</td><td>9</td>""" +
+                """<td><select class="manual"><option value="" selected></option>""" in page,
+            page,
+        )
+        // Overridden: the detected cell is struck through and the confirmed X is selected.
+        assertTrue(
+            """<tr data-i="1"><td>30</td><td>60</td><td class="dim">8</td>""" +
+                """<td><select class="manual"><option value=""></option>""" in page,
+            page,
+        )
+        assertTrue("""<option value="X" selected>X</option>""" in page, page)
+        // Manual hole: nothing detected, and no empty option to fall back to.
+        assertTrue(
+            """<tr data-i="2"><td>75</td><td>50</td><td></td>""" +
+                """<td><select class="manual"><option value="0">0</option>""" in page,
+            page,
+        )
+        assertTrue("""<option value="7" selected>7</option>""" in page, page)
+        // One manual select per hole, plus the blank one in the row template.
+        assertEquals(4, Regex("""<select class="manual">""").findAll(page).count(), page)
         assertTrue("""<button id="save">Save</button>""" in page, page)
         assertTrue("""<button class="del">Delete</button>""" in page, page)
         assertTrue("""<div class="hit" data-i="0"""" in page, page)

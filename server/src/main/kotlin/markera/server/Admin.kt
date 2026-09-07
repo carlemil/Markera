@@ -90,10 +90,12 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
                     "<p>${time(series.timestamp)} &middot; ${caliberSelect(series.caliber)} &middot; " +
                     """total <span id="total">${series.holes.sumOf { it.ring }}</span></p>""" +
-                    table(listOf("x", "y", "score", "distanceMm", "kind", ""), holes) +
+                    // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
+                    """<div class="cols"><div>""" +
+                    table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p><button id="add">Add hole</button> <button id="save">Save</button>""" +
-                    """<span id="msg"></span></p>""" +
-                    photo + note +
+                    """<span id="msg"></span></p></div><div>""" +
+                    photo + note + "</div></div>" +
                     """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
                     """<script type="application/json" id="series">${blob(series.copy(hasImage = hasImage))}""" +
                     "</script>" +
@@ -152,17 +154,34 @@ private fun markers(series: Series): String {
     }.joinToString("")
 }
 
-/** One editable hole row. Cell order is fixed — the script addresses x/y/mm/kind by index. */
+/** One editable hole row. Cell order is fixed — the script addresses x/y/detected/mm/kind by index. */
 private fun holeRow(i: Int, h: Hole) =
-    """<tr data-i="$i"><td>${num(h.x)}</td><td>${num(h.y)}</td><td>${scoreSelect(h)}</td>""" +
+    """<tr data-i="$i"><td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
+        """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td><td>${manualSelect(h)}</td>""" +
         """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td><td><button class="del">Delete</button></td></tr>"""
 
-/** 0..10 plus X; X is ring 10 with innerTen, which is why the two columns collapsed into one. */
-private fun scoreSelect(h: Hole) = (0..10).joinToString(
-    separator = "",
-    prefix = """<select class="score">""",
-    postfix = """<option value="X"${if (h.innerTen) " selected" else ""}>X</option></select>""",
-) { ring -> """<option value="$ring"${if (!h.innerTen && h.ring == ring) " selected" else ""}>$ring</option>""" }
+/** The confirmed score differs from the detected one, i.e. the manual column overrides the detected cell. */
+private fun overridden(h: Hole) =
+    h.detectedRing != null && (h.ring != h.detectedRing || h.innerTen != (h.detectedInnerTen == true))
+
+private fun detectedScore(h: Hole) = h.detectedRing?.let { score(it, h.detectedInnerTen == true) }.orEmpty()
+
+/**
+ * The override: 0..10 plus X (X is ring 10 with innerTen, which is why the two collapsed into one column).
+ * A detected hole also gets an empty option — picking it falls back to the detected score. A hole without a
+ * detection has nothing to fall back to, so it keeps its score selected and is offered no empty option.
+ */
+private fun manualSelect(h: Hole): String {
+    val chosen = if (h.detectedRing != null && !overridden(h)) null else score(h.ring, h.innerTen)
+    val empty = if (h.detectedRing == null) "" else """<option value=""${sel(chosen == null)}></option>"""
+    return (0..10).joinToString(
+        separator = "",
+        prefix = """<select class="manual">$empty""",
+        postfix = """<option value="X"${sel(chosen == "X")}>X</option></select>""",
+    ) { ring -> """<option value="$ring"${sel(chosen == ring.toString())}>$ring</option>""" }
+}
+
+private fun sel(selected: Boolean) = if (selected) " selected" else ""
 
 private fun caliberSelect(current: String) = CALIBERS.joinToString("", """<select id="caliber">""", "</select>") {
     """<option${if (it == current) " selected" else ""}>${esc(it)}</option>"""
@@ -238,10 +257,12 @@ th,td{border:1px solid #35402c;padding:4px 10px;text-align:left}
 th{background:#1c2416}
 tr[onclick]{cursor:pointer}
 tr[onclick]:hover td{background:#1c2416}
-img{display:block;max-width:480px;margin-top:12px;border:1px solid #35402c}
+img{display:block;max-width:960px;margin-top:12px;border:1px solid #35402c}
+.cols{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
 .shot{position:relative;display:inline-block}
 .hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
-font-size:10px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
+font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
+.dim{color:#6f7a63;text-decoration:line-through}
 select,button{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
 .note{color:#a8b39a}
@@ -276,8 +297,9 @@ function refresh(i) {
   const h = S.holes[i], r = tb.querySelector('tr[data-i="' + i + '"]'), m = mark(i);
   r.cells[0].textContent = num(h.x);
   r.cells[1].textContent = num(h.y);
-  r.cells[3].textContent = num(h.distanceMm);
-  r.cells[4].textContent = kind(h);
+  r.cells[2].classList.toggle('dim', r.querySelector('select.manual').value !== '');
+  r.cells[4].textContent = num(h.distanceMm);
+  r.cells[5].textContent = kind(h);
   if (m) {
     m.style.left = (h.x / S.imageWidth * 100) + '%';
     m.style.top = (h.y / S.imageHeight * 100) + '%';
@@ -303,11 +325,13 @@ function addHole(x, y) {
 }
 
 tbl.addEventListener('change', e => {
-  const s = e.target.closest('select.score');
+  const s = e.target.closest('select.manual');
   if (!s) return;
   const i = s.closest('tr').dataset.i, h = S.holes[i];
-  h.innerTen = s.value === 'X';
-  h.ring = h.innerTen ? 10 : Number(s.value);
+  // Empty means "no override": fall back to the detected score, which is the only way the option exists.
+  const v = s.value === '' ? sc(h.detectedRing, h.detectedInnerTen === true) : s.value;
+  h.innerTen = v === 'X';
+  h.ring = h.innerTen ? 10 : Number(v);
   refresh(i);
 });
 
