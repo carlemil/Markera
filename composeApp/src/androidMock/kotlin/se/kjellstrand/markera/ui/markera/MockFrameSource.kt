@@ -26,8 +26,9 @@ private const val INDEX = "$FRAMES_DIR/index.txt"
 /**
  * [FrameSource] for the `mock` flavor: instead of a camera it shows a random
  * image bundled from the hole dataset (see the `prepareMockFrames` Gradle
- * task). Tapping the preview — or resuming live after a detection — picks a
- * new random image, so you can exercise many frames without restarting.
+ * task). Tapping the preview picks a new random image and scans it; resuming
+ * live after a save also picks a new image but waits for "Detektera", so the
+ * flow after Spara mirrors the camera flavor.
  */
 private class MockFrameSource(
     private val appContext: Context,
@@ -76,7 +77,9 @@ private class MockFrameSource(
         return src.copy(src.config ?: Bitmap.Config.ARGB_8888, false)
     }
 
-    override fun onResumeLive() = shuffle()
+    override fun onResumeLive() {
+        current = pickRandom() // no key bump: the user taps Detektera, as with the camera
+    }
 }
 
 private fun loadFrameNames(context: Context): List<String> = try {
