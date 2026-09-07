@@ -1,0 +1,16 @@
+Markera räknar poängen på en precisionstavla från ett foto. Rikta kameran mot tavlan, tryck på Markera, och appen hittar hålen, ringarna och centrum och sätter poäng på varje träff. Rätta ett värde med ett tryck om detektionen missar, lägg till en missad träff direkt på bilden, eller flytta och ta bort träffar med fingret.
+
+Logga in med Google så sparas varje serie med tid, kaliber och bild. Bläddra i historiken, öppna en serie för att justera träffarna i efterhand, och följ hur träffbilden utvecklas i statistiken.
+
+Statistik
+Välj kaliber, period och antal skott per serie, och se alla träffar från de valda serierna på en ritad tavla. Äldre och nyare serier får olika färg, och under tavlan visas medelavstånd till centrum, avstånd mellan träffar, gruppstorlek, medel- och medianträffläge, medelpoäng, andel tior samt bästa och sämsta serie.
+
+Funktioner
+• Automatisk poängräkning från kamerabilden
+• Manuell rättning: ändra poäng, lägg till, flytta och ta bort träffar
+• Kaliber per serie (22lr, 32, 38, 357, 45, 44, 9mm, 10mm)
+• Historik med bilder och redigering i efterhand
+• Statistik över träffbild och mått över tid
+• Radera enskilda serier eller hela kontot när du vill
+
+Skanning fungerar utan inloggning. Inloggning behövs bara för att spara serier och se historik och statistik.
