@@ -65,6 +65,7 @@ import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
+import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.photoGestures
 import se.kjellstrand.markera.ui.markera.rememberZoomPan
 import se.kjellstrand.markera.ui.markera.zoomPan
@@ -185,9 +186,12 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                                 }
                             },
                             onAdd = { x, y, _ ->
-                                geometry?.let {
-                                    holes.value =
-                                        holes.value.withNewHole(x.toDouble(), y.toDouble(), it)
+                                // A series is five shots: past that a tap adds nothing.
+                                if (holes.value.size < SCORE_PICKER_COUNT) {
+                                    geometry?.let {
+                                        holes.value =
+                                            holes.value.withNewHole(x.toDouble(), y.toDouble(), it)
+                                    }
                                 }
                             },
                         ),
