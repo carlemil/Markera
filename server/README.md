@@ -35,4 +35,8 @@ confirmed pair differs from the detected one, **moved** when `x`/`y` differ from
 **manual** = `x != null` without a detection, **typed** = `x == null`.
 
 `ADMIN_PASSWORD` also unlocks `PUT /admin/series/{id}` (same body and replace as `PUT /series/{id}`, for
-any user's series); everything else under `/admin` is read-only.
+any user's series). The admin series page is the editor for it: pick a score per hole, delete holes, drag
+the markers on the photo (which clears that hole's `distanceMm`), click the photo to add one, then Save.
+Adding by clicking needs a photo with a stored frame size; otherwise "Add hole" adds a position-less one.
+Every other `/admin` page is read-only, and all of them round millimetres and pixel positions to whole
+numbers.

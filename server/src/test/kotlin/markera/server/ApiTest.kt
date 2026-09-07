@@ -460,7 +460,9 @@ class ApiTest {
         assertTrue("""<a href="/admin/series/$mySeries">""" in userPage, userPage)
 
         val seriesPage = client.admin("/admin/series/$mySeries").bodyAsText()
-        assertTrue("<td>31.2</td>" in seriesPage && "<td>true</td>" in seriesPage, seriesPage)
+        // Whole millimetres, and the X hole's select shows X.
+        assertTrue("<td>31</td>" in seriesPage, seriesPage)
+        assertTrue("""<option value="X" selected>X</option>""" in seriesPage, seriesPage)
         assertTrue("""<img src="/admin/series/$mySeries/image">""" in seriesPage, seriesPage)
         // Uploaded without the frame size, so the photo shows but carries no markers.
         assertTrue("""class="hit"""" !in seriesPage, seriesPage)
@@ -487,13 +489,53 @@ class ApiTest {
         assertTrue("""<td><a href="/admin/users/${me.userId}">alice</a></td><td>alice</td>""" in users, users)
 
         val seriesPage = client.admin("/admin/series/$id").bodyAsText()
-        assertTrue("<td>1.23</td>" in seriesPage, seriesPage)
-        assertTrue("<td>4.25</td>" in seriesPage && "<td>31.2</td>" in seriesPage, seriesPage)
+        // x, y and distanceMm are rounded to whole numbers: 1.23456 -> 1, 4.25 -> 4, 31.2 -> 31.
+        assertTrue("<td>1</td><td>4</td>" in seriesPage, seriesPage)
+        assertTrue("<td>31</td>" in seriesPage, seriesPage)
 
         val local = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
             .format(Instant.parse("2026-09-06T12:34:56Z"))
         assertTrue(local in seriesPage, "expected '$local' in $seriesPage")
-        assertTrue("2026-09-06T12:34:56Z" !in seriesPage, seriesPage)
+        // The raw instant survives only in the state blob the editor PUTs back, never as visible text.
+        assertEquals(1, Regex("2026-09-06T12:34:56Z").findAll(seriesPage).count(), seriesPage)
+    }
+
+    @Test
+    fun adminSeriesPageIsAnEditor() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(
+            me.token,
+            series().copy(holes = listOf(Hole(25.0, 50.0, 9, false, 31.2, 9, false, 25.0, 50.0))),
+        )
+        client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200")
+
+        val page = client.admin("/admin/series/$id").bodyAsText()
+        // The starting state the script edits, holes and frame size included.
+        assertTrue("""<script type="application/json" id="series">""" in page, page)
+        assertTrue(""""detectedX":25.0""" in page && """"imageWidth":100""" in page, page)
+        // One score select per hole (plus the blank one in the row template), with 9 selected.
+        assertTrue("""<option value="9" selected>9</option>""" in page, page)
+        assertEquals(2, Regex("""<select class="score">""").findAll(page).count(), page)
+        assertTrue("""<button id="save">Save</button>""" in page, page)
+        assertTrue("""<button class="del">Delete</button>""" in page, page)
+        assertTrue("""<div class="hit" data-i="0"""" in page, page)
+        // The photo has a frame size, so nothing warns about placing markers.
+        assertTrue("class=\"note\"" !in page, page)
+    }
+
+    @Test
+    fun adminSeriesPageSaysWhenMarkersCannotBePlaced() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        // No image at all, and then an image uploaded without the frame size: neither can place a marker.
+        val noImage = client.admin("/admin/series/$id").bodyAsText()
+        assertTrue("""<p class="note">""" in noImage && """class="hit"""" !in noImage, noImage)
+
+        client.putImage(me.token, id, ByteArray(64))
+        val noSize = client.admin("/admin/series/$id").bodyAsText()
+        assertTrue("""<p class="note">""" in noSize && """class="hit"""" !in noSize, noSize)
+        // The "Add hole" button is the way in when there is nowhere to click.
+        assertTrue("""<button id="add">Add hole</button>""" in noSize, noSize)
     }
 
     @Test

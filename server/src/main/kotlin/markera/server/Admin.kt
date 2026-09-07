@@ -12,6 +12,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
 import io.ktor.server.routing.put
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
@@ -67,23 +68,36 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         )
     }
 
+    // The editor: server-rendered rows and markers, then one inline script mutates them and PUTs the lot back.
     get("/admin/series/{id}") {
         if (unauthorized(password)) return@get
         val seriesId = pathId()
         val series = db.getSeries(seriesId) ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId)
-        val holes = series.holes.joinToString("") { row(it.x, it.y, it.ring, it.innerTen, it.distanceMm, kind(it)) }
-        val image = if (!imageFile(images, seriesId).isFile) "" else {
+        val holes = series.holes.mapIndexed(::holeRow).joinToString("")
+        val hasImage = imageFile(images, seriesId).isFile
+        val photo = if (!hasImage) "" else {
             """<div class="shot"><img src="/admin/series/$seriesId/image">${markers(series)}</div>"""
+        }
+        // Without the frame size there is nowhere to put a marker, so holes can only be added position-less.
+        val note = if (hasImage && series.imageWidth != null && series.imageHeight != null) "" else {
+            """<p class="note">No photo with a stored frame size, so markers cannot be placed &mdash; """ +
+                """"Add hole" adds one without a position.</p>"""
         }
         respondHtml(
             page(
                 "Series ${series.id}",
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
-                    "<p>${time(series.timestamp)} &middot; ${esc(series.caliber)} &middot; " +
-                    "total ${series.holes.sumOf { it.ring }}</p>" +
-                    table(listOf("x", "y", "ring", "innerTen", "distanceMm", "kind"), holes) +
-                    image,
+                    "<p>${time(series.timestamp)} &middot; ${caliberSelect(series.caliber)} &middot; " +
+                    """total <span id="total">${series.holes.sumOf { it.ring }}</span></p>""" +
+                    table(listOf("x", "y", "score", "distanceMm", "kind", ""), holes) +
+                    """<p><button id="add">Add hole</button> <button id="save">Save</button>""" +
+                    """<span id="msg"></span></p>""" +
+                    photo + note +
+                    """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
+                    """<script type="application/json" id="series">${blob(series.copy(hasImage = hasImage))}""" +
+                    "</script>" +
+                    "<script>$EDITOR_JS</script>",
             )
         )
     }
@@ -124,18 +138,41 @@ private suspend fun RoutingContext.unauthorized(password: String): Boolean {
  * The holes as absolutely positioned markers over the JPEG. `x`/`y` are pixels of the frame the app scored,
  * and the upload keeps that frame's aspect, so the image fraction places them at any rendered size. Nothing
  * is drawn for series stored before the upload carried the frame size, or for typed holes (no position).
+ * `data-i` is the hole's index, which is how the editor script pairs a marker with its table row.
  */
 private fun markers(series: Series): String {
     val width = series.imageWidth ?: return ""
     val height = series.imageHeight ?: return ""
-    return series.holes.joinToString("") { h ->
-        val x = h.x ?: return@joinToString ""
-        val y = h.y ?: return@joinToString ""
+    return series.holes.mapIndexed { i, h ->
+        val x = h.x ?: return@mapIndexed ""
+        val y = h.y ?: return@mapIndexed ""
         val color = if (h.detectedRing == null) "#ffb74d" else "#9ccc65"
-        """<div class="hit" style="left:${round2(x / width * 100)}%;top:${round2(y / height * 100)}%;""" +
-            """border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
-    }
+        """<div class="hit" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
+            """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
+    }.joinToString("")
 }
+
+/** One editable hole row. Cell order is fixed — the script addresses x/y/mm/kind by index. */
+private fun holeRow(i: Int, h: Hole) =
+    """<tr data-i="$i"><td>${num(h.x)}</td><td>${num(h.y)}</td><td>${scoreSelect(h)}</td>""" +
+        """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td><td><button class="del">Delete</button></td></tr>"""
+
+/** 0..10 plus X; X is ring 10 with innerTen, which is why the two columns collapsed into one. */
+private fun scoreSelect(h: Hole) = (0..10).joinToString(
+    separator = "",
+    prefix = """<select class="score">""",
+    postfix = """<option value="X"${if (h.innerTen) " selected" else ""}>X</option></select>""",
+) { ring -> """<option value="$ring"${if (!h.innerTen && h.ring == ring) " selected" else ""}>$ring</option>""" }
+
+private fun caliberSelect(current: String) = CALIBERS.joinToString("", """<select id="caliber">""", "</select>") {
+    """<option${if (it == current) " selected" else ""}>${esc(it)}</option>"""
+}
+
+/** Defaults included, so the script sees every field (a missing `innerTen` would read as undefined). */
+private val stateJson = Json { encodeDefaults = true }
+
+/** The page's starting state for the script. `</` is escaped so nothing in it can close the script tag. */
+private fun blob(series: Series) = stateJson.encodeToString(series).replace("</", "<\\/")
 
 /** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
 private fun kind(h: Hole): String {
@@ -168,10 +205,13 @@ private fun esc(value: String) = value
  */
 private fun row(vararg cells: Any?, href: String? = null) =
     cells.joinToString("", "<tr${href?.let { """ onclick="location.href='$it'"""" }.orEmpty()}>", "</tr>") {
-        "<td>${if (it is Double) round2(it) else it ?: ""}</td>"
+        "<td>${if (it is Double) num(it) else it ?: ""}</td>"
     }
 
-/** At most two decimals, no trailing zeros: 1.23456 -> 1.23, 4.25 -> 4.25, 8.0 -> 8. */
+/** Millimetres and pixel positions are shown as whole numbers; the extra digits are noise here. */
+private fun num(value: Double?) = value?.let { "%.0f".format(Locale.ROOT, it) } ?: ""
+
+/** Marker percentages, where whole numbers would visibly snap the markers to a coarse grid. */
 private fun round2(value: Double) = "%.2f".format(Locale.ROOT, value).trimEnd('0').trimEnd('.')
 
 private val localMinutes = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
@@ -201,5 +241,129 @@ tr[onclick]:hover td{background:#1c2416}
 img{display:block;max-width:480px;margin-top:12px;border:1px solid #35402c}
 .shot{position:relative;display:inline-block}
 .hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
-font-size:10px;line-height:20px;text-align:center;text-shadow:0 0 3px #000}
+font-size:10px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:grab;touch-action:none}
+select,button{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
+button{cursor:pointer}
+.note{color:#a8b39a}
+#msg{margin-left:8px}
 </style></head><body><h1>${esc(title)}</h1>$body</body></html>"""
+
+/**
+ * The editor. Server-rendered rows and markers stay put; this only mutates the ones that change, keeping
+ * the truth in [S] (the embedded JSON) and PUTting it back. No template literals — Kotlin would eat the `$`.
+ */
+private const val EDITOR_JS = """
+const S = JSON.parse(document.getElementById('series').textContent);
+const tbl = document.querySelector('table'), tb = tbl.tBodies[0];
+const shot = document.querySelector('.shot'), img = shot ? shot.querySelector('img') : null;
+const placeable = !!(shot && S.imageWidth && S.imageHeight);
+const sc = (ring, x) => x ? 'X' : String(ring);
+const num = v => v == null ? '' : String(Math.round(v));
+const total = () => document.getElementById('total').textContent =
+    S.holes.reduce((t, h) => t + (h ? h.ring : 0), 0);
+const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
+
+function kind(h) {
+  let k = '';
+  if (h.detectedRing == null) k = h.x == null ? 'typed' : 'manual';
+  else if (h.ring !== h.detectedRing || h.innerTen !== (h.detectedInnerTen === true))
+    k = sc(h.detectedRing, h.detectedInnerTen === true) + ' → ' + sc(h.ring, h.innerTen);
+  if (h.detectedX == null || (h.x === h.detectedX && h.y === h.detectedY)) return k;
+  return k ? k + ', moved' : 'moved';
+}
+
+function refresh(i) {
+  const h = S.holes[i], r = tb.querySelector('tr[data-i="' + i + '"]'), m = mark(i);
+  r.cells[0].textContent = num(h.x);
+  r.cells[1].textContent = num(h.y);
+  r.cells[3].textContent = num(h.distanceMm);
+  r.cells[4].textContent = kind(h);
+  if (m) {
+    m.style.left = (h.x / S.imageWidth * 100) + '%';
+    m.style.top = (h.y / S.imageHeight * 100) + '%';
+    m.textContent = sc(h.ring, h.innerTen);
+  }
+  total();
+}
+
+function addHole(x, y) {
+  const i = S.holes.push({x: x, y: y, ring: 0, innerTen: false, distanceMm: null,
+      detectedRing: null, detectedInnerTen: null, detectedX: null, detectedY: null}) - 1;
+  const tr = document.getElementById('row').content.firstElementChild.cloneNode(true);
+  tr.dataset.i = i;
+  tb.appendChild(tr);
+  if (placeable && x != null) {
+    const m = document.createElement('div');
+    m.className = 'hit';
+    m.dataset.i = i;
+    m.style.borderColor = m.style.color = '#ffb74d';
+    shot.appendChild(m);
+  }
+  refresh(i);
+}
+
+tbl.addEventListener('change', e => {
+  const s = e.target.closest('select.score');
+  if (!s) return;
+  const i = s.closest('tr').dataset.i, h = S.holes[i];
+  h.innerTen = s.value === 'X';
+  h.ring = h.innerTen ? 10 : Number(s.value);
+  refresh(i);
+});
+
+tbl.addEventListener('click', e => {
+  if (!e.target.classList.contains('del')) return;
+  const tr = e.target.closest('tr'), m = mark(tr.dataset.i);
+  S.holes[tr.dataset.i] = null;
+  tr.remove();
+  if (m) m.remove();
+  total();
+});
+
+if (placeable) {
+  let drag = null;
+  const at = e => {
+    const r = img.getBoundingClientRect();
+    return [Math.round((e.clientX - r.left) / r.width * S.imageWidth),
+            Math.round((e.clientY - r.top) / r.height * S.imageHeight)];
+  };
+  shot.addEventListener('pointerdown', e => {
+    const m = e.target.closest('.hit');
+    if (!m) return;
+    e.preventDefault();
+    m.setPointerCapture(e.pointerId);
+    drag = m;
+  });
+  shot.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const i = drag.dataset.i, h = S.holes[i], p = at(e);
+    h.x = p[0];
+    h.y = p[1];
+    h.distanceMm = null;   // the geometry that produced it is gone
+    refresh(i);
+  });
+  shot.addEventListener('pointerup', () => drag = null);
+  // A click that is not on a marker drops a new hole there; a drag ends on its own marker, so it is skipped.
+  shot.addEventListener('click', e => {
+    if (e.target.closest('.hit')) return;
+    const p = at(e);
+    addHole(p[0], p[1]);
+  });
+}
+
+document.getElementById('add').onclick = () => addHole(null, null);
+
+document.getElementById('save').onclick = () => {
+  const msg = document.getElementById('msg');
+  msg.textContent = 'saving...';
+  fetch(location.pathname, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
+                          holes: S.holes.filter(h => h)})
+  }).then(r => r.status === 204 ? location.reload()
+                                : r.text().then(t => msg.textContent = r.status + ' ' + t),
+          e => msg.textContent = e);
+};
+"""
