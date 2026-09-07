@@ -86,6 +86,22 @@ data class Hole(
     val detectedY: Double? = null,
 )
 
+/**
+ * The target geometry the scan was scored against, in the same pixel frame as the hole positions.
+ * `centre` is the digit-row intersection (the true centre); the ring is the fitted 6/7 black-edge
+ * ellipse, whose semi-major axis is 100 mm on the target. Null for series saved before the app sent it.
+ */
+@Serializable
+data class Geometry(
+    val centreX: Double,
+    val centreY: Double,
+    val ringCx: Double,
+    val ringCy: Double,
+    val ringSemiMajor: Double,
+    val ringSemiMinor: Double,
+    val ringRotationRad: Double,
+)
+
 @Serializable
 data class Series(
     val id: Long,
@@ -96,10 +112,16 @@ data class Series(
     /** Size of the frame the holes were measured in, sent with the image; null for series uploaded before that. */
     val imageWidth: Int? = null,
     val imageHeight: Int? = null,
+    val geometry: Geometry? = null,
 )
 
 @Serializable
-data class SeriesRequest(val timestamp: String, val caliber: String, val holes: List<Hole>)
+data class SeriesRequest(
+    val timestamp: String,
+    val caliber: String,
+    val holes: List<Hole>,
+    val geometry: Geometry? = null,
+)
 
 @Serializable
 data class IdTokenRequest(val idToken: String)
@@ -150,7 +172,7 @@ fun Application.markeraModule(config: Config, db: Db) {
             val userId = authenticate(db) ?: return@post
             val req = call.receive<SeriesRequest>()
             if (invalid(req)) return@post
-            val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes)
+            val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry)
             call.respond(HttpStatusCode.Created, IdResponse(id))
         }
 
@@ -234,6 +256,8 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
         req.caliber !in CALIBERS -> "unknown caliber '${req.caliber}'"
         req.holes.isEmpty() -> "holes must not be empty"
         runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
+        req.geometry?.let { it.ringSemiMajor <= 0 || it.ringSemiMinor <= 0 } == true ->
+            "ring semi-axes must be positive"
         else -> return false
     }
     call.respond(HttpStatusCode.BadRequest, ErrorResponse(error))

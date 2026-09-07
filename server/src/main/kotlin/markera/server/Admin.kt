@@ -77,7 +77,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val holes = series.holes.mapIndexed(::holeRow).joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
         val photo = if (!hasImage) "" else {
-            """<div class="shot"><img src="/admin/series/$seriesId/image">${markers(series)}</div>"""
+            """<div class="shot"><img src="/admin/series/$seriesId/image">${geometrySvg(series)}${markers(series)}</div>"""
         }
         // Without the frame size there is nowhere to put a marker, so holes can only be added position-less.
         val note = if (hasImage && series.imageWidth != null && series.imageHeight != null) "" else {
@@ -152,6 +152,24 @@ private fun markers(series: Series): String {
         """<div class="hit" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
             """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
     }.joinToString("")
+}
+
+/**
+ * The scored geometry over the JPEG: the fitted 6/7 ellipse plus a cross at the digit-row centre. The
+ * viewBox is the frame the app measured in, so the same fractions place it as the markers; the overlay
+ * takes no pointer events, so dragging and clicking holes still reaches the image.
+ */
+private fun geometrySvg(series: Series): String {
+    val g = series.geometry ?: return ""
+    val width = series.imageWidth ?: return ""
+    val height = series.imageHeight ?: return ""
+    val arm = g.ringSemiMajor * 0.06
+    return """<svg class="geom" viewBox="0 0 $width $height" preserveAspectRatio="none">""" +
+        """<ellipse cx="${round2(g.ringCx)}" cy="${round2(g.ringCy)}" rx="${round2(g.ringSemiMajor)}" """ +
+        """ry="${round2(g.ringSemiMinor)}" transform="rotate(${round2(Math.toDegrees(g.ringRotationRad))} """ +
+        """${round2(g.ringCx)} ${round2(g.ringCy)})"/>""" +
+        """<path d="M${round2(g.centreX - arm)} ${round2(g.centreY)}H${round2(g.centreX + arm)}""" +
+        """M${round2(g.centreX)} ${round2(g.centreY - arm)}V${round2(g.centreY + arm)}"/></svg>"""
 }
 
 /** One editable hole row. Cell order is fixed — the script addresses x/y/detected/mm/kind by index. */
@@ -262,6 +280,8 @@ img{display:block;max-width:960px;margin-top:12px;border:1px solid #35402c}
 .shot{position:relative;display:inline-block}
 .hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
 font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
+.geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
+stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 select,button{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
@@ -283,6 +303,18 @@ const num = v => v == null ? '' : String(Math.round(v));
 const total = () => document.getElementById('total').textContent =
     S.holes.reduce((t, h) => t + (h ? h.ring : 0), 0);
 const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
+
+// The un-projection from scoreHits (HitScoring.kt): offset from the digit-row centre, rotated by -rotation,
+// the minor component stretched back to a circle, scaled by 100 mm / semiMajor (TARGET_BLACK_RING_RADIUS_MM).
+function distanceMm(h) {
+  const g = S.geometry;
+  if (!g || h.x == null) return null;
+  const dx = h.x - g.centreX, dy = h.y - g.centreY;
+  const c = Math.cos(g.ringRotationRad), s = Math.sin(g.ringRotationRad);
+  const xR = dx * c + dy * s;
+  const yC = (-dx * s + dy * c) * (g.ringSemiMajor / g.ringSemiMinor);
+  return Math.sqrt(xR * xR + yC * yC) * (100 / g.ringSemiMajor);
+}
 
 function kind(h) {
   let k = '';
@@ -309,8 +341,10 @@ function refresh(i) {
 }
 
 function addHole(x, y) {
-  const i = S.holes.push({x: x, y: y, ring: 0, innerTen: false, distanceMm: null,
-      detectedRing: null, detectedInnerTen: null, detectedX: null, detectedY: null}) - 1;
+  const h = {x: x, y: y, ring: 0, innerTen: false, distanceMm: null,
+      detectedRing: null, detectedInnerTen: null, detectedX: null, detectedY: null};
+  h.distanceMm = distanceMm(h);
+  const i = S.holes.push(h) - 1;
   const tr = document.getElementById('row').content.firstElementChild.cloneNode(true);
   tr.dataset.i = i;
   tb.appendChild(tr);
@@ -363,7 +397,7 @@ if (placeable) {
     const i = drag.dataset.i, h = S.holes[i], p = at(e);
     h.x = p[0];
     h.y = p[1];
-    h.distanceMm = null;   // the geometry that produced it is gone
+    h.distanceMm = distanceMm(h);   // null without geometry: nothing left to measure against
     refresh(i);
   });
   shot.addEventListener('pointerup', () => drag = null);
@@ -385,6 +419,7 @@ document.getElementById('save').onclick = () => {
     credentials: 'include',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
+                          geometry: S.geometry,
                           // Deleted rows are null; a positionless hole nobody gave a score is an "Add hole" left behind.
                           holes: S.holes.filter(h => h && !(h.x == null && h.detectedRing == null && h.ring === 0))})
   }).then(r => r.status === 204 ? location.reload()

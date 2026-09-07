@@ -4,6 +4,7 @@ import java.io.File
 import java.security.SecureRandom
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Statement
 
@@ -59,7 +60,8 @@ class Db(dbPath: String) : AutoCloseable {
                      caliber TEXT NOT NULL,
                      created_at TEXT NOT NULL,
                      image_width INTEGER,
-                     image_height INTEGER)"""
+                     image_height INTEGER,
+                     ${GEOMETRY_COLUMNS.joinToString(", ") { "$it REAL" }})"""
             )
             // Databases created before the image carried the frame size.
             val seriesColumns = st.executeQuery("PRAGMA table_info(series)").use { rs ->
@@ -68,6 +70,10 @@ class Db(dbPath: String) : AutoCloseable {
             if ("image_width" !in seriesColumns) {
                 st.executeUpdate("ALTER TABLE series ADD COLUMN image_width INTEGER")
                 st.executeUpdate("ALTER TABLE series ADD COLUMN image_height INTEGER")
+            }
+            // Databases created before the app sent the target geometry it scored against.
+            if ("centre_x" !in seriesColumns) {
+                for (column in GEOMETRY_COLUMNS) st.executeUpdate("ALTER TABLE series ADD COLUMN $column REAL")
             }
             st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
@@ -134,15 +140,23 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     @Synchronized
-    fun insertSeries(userId: Long, timestamp: String, caliber: String, holes: List<Hole>): Long {
+    fun insertSeries(
+        userId: Long,
+        timestamp: String,
+        caliber: String,
+        holes: List<Hole>,
+        geometry: Geometry? = null,
+    ): Long {
         val seriesId: Long
         conn.prepareStatement(
-            "INSERT INTO series(user_id, timestamp, caliber, created_at) VALUES (?, ?, ?, datetime('now'))",
+            "INSERT INTO series(user_id, timestamp, caliber, created_at, ${GEOMETRY_COLUMNS.joinToString(", ")}) " +
+                "VALUES (?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, ?)",
             Statement.RETURN_GENERATED_KEYS
         ).use {
             it.setLong(1, userId)
             it.setString(2, timestamp)
             it.setString(3, caliber)
+            it.setGeometry(4, geometry)
             it.executeUpdate()
             it.generatedKeys.use { rs -> rs.next(); seriesId = rs.getLong(1) }
         }
@@ -153,8 +167,15 @@ class Db(dbPath: String) : AutoCloseable {
     /** Replaces a saved series wholesale: the app and the admin page both edit scores and marker positions. */
     @Synchronized
     fun replaceSeries(seriesId: Long, req: SeriesRequest) {
-        conn.prepareStatement("UPDATE series SET timestamp = ?, caliber = ? WHERE id = ?").use {
-            it.setString(1, req.timestamp); it.setString(2, req.caliber); it.setLong(3, seriesId); it.executeUpdate()
+        conn.prepareStatement(
+            "UPDATE series SET timestamp = ?, caliber = ?, ${GEOMETRY_COLUMNS.joinToString(", ") { "$it = ?" }} " +
+                "WHERE id = ?"
+        ).use {
+            it.setString(1, req.timestamp)
+            it.setString(2, req.caliber)
+            it.setGeometry(3, req.geometry)
+            it.setLong(10, seriesId)
+            it.executeUpdate()
         }
         execute("DELETE FROM holes WHERE series_id = ?", seriesId)
         insertHoles(seriesId, req.holes)
@@ -297,7 +318,8 @@ class Db(dbPath: String) : AutoCloseable {
     private companion object {
         val random = SecureRandom()
 
-        const val SERIES_SELECT = "SELECT id, timestamp, caliber, image_width, image_height FROM series"
+        val SERIES_SELECT =
+            "SELECT id, timestamp, caliber, image_width, image_height, ${GEOMETRY_COLUMNS.joinToString(", ")} FROM series"
 
         fun seriesRow(rs: ResultSet) = Series(
             id = rs.getLong(1),
@@ -306,7 +328,14 @@ class Db(dbPath: String) : AutoCloseable {
             holes = emptyList(),
             imageWidth = rs.intOrNull(4),
             imageHeight = rs.intOrNull(5),
+            geometry = geometryRow(rs),
         )
+
+        /** Columns 6..12 of [SERIES_SELECT]; any of them null means the series has no geometry. */
+        fun geometryRow(rs: ResultSet): Geometry? {
+            val g = (6..12).map { rs.doubleOrNull(it) ?: return null }
+            return Geometry(g[0], g[1], g[2], g[3], g[4], g[5], g[6])
+        }
 
         const val HOLE_COLUMNS =
             """id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -321,6 +350,18 @@ class Db(dbPath: String) : AutoCloseable {
                detected_x REAL,
                detected_y REAL"""
     }
+}
+
+/** The [Geometry] fields, in field order; every use below relies on that order. */
+private val GEOMETRY_COLUMNS =
+    listOf("centre_x", "centre_y", "ring_cx", "ring_cy", "ring_semi_major", "ring_semi_minor", "ring_rotation_rad")
+
+/** Binds the seven geometry values (all null when there is none) starting at [from]. */
+private fun PreparedStatement.setGeometry(from: Int, g: Geometry?) {
+    val values = listOf(
+        g?.centreX, g?.centreY, g?.ringCx, g?.ringCy, g?.ringSemiMajor, g?.ringSemiMinor, g?.ringRotationRad,
+    )
+    values.forEachIndexed { i, value -> setObject(from + i, value) }
 }
 
 private fun ResultSet.doubleOrNull(index: Int) = getDouble(index).takeIf { !wasNull() }

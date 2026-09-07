@@ -348,12 +348,53 @@ class ApiTest {
     }
 
     @Test
+    fun geometryRoundTripsAndIsOptional() = apiTest { client ->
+        val me = client.devAuth("me")
+        val geometry = Geometry(611.2, 720.5, 610.0, 722.0, 402.5, 388.1, 0.12)
+        val withGeometry = client.createSeries(me.token, series().copy(geometry = geometry))
+        val without = client.createSeries(me.token)
+
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().associateBy { it.id }
+        assertEquals(geometry, stored[withGeometry]?.geometry)
+        assertEquals(null, stored[without]?.geometry)
+
+        // PUT sets it on the series that had none.
+        val moved = geometry.copy(centreX = 600.0)
+        assertEquals(HttpStatusCode.NoContent, client.put("/series/$without") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series().copy(geometry = moved))
+        }.status)
+        val reread = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().associateBy { it.id }
+        assertEquals(moved, reread[without]?.geometry)
+    }
+
+    @Test
+    fun adminDrawsTheGeometryWhenThereIsOne() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val plain = client.createSeries(me.token)
+        val drawn = client.createSeries(
+            me.token,
+            series().copy(geometry = Geometry(50.0, 100.0, 50.0, 100.0, 40.0, 30.0, 0.0)),
+        )
+        for (id in listOf(plain, drawn)) client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200")
+
+        val page = client.admin("/admin/series/$drawn").bodyAsText()
+        assertTrue("""<svg class="geom" viewBox="0 0 100 200"""" in page, page)
+        assertTrue("""<ellipse cx="50" cy="100" rx="40" ry="30"""" in page, page)
+        assertTrue(""""ringSemiMajor":40.0""" in page, page)
+
+        val bare = client.admin("/admin/series/$plain").bodyAsText()
+        assertTrue("<svg" !in bare && "<ellipse" !in bare, bare)
+    }
+
+    @Test
     fun invalidSeriesAreRejected() = apiTest { client ->
         val token = client.devAuth("me").token
         val bad = listOf(
             series(caliber = "50bmg"),
             series().copy(holes = emptyList()),
             series(timestamp = "yesterday"),
+            series().copy(geometry = Geometry(1.0, 2.0, 1.0, 2.0, 40.0, 0.0, 0.0)),
         )
         for (request in bad) {
             val response = client.post("/series") {
