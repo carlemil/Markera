@@ -88,6 +88,11 @@ val googleClientId: String = rootProject.file("local.properties").takeIf { it.ex
     ?.getProperty("markera.google.client.id")
     ?: ""
 
+// Release (upload) signing: `keystore.properties` + `keystore` at the repo root, both
+// gitignored (see PLAN.md task 26). Absent → the release build stays unsigned.
+val keystoreProps: Properties? = rootProject.file("keystore.properties").takeIf { it.exists() }
+    ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
+
 android {
     namespace = "se.kjellstrand.markera"
     compileSdk {
@@ -111,8 +116,20 @@ android {
 
     buildFeatures { buildConfig = true }
 
+    signingConfigs {
+        keystoreProps?.let { props ->
+            create("release") {
+                storeFile = rootProject.file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

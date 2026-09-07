@@ -127,7 +127,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 25a | App: history pagination (loads the next page when the list end is reached) and series delete (long-press a row → confirm dialog → `DELETE`, row disappears) | queued |
 | 25b | App: account deletion — "Radera konto" on Home under the signed-in row, confirm dialog naming what goes, `DELETE /account`, then sign out; camera + mock | queued |
 | 25c | App: remove a manual marker by tapping it again; picker slots shift; recorder re-published | queued |
-| 26 | Release signing: upload keystore + `keystore.properties` (gitignored), `signingConfigs.release` wired when the file exists, upload-key SHA-1 recorded (orchestrator-applied) | queued |
+| 26 | Release signing: upload keystore + `keystore.properties` (gitignored), `signingConfigs.release` wired when the file exists, upload-key SHA-1 `56:A5:24:7E:75:96:CB:58:48:D9:63:F4:6E:AA:71:F6:36:B3:98:A2` (valid to 2054, alias `markera`), release APK verified signed (orchestrator-applied 2026-09-07) | done |
 | 27 | Store assets under `store/`: Swedish short/full description, 512 px icon, 1024×500 feature graphic, phone screenshots | queued |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 

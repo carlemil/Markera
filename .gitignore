@@ -22,3 +22,10 @@ composeApp/src/androidMain/assets/best.onnx
 # APK). deploy.ps1 now writes them outside the repo; this is a safety net for any
 # legacy/manual .bak that lands here.
 composeApp/src/androidMain/assets/*.bak
+
+# Release signing + Play API credentials (never commit)
+keystore.properties
+/keystore
+*.jks
+*.keystore
+play-account.json
