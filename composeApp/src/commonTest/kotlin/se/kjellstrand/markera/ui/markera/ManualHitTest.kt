@@ -71,6 +71,55 @@ class ManualHitTest {
         assertEquals(List(5) { 8 }, vm.uiState.value.topScores)
     }
 
+    @Test
+    fun aTapFindsAManualHoleButNeverADetectedOne() {
+        val holes = listOf(box(100f, 100f, 10f), box(300f, 100f, 10f))
+        val scores = listOf(hit(ring = 9), hit(ring = 8, manual = true))
+        assertEquals(1, manualHitAt(310f, 100f, holes, scores, minGapPx = 24f))
+        assertEquals(-1, manualHitAt(110f, 100f, holes, scores, minGapPx = 24f))
+        assertEquals(-1, manualHitAt(300f, 400f, holes, scores, minGapPx = 24f))
+    }
+
+    @Test
+    fun removingAHoleShiftsLaterPicksLeftAndKeepsUserEdits() {
+        val vm = MarkeraViewModelImpl()
+        vm.onHolesDetected(List(3) { box(it * 100f, 0f, 10f) }, List(3) { hit(ring = 7 + it) })
+        vm.setTopScoreAt(2, SCORE_PICKER_INNER_TEN) // user corrected the third slot
+        assertEquals(listOf(7, 8, SCORE_PICKER_INNER_TEN, 0, 0), vm.uiState.value.topScores)
+
+        vm.removeManualHit(1)
+
+        assertEquals(2, vm.uiState.value.scores.size)
+        assertEquals(2, vm.uiState.value.detections.size)
+        assertEquals(listOf(7, SCORE_PICKER_INNER_TEN, 0, 0, 0), vm.uiState.value.topScores)
+    }
+
+    @Test
+    fun removingAHolePullsTheNextOneIntoTheLastPickerSlot() {
+        val vm = MarkeraViewModelImpl()
+        val six = List(6) { box(it * 100f, 0f, 10f) }
+        vm.onHolesDetected(six, List(5) { hit(ring = 5 + it) } + hit(ring = 10, inner = true))
+        assertEquals(listOf(5, 6, 7, 8, 9), vm.uiState.value.topScores)
+
+        vm.removeManualHit(2)
+
+        assertEquals(5, vm.uiState.value.scores.size)
+        assertEquals(listOf(5, 6, 8, 9, SCORE_PICKER_INNER_TEN), vm.uiState.value.topScores)
+    }
+
+    @Test
+    fun removingAHoleBeyondThePickersLeavesThemAlone() {
+        val vm = MarkeraViewModelImpl()
+        val seven = List(7) { box(it * 100f, 0f, 10f) }
+        vm.onHolesDetected(seven, List(7) { hit(ring = 6) })
+
+        vm.removeManualHit(5)
+
+        assertEquals(6, vm.uiState.value.scores.size)
+        assertEquals(6, vm.uiState.value.detections.size)
+        assertEquals(List(5) { 6 }, vm.uiState.value.topScores)
+    }
+
     private fun box(cx: Float, cy: Float, side: Float) =
         Detection(cx - side / 2f, cy - side / 2f, cx + side / 2f, cy + side / 2f, 1f)
 

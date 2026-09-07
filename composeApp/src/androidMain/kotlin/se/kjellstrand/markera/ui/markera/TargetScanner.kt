@@ -149,9 +149,10 @@ class TargetScanController(
      * The user tapped a hole the detector missed, at [tapX],[tapY] in a
      * [viewW]x[viewH] viewport showing [snapshot] fit-centred. Scores that point
      * with the same geometry as the scan and adds it as a manual hole, then
-     * re-publishes the series so the pending save includes it. Ignored without
-     * geometry, mid-scan, off the image, or within [minGapPx] (viewport px) of a
-     * hole that is already there.
+     * re-publishes the series so the pending save includes it. A tap within
+     * [minGapPx] (viewport px) of a hand-placed hole removes that hole instead;
+     * one that close to a *detected* hole is a mis-tap and does nothing. Also
+     * ignored without geometry, mid-scan or off the image.
      */
     fun addManualHit(
         viewModel: MarkeraViewModel,
@@ -170,7 +171,14 @@ class TargetScanController(
             tapX, tapY, viewW, viewH, state.imageWidth, state.imageHeight,
         ) ?: return
         val scale = min(viewW / state.imageWidth, viewH / state.imageHeight)
-        val detection = manualDetection(ix, iy, state.detections, minGapPx / scale) ?: return
+        val gap = minGapPx / scale
+        val existing = manualHitAt(ix, iy, state.detections, state.scores, gap)
+        if (existing >= 0) {
+            viewModel.removeManualHit(existing)
+            onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot)
+            return
+        }
+        val detection = manualDetection(ix, iy, state.detections, gap) ?: return
         val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
             ?: return
         viewModel.addManualHit(detection, hit)

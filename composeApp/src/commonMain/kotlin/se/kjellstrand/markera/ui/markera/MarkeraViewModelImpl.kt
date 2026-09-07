@@ -88,6 +88,37 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         }
     }
 
+    override fun removeManualHit(index: Int) {
+        _uiState.update { state ->
+            if (index !in state.scores.indices || index !in state.detections.indices) {
+                return@update state
+            }
+            val scores = state.scores.toMutableList().apply { removeAt(index) }
+            val topScores = if (index < SCORE_PICKER_COUNT) {
+                // Shift the picks (not the scores) left, so user edits in the
+                // later slots survive, and fill the freed last slot from the
+                // hole that just moved into picker range.
+                val entering = scores.getOrNull(SCORE_PICKER_COUNT - 1)
+                val pick = when {
+                    entering == null -> 0
+                    entering.isInnerTen -> SCORE_PICKER_INNER_TEN
+                    else -> entering.ring
+                }
+                state.topScores.toMutableList().apply {
+                    removeAt(index)
+                    add(pick)
+                }
+            } else {
+                state.topScores
+            }
+            state.copy(
+                detections = state.detections.toMutableList().apply { removeAt(index) },
+                scores = scores,
+                topScores = topScores,
+            )
+        }
+    }
+
     override fun clearResults() {
         _uiState.update {
             it.copy(

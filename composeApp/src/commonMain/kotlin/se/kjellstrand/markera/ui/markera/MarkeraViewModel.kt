@@ -37,6 +37,13 @@ interface MarkeraViewModel {
      */
     fun addManualHit(detection: Detection, hit: HitScore)
 
+    /**
+     * The user tapped a hand-placed hole again: drop hole [index] and its score,
+     * shifting the picks in the later slots one step left (user edits included)
+     * and pulling the hole that now reaches the pickers into the freed slot.
+     */
+    fun removeManualHit(index: Int)
+
     /** Clear detection overlay state. */
     fun clearResults()
 
