@@ -47,6 +47,17 @@
     <string name="history_delete_cancel">Avbryt</string>
     <string name="history_delete_failed">Kunde inte radera</string>
 
+    <!-- Series detail -->
+    <string name="detail_title">Serie</string>
+    <string name="detail_save">Spara</string>
+    <string name="detail_saved">Sparat</string>
+    <string name="detail_save_failed">Kunde inte spara</string>
+    <string name="detail_mm">%1$d mm</string>
+    <string name="detail_no_distance">–</string>
+    <string name="detail_kind_manual">manuell</string>
+    <string name="detail_kind_typed">inskriven</string>
+    <string name="detail_kind_moved">flyttad</string>
+
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>
     <string name="login_email">E-post</string>

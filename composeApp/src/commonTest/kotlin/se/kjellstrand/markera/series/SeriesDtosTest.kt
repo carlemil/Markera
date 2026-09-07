@@ -31,7 +31,8 @@ class SeriesDtosTest {
         val req = seriesRequest(listOf(hit), Caliber.MM9, "2026-09-06T10:00:00Z")
         assertEquals("9mm", req.caliber)
         assertEquals("2026-09-06T10:00:00Z", req.timestamp)
-        assertEquals(listOf(HoleDto(12.0, 34.0, 9, false, 42.5, 9, false)), req.holes)
+        // The detected position is kept beside the confirmed one.
+        assertEquals(listOf(HoleDto(12.0, 34.0, 9, false, 42.5, 9, false, 12.0, 34.0)), req.holes)
     }
 
     @Test
@@ -85,6 +86,40 @@ class SeriesDtosTest {
 
     private fun request(vararg holes: HoleDto) =
         SeriesRequest("2026-09-06T10:00:00Z", "9mm", holes.toList())
+
+    @Test
+    fun kindTextNamesEditedManualTypedAndMovedHoles() {
+        fun kind(hole: HoleDto) = hole.kindText("manuell", "inskriven", "flyttad")
+
+        // Untouched detection: nothing to say.
+        assertEquals("", kind(HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0)))
+        // Score edited down from the detected 9.
+        assertEquals("9 → 8", kind(HoleDto(1.0, 1.0, 8, false, 30.0, 9, false, 1.0, 1.0)))
+        // Inner ten either way is an "X".
+        assertEquals("10 → X", kind(HoleDto(1.0, 1.0, 10, true, 5.0, 10, false, 1.0, 1.0)))
+        // Positioned by hand, so no detection at all.
+        assertEquals("manuell", kind(HoleDto(1.0, 1.0, 7, false, 80.0)))
+        // Typed into a picker slot: no position either.
+        assertEquals("inskriven", kind(HoleDto(null, null, 7, false, null)))
+        // Dragged off the detected spot, score untouched.
+        assertEquals("flyttad", kind(HoleDto(2.0, 1.0, 9, false, null, 9, false, 1.0, 1.0)))
+        // Both at once.
+        assertEquals("9 → 8, flyttad", kind(HoleDto(2.0, 1.0, 8, false, null, 9, false, 1.0, 1.0)))
+    }
+
+    @Test
+    fun nearestHoleIndexPicksTheClosestInReachAndSkipsPositionless() {
+        val holes = listOf(
+            HoleDto(null, null, 7, false, null),
+            HoleDto(100.0, 100.0, 9, false, 30.0),
+            HoleDto(120.0, 100.0, 8, false, 40.0),
+        )
+
+        assertEquals(1, holes.nearestHoleIndex(104.0, 100.0, 20.0))
+        assertEquals(2, holes.nearestHoleIndex(115.0, 100.0, 20.0))
+        // Nothing within reach, and a positionless hole is never the answer.
+        assertEquals(-1, holes.nearestHoleIndex(0.0, 0.0, 20.0))
+    }
 
     @Test
     fun totalSumsRingsAndScoreLineSortsHighestFirst() {

@@ -65,26 +65,36 @@ private fun ScoreBox(
         )
     }
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            confirmButton = {},
-            title = { Text(stringResource(R.string.score_pick_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
-                    DIALPAD_KEYS.forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
-                            row.forEach { key ->
-                                DialpadKey(key) {
-                                    onValueChange(key)
-                                    showDialog = false
-                                }
-                            }
-                        }
-                    }
-                }
+        ScoreDialpadDialog(
+            onPick = {
+                onValueChange(it)
+                showDialog = false
             },
+            onDismiss = { showDialog = false },
         )
     }
+}
+
+/**
+ * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. Shared
+ * with the series detail screen, so one score input for the whole app.
+ */
+@Composable
+fun ScoreDialpadDialog(onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        title = { Text(stringResource(R.string.score_pick_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
+                DIALPAD_KEYS.forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
+                        row.forEach { key -> DialpadKey(key) { onPick(key) } }
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable

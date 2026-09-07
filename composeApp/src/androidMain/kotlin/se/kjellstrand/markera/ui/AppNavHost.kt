@@ -50,6 +50,7 @@ import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SaveStatus
+import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
@@ -59,6 +60,7 @@ import se.kjellstrand.markera.ui.competition.CompetitionListScreen
 import se.kjellstrand.markera.ui.competition.LoginScreen
 import se.kjellstrand.markera.ui.competition.MarkingGroupsScreen
 import se.kjellstrand.markera.ui.competition.MarkingWizardScreen
+import se.kjellstrand.markera.ui.history.SeriesDetailScreen
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
@@ -70,6 +72,10 @@ sealed interface Screen {
     data object Home : Screen
     data object FreeMarking : Screen
     data object History : Screen
+
+    /** One saved series, editable. Carries the DTO the history row already has. */
+    data class SeriesDetail(val series: SeriesDto) : Screen
+
     data object Login : Screen
     data object Competitions : Screen
     data class MarkingGroups(val competitionId: Int) : Screen
@@ -157,7 +163,18 @@ fun AppNavHost() {
             onBack = pop,
         )
 
-        Screen.History -> SeriesHistoryScreen(services = seriesServices, onBack = pop)
+        // Leaving History disposes it, so coming back from a detail edit refetches.
+        Screen.History -> SeriesHistoryScreen(
+            services = seriesServices,
+            onBack = pop,
+            onOpen = { push(Screen.SeriesDetail(it)) },
+        )
+
+        is Screen.SeriesDetail -> SeriesDetailScreen(
+            series = screen.series,
+            services = seriesServices,
+            onBack = pop,
+        )
 
         Screen.Login -> LoginScreen(
             services = services,

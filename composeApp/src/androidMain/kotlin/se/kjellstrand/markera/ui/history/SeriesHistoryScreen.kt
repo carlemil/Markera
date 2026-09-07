@@ -67,7 +67,11 @@ private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-M
 
 /** The series saved on the Markera backend, newest first, paged as you scroll. */
 @Composable
-fun SeriesHistoryScreen(services: SeriesServices, onBack: () -> Unit) {
+fun SeriesHistoryScreen(
+    services: SeriesServices,
+    onBack: () -> Unit,
+    onOpen: (SeriesDto) -> Unit = {},
+) {
     val auth by services.session.auth.collectAsState()
     var series by remember { mutableStateOf<List<SeriesDto>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -148,7 +152,13 @@ fun SeriesHistoryScreen(services: SeriesServices, onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(series!!, key = { it.id }) { item ->
-                        SeriesCard(item, services, thumbnails, onLongPress = { pending = item })
+                        SeriesCard(
+                            series = item,
+                            services = services,
+                            thumbnails = thumbnails,
+                            onClick = { onOpen(item) },
+                            onLongPress = { pending = item },
+                        )
                     }
                     if (cursor != null) {
                         item {
@@ -223,6 +233,7 @@ private fun SeriesCard(
     series: SeriesDto,
     services: SeriesServices,
     thumbnails: MutableMap<Long, ImageBitmap>,
+    onClick: () -> Unit,
     onLongPress: () -> Unit,
 ) {
     if (series.hasImage) {
@@ -241,7 +252,7 @@ private fun SeriesCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = {}, onLongClick = onLongPress),
+            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Row(
@@ -294,7 +305,7 @@ private fun SeriesCard(
 }
 
 /** Falls back to the raw string if the server ever sends something unparsable. */
-private fun localStamp(timestamp: String): String = try {
+internal fun localStamp(timestamp: String): String = try {
     stampFormat.format(Instant.parse(timestamp).atZone(ZoneId.systemDefault()))
 } catch (_: Exception) {
     timestamp

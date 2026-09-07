@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series
 
+import kotlin.math.hypot
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.serialization.Serializable
@@ -26,6 +27,9 @@ data class HoleDto(
     val distanceMm: Double?,
     val detectedRing: Int? = null,
     val detectedInnerTen: Boolean? = null,
+    /** Where the detector put the hole; null for a hand-placed or typed one. */
+    val detectedX: Double? = null,
+    val detectedY: Double? = null,
 )
 
 @Serializable
@@ -43,6 +47,14 @@ data class SeriesDto(
     val holes: List<HoleDto>,
     /** Defaulted so series stored before image upload existed still parse. */
     val hasImage: Boolean = false,
+    /**
+     * Source-frame pixel size the hole [HoleDto.x]/[HoleDto.y] are in. The
+     * stored JPEG is that frame downscaled with the same aspect, so a marker
+     * sits at fraction `x / imageWidth` of it. Null for series stored before
+     * the size was recorded — then the markers can't be placed.
+     */
+    val imageWidth: Int? = null,
+    val imageHeight: Int? = null,
 )
 
 @Serializable
@@ -72,7 +84,58 @@ fun HitScore.toHoleDto(): HoleDto = HoleDto(
     distanceMm = distanceMm,
     detectedRing = if (manual) null else ring,
     detectedInnerTen = if (manual) null else isInnerTen,
+    detectedX = if (manual) null else centerXpx.toDouble(),
+    detectedY = if (manual) null else centerYpx.toDouble(),
 )
+
+/** The user changed the score the detector reported for this hole. */
+private fun HoleDto.isEdited(): Boolean =
+    detectedRing != null && (detectedRing != ring || (detectedInnerTen == true) != innerTen)
+
+private fun scoreLabel(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()
+
+/** A hole's score as the pickers show it: `X` for an inner ten, else the ring. */
+fun HoleDto.label(): String = scoreLabel(ring, innerTen)
+
+/**
+ * How a hole came about, for the detail list: `8 → 9` when the score was
+ * edited, else [manual] (positioned by hand), [typed] (no position at all) or
+ * blank; `, `[moved] appended when it was dragged off the detected spot. The
+ * words are parameters so the Swedish stays in `strings.xml`.
+ */
+fun HoleDto.kindText(manual: String, typed: String, moved: String): String {
+    val base = when {
+        isEdited() -> "${scoreLabel(detectedRing!!, detectedInnerTen == true)} → ${label()}"
+        x == null -> typed
+        detectedRing == null -> manual
+        else -> ""
+    }
+    val wasMoved = detectedX != null && (x != detectedX || y != detectedY)
+    return when {
+        !wasMoved -> base
+        base.isEmpty() -> moved
+        else -> "$base, $moved"
+    }
+}
+
+/**
+ * Index of the hole nearest [x],[y] (source-image px) within [maxDist], or -1
+ * when nothing is in reach. Holes with no position can't be hit.
+ */
+fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int {
+    var best = -1
+    var bestDist = maxDist
+    forEachIndexed { i, hole ->
+        val hx = hole.x ?: return@forEachIndexed
+        val hy = hole.y ?: return@forEachIndexed
+        val dist = hypot(x - hx, y - hy)
+        if (dist < bestDist) {
+            best = i
+            bestDist = dist
+        }
+    }
+    return best
+}
 
 /**
  * Overlay the score pickers on the detected holes: picker slot `i` is hole `i`
@@ -91,9 +154,10 @@ fun SeriesRequest.withPicks(topScores: List<Int>): SeriesRequest = copy(
     },
 )
 
-private fun pickRing(pick: Int) = if (pick == SCORE_PICKER_INNER_TEN) 10 else pick
+/** Picker index -> stored ring/inner-ten pair; shared with the detail screen's editing. */
+fun pickRing(pick: Int) = if (pick == SCORE_PICKER_INNER_TEN) 10 else pick
 
-private fun pickInnerTen(pick: Int) = pick == SCORE_PICKER_INNER_TEN
+fun pickInnerTen(pick: Int) = pick == SCORE_PICKER_INNER_TEN
 
 fun seriesRequest(
     scores: List<HitScore>,

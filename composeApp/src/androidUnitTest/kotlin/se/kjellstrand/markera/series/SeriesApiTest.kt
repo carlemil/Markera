@@ -121,6 +121,25 @@ class SeriesApiTest {
     }
 
     @Test
+    fun updateSeriesPutsTheWholeSeries() = runBlocking {
+        val api = api(token = "tok") { respond("", HttpStatusCode.NoContent) }
+        val req = SeriesRequest(
+            timestamp = "2026-09-06T10:00:00Z",
+            caliber = "9mm",
+            holes = listOf(HoleDto(1.0, 2.0, 9, false, 30.0, 10, false, 1.0, 3.0)),
+        )
+
+        api.updateSeries(7, req)
+
+        val request = recorded.single()
+        assertEquals(HttpMethod.Put, request.method)
+        assertEquals("http://host:8080/series/7", request.url.toString())
+        assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])
+        assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
+        assertEquals(req, webshooterJson.decodeFromString<SeriesRequest>(sentBody))
+    }
+
+    @Test
     fun deleteSeriesSendsAuthorizedDelete() = runBlocking {
         val api = api(token = "tok") { respond("", HttpStatusCode.NoContent) }
 

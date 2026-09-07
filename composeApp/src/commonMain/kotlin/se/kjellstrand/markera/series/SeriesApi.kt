@@ -8,6 +8,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -94,6 +95,15 @@ class SeriesApi(
             parameter("limit", limit)
             before?.let { parameter("before", it) }
         }.parseOrThrow()
+
+    /** Replaces the series' timestamp, caliber and holes (the detail screen's save). */
+    suspend fun updateSeries(id: Long, req: SeriesRequest) {
+        client.put("$base/series/$id") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(req)
+        }.throwIfError()
+    }
 
     suspend fun deleteSeries(id: Long) {
         client.delete("$base/series/$id") { auth() }.throwIfError()
