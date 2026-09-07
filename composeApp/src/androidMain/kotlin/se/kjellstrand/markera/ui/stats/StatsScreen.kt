@@ -1,0 +1,462 @@
+package se.kjellstrand.markera.ui.stats
+
+import android.graphics.Paint
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import java.time.ZoneOffset
+import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import se.kjellstrand.markera.R
+import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.SeriesDto
+import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.nextPageCursor
+import se.kjellstrand.markera.series.stats.DatePreset
+import se.kjellstrand.markera.series.stats.PlottedSeries
+import se.kjellstrand.markera.series.stats.SeriesStatistics
+import se.kjellstrand.markera.series.stats.StatsFilter
+import se.kjellstrand.markera.series.stats.plotSeries
+import se.kjellstrand.markera.series.stats.statistics
+import se.kjellstrand.markera.ui.competition.CompetitionTopBar
+import se.kjellstrand.markera.ui.history.localStamp
+import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
+import se.kjellstrand.markera.vision.RING_RADII_MM
+import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
+
+/** Ring 5's outer edge — the whole drawn target, and the canvas' mm half-width. */
+private const val PLOT_RADIUS_MM = 150f
+
+private val PAPER = Color(0xFFE8DEC8)
+private val BLACK = Color(0xFF15151A)
+private val LINE_ON_BLACK = Color(0xFFEDEDED)
+private val LINE_ON_PAPER = Color(0xFF6B6455)
+private val OLD_HIT = Color(0xFF4FC3F7)
+private val NEW_HIT = Color(0xFF00E676)
+
+private const val DAY_MS = 24L * 60 * 60 * 1000
+
+/**
+ * All saved series with geometry, filtered and drawn on one target: every hit
+ * un-projected to target millimetres, coloured old → new, with the group
+ * measurements underneath. The maths lives in `series/stats/`; this only draws.
+ */
+@OptIn(ExperimentalTime::class)
+@Composable
+fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
+    val auth by services.session.auth.collectAsState()
+    var series by remember { mutableStateOf<List<SeriesDto>?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var reload by remember { mutableIntStateOf(0) }
+
+    var caliber by remember { mutableStateOf<Caliber?>(null) }
+    var preset by remember { mutableStateOf(DatePreset.ALL) }
+    // Custom window as the picker hands it over: UTC start-of-day millis.
+    var customRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+    var hits by remember { mutableIntStateOf(5) }
+    var pickingDates by remember { mutableStateOf(false) }
+
+    // Series counts are small, so the screen just pulls every page up front.
+    LaunchedEffect(auth, reload) {
+        if (auth == null) return@LaunchedEffect
+        series = null
+        error = null
+        try {
+            val all = mutableListOf<SeriesDto>()
+            var before: Long? = null
+            do {
+                val page = services.api.listSeries(before = before)
+                all += page
+                before = nextPageCursor(page)
+            } while (before != null)
+            series = all
+        } catch (t: Throwable) {
+            error = t.message ?: t.toString()
+        }
+    }
+
+    val filter = remember(caliber, preset, customRange, hits) {
+        val range = customRange.takeIf { preset == DatePreset.CUSTOM }
+        val from = range?.let { Instant.fromEpochMilliseconds(it.first) }
+        val to = range?.let { Instant.fromEpochMilliseconds(it.second + DAY_MS - 1) }
+        val (presetFrom, presetTo) = preset.range(Clock.System.now())
+        StatsFilter(caliber = caliber, from = from ?: presetFrom, to = to ?: presetTo, hits = hits)
+    }
+    val loaded = series
+    val plotted = remember(loaded, filter) { loaded.orEmpty().plotSeries(filter) }
+    val stats = remember(plotted) { plotted.statistics() }
+
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
+        ) {
+            CompetitionTopBar(title = stringResource(R.string.stats_title), onBack = onBack)
+            when {
+                auth == null -> Centered { Text(stringResource(R.string.stats_signed_out)) }
+
+                error != null -> Centered {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(error!!, style = MaterialTheme.typography.bodyMedium)
+                        Button(onClick = { reload++ }) { Text(stringResource(R.string.stats_retry)) }
+                    }
+                }
+
+                loaded == null -> Centered { CircularProgressIndicator() }
+
+                else -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    FilterRow(
+                        calibers = loaded.calibersWithGeometry(),
+                        caliber = caliber,
+                        onCaliber = { caliber = it },
+                        preset = preset,
+                        customRange = customRange,
+                        onPreset = { preset = it },
+                        onPickDates = { pickingDates = true },
+                        hits = hits,
+                        onHits = { hits = it.coerceIn(1, 20) },
+                    )
+                    if (stats == null) {
+                        Text(
+                            stringResource(R.string.stats_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        TargetCanvas(plotted)
+                        AgeLegend(plotted)
+                        MeasurementRows(stats)
+                    }
+                }
+            }
+        }
+    }
+
+    if (pickingDates) {
+        DateRangeDialog(
+            onDismiss = { pickingDates = false },
+            onPicked = { start, end ->
+                customRange = start to end
+                preset = DatePreset.CUSTOM
+                pickingDates = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun Centered(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+}
+
+/** The calibers actually worth offering: those on plottable (geometry-carrying) series. */
+private fun List<SeriesDto>.calibersWithGeometry(): List<Caliber> =
+    filter { it.geometry != null }
+        .map { Caliber.fromLabel(it.caliber) }
+        .filter { it != Caliber.NONE }
+        .distinct()
+        .sortedBy { it.ordinal }
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalTime::class)
+@Composable
+private fun FilterRow(
+    calibers: List<Caliber>,
+    caliber: Caliber?,
+    onCaliber: (Caliber?) -> Unit,
+    preset: DatePreset,
+    customRange: Pair<Long, Long>?,
+    onPreset: (DatePreset) -> Unit,
+    onPickDates: () -> Unit,
+    hits: Int,
+    onHits: (Int) -> Unit,
+) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(
+            selected = caliber == null,
+            onClick = { onCaliber(null) },
+            label = { Text(stringResource(R.string.stats_caliber_all)) },
+        )
+        calibers.forEach {
+            FilterChip(
+                selected = caliber == it,
+                onClick = { onCaliber(it) },
+                label = { Text(it.label) },
+            )
+        }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(
+            DatePreset.WEEK to R.string.stats_date_week,
+            DatePreset.MONTH to R.string.stats_date_month,
+            DatePreset.YEAR to R.string.stats_date_year,
+            DatePreset.ALL to R.string.stats_date_all,
+        ).forEach { (value, label) ->
+            FilterChip(
+                selected = preset == value,
+                onClick = { onPreset(value) },
+                label = { Text(stringResource(label)) },
+            )
+        }
+        FilterChip(
+            selected = preset == DatePreset.CUSTOM,
+            onClick = onPickDates,
+            label = {
+                Text(
+                    if (preset == DatePreset.CUSTOM && customRange != null) {
+                        stringResource(
+                            R.string.stats_date_range,
+                            utcDay(customRange.first),
+                            utcDay(customRange.second),
+                        )
+                    } else {
+                        stringResource(R.string.stats_date_custom)
+                    },
+                )
+            },
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { onHits(hits - 1) }, enabled = hits > 1) {
+            Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.stats_hits_fewer))
+        }
+        Text(stringResource(R.string.stats_hits_label, hits), style = MaterialTheme.typography.bodyLarge)
+        IconButton(onClick = { onHits(hits + 1) }, enabled = hits < 20) {
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.stats_hits_more))
+        }
+    }
+}
+
+/** `yyyy-MM-dd` of a UTC start-of-day millis, which is what the range picker returns. */
+private fun utcDay(millis: Long): String =
+    java.time.Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Unit) {
+    val state = rememberDateRangePickerState()
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            val start = state.selectedStartDateMillis
+            val end = state.selectedEndDateMillis
+            TextButton(
+                onClick = { if (start != null && end != null) onPicked(start, end) },
+                enabled = start != null && end != null,
+            ) { Text(stringResource(R.string.stats_date_ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.stats_date_cancel)) }
+        },
+    ) {
+        // Weighted so the tall range picker scrolls inside the dialog instead of
+        // pushing the buttons off a short screen.
+        DateRangePicker(state = state, modifier = Modifier.weight(1f))
+    }
+}
+
+/**
+ * The drawn target out to ring 5 with every filtered hit on it. Offsets are in
+ * image axes (y down), so they map straight onto canvas coordinates.
+ */
+@Composable
+private fun TargetCanvas(plotted: List<PlottedSeries>) {
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f),
+    ) {
+        val scale = min(size.width, size.height) / 2f / PLOT_RADIUS_MM
+        val centre = Offset(size.width / 2f, size.height / 2f)
+        fun r(mm: Double) = mm.toFloat() * scale
+
+        drawCircle(PAPER, radius = PLOT_RADIUS_MM * scale, center = centre)
+        drawCircle(BLACK, radius = r(TARGET_BLACK_RING_RADIUS_MM), center = centre)
+        // Ring lines out to ring 5, plus the inner-ten circle.
+        (RING_RADII_MM.filter { it <= PLOT_RADIUS_MM } + INNER_TEN_RADIUS_MM).forEach { mm ->
+            drawCircle(
+                color = if (mm <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER,
+                radius = r(mm),
+                center = centre,
+                style = Stroke(width = 1.5f),
+            )
+        }
+
+        // Ring digits 5..9, centred in their band on both sides of the horizontal axis.
+        val digitPaint = Paint().apply {
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+            textSize = 11f * scale
+        }
+        for (ring in 5..9) {
+            val mid = (RING_RADII_MM[10 - ring] + RING_RADII_MM[9 - ring]) / 2.0
+            digitPaint.color =
+                (if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER).toArgb()
+            val baseline = centre.y + digitPaint.textSize / 3f
+            drawContext.canvas.nativeCanvas.drawText(
+                ring.toString(), centre.x - r(mid), baseline, digitPaint,
+            )
+            drawContext.canvas.nativeCanvas.drawText(
+                ring.toString(), centre.x + r(mid), baseline, digitPaint,
+            )
+        }
+
+        plotted.forEach { series ->
+            val colour = lerp(OLD_HIT, NEW_HIT, series.age)
+            series.hits.forEach { hit ->
+                val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
+                drawCircle(colour, radius = 2.5f * scale, center = at)
+                drawCircle(BLACK, radius = 2.5f * scale, center = at, style = Stroke(width = 1f))
+            }
+        }
+    }
+}
+
+/** Which end of the colour scale is which date. */
+@Composable
+private fun AgeLegend(plotted: List<PlottedSeries>) {
+    if (plotted.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Brush.horizontalGradient(listOf(OLD_HIT, NEW_HIT))),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                localStamp(plotted.first().series.timestamp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                localStamp(plotted.last().series.timestamp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun MeasurementRows(stats: SeriesStatistics) {
+    val mm = @Composable { value: Double -> stringResource(R.string.stats_mm, value.roundToInt()) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Measurement(stringResource(R.string.stats_series), stats.seriesCount.toString())
+        Measurement(stringResource(R.string.stats_hits), stats.hitCount.toString())
+        Measurement(stringResource(R.string.stats_mean_distance), mm(stats.meanDistanceMm))
+        Measurement(stringResource(R.string.stats_mean_pairwise), mm(stats.meanPairwiseMm))
+        Measurement(stringResource(R.string.stats_group_size), mm(stats.meanGroupSizeMm))
+        Measurement(
+            stringResource(R.string.stats_impact),
+            stringResource(
+                R.string.stats_impact_value,
+                stats.impactXMm.roundToInt(),
+                stats.impactYMm.roundToInt(),
+            ),
+        )
+        Measurement(stringResource(R.string.stats_mean_score), "%.1f".format(stats.meanScore))
+        Measurement(
+            stringResource(R.string.stats_tens_share),
+            stringResource(R.string.stats_percent, (stats.tensShare * 100).roundToInt()),
+        )
+        stats.best?.let { (series, total) ->
+            Measurement(
+                stringResource(R.string.stats_best),
+                stringResource(R.string.stats_series_value, total, localStamp(series.timestamp)),
+            )
+        }
+        stats.worst?.let { (series, total) ->
+            Measurement(
+                stringResource(R.string.stats_worst),
+                stringResource(R.string.stats_series_value, total, localStamp(series.timestamp)),
+            )
+        }
+    }
+}
+
+@Composable
+private fun Measurement(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}

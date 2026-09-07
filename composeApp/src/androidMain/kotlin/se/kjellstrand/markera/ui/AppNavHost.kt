@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -65,6 +66,7 @@ import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
+import se.kjellstrand.markera.ui.stats.StatsScreen
 import se.kjellstrand.markera.webshooter.WebshooterServices
 
 /** The app's screens; a simple list-backed stack, no navigation library. */
@@ -72,6 +74,7 @@ sealed interface Screen {
     data object Home : Screen
     data object FreeMarking : Screen
     data object History : Screen
+    data object Statistics : Screen
 
     /** One saved series, editable. Carries the DTO the history row already has. */
     data class SeriesDetail(val series: SeriesDto) : Screen
@@ -153,6 +156,7 @@ fun AppNavHost() {
                 push(if (session != null) Screen.Competitions else Screen.Login)
             },
             onHistory = { push(Screen.History) },
+            onStatistics = { push(Screen.Statistics) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,
         )
@@ -169,6 +173,8 @@ fun AppNavHost() {
             onBack = pop,
             onOpen = { push(Screen.SeriesDetail(it)) },
         )
+
+        Screen.Statistics -> StatsScreen(services = seriesServices, onBack = pop)
 
         is Screen.SeriesDetail -> SeriesDetailScreen(
             series = screen.series,
@@ -264,6 +270,7 @@ private fun HomeScreen(
     onFreeMarking: () -> Unit,
     onCompetition: () -> Unit,
     onHistory: () -> Unit,
+    onStatistics: () -> Unit,
     backendAuth: BackendAuth?,
     seriesServices: SeriesServices,
 ) {
@@ -304,6 +311,13 @@ private fun HomeScreen(
                 subtitle = stringResource(R.string.home_history_hint),
                 icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(36.dp)) },
                 onClick = onHistory,
+            )
+            Spacer(Modifier.height(16.dp))
+            HomeCard(
+                title = stringResource(R.string.home_stats),
+                subtitle = stringResource(R.string.home_stats_hint),
+                icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                onClick = onStatistics,
             )
             Spacer(Modifier.height(16.dp))
             AccountRow(backendAuth, seriesServices)

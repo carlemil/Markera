@@ -20,6 +20,8 @@
     <string name="home_competition_hint">Markera i en Webshooter-tävling</string>
     <string name="home_history">Historik</string>
     <string name="home_history_hint">Sparade serier</string>
+    <string name="home_stats">Statistik</string>
+    <string name="home_stats_hint">Träffbild och mått över tid</string>
     <string name="home_sign_in">Logga in för att spara serier</string>
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
@@ -46,6 +48,38 @@
     <string name="history_delete_confirm">Radera</string>
     <string name="history_delete_cancel">Avbryt</string>
     <string name="history_delete_failed">Kunde inte radera</string>
+
+    <!-- Statistik -->
+    <string name="stats_title">Statistik</string>
+    <string name="stats_signed_out">Logga in för att se statistik</string>
+    <string name="stats_retry">Försök igen</string>
+    <string name="stats_empty">Inga serier matchar filtret.</string>
+    <string name="stats_caliber_all">Alla</string>
+    <string name="stats_date_week">7 dagar</string>
+    <string name="stats_date_month">30 dagar</string>
+    <string name="stats_date_year">1 år</string>
+    <string name="stats_date_all">Alla</string>
+    <string name="stats_date_custom">Välj…</string>
+    <string name="stats_date_range">%1$s – %2$s</string>
+    <string name="stats_date_ok">Klar</string>
+    <string name="stats_date_cancel">Avbryt</string>
+    <string name="stats_hits_label">%1$d träffar</string>
+    <string name="stats_hits_fewer">Färre träffar</string>
+    <string name="stats_hits_more">Fler träffar</string>
+    <string name="stats_series">Serier</string>
+    <string name="stats_hits">Träffar</string>
+    <string name="stats_mean_distance">Medelavstånd till centrum</string>
+    <string name="stats_mean_pairwise">Medelavstånd mellan träffar</string>
+    <string name="stats_group_size">Gruppstorlek</string>
+    <string name="stats_impact">Medelträffläge</string>
+    <string name="stats_mean_score">Medelpoäng</string>
+    <string name="stats_tens_share">Andel tior</string>
+    <string name="stats_best">Bästa serie</string>
+    <string name="stats_worst">Sämsta serie</string>
+    <string name="stats_mm">%1$d mm</string>
+    <string name="stats_impact_value">%1$d mm, %2$d mm</string>
+    <string name="stats_percent">%1$d %%</string>
+    <string name="stats_series_value">%1$d · %2$s</string>
 
     <!-- Series detail -->
     <string name="detail_title">Serie</string>
