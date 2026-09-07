@@ -385,7 +385,8 @@ document.getElementById('save').onclick = () => {
     credentials: 'include',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
-                          holes: S.holes.filter(h => h)})
+                          // Deleted rows are null; a positionless hole nobody gave a score is an "Add hole" left behind.
+                          holes: S.holes.filter(h => h && !(h.x == null && h.detectedRing == null && h.ring === 0))})
   }).then(r => r.status === 204 ? location.reload()
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
