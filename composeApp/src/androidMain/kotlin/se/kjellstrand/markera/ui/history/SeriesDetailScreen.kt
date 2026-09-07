@@ -54,6 +54,7 @@ import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.centre
 import se.kjellstrand.markera.series.detectedLabel
 import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.kindText
@@ -61,6 +62,7 @@ import se.kjellstrand.markera.series.manualLabel
 import se.kjellstrand.markera.series.nearestHoleIndex
 import se.kjellstrand.markera.series.pickInnerTen
 import se.kjellstrand.markera.series.pickRing
+import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withDetectedScore
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
@@ -68,6 +70,7 @@ import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.ScoreDialpadDialog
 import se.kjellstrand.markera.ui.markera.viewportToImage
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.distanceMm
 
 /** Same greens/oranges the live overlay uses for detected vs. hand-placed holes. */
 private val DETECTED_COLOR = Color(0xFF9CCC65)
@@ -137,6 +140,8 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                         detections = emptyList(),
                         imageWidth = imageW,
                         imageHeight = imageH,
+                        centre = series.geometry?.centre(),
+                        ring = series.geometry?.ring(),
                         scores = holes.value.mapNotNull { it.asHitScore() },
                         holeColor = DETECTED_COLOR,
                         scoreColor = DETECTED_COLOR,
@@ -173,13 +178,16 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                                             imageH,
                                         ) ?: return@detectDragGestures
                                         holes.value = holes.value.mapIndexed { i, hole ->
-                                            // A moved hole has no geometry left to recompute
-                                            // its distance from, so it loses it.
+                                            // Re-measure from the stored scan geometry; a
+                                            // series saved without it just loses the distance.
+                                            // The confirmed ring/inner-ten stay as they are.
                                             if (i == index) {
                                                 hole.copy(
                                                     x = p.first.toDouble(),
                                                     y = p.second.toDouble(),
-                                                    distanceMm = null,
+                                                    distanceMm = series.geometry?.let { g ->
+                                                        distanceMm(p.first, p.second, g.centre(), g.ring())
+                                                    },
                                                 )
                                             } else {
                                                 hole
@@ -225,7 +233,12 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                             try {
                                 services.api.updateSeries(
                                     series.id,
-                                    SeriesRequest(series.timestamp, series.caliber, holes.value),
+                                    SeriesRequest(
+                                        series.timestamp,
+                                        series.caliber,
+                                        holes.value,
+                                        series.geometry,
+                                    ),
                                 )
                                 Toast.makeText(context, savedText, Toast.LENGTH_SHORT).show()
                                 onBack()

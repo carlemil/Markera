@@ -1,6 +1,8 @@
 package se.kjellstrand.markera.vision
 
 import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -137,5 +139,22 @@ class HitScoringTest {
     fun `degenerate ring returns empty list`() {
         val bad = FittedEllipse(cx = 0f, cy = 0f, semiMajor = 0f, semiMinor = 0f, rotationRad = 0f)
         assertTrue(scoreHits(listOf(pointAt(0f, 0f, 1f)), centre(0f, 0f), bad).isEmpty())
+    }
+
+    @Test
+    fun `distanceMm measures both axes of a tilted ellipse as the 100mm rim`() {
+        // Tilted, foreshortened 6/7 rim: either semi-axis endpoint is the
+        // black edge, i.e. TARGET_BLACK_RING_RADIUS_MM away.
+        val rot = (PI / 6.0).toFloat()
+        val e = FittedEllipse(cx = 300f, cy = 300f, semiMajor = 200f, semiMinor = 80f, rotationRad = rot)
+        val c = centre(300f, 300f)
+        val major = distanceMm(
+            300f + 200f * cos(rot), 300f + 200f * sin(rot), c, e,
+        )
+        val minor = distanceMm(
+            300f - 80f * sin(rot), 300f + 80f * cos(rot), c, e,
+        )
+        assertEquals(100.0, major, 1e-3)
+        assertEquals(100.0, minor, 1e-3)
     }
 }

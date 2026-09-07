@@ -73,14 +73,14 @@ class SeriesRecorder(
         scope.launch { _caliber.compareAndSet(Caliber.NONE, readCaliber()) }
     }
 
-    fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage) {
+    fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage, geometry: GeometryDto?) {
         if (session.auth.value == null) {
             pending = null
             pendingImage = null
             _status.value = SaveStatus.SignedOut
             return
         }
-        pending = seriesRequest(scores, _caliber.value)
+        pending = seriesRequest(scores, _caliber.value, geometry = geometry)
         pendingImage = image
         saveRequested = false // a fresh scan waits for its own commit
         _status.value = SaveStatus.Pending

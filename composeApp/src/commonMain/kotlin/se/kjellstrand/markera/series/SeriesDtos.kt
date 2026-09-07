@@ -5,6 +5,9 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.serialization.Serializable
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
+import se.kjellstrand.markera.vision.CentreEstimate
+import se.kjellstrand.markera.vision.CentreMethod
+import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 
 /**
@@ -32,11 +35,50 @@ data class HoleDto(
     val detectedY: Double? = null,
 )
 
+/**
+ * The scan geometry, in the same source-image pixel frame as [HoleDto.x]/[y]:
+ * the digit-row centre plus the fitted 6/7 ring ellipse. Enough to re-score a
+ * hole that is moved later. Null for series scanned before it was recorded.
+ */
+@Serializable
+data class GeometryDto(
+    val centreX: Double,
+    val centreY: Double,
+    val ringCx: Double,
+    val ringCy: Double,
+    val ringSemiMajor: Double,
+    val ringSemiMinor: Double,
+    val ringRotationRad: Double,
+)
+
+/** Stored geometry is by definition a resolved digit-row intersection. */
+fun GeometryDto.centre(): CentreEstimate =
+    CentreEstimate(centreX.toFloat(), centreY.toFloat(), CentreMethod.LINE_INTERSECTION)
+
+fun GeometryDto.ring(): FittedEllipse = FittedEllipse(
+    cx = ringCx.toFloat(),
+    cy = ringCy.toFloat(),
+    semiMajor = ringSemiMajor.toFloat(),
+    semiMinor = ringSemiMinor.toFloat(),
+    rotationRad = ringRotationRad.toFloat(),
+)
+
+fun geometryDto(centre: CentreEstimate, ring: FittedEllipse): GeometryDto = GeometryDto(
+    centreX = centre.x.toDouble(),
+    centreY = centre.y.toDouble(),
+    ringCx = ring.cx.toDouble(),
+    ringCy = ring.cy.toDouble(),
+    ringSemiMajor = ring.semiMajor.toDouble(),
+    ringSemiMinor = ring.semiMinor.toDouble(),
+    ringRotationRad = ring.rotationRad.toDouble(),
+)
+
 @Serializable
 data class SeriesRequest(
     val timestamp: String,
     val caliber: String,
     val holes: List<HoleDto>,
+    val geometry: GeometryDto? = null,
 )
 
 @Serializable
@@ -55,6 +97,7 @@ data class SeriesDto(
      */
     val imageWidth: Int? = null,
     val imageHeight: Int? = null,
+    val geometry: GeometryDto? = null,
 )
 
 @Serializable
@@ -179,10 +222,12 @@ fun seriesRequest(
     scores: List<HitScore>,
     caliber: Caliber,
     timestamp: String = nowIso(),
+    geometry: GeometryDto? = null,
 ): SeriesRequest = SeriesRequest(
     timestamp = timestamp,
     caliber = caliber.label,
     holes = scores.map { it.toHoleDto() },
+    geometry = geometry,
 )
 
 /** ISO-8601 instant with a `Z` suffix — what the server's `Instant.parse` accepts. */

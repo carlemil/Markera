@@ -39,6 +39,26 @@ data class HitScore(
 )
 
 /**
+ * Distance from the digit-row [centre] to the point [x],[y] (source-image px)
+ * in mm, un-projected through the 6/7 [ring] ellipse: rotate so the major axis
+ * is +x, stretch the minor-axis component by `semiMajor / semiMinor` to undo
+ * the foreshortening, then scale by `TARGET_BLACK_RING_RADIUS_MM / semiMajor`.
+ * A degenerate ellipse has no scale, so it measures 0.
+ */
+fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Double {
+    if (ring.semiMajor <= 0f || ring.semiMinor <= 0f) return 0.0
+    val theta = ring.rotationRad.toDouble()
+    val cosT = cos(theta)
+    val sinT = sin(theta)
+    val dx = (x - centre.x).toDouble()
+    val dy = (y - centre.y).toDouble()
+    val xR = dx * cosT + dy * sinT
+    val yR = -dx * sinT + dy * cosT
+    val yC = yR * (ring.semiMajor / ring.semiMinor).toDouble()
+    return sqrt(xR * xR + yC * yC) * (TARGET_BLACK_RING_RADIUS_MM / ring.semiMajor)
+}
+
+/**
  * Score each detected hole in the frontal target plane recovered from the
  * 6/7 [ring] ellipse. Hole offsets are taken from the digit-row [centre],
  * rotated so the ellipse major axis aligns with +x, then the minor-axis
@@ -57,22 +77,11 @@ fun scoreHits(
     ring: FittedEllipse,
 ): List<HitScore> {
     if (detections.isEmpty() || ring.semiMajor <= 0f || ring.semiMinor <= 0f) return emptyList()
-    val theta = ring.rotationRad.toDouble()
-    val cosT = cos(theta)
-    val sinT = sin(theta)
-    val stretch = (ring.semiMajor / ring.semiMinor).toDouble()
     val mmPerPx = TARGET_BLACK_RING_RADIUS_MM / ring.semiMajor
     return detections.map { d ->
         val cx = (d.left + d.right) / 2f
         val cy = (d.top + d.bottom) / 2f
-        val dx = (cx - centre.x).toDouble()
-        val dy = (cy - centre.y).toDouble()
-        // Rotate by -theta so the major axis aligns with +x.
-        val xR = dx * cosT + dy * sinT
-        val yR = -dx * sinT + dy * cosT
-        // Stretch the minor-axis component to undo foreshortening.
-        val yC = yR * stretch
-        val distMm = sqrt(xR * xR + yC * yC) * mmPerPx
+        val distMm = distanceMm(cx, cy, centre, ring)
         // Edge gauge: score on the distance to the hole's inner edge.
         val holeRadiusMm = ((d.right - d.left) + (d.bottom - d.top)) / 4.0 * mmPerPx
         val edgeMm = (distMm - holeRadiusMm).coerceAtLeast(0.0)

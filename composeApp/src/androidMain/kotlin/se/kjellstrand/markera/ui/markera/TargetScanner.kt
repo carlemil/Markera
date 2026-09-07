@@ -59,7 +59,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.R
+import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.SeriesRecorder
+import se.kjellstrand.markera.series.geometryDto
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.DigitDetector
@@ -99,12 +101,13 @@ class TargetScanController(
     private val detecting = AtomicBoolean(false)
 
     /**
-     * Called with the scored holes and the frame they came from after every
+     * Called with the scored holes, the frame they came from and the geometry
+     * they were scored against (null when there was none) after every
      * successful scan, for the auto-save to the series backend. Set by the nav
      * host, so free marking and the competition wizard both feed the same
      * recorder.
      */
-    var onSeriesDetected: ((List<HitScore>, PlatformImage) -> Unit)? = null
+    var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?) -> Unit)? = null
 
     fun close() {
         detector.close()
@@ -172,17 +175,18 @@ class TargetScanController(
         ) ?: return
         val scale = min(viewW / state.imageWidth, viewH / state.imageHeight)
         val gap = minGapPx / scale
+        val geometry = geometryDto(centre, ring)
         val existing = manualHitAt(ix, iy, state.detections, state.scores, gap)
         if (existing >= 0) {
             viewModel.removeManualHit(existing)
-            onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot)
+            onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot, geometry)
             return
         }
         val detection = manualDetection(ix, iy, state.detections, gap) ?: return
         val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
             ?: return
         viewModel.addManualHit(detection, hit)
-        onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot)
+        onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot, geometry)
     }
 
     private suspend fun runPipeline(snapshot: Bitmap, viewModel: MarkeraViewModel) {
@@ -233,7 +237,9 @@ class TargetScanController(
                 "scores=${scores.map { if (it.isInnerTen) "X" else it.ring.toString() }}",
         )
         viewModel.onHolesDetected(detections, scores)
-        if (scores.isNotEmpty()) onSeriesDetected?.invoke(scores, snapshot)
+        if (scores.isNotEmpty()) {
+            onSeriesDetected?.invoke(scores, snapshot, ring?.let { geometryDto(centre, it) })
+        }
     }
 }
 

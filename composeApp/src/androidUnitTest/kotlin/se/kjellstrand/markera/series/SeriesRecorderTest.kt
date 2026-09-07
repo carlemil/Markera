@@ -115,7 +115,7 @@ class SeriesRecorderTest {
     fun signedOutReportsSignedOutAndPostsNothing() {
         val recorder = recorder(signedIn = false)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
 
         assertEquals(SaveStatus.SignedOut, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
@@ -128,11 +128,11 @@ class SeriesRecorderTest {
     @Test
     fun aCaliberChosenFromTheChipAfterAnEarlierSaveDoesNotPostTheNewScan() {
         val recorder = recorder(stored = Caliber.LR22)
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.selectCaliber(Caliber.MM9)
 
         assertEquals(SaveStatus.Pending, recorder.status.value)
@@ -149,7 +149,7 @@ class SeriesRecorderTest {
     fun detectionOnlyMakesTheSeriesPendingUntilCommit() {
         val recorder = recorder(stored = Caliber.LR22)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
 
         assertEquals(SaveStatus.Pending, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
@@ -166,8 +166,8 @@ class SeriesRecorderTest {
     fun aSecondDetectionReplacesTheFirstPendingSeries() {
         val recorder = recorder(stored = Caliber.MM9)
 
-        recorder.onSeriesDetected(scores, image)
-        recorder.onSeriesDetected(listOf(HitScore(9f, 9f, 0f, 90.0, 6, false)), image)
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.onSeriesDetected(listOf(HitScore(9f, 9f, 0f, 90.0, 6, false)), image, null)
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
@@ -179,7 +179,7 @@ class SeriesRecorderTest {
     @Test
     fun dismissingTheDialogKeepsTheSeriesPendingForTheNextCommit() {
         val recorder = recorder(stored = Caliber.NONE)
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         recorder.dismissCaliberDialog()
@@ -197,7 +197,7 @@ class SeriesRecorderTest {
     fun noCaliberAsksThenSavesWithTheChosenOne() {
         val recorder = recorder(stored = Caliber.NONE)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
 
         assertEquals(SaveStatus.Pending, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
@@ -222,7 +222,7 @@ class SeriesRecorderTest {
     @Test
     fun selectingNoneKeepsTheSeriesPending() {
         val recorder = recorder(stored = Caliber.NONE)
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         recorder.selectCaliber(Caliber.NONE)
@@ -240,7 +240,7 @@ class SeriesRecorderTest {
     fun storedCaliberSavesOnCommitWithNoDialog() {
         val recorder = recorder(stored = Caliber.LR22)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
@@ -253,7 +253,7 @@ class SeriesRecorderTest {
     fun serverErrorReportsFailed() {
         val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.InternalServerError)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         assertIs<SaveStatus.Failed>(recorder.awaitDone())
@@ -263,7 +263,7 @@ class SeriesRecorderTest {
     fun theScannedFrameIsUploadedUnderTheReturnedId() {
         val recorder = recorder(stored = Caliber.MM9, encodeJpeg = { encoded })
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
@@ -282,7 +282,7 @@ class SeriesRecorderTest {
             encodeJpeg = { encoded },
         )
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
@@ -294,7 +294,7 @@ class SeriesRecorderTest {
     fun commitSavesThePickerValuesAlongsideWhatWasDetected() {
         val recorder = recorder(stored = Caliber.LR22)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         // Hit 1 corrected 10X -> 9, hit 2 rejected, a sixth-ring hit typed in.
         recorder.commit(listOf(9, 0, 6, 0, 0))
 
@@ -309,7 +309,7 @@ class SeriesRecorderTest {
     fun theCaliberDialogSavesTheSameEditedSeries() {
         val recorder = recorder(stored = Caliber.NONE)
 
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
         recorder.commit(listOf(9, 0))
 
         assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
@@ -322,9 +322,24 @@ class SeriesRecorderTest {
     }
 
     @Test
+    fun theScanGeometryIsPostedWithTheSeries() {
+        val recorder = recorder(stored = Caliber.LR22)
+
+        recorder.onSeriesDetected(scores, image, GeometryDto(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 0.5))
+        recorder.commit(listOf(9, 0))
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertTrue(
+            """"geometry":{"centreX":1.0,"centreY":2.0,"ringCx":3.0,"ringCy":4.0,""" +
+                """"ringSemiMajor":5.0,"ringSemiMinor":6.0,"ringRotationRad":0.5}""" in sentBody,
+            sentBody,
+        )
+    }
+
+    @Test
     fun clearResetsToIdleAndDropsThePendingSeries() {
         val recorder = recorder(stored = Caliber.NONE)
-        recorder.onSeriesDetected(scores, image)
+        recorder.onSeriesDetected(scores, image, null)
 
         recorder.clear()
 
