@@ -124,12 +124,12 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 22 | Admin: drop the "created" column from the users list (orchestrator-applied, 2026-09-06) | done |
 | 23 | Mock flavor: no auto-scan after Spara/Återställ (new image, wait for Detektera) so the flow mirrors the camera; first frame and preview tap still auto-scan (orchestrator-applied, 2026-09-07) | done |
 | 24 | Server: lock-down + deletes + pagination — `ADMIN_PASSWORD` basic auth replaces `ADMIN_UI`; `DELETE /series/{id}`; `DELETE /account`; `GET /series?limit&before`; tests; Mac mini `.env`: `ADMIN_PASSWORD=…` set on deploy, `DEV_AUTH=false` flipped once 25b is verified with the throwaway dev account | done (server side) |
-| 25a | App: history pagination (loads the next page when the list end is reached) and series delete (long-press a row → confirm dialog → `DELETE`, row disappears) | done — phone check pending server deploy |
+| 25a | App: history pagination (loads the next page when the list end is reached) and series delete (long-press a row → confirm dialog → `DELETE`, row disappears) | done — verified on the phone 2026-09-07 (series 12 deleted, 5 left) |
 | 25b | App: account deletion — "Radera konto" on Home under the signed-in row, confirm dialog naming what goes, `DELETE /account`, then sign out; camera + mock | queued |
 | 25c | App: remove a manual marker by tapping it again; picker slots shift; recorder re-published | queued |
 | 26 | Release signing: upload keystore + `keystore.properties` (gitignored), `signingConfigs.release` wired when the file exists, upload-key SHA-1 `56:A5:24:7E:75:96:CB:58:48:D9:63:F4:6E:AA:71:F6:36:B3:98:A2` (valid to 2054, alias `markera`), release APK verified signed (orchestrator-applied 2026-09-07) | done |
 | 27 | Store assets under `store/`: Swedish short/full description, 512 px icon, 1024×500 feature graphic, phone screenshots; launcher icon replaced (target rings, adaptive vector + legacy webps from `store/gen_assets.py`) | done — a results-screen screenshot with a real target is still wanted |
-| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
+| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | active 2026-09-07 (user asked for a step-by-step); recipe below, DNS record + Caddyfile edit are user actions |
 
 ## API (server)
 
@@ -153,10 +153,13 @@ GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, HTTP Basic ad
 
 No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
 
-1. Give the Mac mini a public hostname (a domain or DDNS) and forward 443 → the Mac.
-2. Add a `caddy` service to `server/docker-compose.yml` in front of `markera-server:8080`
-   (Caddyfile: `<host> { reverse_proxy markera-server:8080 }`; `caddy_data` volume for the
-   Let's Encrypt state). Stop publishing 8090 on the host.
+1. The Mac mini already runs Caddy on the host (`/opt/homebrew/etc/Caddyfile`, root launchd
+   service, Let's Encrypt for thinnikatech.se; 80/443 are already forwarded from the router, WAN
+   IP 92.34.29.118 on 2026-09-07). So: no Caddy container. Add a DNS A record for the chosen
+   hostname (e.g. `markera.thinnikatech.se`) → the WAN IP, then a Caddyfile block
+   `<host> { reverse_proxy 127.0.0.1:8090 }` and `sudo caddy reload --config /opt/homebrew/etc/Caddyfile`.
+2. `server/docker-compose.yml`: publish `127.0.0.1:8090:8080` so plain HTTP is only reachable
+   through Caddy on the same box.
 3. App: `markera.backend.url=https://<host>` in `gradle.properties`; drop the cleartext
    entry for 192.168.1.191 from `network_security_config.xml`.
 4. `DEV_AUTH=false` and a strong `ADMIN_PASSWORD` in `server/.env` (done in task 24) — `/auth/dev`
