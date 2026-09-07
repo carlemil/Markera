@@ -184,43 +184,55 @@ fun SeriesHistoryScreen(
     }
 
     pending?.let { target ->
-        AlertDialog(
-            onDismissRequest = { pending = null },
-            title = { Text(stringResource(R.string.history_delete_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.history_delete_message,
-                        localStamp(target.timestamp),
-                        target.total(),
-                    ),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    pending = null
-                    scope.launch {
-                        try {
-                            services.api.deleteSeries(target.id)
-                            series = series?.filterNot { it.id == target.id }
-                            thumbnails.remove(target.id)
-                        } catch (_: Throwable) {
-                            Toast.makeText(
-                                context,
-                                R.string.history_delete_failed,
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                        }
+        DeleteSeriesDialog(
+            series = target,
+            onDismiss = { pending = null },
+            onConfirm = {
+                pending = null
+                scope.launch {
+                    try {
+                        services.api.deleteSeries(target.id)
+                        series = series?.filterNot { it.id == target.id }
+                        thumbnails.remove(target.id)
+                    } catch (_: Throwable) {
+                        Toast.makeText(
+                            context,
+                            R.string.history_delete_failed,
+                            Toast.LENGTH_SHORT,
+                        ).show()
                     }
-                }) { Text(stringResource(R.string.history_delete_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pending = null }) {
-                    Text(stringResource(R.string.history_delete_cancel))
                 }
             },
         )
     }
+}
+
+/** The delete confirmation, shared by the history list and the detail screen. */
+@Composable
+internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.history_delete_title)) },
+        text = {
+            Text(
+                stringResource(
+                    R.string.history_delete_message,
+                    localStamp(series.timestamp),
+                    series.total(),
+                ),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.history_delete_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.history_delete_cancel))
+            }
+        },
+    )
 }
 
 @Composable

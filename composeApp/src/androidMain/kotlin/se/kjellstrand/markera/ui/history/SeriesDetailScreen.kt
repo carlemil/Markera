@@ -113,12 +113,14 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
     var editing by remember { mutableIntStateOf(-1) }
     var saving by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     // Zoom/pan of the photo layer; translation is in viewport px, origin top-left.
     var zoom by remember(series.id) { mutableFloatStateOf(1f) }
     var panX by remember(series.id) { mutableFloatStateOf(0f) }
     var panY by remember(series.id) { mutableFloatStateOf(0f) }
     val savedText = stringResource(R.string.detail_saved)
     val failedText = stringResource(R.string.detail_save_failed)
+    val deleteFailedText = stringResource(R.string.history_delete_failed)
     val grabPx = with(LocalDensity.current) { GRAB_RADIUS.toPx() }
 
     LaunchedEffect(series.id) {
@@ -142,7 +144,19 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(title = stringResource(R.string.detail_title), onBack = onBack)
+            CompetitionTopBar(
+                title = stringResource(R.string.detail_title),
+                onBack = onBack,
+                actions = {
+                    IconButton(onClick = { confirmDelete = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.history_delete_confirm),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -353,6 +367,24 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                 )
             }
         }
+    }
+
+    if (confirmDelete) {
+        DeleteSeriesDialog(
+            series = series,
+            onDismiss = { confirmDelete = false },
+            onConfirm = {
+                confirmDelete = false
+                scope.launch {
+                    try {
+                        services.api.deleteSeries(series.id)
+                        onBack()
+                    } catch (_: Throwable) {
+                        Toast.makeText(context, deleteFailedText, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+        )
     }
 
     if (editing >= 0) {
