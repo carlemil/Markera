@@ -34,8 +34,8 @@ import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -242,58 +242,74 @@ private fun FilterRow(
     hits: Int,
     onHits: (Int) -> Unit,
 ) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(
-            selected = caliber == null,
-            onClick = { onCaliber(null) },
-            label = { Text(stringResource(R.string.stats_caliber_all)) },
-        )
-        calibers.forEach {
+    // One child of the caller's 16 dp column, so only the filter rows sit tight.
+    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
-                selected = caliber == it,
-                onClick = { onCaliber(it) },
-                label = { Text(it.label) },
+                selected = caliber == null,
+                onClick = { onCaliber(null) },
+                label = { Text(stringResource(R.string.stats_caliber_all)) },
             )
-        }
-    }
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(
-            DatePreset.WEEK to R.string.stats_date_week,
-            DatePreset.MONTH to R.string.stats_date_month,
-            DatePreset.YEAR to R.string.stats_date_year,
-            DatePreset.ALL to R.string.stats_date_all,
-        ).forEach { (value, label) ->
-            FilterChip(
-                selected = preset == value,
-                onClick = { onPreset(value) },
-                label = { Text(stringResource(label)) },
-            )
-        }
-        FilterChip(
-            selected = preset == DatePreset.CUSTOM,
-            onClick = onPickDates,
-            label = {
-                Text(
-                    if (preset == DatePreset.CUSTOM && customRange != null) {
-                        stringResource(
-                            R.string.stats_date_range,
-                            utcDay(customRange.first),
-                            utcDay(customRange.second),
-                        )
-                    } else {
-                        stringResource(R.string.stats_date_custom)
-                    },
+            calibers.forEach {
+                FilterChip(
+                    selected = caliber == it,
+                    onClick = { onCaliber(it) },
+                    label = { Text(it.label) },
                 )
-            },
-        )
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onHits(hits - 1) }, enabled = hits > 1) {
-            Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.stats_hits_fewer))
+            }
         }
-        Text(stringResource(R.string.stats_hits_label, hits), style = MaterialTheme.typography.bodyLarge)
-        IconButton(onClick = { onHits(hits + 1) }, enabled = hits < 20) {
-            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.stats_hits_more))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                DatePreset.WEEK to R.string.stats_date_week,
+                DatePreset.MONTH to R.string.stats_date_month,
+                DatePreset.YEAR to R.string.stats_date_year,
+                DatePreset.ALL to R.string.stats_date_all,
+            ).forEach { (value, label) ->
+                FilterChip(
+                    selected = preset == value,
+                    onClick = { onPreset(value) },
+                    label = { Text(stringResource(label)) },
+                )
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedIconButton(onClick = { onHits(hits - 1) }, enabled = hits > 1) {
+                Icon(
+                    Icons.Default.Remove,
+                    contentDescription = stringResource(R.string.stats_hits_fewer),
+                )
+            }
+            OutlinedIconButton(onClick = { onHits(hits + 1) }, enabled = hits < 20) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(R.string.stats_hits_more),
+                )
+            }
+            Text(
+                stringResource(R.string.stats_hits_label, hits),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            FilterChip(
+                selected = preset == DatePreset.CUSTOM,
+                onClick = onPickDates,
+                label = {
+                    Text(
+                        if (preset == DatePreset.CUSTOM && customRange != null) {
+                            stringResource(
+                                R.string.stats_date_range,
+                                utcDay(customRange.first),
+                                utcDay(customRange.second),
+                            )
+                        } else {
+                            stringResource(R.string.stats_date_custom)
+                        },
+                    )
+                },
+            )
         }
     }
 }
@@ -353,23 +369,24 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
             )
         }
 
-        // Ring digits 5..9, centred in their band on both sides of the horizontal axis.
+        // Ring digits 5..9, centred in their band on all four axis arms.
         val digitPaint = Paint().apply {
             isAntiAlias = true
             textAlign = Paint.Align.CENTER
             textSize = 11f * scale
         }
+        // textAlign centres horizontally; the third of the text size centres vertically.
+        fun digit(ring: Int, x: Float, y: Float) = drawContext.canvas.nativeCanvas.drawText(
+            ring.toString(), x, y + digitPaint.textSize / 3f, digitPaint,
+        )
         for (ring in 5..9) {
             val mid = (RING_RADII_MM[10 - ring] + RING_RADII_MM[9 - ring]) / 2.0
             digitPaint.color =
                 (if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER).toArgb()
-            val baseline = centre.y + digitPaint.textSize / 3f
-            drawContext.canvas.nativeCanvas.drawText(
-                ring.toString(), centre.x - r(mid), baseline, digitPaint,
-            )
-            drawContext.canvas.nativeCanvas.drawText(
-                ring.toString(), centre.x + r(mid), baseline, digitPaint,
-            )
+            digit(ring, centre.x - r(mid), centre.y)
+            digit(ring, centre.x + r(mid), centre.y)
+            digit(ring, centre.x, centre.y - r(mid))
+            digit(ring, centre.x, centre.y + r(mid))
         }
 
         plotted.forEach { series ->
