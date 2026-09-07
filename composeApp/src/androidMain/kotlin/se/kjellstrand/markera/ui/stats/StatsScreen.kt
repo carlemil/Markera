@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import java.time.ZoneOffset
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -97,6 +99,11 @@ private val OLD_HIT = Color(0xFF4FC3F7)
 private val NEW_HIT = Color(0xFF00E676)
 private val MEAN_MARK = Color(0xFFFFC107)
 private val MEDIAN_MARK = Color(0xFFFF4081)
+
+/** Marker geometry, shared by the target and the legend (see [drawMark]). */
+private val MARK_ARM = 5.dp
+private val MARK_HALO = 2.dp
+private val MARK_STROKE = 1.dp
 
 private const val DAY_MS = 24L * 60 * 60 * 1000
 
@@ -478,23 +485,37 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
 
         // Mean (+) and median (×) point of impact, on top of the hits.
         if (stats != null) {
-            val arm = 4f * scale
-            fun mark(xMm: Double, yMm: Double, colour: Color, diagonal: Boolean) {
-                val at = Offset(centre.x + r(xMm), centre.y + r(yMm))
-                val (a, b) = if (diagonal) {
-                    Offset(arm, arm) to Offset(arm, -arm)
-                } else {
-                    Offset(arm, 0f) to Offset(0f, arm)
-                }
-                // Dark pass first, so the marker reads on both paper and black.
-                listOf(BLACK to 4f, colour to 2f).forEach { (c, width) ->
-                    drawLine(c, at - a, at + a, strokeWidth = width)
-                    drawLine(c, at - b, at + b, strokeWidth = width)
-                }
-            }
-            mark(stats.impactXMm, stats.impactYMm, MEAN_MARK, diagonal = false)
-            mark(stats.medianXMm, stats.medianYMm, MEDIAN_MARK, diagonal = true)
+            drawMark(
+                Offset(centre.x + r(stats.impactXMm), centre.y + r(stats.impactYMm)),
+                MEAN_MARK,
+                diagonal = false,
+            )
+            drawMark(
+                Offset(centre.x + r(stats.medianXMm), centre.y + r(stats.medianYMm)),
+                MEDIAN_MARK,
+                diagonal = true,
+            )
         }
+    }
+}
+
+/**
+ * The point-of-impact mark: "+" on the axes, "×" on the diagonals. Sized in dp so
+ * the target and the legend below it draw the identical symbol.
+ */
+private fun DrawScope.drawMark(at: Offset, colour: Color, diagonal: Boolean) {
+    val arm = MARK_ARM.toPx()
+    // The diagonal arms are shortened so both symbols span the same extent.
+    val d = arm / sqrt(2f)
+    val (a, b) = if (diagonal) {
+        Offset(d, d) to Offset(d, -d)
+    } else {
+        Offset(arm, 0f) to Offset(0f, arm)
+    }
+    // Dark pass first, so the marker reads on both paper and black.
+    listOf(BLACK to MARK_HALO, colour to MARK_STROKE).forEach { (c, width) ->
+        drawLine(c, at - a, at + a, strokeWidth = width.toPx())
+        drawLine(c, at - b, at + b, strokeWidth = width.toPx())
     }
 }
 
@@ -503,15 +524,19 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
 private fun MarkerLegend() {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         listOf(
-            "+" to (MEAN_MARK to R.string.stats_legend_mean),
-            "×" to (MEDIAN_MARK to R.string.stats_legend_median),
-        ).forEach { (glyph, it) ->
+            false to (MEAN_MARK to R.string.stats_legend_mean),
+            true to (MEDIAN_MARK to R.string.stats_legend_median),
+        ).forEach { (diagonal, it) ->
             val (colour, label) = it
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(glyph, color = colour, style = MaterialTheme.typography.bodyMedium)
+                // The same draw call as on the target, so the symbols match exactly.
+                // Wide enough that the diagonal arms aren't clipped by the bounds.
+                Canvas(modifier = Modifier.size(MARK_ARM * 4)) {
+                    drawMark(center, colour, diagonal)
+                }
                 Text(
                     stringResource(label),
                     style = MaterialTheme.typography.bodySmall,
