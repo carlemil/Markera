@@ -1,21 +1,11 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Readable stack traces on Play (mapping.txt is uploaded by the Play plugin).
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ONNX Runtime: the native library looks these classes/fields/methods up by name
+# via JNI. The AAR's own proguard.txt only covers ai.onnxruntime.telemetry.*.
+-keep class ai.onnxruntime.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# kotlinx-serialization needs no rules here: kotlinx-serialization-core 1.9.0
+# ships consumer rules (META-INF/com.android.tools/proguard) that already keep
+# Companion, serializer() and the $$serializer descriptor field.

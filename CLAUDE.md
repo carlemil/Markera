@@ -17,6 +17,15 @@ goal and a history of detection approaches tried (and which are in use vs. aband
 ./gradlew :composeApp:testDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```
 
+### Release build
+
+`release` is minified + resource-shrunk (R8). Keep-rules live in
+`composeApp/proguard-rules.pro` (only two blocks: readable stack traces, and
+`ai.onnxruntime.**` for JNI; kotlinx-serialization ships its own consumer rules).
+Mapping lands at `composeApp/build/outputs/mapping/release/mapping.txt` and rides
+to Play inside the AAB, so the Play plugin needs no mapping config. The bundled
+`.so`s are stripped prebuilts, so `ndk.debugSymbolLevel` has nothing to extract.
+
 Instrumented (`androidTest`) tests don't accept `--tests`; select with the runner arg,
 and pin to one device with `ANDROID_SERIAL` (the task runs on every connected device,
 including emulators):
