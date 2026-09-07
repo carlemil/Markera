@@ -2,7 +2,7 @@ services:
   markera-server:
     build: .
     ports:
-      - "8090:8080"
+      - "127.0.0.1:8090:8080"  # plain HTTP only for the host Caddy (https://markera.duckdns.org)
     restart: unless-stopped
     env_file: .env
     environment:

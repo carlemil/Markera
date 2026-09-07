@@ -8,7 +8,7 @@ import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
  * Wires the Markera series backend stack (HTTP client → API → session) on iOS.
  * Mirrors the Android `SeriesServices`; the host app creates one and keeps it.
  */
-class SeriesServices(baseUrl: String = "http://192.168.1.191:8090") {
+class SeriesServices(baseUrl: String = "https://markera.duckdns.org") {
 
     val session: BackendSessionRepository
     val api: SeriesApi

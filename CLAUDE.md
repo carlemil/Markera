@@ -133,7 +133,7 @@ Gotcha: kotlinx-serialization omits fields equal to their defaults — the OAuth
 token (`POST /auth/google|apple`) for an opaque session token, `POST/GET /series`.
 `POST /auth/dev` exists only with `DEV_AUTH=true` (the mock flavor signs in with it).
 It runs in Docker on the Mac mini (`ssh macmini`, Colima, `~/source/Markera/server`,
-host port **8090** — 8080 there belongs to another site). `PLAN.md` holds the design
+bound to 127.0.0.1:**8090** — 8080 there belongs to another site — and published as `https://markera.duckdns.org` by the Mac's host Caddy). `PLAN.md` holds the design
 decisions and the still-open user actions (Google/Apple client ids).
 
 App side: `series/` (commonMain, JVM-unit-tested) has `Caliber`, `SeriesApi`,

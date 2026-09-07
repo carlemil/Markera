@@ -62,6 +62,4 @@ Xcode target setup:
   `com.apple.developer.applesignin`).
 - The target's bundle id must equal `APPLE_BUNDLE_ID` in the server's `.env` —
   the backend verifies it as the identity token's audience.
-- The backend is plain HTTP on the LAN, so add an ATS exception in `Info.plist`:
-  `NSAppTransportSecurity` → `NSExceptionDomains` → `192.168.1.191` →
-  `NSExceptionAllowsInsecureHTTPLoads = YES`.
+- The backend is HTTPS (`https://markera.duckdns.org`), so no ATS exception is needed.

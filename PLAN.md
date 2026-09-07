@@ -129,7 +129,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 25c | App: remove a manual marker by tapping it again; picker slots shift; recorder re-published | done — verified on the phone 2026-09-07 (mock flavor, orange marker added then removed) |
 | 26 | Release signing: upload keystore + `keystore.properties` (gitignored), `signingConfigs.release` wired when the file exists, upload-key SHA-1 `56:A5:24:7E:75:96:CB:58:48:D9:63:F4:6E:AA:71:F6:36:B3:98:A2` (valid to 2054, alias `markera`), release APK verified signed (orchestrator-applied 2026-09-07) | done |
 | 27 | Store assets under `store/`: Swedish short/full description, 512 px icon, 1024×500 feature graphic, phone screenshots; launcher icon replaced (target rings, adaptive vector + legacy webps from `store/gen_assets.py`) | done — a results-screen screenshot with a real target is still wanted |
-| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | active 2026-09-07 (user asked for a step-by-step); recipe below, DNS record + Caddyfile edit are user actions |
+| 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)
 
@@ -156,7 +156,7 @@ No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
 1. The Mac mini already runs Caddy on the host (`/opt/homebrew/etc/Caddyfile`, root launchd
    service, Let's Encrypt for thinnikatech.se; 80/443 are already forwarded from the router, WAN
    IP 92.34.29.118 on 2026-09-07). So: no Caddy container. Add a DNS A record for the chosen
-   hostname (e.g. `markera.thinnikatech.se`) → the WAN IP, then a Caddyfile block
+   hostname (chosen: `markera.duckdns.org`, DuckDNS) → the WAN IP, then a Caddyfile block
    `<host> { reverse_proxy 127.0.0.1:8090 }` and `sudo caddy reload --config /opt/homebrew/etc/Caddyfile`.
 2. `server/docker-compose.yml`: publish `127.0.0.1:8090:8080` so plain HTTP is only reachable
    through Caddy on the same box.

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- The Markera series backend runs plain HTTP on the LAN (see PLAN.md).
-     Cleartext is allowed for that host only; everything else stays HTTPS. -->
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">192.168.1.191</domain>
-    </domain-config>
-</network-security-config>

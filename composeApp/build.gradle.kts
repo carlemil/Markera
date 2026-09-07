@@ -78,7 +78,7 @@ kotlin {
 
 // The Markera series backend (see PLAN.md). Override with -Pmarkera.backend.url=...
 val backendUrl = (project.findProperty("markera.backend.url") as String?)
-    ?: "http://192.168.1.191:8090"
+    ?: "https://markera.duckdns.org"
 
 // Google OAuth *Web* client id, used as `serverClientId` for Credential Manager.
 // Not in version control: put `markera.google.client.id=...` in local.properties.
