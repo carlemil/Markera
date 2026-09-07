@@ -101,6 +101,10 @@ data class SeriesDto(
     val imageWidth: Int? = null,
     val imageHeight: Int? = null,
     val geometry: GeometryDto? = null,
+    /** When the server last changed it — what `GET /series?since=` takes back. */
+    val updatedAt: String? = null,
+    /** A tombstone from the delta: the series is gone, only [id] and [updatedAt] are filled in. */
+    val deleted: Boolean = false,
 )
 
 @Serializable

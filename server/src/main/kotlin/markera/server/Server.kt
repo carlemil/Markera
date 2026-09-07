@@ -114,6 +114,10 @@ data class Series(
     val imageWidth: Int? = null,
     val imageHeight: Int? = null,
     val geometry: Geometry? = null,
+    /** When the series last changed, in the format `GET /series?since=` takes back. */
+    val updatedAt: String = "",
+    /** A tombstone from the delta: the series is gone, and only [id] and [updatedAt] are filled in. */
+    val deleted: Boolean = false,
 )
 
 @Serializable
@@ -186,12 +190,17 @@ fun Application.markeraModule(config: Config, db: Db) {
             call.respond(HttpStatusCode.NoContent)
         }
 
-        // Paging: `limit` (default 50, clamped 1..200) newest first, `before` = the last id of the previous page.
+        // `since` = the sync delta: everything changed at or after that `updatedAt`, tombstones included and
+        // unpaged, so `limit`/`before` are ignored with it. Without it the live series, newest id first, paged
+        // by `limit` (default 50, clamped 1..200) and `before` = the last id of the previous page.
         get("/series") {
             val userId = authenticate(db) ?: return@get
-            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 200)
-            val before = call.request.queryParameters["before"]?.toLongOrNull()
-            call.respond(db.listSeries(userId, limit, before).map { it.copy(hasImage = imageFile(images, it.id).isFile) })
+            val since = call.request.queryParameters["since"]
+            val series = if (since != null) db.seriesSince(userId, since) else {
+                val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 200)
+                db.listSeries(userId, limit, call.request.queryParameters["before"]?.toLongOrNull())
+            }
+            call.respond(series.map { if (it.deleted) it else it.copy(hasImage = imageFile(images, it.id).isFile) })
         }
 
         delete("/series/{id}") {
@@ -231,7 +240,7 @@ fun Application.markeraModule(config: Config, db: Db) {
             // page can place markers on the (downscaled but same-aspect) JPEG. Nonsense values are ignored.
             val width = call.request.queryParameters["width"]?.toIntOrNull()?.takeIf { it > 0 }
             val height = call.request.queryParameters["height"]?.toIntOrNull()?.takeIf { it > 0 }
-            if (width != null && height != null) db.setImageSize(seriesId, width, height)
+            db.imageStored(seriesId, width, height)
             call.respond(HttpStatusCode.NoContent)
         }
 

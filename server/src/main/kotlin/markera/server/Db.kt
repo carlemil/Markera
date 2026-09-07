@@ -59,6 +59,8 @@ class Db(dbPath: String) : AutoCloseable {
                      timestamp TEXT NOT NULL,
                      caliber TEXT NOT NULL,
                      created_at TEXT NOT NULL,
+                     updated_at TEXT NOT NULL,
+                     deleted_at TEXT,
                      image_width INTEGER,
                      image_height INTEGER,
                      ${GEOMETRY_COLUMNS.joinToString(", ") { "$it REAL" }})"""
@@ -74,6 +76,13 @@ class Db(dbPath: String) : AutoCloseable {
             // Databases created before the app sent the target geometry it scored against.
             if ("centre_x" !in seriesColumns) {
                 for (column in GEOMETRY_COLUMNS) st.executeUpdate("ALTER TABLE series ADD COLUMN $column REAL")
+            }
+            // Databases created before the delta sync (updated_at) and soft deletes (deleted_at).
+            if ("updated_at" !in seriesColumns) {
+                // ALTER TABLE cannot add a NOT NULL column without a default; every row is then backfilled.
+                st.executeUpdate("ALTER TABLE series ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''")
+                st.executeUpdate("ALTER TABLE series ADD COLUMN deleted_at TEXT")
+                st.executeUpdate("UPDATE series SET updated_at = created_at")
             }
             st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
@@ -149,8 +158,8 @@ class Db(dbPath: String) : AutoCloseable {
     ): Long {
         val seriesId: Long
         conn.prepareStatement(
-            "INSERT INTO series(user_id, timestamp, caliber, created_at, ${GEOMETRY_COLUMNS.joinToString(", ")}) " +
-                "VALUES (?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at, " +
+                "${GEOMETRY_COLUMNS.joinToString(", ")}) VALUES (?, ?, ?, datetime('now'), $NOW, ?, ?, ?, ?, ?, ?, ?)",
             Statement.RETURN_GENERATED_KEYS
         ).use {
             it.setLong(1, userId)
@@ -168,8 +177,8 @@ class Db(dbPath: String) : AutoCloseable {
     @Synchronized
     fun replaceSeries(seriesId: Long, req: SeriesRequest) {
         conn.prepareStatement(
-            "UPDATE series SET timestamp = ?, caliber = ?, ${GEOMETRY_COLUMNS.joinToString(", ") { "$it = ?" }} " +
-                "WHERE id = ?"
+            "UPDATE series SET timestamp = ?, caliber = ?, updated_at = $NOW, " +
+                "${GEOMETRY_COLUMNS.joinToString(", ") { "$it = ?" }} WHERE id = ?"
         ).use {
             it.setString(1, req.timestamp)
             it.setString(2, req.caliber)
@@ -215,7 +224,7 @@ class Db(dbPath: String) : AutoCloseable {
         val users = mutableListOf<UserRow>()
         conn.prepareStatement(
             """SELECT u.id, u.provider, u.subject, u.name, u.created_at, COUNT(s.id)
-               FROM users u LEFT JOIN series s ON s.user_id = u.id $filter
+               FROM users u LEFT JOIN series s ON s.user_id = u.id AND s.deleted_at IS NULL $filter
                GROUP BY u.id ORDER BY u.id DESC"""
         ).use { st ->
             st.executeQuery().use { rs ->
@@ -231,7 +240,7 @@ class Db(dbPath: String) : AutoCloseable {
 
     @Synchronized
     fun getSeries(seriesId: Long): Series? {
-        conn.prepareStatement("$SERIES_SELECT WHERE id = ?").use { st ->
+        conn.prepareStatement("$SERIES_SELECT WHERE id = ? AND deleted_at IS NULL").use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
                 if (!rs.next()) return null
@@ -240,40 +249,70 @@ class Db(dbPath: String) : AutoCloseable {
         }
     }
 
-    /** The size of the frame the app measured the hole coordinates in; sent with the image upload. */
+    /**
+     * A stored JPEG changes the series for the delta, so it bumps `updated_at` even when the upload carried
+     * no size. [width]/[height] are the frame the app measured the hole coordinates in; null keeps the old ones.
+     */
     @Synchronized
-    fun setImageSize(seriesId: Long, width: Int, height: Int) {
-        conn.prepareStatement("UPDATE series SET image_width = ?, image_height = ? WHERE id = ?").use {
-            it.setInt(1, width); it.setInt(2, height); it.setLong(3, seriesId); it.executeUpdate()
+    fun imageStored(seriesId: Long, width: Int?, height: Int?) {
+        // Half a size could not place a marker, so only a complete one is stored.
+        val size = if (width == null || height == null) null else width to height
+        conn.prepareStatement(
+            "UPDATE series SET image_width = COALESCE(?, image_width), image_height = COALESCE(?, image_height), " +
+                "updated_at = $NOW WHERE id = ?"
+        ).use {
+            it.setObject(1, size?.first); it.setObject(2, size?.second); it.setLong(3, seriesId); it.executeUpdate()
         }
     }
 
     @Synchronized
     fun seriesOwner(seriesId: Long): Long? {
-        conn.prepareStatement("SELECT user_id FROM series WHERE id = ?").use {
+        conn.prepareStatement("SELECT user_id FROM series WHERE id = ? AND deleted_at IS NULL").use {
             it.setLong(1, seriesId)
             it.executeQuery().use { rs -> return if (rs.next()) rs.getLong(1) else null }
         }
     }
 
-    /** Newest first. [beforeId] pages by id (monotonic with insertion), which is what the app holds from the last page. */
+    /**
+     * Newest id first — the order the `id < before` cursor pages in; the app sorts by timestamp itself.
+     * [beforeId] is the last id of the previous page.
+     */
     @Synchronized
     fun listSeries(userId: Long, limit: Int = Int.MAX_VALUE, beforeId: Long? = null): List<Series> {
         val series = mutableListOf<Series>()
         val before = if (beforeId == null) "" else " AND id < $beforeId" // a Long, never client text
-        conn.prepareStatement("$SERIES_SELECT WHERE user_id = ?$before ORDER BY timestamp DESC, id DESC LIMIT ?")
-            .use { st ->
-                st.setLong(1, userId)
-                st.setInt(2, limit)
-                st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
-            }
+        conn.prepareStatement(
+            "$SERIES_SELECT WHERE user_id = ? AND deleted_at IS NULL$before ORDER BY id DESC LIMIT ?"
+        ).use { st ->
+            st.setLong(1, userId)
+            st.setInt(2, limit)
+            st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
+        }
         return series.map { it.copy(holes = holesOf(it.id)) }
     }
 
+    /**
+     * The sync delta: every series of the user touched at or after [since] (inclusive — the client dedupes
+     * by id), deleted ones as tombstones. Unpaged; a client only ever asks for what changed since its last
+     * sync. [since] is an `updated_at` the client got back from us, but an ISO instant is tolerated so a
+     * stray `T`/`Z` cannot silently match nothing.
+     */
+    @Synchronized
+    fun seriesSince(userId: Long, since: String): List<Series> {
+        val series = mutableListOf<Series>()
+        conn.prepareStatement("$SERIES_SELECT WHERE user_id = ? AND updated_at >= ? ORDER BY id").use { st ->
+            st.setLong(1, userId)
+            st.setString(2, since.trim().removeSuffix("Z").replace('T', ' '))
+            st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
+        }
+        return series.map { if (it.deleted) it else it.copy(holes = holesOf(it.id)) }
+    }
+
+    /** Soft delete: the row stays as a tombstone for the delta, but its holes are dropped with the image. */
     @Synchronized
     fun deleteSeries(seriesId: Long) {
         execute("DELETE FROM holes WHERE series_id = ?", seriesId)
-        execute("DELETE FROM series WHERE id = ?", seriesId)
+        execute("UPDATE series SET deleted_at = $NOW, updated_at = $NOW WHERE id = ?", seriesId)
     }
 
     /** Drops the user, their sessions and every series; returns the deleted series ids so the caller can drop images. */
@@ -319,17 +358,26 @@ class Db(dbPath: String) : AutoCloseable {
         val random = SecureRandom()
 
         val SERIES_SELECT =
-            "SELECT id, timestamp, caliber, image_width, image_height, ${GEOMETRY_COLUMNS.joinToString(", ")} FROM series"
+            "SELECT id, timestamp, caliber, image_width, image_height, ${GEOMETRY_COLUMNS.joinToString(", ")}, " +
+                "updated_at, deleted_at FROM series"
 
-        fun seriesRow(rs: ResultSet) = Series(
-            id = rs.getLong(1),
-            timestamp = rs.getString(2),
-            caliber = rs.getString(3),
-            holes = emptyList(),
-            imageWidth = rs.intOrNull(4),
-            imageHeight = rs.intOrNull(5),
-            geometry = geometryRow(rs),
-        )
+        /** A soft-deleted row is a tombstone: only the id and when it went, so the client can drop it. */
+        fun seriesRow(rs: ResultSet): Series {
+            val updatedAt = rs.getString(13)
+            if (rs.getString(14) != null) {
+                return Series(rs.getLong(1), "", "", emptyList(), updatedAt = updatedAt, deleted = true)
+            }
+            return Series(
+                id = rs.getLong(1),
+                timestamp = rs.getString(2),
+                caliber = rs.getString(3),
+                holes = emptyList(),
+                imageWidth = rs.intOrNull(4),
+                imageHeight = rs.intOrNull(5),
+                geometry = geometryRow(rs),
+                updatedAt = updatedAt,
+            )
+        }
 
         /** Columns 6..12 of [SERIES_SELECT]; any of them null means the series has no geometry. */
         fun geometryRow(rs: ResultSet): Geometry? {
@@ -351,6 +399,12 @@ class Db(dbPath: String) : AutoCloseable {
                detected_y REAL"""
     }
 }
+
+/**
+ * Now, as SQLite's UTC text (`datetime('now')`) plus milliseconds — the delta compares `updated_at` as a
+ * string, and whole seconds cannot tell two writes in the same second apart.
+ */
+private const val NOW = "strftime('%Y-%m-%d %H:%M:%f', 'now')"
 
 /** The [Geometry] fields, in field order; every use below relies on that order. */
 private val GEOMETRY_COLUMNS =

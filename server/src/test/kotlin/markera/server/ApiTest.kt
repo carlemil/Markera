@@ -56,6 +56,10 @@ class ApiTest {
 
     private suspend fun HttpClient.admin(path: String) = get(path) { basicAuth("admin", ADMIN_PW) }
 
+    /** `updated_at` comes from the OS clock, whose granularity is ~16 ms on Windows: wait out a tick so the
+     *  next write is provably later. */
+    private fun tick() = Thread.sleep(20)
+
     private suspend fun HttpClient.devAuth(subject: String): AuthResponse =
         post("/auth/dev") { contentType(ContentType.Application.Json); setBody(DevAuthRequest(subject)) }.body()
 
@@ -750,6 +754,147 @@ class ApiTest {
         assertEquals(listOf(ids[4]), page("?limit=0"))
         assertEquals(ids.reversed(), page("?limit=999"))
         assertEquals(ids.reversed(), page(""))
+    }
+
+    @Test
+    fun seriesListPagesByIdWhateverTheTimestampsSay() = apiTest { client ->
+        val me = client.devAuth("me")
+        // Timestamps deliberately out of insertion order: the cursor pages by id, so the order must too.
+        val ids = listOf("2026-09-03", "2026-09-01", "2026-09-05", "2026-09-02")
+            .map { client.createSeries(me.token, series(timestamp = "${it}T10:00:00Z")) }
+
+        suspend fun page(query: String) =
+            client.get("/series$query") { bearerAuth(me.token) }.body<List<Series>>().map { it.id }
+
+        assertEquals(ids.reversed().take(2), page("?limit=2"))
+        assertEquals(ids.reversed().drop(2), page("?limit=2&before=${ids[2]}"))
+        assertEquals(ids.reversed(), page(""))
+    }
+
+    @Test
+    fun deletedSeriesAreGoneFromTheListAndEveryRoute() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val kept = client.createSeries(me.token)
+        val doomed = client.createSeries(me.token)
+        client.putImage(me.token, doomed, ByteArray(16))
+        assertEquals(HttpStatusCode.NoContent, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
+
+        assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
+        // Every route that resolves an id treats it as unknown, and the second delete is a 404 too.
+        assertEquals(HttpStatusCode.NotFound, client.get("/series/$doomed/image") { bearerAuth(me.token) }.status)
+        assertEquals(HttpStatusCode.NotFound, client.putImage(me.token, doomed, ByteArray(16)).status)
+        assertEquals(HttpStatusCode.NotFound, client.put("/series/$doomed") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series())
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/series/$doomed").status)
+        // ...and the admin user page counts only the live one.
+        assertTrue("""<a href="/admin/series/$doomed">""" !in client.admin("/admin/users/${me.userId}").bodyAsText())
+    }
+
+    @Test
+    fun deltaReturnsChangedSeriesAndTombstones() = apiTest { client ->
+        val me = client.devAuth("me")
+        val untouched = client.createSeries(me.token)
+        val edited = client.createSeries(me.token)
+        tick()
+        val doomed = client.createSeries(me.token)
+
+        suspend fun delta(since: String) =
+            client.get("/series?since=$since") { bearerAuth(me.token) }.body<List<Series>>()
+
+        val all = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>()
+        val mark = all.maxOf { it.updatedAt }
+        // `since` is inclusive: the newest series is still in its own delta.
+        assertEquals(listOf(doomed), delta(mark).map { it.id })
+        assertEquals(all.map { it.id }.sorted(), delta(all.minOf { it.updatedAt }).map { it.id })
+
+        tick()
+        client.put("/series/$edited") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series(caliber = "22lr"))
+        }
+        tick()
+        client.delete("/series/$doomed") { bearerAuth(me.token) }
+
+        val changed = delta(mark).associateBy { it.id }
+        assertEquals(listOf(edited, doomed), changed.keys.toList())
+        assertEquals("22lr", changed[edited]?.caliber)
+        assertEquals(false, changed[edited]?.deleted)
+        // The tombstone carries an id and a stamp, nothing else.
+        assertEquals(Series(doomed, "", "", emptyList(), updatedAt = changed[doomed]!!.updatedAt, deleted = true), changed[doomed])
+        assertTrue(changed[doomed]!!.updatedAt > mark)
+        // Syncing up to the last change leaves only that change itself (inclusive) to come back.
+        assertEquals(listOf(doomed), delta(changed[doomed]!!.updatedAt).map { it.id })
+        // The untouched series never shows up again, and paging arguments are ignored with `since`.
+        assertEquals(listOf(edited, doomed), client.get("/series?since=$mark&limit=1") {
+            bearerAuth(me.token)
+        }.body<List<Series>>().map { it.id })
+        assertTrue(untouched !in changed.keys)
+    }
+
+    @Test
+    fun updatedAtMovesOnEveryWrite() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+
+        suspend fun stamp() = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().updatedAt
+
+        val created = stamp()
+        assertTrue(created.isNotEmpty(), "a stored series always carries updatedAt")
+
+        tick()
+        client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series(caliber = "22lr"))
+        }
+        val afterPut = stamp()
+        assertTrue(afterPut > created, "PUT must move updatedAt: $created -> $afterPut")
+
+        // Uploading the JPEG changes the series (hasImage), size or no size.
+        tick()
+        client.putImage(me.token, id, ByteArray(16))
+        val afterImage = stamp()
+        assertTrue(afterImage > afterPut, "the image upload must move updatedAt: $afterPut -> $afterImage")
+
+        tick()
+        client.putImage(me.token, id, ByteArray(16), query = "?width=100&height=200")
+        val afterSize = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
+        assertTrue(afterSize.updatedAt > afterImage)
+        assertEquals(100 to 200, afterSize.imageWidth to afterSize.imageHeight)
+    }
+
+    @Test
+    fun oldDatabasesGainTheSyncColumns() {
+        val dbFile = File.createTempFile("markera-old-sync", ".db").also { it.delete(); it.deleteOnExit() }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().use { st ->
+                st.executeUpdate(
+                    """CREATE TABLE users (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         provider TEXT NOT NULL, subject TEXT NOT NULL, created_at TEXT NOT NULL,
+                         UNIQUE(provider, subject))"""
+                )
+                st.executeUpdate(
+                    """CREATE TABLE series (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         user_id INTEGER NOT NULL REFERENCES users(id),
+                         timestamp TEXT NOT NULL, caliber TEXT NOT NULL, created_at TEXT NOT NULL)"""
+                )
+                st.executeUpdate("INSERT INTO users(provider, subject, created_at) VALUES ('google', 'old', 'then')")
+                st.executeUpdate(
+                    """INSERT INTO series(user_id, timestamp, caliber, created_at)
+                       VALUES (1, '2026-09-06T12:34:56Z', '9mm', '2026-09-06 12:00:00')"""
+                )
+            }
+        }
+        Db(dbFile.path).use { db ->
+            // Backfilled from created_at, so an existing series is part of the very first delta.
+            assertEquals("2026-09-06 12:00:00", db.listSeries(1).single().updatedAt)
+            assertEquals(listOf(1L), db.seriesSince(1, "2026-09-06 12:00:00").map { it.id })
+            assertEquals(emptyList(), db.seriesSince(1, "2026-09-06 12:00:01").map { it.id })
+            db.deleteSeries(1)
+            assertEquals(emptyList(), db.listSeries(1))
+            assertEquals(listOf(true), db.seriesSince(1, "2026-09-06 12:00:00").map { it.deleted })
+        }
     }
 
     @Test
