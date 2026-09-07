@@ -69,6 +69,12 @@ class SeriesStatsTest {
     }
 
     @Test
+    fun `hits null keeps series of every hole count`() {
+        val plotted = listOf(seriesA, seriesB).plotSeries(StatsFilter())
+        assertEquals(listOf(1L, 2L), plotted.map { it.series.id })
+    }
+
+    @Test
     fun `caliber null keeps everything, a caliber keeps only its own`() {
         val other = series(id = 3, caliber = "22lr", holes = seriesA.holes)
         val all = listOf(seriesA, other).plotSeries(StatsFilter(hits = 2))

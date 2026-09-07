@@ -114,7 +114,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     var preset by remember { mutableStateOf(DatePreset.ALL) }
     // Custom window as the picker hands it over: UTC start-of-day millis.
     var customRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
-    var hits by remember { mutableIntStateOf(5) }
+    // null = "Alla": no hole-count filter, which is the default.
+    var hits by remember { mutableStateOf<Int?>(null) }
     var pickingDates by remember { mutableStateOf(false) }
 
     // Series counts are small, so the screen just pulls every page up front.
@@ -185,7 +186,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                         onPreset = { preset = it },
                         onPickDates = { pickingDates = true },
                         hits = hits,
-                        onHits = { hits = it.coerceIn(1, 20) },
+                        onHits = { hits = it?.coerceIn(1, 20) },
                     )
                     if (stats == null) {
                         Text(
@@ -239,8 +240,8 @@ private fun FilterRow(
     customRange: Pair<Long, Long>?,
     onPreset: (DatePreset) -> Unit,
     onPickDates: () -> Unit,
-    hits: Int,
-    onHits: (Int) -> Unit,
+    hits: Int?,
+    onHits: (Int?) -> Unit,
 ) {
     // One child of the caller's 16 dp column, so only the filter rows sit tight.
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
@@ -260,10 +261,10 @@ private fun FilterRow(
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
+                DatePreset.ALL to R.string.stats_date_all,
                 DatePreset.WEEK to R.string.stats_date_week,
                 DatePreset.MONTH to R.string.stats_date_month,
                 DatePreset.YEAR to R.string.stats_date_year,
-                DatePreset.ALL to R.string.stats_date_all,
             ).forEach { (value, label) ->
                 FilterChip(
                     selected = preset == value,
@@ -276,21 +277,39 @@ private fun FilterRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedIconButton(onClick = { onHits(hits - 1) }, enabled = hits > 1) {
+            FilterChip(
+                selected = hits == null,
+                onClick = { onHits(null) },
+                label = { Text(stringResource(R.string.stats_caliber_all)) },
+            )
+            // From "Alla" either button picks up the usual five-shot series.
+            OutlinedIconButton(
+                onClick = { onHits(hits?.minus(1) ?: 5) },
+                enabled = hits == null || hits > 1,
+            ) {
                 Icon(
                     Icons.Default.Remove,
                     contentDescription = stringResource(R.string.stats_hits_fewer),
                 )
             }
-            OutlinedIconButton(onClick = { onHits(hits + 1) }, enabled = hits < 20) {
+            OutlinedIconButton(
+                onClick = { onHits(hits?.plus(1) ?: 5) },
+                enabled = hits == null || hits < 20,
+            ) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = stringResource(R.string.stats_hits_more),
                 )
             }
             Text(
-                stringResource(R.string.stats_hits_label, hits),
+                // Greyed at the count the buttons would land on while "Alla" is picked.
+                stringResource(R.string.stats_hits_label, hits ?: 5),
                 style = MaterialTheme.typography.bodyLarge,
+                color = if (hits == null) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
                 modifier = Modifier.weight(1f),
             )
             FilterChip(

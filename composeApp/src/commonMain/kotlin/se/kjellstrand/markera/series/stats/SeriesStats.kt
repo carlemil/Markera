@@ -39,8 +39,8 @@ data class StatsFilter(
     val caliber: Caliber? = null,
     val from: Instant? = null,
     val to: Instant? = null,
-    /** Exactly this many holes; the usual series is five shots. */
-    val hits: Int = 5,
+    /** Exactly this many holes; null = any count. The usual series is five shots. */
+    val hits: Int? = null,
 )
 
 /** One hole placed in the target plane, mm from the centre, image axes (y down). */
@@ -58,7 +58,7 @@ data class PlottedSeries(val series: SeriesDto, val hits: List<PlottedHit>, val 
 fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
     val kept = mapNotNull { series ->
         val geometry = series.geometry ?: return@mapNotNull null
-        if (series.holes.size != filter.hits) return@mapNotNull null
+        if (filter.hits != null && series.holes.size != filter.hits) return@mapNotNull null
         if (filter.caliber != null && Caliber.fromLabel(series.caliber) != filter.caliber) {
             return@mapNotNull null
         }
