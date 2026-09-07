@@ -147,6 +147,20 @@ saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then 
 goes up as a ≤3072 px q90 JPEG (`POST /series/{id}/image`; a failed upload never fails the
 series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
 The history screen (`ui/history/`) lists series with thumbnails.
+
+**Local cache (PLAN task 57b).** Nothing fetches per screen any more: `SeriesRepository`
+(commonMain, hoisted in `AppNavHost` beside `SeriesServices`) is the single source —
+`series: StateFlow<List<SeriesDto>>` read from **SQLDelight** (`series` + `sync` tables,
+`commonMain/sqldelight/.../series/db/Series.sq`, the whole `SeriesDto` kept as `json`).
+`refresh()` sends the stored `updatedAt` stamp as `GET /series?since=`, upserts what came
+back and deletes the tombstones (no stamp yet → a full paged load); it returns the failure
+instead of throwing, so offline keeps the cached rows. Writes go to the server first, the
+cache after; `SeriesRecorder` saves through it and hands the uploaded JPEG straight to the
+image cache (`cacheDir/series/<id>.jpg`, the `ImageCache` interface), so History never
+re-downloads what the phone just took. History/Statistik/Detail read the flow (Detail looks
+its series up by id); `refresh()` runs at startup, on those screens opening, and after
+sign-in. Sign-out, account deletion and a different user `clear()` both tables and the
+image dir. JVM-tested in `SeriesRepositoryTest` (in-memory SQLite + `ktor-client-mock`).
 The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
 `signInWithProvider` (Credential Manager + `googleid`, needs
 `markera.google.client.id` in `local.properties`). Backend URL is

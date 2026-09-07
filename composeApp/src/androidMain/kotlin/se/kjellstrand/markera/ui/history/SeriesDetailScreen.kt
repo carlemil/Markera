@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,7 +90,10 @@ private const val PHOTO_MAX_DIM = 1536
  * the hole sits. "Spara" PUTs the whole series back; going back discards.
  */
 @Composable
-fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
+fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
+    // Looked up in the cache by id, so an edit made anywhere else shows here.
+    val cached by services.repository.series.collectAsState()
+    val series = cached.firstOrNull { it.id == initial.id } ?: initial
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // A plain State (not `by`), so the drag gesture — which is not recomposed —
@@ -109,12 +113,9 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
 
     LaunchedEffect(series.id) {
         if (!series.hasImage) return@LaunchedEffect
-        try {
-            val bytes = services.api.getSeriesImage(series.id)
-            photo = decodeSeriesJpeg(bytes, PHOTO_MAX_DIM)?.asImageBitmap()
-        } catch (_: Throwable) {
-            // No photo is the whole fallback; the list still works.
-        }
+        // Null (a failed download with nothing cached) is the whole fallback.
+        val bytes = services.repository.image(series.id) ?: return@LaunchedEffect
+        photo = decodeSeriesJpeg(bytes, PHOTO_MAX_DIM)?.asImageBitmap()
     }
 
     // Without the source-frame size the hole pixels mean nothing against the
@@ -265,7 +266,7 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                         saving = true
                         scope.launch {
                             try {
-                                services.api.updateSeries(
+                                services.repository.update(
                                     series.id,
                                     SeriesRequest(
                                         series.timestamp,
@@ -295,7 +296,7 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                 confirmDelete = false
                 scope.launch {
                     try {
-                        services.api.deleteSeries(series.id)
+                        services.repository.delete(series.id)
                         onBack()
                     } catch (_: Throwable) {
                         Toast.makeText(context, deleteFailedText, Toast.LENGTH_SHORT).show()

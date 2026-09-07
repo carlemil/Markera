@@ -75,7 +75,6 @@ import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
-import se.kjellstrand.markera.series.nextPageCursor
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.SeriesStatistics
@@ -125,7 +124,8 @@ private const val DAY_MS = 24L * 60 * 60 * 1000
 @Composable
 fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     val auth by services.session.auth.collectAsState()
-    var series by remember { mutableStateOf<List<SeriesDto>?>(null) }
+    val series by services.repository.series.collectAsState()
+    var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
 
@@ -138,23 +138,12 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     var pickingDates by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
 
-    // Series counts are small, so the screen just pulls every page up front.
+    // The cache holds every series already; opening only asks for the delta.
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
-        series = null
-        error = null
-        try {
-            val all = mutableListOf<SeriesDto>()
-            var before: Long? = null
-            do {
-                val page = services.api.listSeries(before = before)
-                all += page
-                before = nextPageCursor(page)
-            } while (before != null)
-            series = all
-        } catch (t: Throwable) {
-            error = t.message ?: t.toString()
-        }
+        loading = true
+        error = services.repository.refresh()?.let { it.message ?: it.toString() }
+        loading = false
     }
 
     val filter = remember(caliber, preset, customRange, hits) {
@@ -164,8 +153,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
         val (presetFrom, presetTo) = preset.range(Clock.System.now())
         StatsFilter(caliber = caliber, from = from ?: presetFrom, to = to ?: presetTo, hits = hits)
     }
-    val loaded = series
-    val plotted = remember(loaded, filter) { loaded.orEmpty().plotSeries(filter) }
+    val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -190,7 +178,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
             when {
                 auth == null -> Centered { Text(stringResource(R.string.stats_signed_out)) }
 
-                error != null -> Centered {
+                // Cached series still plot: an error only shows with nothing to draw.
+                error != null && series.isEmpty() -> Centered {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -200,7 +189,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                     }
                 }
 
-                loaded == null -> Centered { CircularProgressIndicator() }
+                loading && series.isEmpty() -> Centered { CircularProgressIndicator() }
 
                 else -> Column(
                     modifier = Modifier
@@ -210,7 +199,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     FilterRow(
-                        calibers = loaded.calibersWithGeometry(),
+                        calibers = series.calibersWithGeometry(),
                         caliber = caliber,
                         onCaliber = { caliber = it },
                         preset = preset,

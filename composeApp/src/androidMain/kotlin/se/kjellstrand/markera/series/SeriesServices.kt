@@ -7,23 +7,27 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.ktor.client.engine.okhttp.OkHttp
 import java.io.ByteArrayOutputStream
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.BuildConfig
+import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
 /**
- * Wires the Markera series backend stack (HTTP client → API → session).
- * One instance for the app; create it in the nav root and pass it down.
+ * Wires the Markera series backend stack (HTTP client → API → session → local
+ * cache). One instance for the app; create it in the nav root and pass it down.
  */
 class SeriesServices(context: Context) {
 
     val session: BackendSessionRepository
     val api: SeriesApi
     val store = DataStoreBackendTokenStore(context)
+    val repository: SeriesRepository
 
     init {
         val client = createWebshooterHttpClient(OkHttp.create())
@@ -31,6 +35,36 @@ class SeriesServices(context: Context) {
         api = SeriesApi(client, BuildConfig.BACKEND_URL, tokenProvider = { repo.currentToken })
         repo = BackendSessionRepository(api, store)
         session = repo
+        repository = SeriesRepository(
+            api = api,
+            db = MarkeraDb(AndroidSqliteDriver(MarkeraDb.Schema, context, "markera-series.db")),
+            images = FileImageCache(File(context.cacheDir, "series")),
+            session = repo,
+        )
+    }
+}
+
+/** The cached series JPEGs, one file per id under `cacheDir/series/`. */
+class FileImageCache(private val dir: File) : ImageCache {
+
+    private fun file(id: Long) = File(dir, "$id.jpg")
+
+    override fun read(id: Long): ByteArray? =
+        file(id).takeIf { it.isFile }?.let { runCatching { it.readBytes() }.getOrNull() }
+
+    override fun write(id: Long, bytes: ByteArray) {
+        runCatching {
+            dir.mkdirs()
+            file(id).writeBytes(bytes)
+        }
+    }
+
+    override fun delete(id: Long) {
+        file(id).delete()
+    }
+
+    override fun clear() {
+        dir.deleteRecursively()
     }
 }
 

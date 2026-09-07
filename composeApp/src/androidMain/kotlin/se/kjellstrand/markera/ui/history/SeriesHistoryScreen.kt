@@ -33,7 +33,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -58,7 +57,6 @@ import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.decodeSeriesJpeg
-import se.kjellstrand.markera.series.nextPageCursor
 import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
@@ -68,7 +66,7 @@ private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-M
 /** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
 private const val THUMB_MAX_DIM = 256
 
-/** The series saved on the Markera backend, newest first, paged as you scroll. */
+/** The cached series, newest first; opening asks the backend for a delta. */
 @Composable
 fun SeriesHistoryScreen(
     services: SeriesServices,
@@ -76,51 +74,23 @@ fun SeriesHistoryScreen(
     onOpen: (SeriesDto) -> Unit = {},
 ) {
     val auth by services.session.auth.collectAsState()
-    var series by remember { mutableStateOf<List<SeriesDto>?>(null) }
+    val series by services.repository.series.collectAsState()
+    var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
-    // Cursor for the next page; null once the last (short) page arrived.
-    var cursor by remember { mutableStateOf<Long?>(null) }
-    var pageError by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf<SeriesDto?>(null) }
     // Thumbnails are small and few; one map for the screen beats a real image
     // loader (no Coil in this app).
     val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
     val listState = rememberLazyListState()
-    val lastVisible by remember {
-        derivedStateOf { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
-    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
-        series = null
-        error = null
-        pageError = false
-        cursor = null
-        try {
-            val page = services.api.listSeries()
-            series = page
-            cursor = nextPageCursor(page)
-        } catch (t: Throwable) {
-            error = t.message ?: t.toString()
-        }
-    }
-
-    // Next page once the last row is on screen. A failed page parks here until
-    // the retry row clears [pageError].
-    LaunchedEffect(lastVisible, cursor, pageError) {
-        val before = cursor ?: return@LaunchedEffect
-        val loaded = series ?: return@LaunchedEffect
-        if (pageError || lastVisible < loaded.lastIndex) return@LaunchedEffect
-        try {
-            val page = services.api.listSeries(before = before)
-            series = loaded + page
-            cursor = nextPageCursor(page)
-        } catch (_: Throwable) {
-            pageError = true
-        }
+        loading = true
+        error = services.repository.refresh()?.let { it.message ?: it.toString() }
+        loading = false
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -133,7 +103,8 @@ fun SeriesHistoryScreen(
             when {
                 auth == null -> Centered { Text(stringResource(R.string.history_signed_out)) }
 
-                error != null -> Column(
+                // A failed delta only takes over the screen with nothing cached to show.
+                error != null && series.isEmpty() -> Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(24.dp),
@@ -144,9 +115,9 @@ fun SeriesHistoryScreen(
                     Button(onClick = { reload++ }) { Text(stringResource(R.string.history_retry)) }
                 }
 
-                series == null -> Centered { CircularProgressIndicator() }
+                loading && series.isEmpty() -> Centered { CircularProgressIndicator() }
 
-                series!!.isEmpty() -> Centered { Text(stringResource(R.string.history_empty)) }
+                series.isEmpty() -> Centered { Text(stringResource(R.string.history_empty)) }
 
                 else -> LazyColumn(
                     state = listState,
@@ -154,7 +125,7 @@ fun SeriesHistoryScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(series!!, key = { it.id }) { item ->
+                    items(series, key = { it.id }) { item ->
                         SeriesCard(
                             series = item,
                             services = services,
@@ -162,24 +133,6 @@ fun SeriesHistoryScreen(
                             onClick = { onOpen(item) },
                             onLongPress = { pending = item },
                         )
-                    }
-                    if (cursor != null) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                if (pageError) {
-                                    Button(onClick = { pageError = false }) {
-                                        Text(stringResource(R.string.history_retry))
-                                    }
-                                } else {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -194,8 +147,7 @@ fun SeriesHistoryScreen(
                 pending = null
                 scope.launch {
                     try {
-                        services.api.deleteSeries(target.id)
-                        series = series?.filterNot { it.id == target.id }
+                        services.repository.delete(target.id)
                         thumbnails.remove(target.id)
                     } catch (_: Throwable) {
                         Toast.makeText(
@@ -254,13 +206,10 @@ private fun SeriesCard(
     if (series.hasImage) {
         LaunchedEffect(series.id) {
             if (thumbnails[series.id] != null) return@LaunchedEffect
-            try {
-                val bytes = services.api.getSeriesImage(series.id)
-                decodeSeriesJpeg(bytes, THUMB_MAX_DIM)?.let {
-                    thumbnails[series.id] = it.asImageBitmap()
-                }
-            } catch (_: Throwable) {
-                // No thumbnail is the whole fallback.
+            // Cached on disk after the first fetch, so reopening downloads nothing.
+            val bytes = services.repository.image(series.id) ?: return@LaunchedEffect
+            decodeSeriesJpeg(bytes, THUMB_MAX_DIM)?.let {
+                thumbnails[series.id] = it.asImageBitmap()
             }
         }
     }

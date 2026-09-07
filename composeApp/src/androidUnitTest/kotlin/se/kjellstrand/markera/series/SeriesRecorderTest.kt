@@ -86,10 +86,13 @@ class SeriesRecorderTest {
                 if (signedIn) BackendAuth("tok", 1, "dev") else null,
             ),
         )
+        // The recorder saves through the cache now; a real in-memory one, so
+        // the request counts below are still exactly what goes over the wire.
+        val repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session)
         return runBlocking {
             session.restore()
             SeriesRecorder(
-                api = api,
+                repository = repository,
                 session = session,
                 readCaliber = { stored },
                 writeCaliber = { written += it },

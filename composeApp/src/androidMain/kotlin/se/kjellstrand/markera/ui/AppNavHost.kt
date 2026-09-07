@@ -108,7 +108,7 @@ fun AppNavHost() {
     val scope = rememberCoroutineScope()
     val recorder = remember {
         SeriesRecorder(
-            api = seriesServices.api,
+            repository = seriesServices.repository,
             session = seriesServices.session,
             readCaliber = seriesServices.store::readCaliber,
             writeCaliber = seriesServices.store::writeCaliber,
@@ -144,7 +144,11 @@ fun AppNavHost() {
 
     // Restore a persisted login once at startup.
     LaunchedEffect(Unit) { services.sessionRepository.restore() }
-    LaunchedEffect(Unit) { seriesServices.session.restore() }
+    // The cache is published before the delta lands, so History has rows at once.
+    LaunchedEffect(Unit) {
+        seriesServices.session.restore()
+        seriesServices.repository.refresh()
+    }
     val session by services.sessionRepository.session.collectAsState()
     val backendAuth by seriesServices.session.auth.collectAsState()
 
@@ -167,7 +171,7 @@ fun AppNavHost() {
             onBack = pop,
         )
 
-        // Leaving History disposes it, so coming back from a detail edit refetches.
+        // Both list screens read the cached flow; they only ask for a delta on open.
         Screen.History -> SeriesHistoryScreen(
             services = seriesServices,
             onBack = pop,
@@ -177,7 +181,7 @@ fun AppNavHost() {
         Screen.Statistics -> StatsScreen(services = seriesServices, onBack = pop)
 
         is Screen.SeriesDetail -> SeriesDetailScreen(
-            series = screen.series,
+            initial = screen.series,
             services = seriesServices,
             onBack = pop,
         )
@@ -346,6 +350,7 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                         try {
                             seriesServices.api.deleteAccount()
                             seriesServices.session.signOut()
+                            seriesServices.repository.clear()
                         } catch (_: Throwable) {
                             // Stay signed in; the account is still there.
                             Toast.makeText(
@@ -379,6 +384,8 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                     // LocalContext inside MainActivity is the Activity, which is
                     // what Credential Manager needs.
                     signInWithProvider(context, seriesServices.session)
+                    // A different account must not inherit the last one's cache.
+                    seriesServices.repository.refresh()
                 } catch (t: Throwable) {
                     Toast.makeText(context, t.message ?: t.toString(), Toast.LENGTH_LONG).show()
                 } finally {
@@ -397,7 +404,12 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { scope.launch { seriesServices.session.signOut() } }) {
+                TextButton(onClick = {
+                    scope.launch {
+                        seriesServices.session.signOut()
+                        seriesServices.repository.clear()
+                    }
+                }) {
                     Text(stringResource(R.string.home_sign_out))
                 }
                 TextButton(onClick = { confirmDelete = true }) {

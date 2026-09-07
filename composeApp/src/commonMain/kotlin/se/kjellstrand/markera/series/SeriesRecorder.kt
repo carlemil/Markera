@@ -42,7 +42,7 @@ class EncodedImage(val bytes: ByteArray, val width: Int, val height: Int)
  * the screen that started it.
  */
 class SeriesRecorder(
-    private val api: SeriesApi,
+    private val repository: SeriesRepository,
     private val session: BackendSessionRepository,
     private val readCaliber: suspend () -> Caliber,
     private val writeCaliber: suspend (Caliber) -> Unit,
@@ -148,7 +148,7 @@ class SeriesRecorder(
             if (persist) writeCaliber(caliber)
             if (request == null) return@launch
             val id = try {
-                api.postSeries(request).also {
+                repository.save(request).also {
                     pending = null
                     pendingImage = null
                     _status.value = SaveStatus.Saved(caliber)
@@ -164,7 +164,7 @@ class SeriesRecorder(
             if (image == null) return@launch
             try {
                 val encoded = encodeJpeg(image)
-                api.postSeriesImage(id, encoded.bytes, encoded.width, encoded.height)
+                repository.uploadImage(id, encoded.bytes, encoded.width, encoded.height)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

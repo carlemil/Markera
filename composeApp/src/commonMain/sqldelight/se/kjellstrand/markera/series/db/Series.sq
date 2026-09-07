@@ -1,0 +1,40 @@
+-- The local read cache for the Markera backend (PLAN task 57b). `json` is the
+-- whole SeriesDto; the columns beside it exist only to sort and filter without
+-- decoding. `sync` holds the one `updatedAt` stamp the delta refresh sends back,
+-- keyed by the user it belongs to so another login is detected and wiped.
+
+CREATE TABLE series (
+    id INTEGER NOT NULL PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    caliber TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    has_image INTEGER NOT NULL,
+    json TEXT NOT NULL
+);
+
+CREATE TABLE sync (
+    user_id TEXT NOT NULL PRIMARY KEY,
+    last_sync TEXT NOT NULL
+);
+
+selectAll:
+SELECT json FROM series ORDER BY timestamp DESC;
+
+upsert:
+INSERT OR REPLACE INTO series(id, timestamp, caliber, updated_at, has_image, json)
+VALUES (?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM series WHERE id = ?;
+
+deleteAllSeries:
+DELETE FROM series;
+
+lastSync:
+SELECT user_id, last_sync FROM sync LIMIT 1;
+
+setLastSync:
+INSERT OR REPLACE INTO sync(user_id, last_sync) VALUES (?, ?);
+
+clearSync:
+DELETE FROM sync;

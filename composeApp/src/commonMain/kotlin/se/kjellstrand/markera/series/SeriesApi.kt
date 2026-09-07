@@ -96,6 +96,17 @@ class SeriesApi(
             before?.let { parameter("before", it) }
         }.parseOrThrow()
 
+    /**
+     * The sync delta: every series changed at or after [since] (inclusive, so
+     * the caller dedupes by id), deleted ones as tombstones (`deleted = true`).
+     * [since] is the server's own `updatedAt` stamp, passed back verbatim.
+     */
+    suspend fun listSeriesSince(since: String): List<SeriesDto> =
+        client.get("$base/series") {
+            auth()
+            parameter("since", since)
+        }.parseOrThrow()
+
     /** Replaces the series' timestamp, caliber and holes (the detail screen's save). */
     suspend fun updateSeries(id: Long, req: SeriesRequest) {
         client.put("$base/series/$id") {
