@@ -97,7 +97,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 16 | App: remove the "Dela" share button (nothing to share for now); orchestrator-applied | done |
 | 17 | Admin UI: whole table rows clickable wherever a row has exactly one target page (users → user, series → series) | done |
 | 18a | Admin series page: draw the holes on the photo (positions are in source-image px of the uploaded JPEG, same aspect, so scale by the rendered size), detected and manual in different colours, with the confirmed score as label; typed holes have no position and stay list-only; the image upload takes `?width=&height=` (the scored frame's size) so markers scale onto the JPEG | done |
-| 18b | App: manual marking — a tap on the frozen frame (not on an existing marker) adds a `manual` hole at that image point, scored with the current centre + ring, appended to `scores`, filling the next free picker slot, re-emitted to the recorder as the pending series; overlay draws manual markers in their own colour; no tap effect without geometry; the image upload sends `?width=&height=` (source frame) | done — unit-tested and built; phone check (tap → orange marker → saved as manual → markers on `/admin`) still pending, phone was off USB |
+| 18b | App: manual marking — a tap on the frozen frame (not on an existing marker) adds a `manual` hole at that image point, scored with the current centre + ring, appended to `scores`, filling the next free picker slot, re-emitted to the recorder as the pending series; overlay draws manual markers in their own colour; no tap effect without geometry; the image upload sends `?width=&height=` (source frame) | done (phone-verified 2026-09-07: orange marker, saved as `manual`, markers drawn on `/admin/series/30`) |
 | 19 | App: "Återställ" button beside "Spara" on the frozen frame (requested 2026-09-06 as "next to Detektera" — Detektera only exists in the live view, the frozen view shows Spara in its place): discards the scan (`recorder.clear()`, `clearResults()`, unfreeze, back to the live camera) without saving, for when the geometry/detection went wrong (orchestrator-applied) | done |
 | 20 | App: hide the "Tävling" (competition) entry on Home until the user reprioritises it (requested 2026-09-06); the code stays, only the entry point goes (`SHOW_COMPETITION` in `AppNavHost`) | done |
 | 21 | Home texts: "Fri markering" → "Markera", "Skanna en tavla utan tävling" → "Scanna en tavla" (orchestrator-applied with task 20) | done |
@@ -134,6 +134,13 @@ No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
    `/auth/dev` is a free login and `/admin` shows every user's series without one.
 
 ## Follow-ups / out of scope
+
+- Legacy series (saved before the upload carried the frame size) show no markers on the admin
+  photo. Frame sizes are known: camera flavor on the OnePlus = 1440×1440 (`previewView.bitmap`
+  of the square viewport, confirmed in logcat 2026-09-07), mock flavor = 1203×1203 (dataset
+  images downscaled to 1600 on the long side, then centre-squared; two 3072×4096 images give
+  1200). One-off SQL on the Mac mini (blocked for the orchestrator, user to run):
+  `docker run --rm -v server_markera-data:/data alpine sh -c "apk add -q sqlite && sqlite3 /data/markera.db \"UPDATE series SET image_width=1440, image_height=1440 WHERE image_width IS NULL AND user_id=7; UPDATE series SET image_width=1203, image_height=1203 WHERE image_width IS NULL AND user_id IN (3,9);\""`
 
 - Wizard: corrections made in the wizard's own Confirm picker (`wizardVm.updateShot`) are not
   what `resetScanner(save = true)` passes to `recorder.commit` (it passes the scanner's
