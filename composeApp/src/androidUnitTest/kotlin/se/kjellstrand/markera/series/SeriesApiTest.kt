@@ -133,6 +133,18 @@ class SeriesApiTest {
     }
 
     @Test
+    fun deleteAccountSendsAuthorizedDelete() = runBlocking {
+        val api = api(token = "tok") { respond("", HttpStatusCode.NoContent) }
+
+        api.deleteAccount()
+
+        val request = recorded.single()
+        assertEquals(HttpMethod.Delete, request.method)
+        assertEquals("http://host:8080/account", request.url.toString())
+        assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])
+    }
+
+    @Test
     fun deleteSeriesThrowsWhenNotFound() {
         val api = api(token = "tok") { json("""{"error":"not found"}""", HttpStatusCode.NotFound) }
 

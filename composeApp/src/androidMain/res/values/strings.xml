@@ -23,6 +23,12 @@
     <string name="home_sign_in">Logga in för att spara serier</string>
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
+    <string name="home_delete_account">Radera konto</string>
+    <string name="home_delete_account_title">Radera kontot?</string>
+    <string name="home_delete_account_message">Alla sparade serier och bilder tas bort permanent. Det går inte att ångra.</string>
+    <string name="home_delete_account_confirm">Radera</string>
+    <string name="home_delete_account_cancel">Avbryt</string>
+    <string name="home_delete_account_failed">Kunde inte radera kontot</string>
 
     <!-- Series auto-save -->
     <string name="series_caliber_title">Välj kaliber</string>

@@ -99,6 +99,11 @@ class SeriesApi(
         client.delete("$base/series/$id") { auth() }.throwIfError()
     }
 
+    /** Wipes the caller's account server-side; the session token stops working. */
+    suspend fun deleteAccount() {
+        client.delete("$base/account") { auth() }.throwIfError()
+    }
+
     /**
      * The scanned snapshot for a saved series — a raw JPEG body, no multipart.
      * [width]/[height] are the source-pixel size the hole coordinates are in, so

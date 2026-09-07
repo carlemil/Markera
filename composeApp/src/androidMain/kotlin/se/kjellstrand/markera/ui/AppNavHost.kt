@@ -300,6 +300,41 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.home_delete_account_title)) },
+            text = { Text(stringResource(R.string.home_delete_account_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    busy = true
+                    scope.launch {
+                        try {
+                            seriesServices.api.deleteAccount()
+                            seriesServices.session.signOut()
+                        } catch (_: Throwable) {
+                            // Stay signed in; the account is still there.
+                            Toast.makeText(
+                                context,
+                                R.string.home_delete_account_failed,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        } finally {
+                            busy = false
+                        }
+                    }
+                }) { Text(stringResource(R.string.home_delete_account_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.home_delete_account_cancel))
+                }
+            },
+        )
+    }
 
     if (busy) {
         CircularProgressIndicator(Modifier.size(24.dp))
@@ -323,14 +358,23 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
             Text(stringResource(R.string.home_sign_in))
         }
     } else {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Column, not one row: three items side by side clip on a narrow phone.
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 stringResource(R.string.home_signed_in, auth.provider.replaceFirstChar { it.uppercase() }),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(onClick = { scope.launch { seriesServices.session.signOut() } }) {
-                Text(stringResource(R.string.home_sign_out))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { scope.launch { seriesServices.session.signOut() } }) {
+                    Text(stringResource(R.string.home_sign_out))
+                }
+                TextButton(onClick = { confirmDelete = true }) {
+                    Text(
+                        stringResource(R.string.home_delete_account),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }
