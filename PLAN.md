@@ -160,7 +160,8 @@ GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, HTTP Basic ad
   (no geometry is stored, so it cannot be recomputed). `PUT /series/{id}` (bearer, owner) and `PUT /admin/series/{id}` (Basic) take the
   same body as the POST and replace the series' caliber, timestamp and holes; the admin page edits
   in the browser with a small inline script (no dependencies), added holes there are manual
-  (no detected values).
+  (no detected values). UI rule (user, 2026-09-07): measurements and positions (mm, x, y) show
+  no decimals, in the app and on the admin pages.
 
 
 No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
