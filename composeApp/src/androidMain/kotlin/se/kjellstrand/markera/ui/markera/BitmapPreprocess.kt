@@ -7,19 +7,17 @@ import androidx.camera.core.ImageProxy
 import kotlin.math.min
 
 /**
- * Convert the analyzer-thread ImageProxy into an upright ARGB_8888 Bitmap.
- * CameraX's [ImageProxy.toBitmap] returns the bitmap in sensor orientation;
- * we apply the rotation metadata so downstream coordinates match the
- * PreviewView the user sees.
+ * The captured still as an upright bitmap: the viewport [ImageProxy.getCropRect]
+ * and the sensor rotation applied in one pass over the decoded JPEG, so
+ * downstream coordinates match the square PreviewView the user sees.
  */
 fun ImageProxy.toUprightBitmap(): Bitmap {
-    val raw = toBitmap()
-    val rotation = imageInfo.rotationDegrees
-    if (rotation == 0) return raw
-    val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-    val rotated = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
-    if (rotated !== raw) raw.recycle()
-    return rotated
+    val src = toBitmap()
+    val crop = cropRect
+    val matrix = Matrix().apply { postRotate(imageInfo.rotationDegrees.toFloat()) }
+    val out = Bitmap.createBitmap(src, crop.left, crop.top, crop.width(), crop.height(), matrix, true)
+    if (out !== src) src.recycle()
+    return out
 }
 
 /**
