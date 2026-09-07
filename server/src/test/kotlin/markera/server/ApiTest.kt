@@ -586,8 +586,10 @@ class ApiTest {
         assertTrue("""<button id="save">Save</button>""" in page, page)
         assertTrue("""<button class="del">Delete</button>""" in page, page)
         assertTrue("""<div class="hit" data-i="0"""" in page, page)
-        // The photo has a frame size, so nothing warns about placing markers.
+        // The photo has a frame size, so nothing warns about placing markers and holes are added by
+        // clicking the photo — no position-less "Add hole" button to leave an empty typed row behind.
         assertTrue("class=\"note\"" !in page, page)
+        assertTrue("""id="add"""" !in page, page)
     }
 
     @Test

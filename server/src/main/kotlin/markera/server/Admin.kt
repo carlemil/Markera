@@ -80,7 +80,11 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             """<div class="shot"><img src="/admin/series/$seriesId/image">${geometrySvg(series)}${markers(series)}</div>"""
         }
         // Without the frame size there is nowhere to put a marker, so holes can only be added position-less.
-        val note = if (hasImage && series.imageWidth != null && series.imageHeight != null) "" else {
+        // With a placeable photo, clicking it is the only way to add a hole — a position-less
+        // "Add hole" row next to a placed one just left an empty typed row behind.
+        val placeable = hasImage && series.imageWidth != null && series.imageHeight != null
+        val add = if (placeable) "" else """<button id="add">Add hole</button> """
+        val note = if (placeable) "" else {
             """<p class="note">No photo with a stored frame size, so markers cannot be placed &mdash; """ +
                 """"Add hole" adds one without a position.</p>"""
         }
@@ -93,7 +97,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
-                    """<p><button id="add">Add hole</button> <button id="save">Save</button>""" +
+                    """<p>$add<button id="save">Save</button>""" +
                     """<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
                     """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
@@ -275,9 +279,11 @@ th,td{border:1px solid #35402c;padding:4px 10px;text-align:left}
 th{background:#1c2416}
 tr[onclick]{cursor:pointer}
 tr[onclick]:hover td{background:#1c2416}
-img{display:block;max-width:960px;margin-top:12px;border:1px solid #35402c}
+img{display:block;max-width:960px}
 .cols{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
-.shot{position:relative;display:inline-block}
+/* Margin and border live on the box, not the img: markers and the ring are placed as percentages of
+   this box, so its padding box must be exactly the image pixels for a click to land where it points. */
+.shot{position:relative;display:inline-block;margin-top:12px;border:1px solid #35402c}
 .hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
 font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
@@ -409,7 +415,8 @@ if (placeable) {
   });
 }
 
-document.getElementById('add').onclick = () => addHole(null, null);
+const add = document.getElementById('add');
+if (add) add.onclick = () => addHole(null, null);
 
 document.getElementById('save').onclick = () => {
   const msg = document.getElementById('msg');
