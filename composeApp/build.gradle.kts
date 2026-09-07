@@ -19,6 +19,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    id("com.github.triplet.play") version "4.0.0"
 }
 
 kotlin {
@@ -105,8 +106,8 @@ android {
         applicationId = "se.kjellstrand.markera"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -162,6 +163,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
+}
+
+play {
+    serviceAccountCredentials.set(rootProject.file("play-account.json"))
+    track.set("internal")
+    defaultToAppBundles.set(true)
 }
 
 // ---- Mock camera frames ----------------------------------------------------

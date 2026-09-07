@@ -1,0 +1,5 @@
+Första versionen av Markera:
+• Fotografera tavlan och få serien poängsatt automatiskt
+• Justera, lägg till eller ta bort träffar för hand
+• Serierna sparas med kaliber och finns i historiken
+• Statistik: träffbild och mått över tid
