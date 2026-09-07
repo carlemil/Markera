@@ -157,4 +157,19 @@ class HitScoringTest {
         assertEquals(100.0, major, 1e-3)
         assertEquals(100.0, minor, 1e-3)
     }
+
+    @Test
+    fun `targetOffsetMm keeps the photo direction of a tilted ellipse`() {
+        // Same tilted rim: the major-axis endpoint is 100mm out along the photo
+        // direction (cos θ, sin θ) — the un-projection is rotated back, not left
+        // in the ellipse's own frame.
+        val rot = (PI / 6.0).toFloat()
+        val e = FittedEllipse(cx = 300f, cy = 300f, semiMajor = 200f, semiMinor = 80f, rotationRad = rot)
+        val (dx, dy) = targetOffsetMm(
+            300f + 200f * cos(rot), 300f + 200f * sin(rot), centre(300f, 300f), e,
+        )
+        assertEquals(100.0 * cos(rot.toDouble()), dx, 1e-3)
+        assertEquals(100.0 * sin(rot.toDouble()), dy, 1e-3)
+        assertEquals(100.0, kotlin.math.hypot(dx, dy), 1e-3)
+    }
 }

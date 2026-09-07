@@ -39,14 +39,16 @@ data class HitScore(
 )
 
 /**
- * Distance from the digit-row [centre] to the point [x],[y] (source-image px)
- * in mm, un-projected through the 6/7 [ring] ellipse: rotate so the major axis
- * is +x, stretch the minor-axis component by `semiMajor / semiMinor` to undo
- * the foreshortening, then scale by `TARGET_BLACK_RING_RADIUS_MM / semiMajor`.
- * A degenerate ellipse has no scale, so it measures 0.
+ * Offset from the digit-row [centre] to the point [x],[y] (source-image px) in
+ * target mm, un-projected through the 6/7 [ring] ellipse: rotate so the major
+ * axis is +x, stretch the minor-axis component by `semiMajor / semiMinor` to
+ * undo the foreshortening, scale by `TARGET_BLACK_RING_RADIUS_MM / semiMajor`,
+ * then rotate back by the same angle so the result keeps the photo's
+ * orientation (image axes, y down) and can be plotted as-is.
+ * A degenerate ellipse has no scale, so it measures (0, 0).
  */
-fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Double {
-    if (ring.semiMajor <= 0f || ring.semiMinor <= 0f) return 0.0
+fun targetOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Pair<Double, Double> {
+    if (ring.semiMajor <= 0f || ring.semiMinor <= 0f) return 0.0 to 0.0
     val theta = ring.rotationRad.toDouble()
     val cosT = cos(theta)
     val sinT = sin(theta)
@@ -55,7 +57,14 @@ fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse):
     val xR = dx * cosT + dy * sinT
     val yR = -dx * sinT + dy * cosT
     val yC = yR * (ring.semiMajor / ring.semiMinor).toDouble()
-    return sqrt(xR * xR + yC * yC) * (TARGET_BLACK_RING_RADIUS_MM / ring.semiMajor)
+    val mmPerPx = TARGET_BLACK_RING_RADIUS_MM / ring.semiMajor
+    return (xR * cosT - yC * sinT) * mmPerPx to (xR * sinT + yC * cosT) * mmPerPx
+}
+
+/** Length of [targetOffsetMm] — the distance from the centre to the hole, in mm. */
+fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Double {
+    val (ox, oy) = targetOffsetMm(x, y, centre, ring)
+    return sqrt(ox * ox + oy * oy)
 }
 
 /**
