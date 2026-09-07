@@ -3,13 +3,17 @@ package markera.server
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.client.request.basicAuth
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
@@ -30,20 +34,26 @@ class ApiTest {
 
     private lateinit var imagesDir: File
 
+    private companion object {
+        const val ADMIN_PW = "pw"
+    }
+
     private fun apiTest(
         devAuth: Boolean = true,
-        adminUi: Boolean = false,
+        adminPassword: String? = null,
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
             val dbFile = File.createTempFile("markera-test", ".db").also { it.delete(); it.deleteOnExit() }
             imagesDir = File(dbFile.path + "-images").also { it.deleteOnExit() }
             application {
-                markeraModule(Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminUi), Db(dbFile.path))
+                markeraModule(Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword), Db(dbFile.path))
             }
             val client = createClient { install(ClientContentNegotiation) { json() } }
             block(client)
         }
+
+    private suspend fun HttpClient.admin(path: String) = get(path) { basicAuth("admin", ADMIN_PW) }
 
     private suspend fun HttpClient.devAuth(subject: String): AuthResponse =
         post("/auth/dev") { contentType(ContentType.Application.Json); setBody(DevAuthRequest(subject)) }.body()
@@ -209,7 +219,7 @@ class ApiTest {
     }
 
     @Test
-    fun imageSizeIsStoredAndPlacesMarkersOnTheAdminPhoto() = apiTest(adminUi = true) { client ->
+    fun imageSizeIsStoredAndPlacesMarkersOnTheAdminPhoto() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(
             me.token,
@@ -226,14 +236,14 @@ class ApiTest {
         val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
         assertEquals(100 to 200, stored.imageWidth to stored.imageHeight)
 
-        val page = client.get("/admin/series/$id").bodyAsText()
+        val page = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65">9</div>""" in page, page)
         assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d">7</div>""" in page, page)
         assertEquals(2, Regex("""class="hit"""").findAll(page).count(), page)
     }
 
     @Test
-    fun adminMarksEditedManualAndTypedHoles() = apiTest(adminUi = true) { client ->
+    fun adminMarksEditedManualAndTypedHoles() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(
             me.token,
@@ -248,13 +258,13 @@ class ApiTest {
             ),
         )
 
-        val seriesPage = client.get("/admin/series/$id").bodyAsText()
+        val seriesPage = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("<td>8 &rarr; 9</td>" in seriesPage, seriesPage)
         assertTrue("<td>10 &rarr; X</td>" in seriesPage, seriesPage)
         assertTrue("<td>manual</td>" in seriesPage && "<td>typed</td>" in seriesPage, seriesPage)
 
         // The four non-plain holes are counted on the user's series list.
-        assertTrue("<td>4</td>" in client.get("/admin/users/${me.userId}").bodyAsText())
+        assertTrue("<td>4</td>" in client.admin("/admin/users/${me.userId}").bodyAsText())
     }
 
     @Test
@@ -351,7 +361,7 @@ class ApiTest {
     }
 
     @Test
-    fun adminPagesShowUsersSeriesAndImages() = apiTest(adminUi = true) { client ->
+    fun adminPagesShowUsersSeriesAndImages() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("me")
         val other = client.devAuth("other")
         val mySeries = client.createSeries(me.token)
@@ -359,17 +369,17 @@ class ApiTest {
         val jpeg = ByteArray(64) { it.toByte() }
         client.putImage(me.token, mySeries, jpeg)
 
-        val users = client.get("/admin").bodyAsText()
+        val users = client.admin("/admin").bodyAsText()
         assertTrue("me" in users && "other" in users, users)
         // Two dev users, one series each.
         assertEquals(2, Regex("<td>1</td></tr>").findAll(users).count(), users)
 
-        val userPage = client.get("/admin/users/${me.userId}").bodyAsText()
+        val userPage = client.admin("/admin/users/${me.userId}").bodyAsText()
         assertTrue("9mm" in userPage, userPage)
         assertTrue("<td>19</td>" in userPage, "expected the 9+10 ring total: $userPage")
         assertTrue("""<a href="/admin/series/$mySeries">""" in userPage, userPage)
 
-        val seriesPage = client.get("/admin/series/$mySeries").bodyAsText()
+        val seriesPage = client.admin("/admin/series/$mySeries").bodyAsText()
         assertTrue("<td>31.2</td>" in seriesPage && "<td>true</td>" in seriesPage, seriesPage)
         assertTrue("""<img src="/admin/series/$mySeries/image">""" in seriesPage, seriesPage)
         // Uploaded without the frame size, so the photo shows but carries no markers.
@@ -379,13 +389,13 @@ class ApiTest {
         assertTrue("""<tr onclick="location.href='/admin/users/${me.userId}'">""" in users, users)
         assertTrue("""<tr onclick="location.href='/admin/series/$mySeries'">""" in userPage, userPage)
 
-        val image = client.get("/admin/series/$mySeries/image")
+        val image = client.admin("/admin/series/$mySeries/image")
         assertEquals(HttpStatusCode.OK, image.status)
         assertContentEquals(jpeg, image.bodyAsBytes())
     }
 
     @Test
-    fun adminShowsTheLoginNameFormatsNumbersAndTimestamps() = apiTest(adminUi = true) { client ->
+    fun adminShowsTheLoginNameFormatsNumbersAndTimestamps() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("alice")
         val id = client.createSeries(
             me.token,
@@ -393,10 +403,10 @@ class ApiTest {
         )
 
         // The dev login stores the subject as the name: linked subject cell plus a plain name cell.
-        val users = client.get("/admin").bodyAsText()
+        val users = client.admin("/admin").bodyAsText()
         assertTrue("""<td><a href="/admin/users/${me.userId}">alice</a></td><td>alice</td>""" in users, users)
 
-        val seriesPage = client.get("/admin/series/$id").bodyAsText()
+        val seriesPage = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("<td>1.23</td>" in seriesPage, seriesPage)
         assertTrue("<td>4.25</td>" in seriesPage && "<td>31.2</td>" in seriesPage, seriesPage)
 
@@ -435,23 +445,94 @@ class ApiTest {
     }
 
     @Test
-    fun adminEscapesDatabaseValues() = apiTest(adminUi = true) { client ->
+    fun adminEscapesDatabaseValues() = apiTest(adminPassword = ADMIN_PW) { client ->
         client.devAuth("<b>bold</b>")
-        val users = client.get("/admin").bodyAsText()
+        val users = client.admin("/admin").bodyAsText()
         assertTrue("&lt;b&gt;bold&lt;/b&gt;" in users, users)
         assertTrue("<b>" !in users, users)
     }
 
     @Test
-    fun adminUnknownIdsAre404() = apiTest(adminUi = true) { client ->
+    fun adminUnknownIdsAre404() = apiTest(adminPassword = ADMIN_PW) { client ->
         for (path in listOf("/admin/users/99", "/admin/series/99", "/admin/series/99/image")) {
-            assertEquals(HttpStatusCode.NotFound, client.get(path).status, path)
+            assertEquals(HttpStatusCode.NotFound, client.admin(path).status, path)
         }
     }
 
     @Test
-    fun adminIsAbsentUnlessEnabled() = apiTest { client ->
-        assertEquals(HttpStatusCode.NotFound, client.get("/admin").status)
+    fun adminIsAbsentWithoutAPassword() = apiTest { client ->
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin").status)
+    }
+
+    @Test
+    fun adminNeedsTheRightPassword() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val anonymous = client.get("/admin")
+        assertEquals(HttpStatusCode.Unauthorized, anonymous.status)
+        assertEquals("""Basic realm="markera-admin"""", anonymous.headers[HttpHeaders.WWWAuthenticate])
+        for (bad in listOf("admin" to "nope", "root" to ADMIN_PW)) {
+            val response = client.get("/admin") { basicAuth(bad.first, bad.second) }
+            assertEquals(HttpStatusCode.Unauthorized, response.status, "$bad")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin") { header(HttpHeaders.Authorization, "Basic !!") }.status)
+        assertEquals(HttpStatusCode.OK, client.admin("/admin").status)
+    }
+
+    @Test
+    fun deleteSeriesRemovesItAndItsImage() = apiTest { client ->
+        val me = client.devAuth("me")
+        val kept = client.createSeries(me.token)
+        val doomed = client.createSeries(me.token)
+        client.putImage(me.token, doomed, ByteArray(16))
+        assertTrue(imagesDir.resolve("$doomed.jpg").isFile)
+
+        val stranger = client.devAuth("stranger").token
+        assertEquals(HttpStatusCode.NotFound, client.delete("/series/$doomed") { bearerAuth(stranger) }.status)
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/series/$doomed").status)
+        assertEquals(HttpStatusCode.NotFound, client.delete("/series/999") { bearerAuth(me.token) }.status)
+
+        assertEquals(HttpStatusCode.NoContent, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
+        assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
+        assertTrue(!imagesDir.resolve("$doomed.jpg").isFile)
+    }
+
+    @Test
+    fun deleteAccountRemovesEverythingAndInvalidatesTheToken() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val other = client.devAuth("other")
+        val mine = client.createSeries(me.token)
+        client.putImage(me.token, mine, ByteArray(16))
+        val theirs = client.createSeries(other.token)
+        client.putImage(other.token, theirs, ByteArray(16))
+
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/account").status)
+        assertEquals(HttpStatusCode.NoContent, client.delete("/account") { bearerAuth(me.token) }.status)
+
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth(me.token) }.status)
+        assertTrue(!imagesDir.resolve("$mine.jpg").isFile)
+        val users = client.admin("/admin").bodyAsText()
+        assertTrue("/admin/users/${me.userId}" !in users, users)
+        assertTrue("/admin/users/${other.userId}" in users, users)
+        // The other user is untouched.
+        assertEquals(listOf(theirs), client.get("/series") { bearerAuth(other.token) }.body<List<Series>>().map { it.id })
+        assertTrue(imagesDir.resolve("$theirs.jpg").isFile)
+    }
+
+    @Test
+    fun seriesListPagesNewestFirst() = apiTest { client ->
+        val me = client.devAuth("me")
+        val ids = (1..5).map { client.createSeries(me.token, series(timestamp = "2026-09-0${it}T10:00:00Z")) }
+
+        suspend fun page(query: String) =
+            client.get("/series$query") { bearerAuth(me.token) }.body<List<Series>>().map { it.id }
+
+        assertEquals(ids.reversed().take(2), page("?limit=2"))
+        assertEquals(ids.reversed().drop(2).take(2), page("?limit=2&before=${ids[3]}"))
+        assertEquals(listOf(ids[0]), page("?limit=2&before=${ids[1]}"))
+        assertEquals(emptyList(), page("?limit=2&before=${ids[0]}"))
+        // Out-of-range limits clamp instead of failing.
+        assertEquals(listOf(ids[4]), page("?limit=0"))
+        assertEquals(ids.reversed(), page("?limit=999"))
+        assertEquals(ids.reversed(), page(""))
     }
 
     @Test

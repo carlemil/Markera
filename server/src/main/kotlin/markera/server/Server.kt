@@ -19,6 +19,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -38,8 +39,8 @@ data class Config(
     val devAuth: Boolean,
     /** JPEG snapshots live here as `<seriesId>.jpg`; defaults next to the database so Docker's volume holds both. */
     val imagesDir: String = defaultImagesDir(dbPath),
-    /** Read-only `/admin` pages, no login: LAN-only deployments. */
-    val adminUi: Boolean = false,
+    /** Password for the read-only `/admin` pages (HTTP Basic, user `admin`); blank/null leaves them unregistered. */
+    val adminPassword: String? = null,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -53,7 +54,7 @@ data class Config(
                 appleBundleId = System.getenv("APPLE_BUNDLE_ID")?.ifBlank { null },
                 devAuth = System.getenv("DEV_AUTH") == "true",
                 imagesDir = System.getenv("IMAGES_DIR")?.ifBlank { null } ?: defaultImagesDir(dbPath),
-                adminUi = System.getenv("ADMIN_UI") == "true",
+                adminPassword = System.getenv("ADMIN_PASSWORD")?.ifBlank { null },
             )
         }
     }
@@ -158,9 +159,25 @@ fun Application.markeraModule(config: Config, db: Db) {
             call.respond(HttpStatusCode.Created, IdResponse(id))
         }
 
+        // Paging: `limit` (default 50, clamped 1..200) newest first, `before` = the last id of the previous page.
         get("/series") {
             val userId = authenticate(db) ?: return@get
-            call.respond(db.listSeries(userId).map { it.copy(hasImage = imageFile(images, it.id).isFile) })
+            val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 200)
+            val before = call.request.queryParameters["before"]?.toLongOrNull()
+            call.respond(db.listSeries(userId, limit, before).map { it.copy(hasImage = imageFile(images, it.id).isFile) })
+        }
+
+        delete("/series/{id}") {
+            val seriesId = ownedSeries(db) ?: return@delete
+            db.deleteSeries(seriesId)
+            imageFile(images, seriesId).delete()
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        delete("/account") {
+            val userId = authenticate(db) ?: return@delete
+            db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
+            call.respond(HttpStatusCode.NoContent)
         }
 
         post("/series/{id}/image") {
@@ -201,7 +218,7 @@ fun Application.markeraModule(config: Config, db: Db) {
             call.respondFile(file)
         }
 
-        if (config.adminUi) adminRoutes(db, images)
+        config.adminPassword?.takeIf { it.isNotBlank() }?.let { adminRoutes(db, images, it) }
     }
 }
 

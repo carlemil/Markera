@@ -206,15 +206,43 @@ class Db(dbPath: String) : AutoCloseable {
         }
     }
 
+    /** Newest first. [beforeId] pages by id (monotonic with insertion), which is what the app holds from the last page. */
     @Synchronized
-    fun listSeries(userId: Long): List<Series> {
+    fun listSeries(userId: Long, limit: Int = Int.MAX_VALUE, beforeId: Long? = null): List<Series> {
         val series = mutableListOf<Series>()
-        conn.prepareStatement("$SERIES_SELECT WHERE user_id = ? ORDER BY timestamp DESC, id DESC").use { st ->
-            st.setLong(1, userId)
-            st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
-        }
+        val before = if (beforeId == null) "" else " AND id < $beforeId" // a Long, never client text
+        conn.prepareStatement("$SERIES_SELECT WHERE user_id = ?$before ORDER BY timestamp DESC, id DESC LIMIT ?")
+            .use { st ->
+                st.setLong(1, userId)
+                st.setInt(2, limit)
+                st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
+            }
         return series.map { it.copy(holes = holesOf(it.id)) }
     }
+
+    @Synchronized
+    fun deleteSeries(seriesId: Long) {
+        execute("DELETE FROM holes WHERE series_id = ?", seriesId)
+        execute("DELETE FROM series WHERE id = ?", seriesId)
+    }
+
+    /** Drops the user, their sessions and every series; returns the deleted series ids so the caller can drop images. */
+    @Synchronized
+    fun deleteAccount(userId: Long): List<Long> {
+        val ids = mutableListOf<Long>()
+        conn.prepareStatement("SELECT id FROM series WHERE user_id = ?").use { st ->
+            st.setLong(1, userId)
+            st.executeQuery().use { rs -> while (rs.next()) ids += rs.getLong(1) }
+        }
+        execute("DELETE FROM holes WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM series WHERE user_id = ?", userId)
+        execute("DELETE FROM sessions WHERE user_id = ?", userId)
+        execute("DELETE FROM users WHERE id = ?", userId)
+        return ids
+    }
+
+    private fun execute(sql: String, id: Long) =
+        conn.prepareStatement(sql).use { it.setLong(1, id); it.executeUpdate() }
 
     private fun holesOf(seriesId: Long): List<Hole> {
         val holes = mutableListOf<Hole>()

@@ -1,26 +1,31 @@
 package markera.server
 
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.header
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
 import java.io.File
+import java.security.MessageDigest
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import java.util.Locale
 
 /**
- * Read-only, unauthenticated admin pages. Registered only when `ADMIN_UI=true`, which must stay
- * off anywhere the server is reachable from outside the LAN.
+ * Read-only admin pages behind HTTP Basic (user `admin`, [password]). Registered only when
+ * `ADMIN_PASSWORD` is set.
  */
-fun Route.adminRoutes(db: Db, images: File) {
+fun Route.adminRoutes(db: Db, images: File, password: String) {
     get("/admin") {
+        if (unauthorized(password)) return@get
         val rows = db.listUsers().joinToString("") { u ->
             val link = """<a href="/admin/users/${u.id}">"""
             row(
@@ -36,6 +41,7 @@ fun Route.adminRoutes(db: Db, images: File) {
     }
 
     get("/admin/users/{id}") {
+        if (unauthorized(password)) return@get
         val user = db.getUser(pathId()) ?: return@get notFound("Unknown user")
         val rows = db.listSeries(user.id).joinToString("") { s ->
             row(
@@ -59,6 +65,7 @@ fun Route.adminRoutes(db: Db, images: File) {
     }
 
     get("/admin/series/{id}") {
+        if (unauthorized(password)) return@get
         val seriesId = pathId()
         val series = db.getSeries(seriesId) ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId)
@@ -79,9 +86,24 @@ fun Route.adminRoutes(db: Db, images: File) {
     }
 
     get("/admin/series/{id}/image") {
+        if (unauthorized(password)) return@get
         val file = imageFile(images, pathId())
         if (file.isFile) call.respondFile(file) else notFound("No image")
     }
+}
+
+/**
+ * HTTP Basic by hand — ktor-server-auth would be a whole dependency for one password. Responds 401 (and
+ * returns true) unless the caller sent exactly `admin:[password]`.
+ */
+private suspend fun RoutingContext.unauthorized(password: String): Boolean {
+    val credentials = call.request.headers[HttpHeaders.Authorization]
+        ?.takeIf { it.startsWith("Basic ", ignoreCase = true) }
+        ?.let { runCatching { Base64.getDecoder().decode(it.substring(6).trim()) }.getOrNull() }
+    if (credentials != null && MessageDigest.isEqual(credentials, "admin:$password".toByteArray())) return false
+    call.response.header(HttpHeaders.WWWAuthenticate, """Basic realm="markera-admin"""")
+    call.respondText("admin login required", status = HttpStatusCode.Unauthorized)
+    return true
 }
 
 /**
