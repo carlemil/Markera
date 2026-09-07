@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -69,7 +70,9 @@ fun CameraPreview(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // The fill-cropped frame overflows the square; clip it so it cannot cover
+    // the top bar (needs the TextureView mode set in CameraFrameSource).
+    Box(modifier = modifier.fillMaxSize().clipToBounds()) {
         AndroidView(
             factory = { previewView },
             modifier = Modifier.fillMaxSize(),

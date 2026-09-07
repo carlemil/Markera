@@ -42,7 +42,13 @@ fun rememberFrameSource(): FrameSource {
         // portrait frame is cropped top/bottom rather than letterboxed). The
         // frozen snapshot and DetectionOverlay still use fit-centre, so boxes
         // align on the captured full frame.
-        PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
+        // COMPATIBLE (TextureView): the default SurfaceView punches its own hole
+        // in the window and ignores clipping, so the fill-cropped frame spilled
+        // over the top bar and the results area.
+        PreviewView(context).apply {
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
     }
     return remember { CameraFrameSource(previewView) }
 }
