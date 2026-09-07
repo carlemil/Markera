@@ -133,6 +133,9 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 28b | App: series detail screen from a history row — photo with markers, time, caliber, total, hole list (score, mm, kind); tap a score to edit it, drag a marker to move it; Spara → PUT; history refreshes | done — verified on the phone 2026-09-07 (series 11: 10 → 9 + moved) |
 | 28c | Admin web: the series page becomes editable — score inputs per hole, drag a marker to move it, click the photo to add a hole, delete per row, Save → `PUT /admin/series/{id}` (Basic auth; same body/logic as the app PUT) | done 2026-09-07, deployed |
 | 29 | Admin: score split into read-only `detected` and editable `manual` columns; manual empty = use detected; detected greyed out when overridden; marker labels 13 px; photo 960 px right of the table (requested 2026-09-07) | done, deployed |
+| 30 | App: detail screen score split — read-only detected cell (struck through when overridden) + tappable manual cell; dialpad gains "Använd detekterad" to revert to the detected score (requested 2026-09-07) | done — verified on the phone 2026-09-07 (series 11 reverted 9 → 10, saved) |
+| 31 | Server + admin: store the target geometry per series — digit-row centre and the 6/7 ring ellipse (`geometry: {centreX, centreY, ringCx, ringCy, ringSemiMajor, ringSemiMinor, ringRotationRad}`, source-image px, nullable, on POST/PUT/GET/admin); admin photo draws the centre and the ring; moving/adding a hole recomputes `distanceMm` from the geometry (JS port of the `scoreHits` un-projection) instead of nulling it (requested 2026-09-07) | queued |
+| 32 | App: send the geometry with every scan (`onSeriesDetected` gets centre + ring), draw centre + ring on the detail photo, recompute `distanceMm` on drag from a shared pure `distanceMm(x, y, centre, ring)` in `vision/` that `scoreHits` also uses; old series without geometry keep nulling (requested 2026-09-07) | queued |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)
@@ -158,7 +161,7 @@ GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, HTTP Basic ad
   "confirmed vs detected", no flag column — a score edit changes `ring`/`innerTen` and the admin
   keeps showing `8 → 9`; a *moved* marker changes `x`/`y` while the new `detectedX`/`detectedY`
   keep where the detector put it (admin kind gets ", moved"). Moving a marker nulls `distanceMm`
-  (no geometry is stored, so it cannot be recomputed). `PUT /series/{id}` (bearer, owner) and `PUT /admin/series/{id}` (Basic) take the
+  until tasks 31/32 land (they store the centre + 6/7 ring per series and recompute it). `PUT /series/{id}` (bearer, owner) and `PUT /admin/series/{id}` (Basic) take the
   same body as the POST and replace the series' caliber, timestamp and holes; the admin page edits
   in the browser with a small inline script (no dependencies), added holes there are manual
   (no detected values). UI rule (user, 2026-09-07): measurements and positions (mm, x, y) show

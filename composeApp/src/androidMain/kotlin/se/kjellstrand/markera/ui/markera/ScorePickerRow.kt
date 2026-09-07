@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,12 +79,23 @@ private fun ScoreBox(
 /**
  * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. Shared
  * with the series detail screen, so one score input for the whole app.
+ * [onClear] adds a "back to the detected score" button — only the detail
+ * screen has something to revert to, so it defaults to no button at all.
  */
 @Composable
-fun ScoreDialpadDialog(onPick: (Int) -> Unit, onDismiss: () -> Unit) {
+fun ScoreDialpadDialog(
+    onPick: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    onClear: (() -> Unit)? = null,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
+        dismissButton = onClear?.let {
+            {
+                TextButton(onClick = it) { Text(stringResource(R.string.detail_use_detected)) }
+            }
+        },
         title = { Text(stringResource(R.string.score_pick_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {

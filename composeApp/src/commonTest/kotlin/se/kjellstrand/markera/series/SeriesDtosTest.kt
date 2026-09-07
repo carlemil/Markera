@@ -2,6 +2,8 @@ package se.kjellstrand.markera.series
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.vision.HitScore
@@ -105,6 +107,36 @@ class SeriesDtosTest {
         assertEquals("flyttad", kind(HoleDto(2.0, 1.0, 9, false, null, 9, false, 1.0, 1.0)))
         // Both at once.
         assertEquals("9 → 8, flyttad", kind(HoleDto(2.0, 1.0, 8, false, null, 9, false, 1.0, 1.0)))
+    }
+
+    @Test
+    fun detailCellsSplitTheDetectedScoreFromTheUsersOwn() {
+        val untouched = HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0)
+        val edited = untouched.copy(ring = 8)
+        val manual = HoleDto(1.0, 1.0, 7, false, 80.0)
+        val typed = HoleDto(null, null, 7, false, null)
+
+        // Detected cell: what the detector said, nothing for a hole it never saw.
+        assertEquals("9", untouched.detectedLabel())
+        assertEquals("9", edited.detectedLabel())
+        assertNull(manual.detectedLabel())
+        assertNull(typed.detectedLabel())
+
+        // Manual cell: only the user's own value, so an unedited detection is blank.
+        assertNull(untouched.manualLabel())
+        assertEquals("8", edited.manualLabel())
+        assertEquals("7", manual.manualLabel())
+        assertEquals("7", typed.manualLabel())
+
+        assertTrue(edited.isEdited())
+        assertFalse(untouched.isEdited())
+        assertFalse(manual.isEdited())
+
+        // Reverting restores the detected pair (and only that).
+        assertEquals(untouched, edited.withDetectedScore())
+        assertEquals(untouched, untouched.copy(innerTen = true).withDetectedScore())
+        // Nothing to revert to leaves the hole alone.
+        assertEquals(manual, manual.withDetectedScore())
     }
 
     @Test

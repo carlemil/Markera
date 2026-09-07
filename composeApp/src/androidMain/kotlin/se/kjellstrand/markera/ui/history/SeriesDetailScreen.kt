@@ -44,6 +44,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -53,11 +54,14 @@ import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.detectedLabel
+import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.kindText
-import se.kjellstrand.markera.series.label
+import se.kjellstrand.markera.series.manualLabel
 import se.kjellstrand.markera.series.nearestHoleIndex
 import se.kjellstrand.markera.series.pickInnerTen
 import se.kjellstrand.markera.series.pickRing
+import se.kjellstrand.markera.series.withDetectedScore
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
@@ -208,7 +212,7 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                 }
 
                 holes.value.forEachIndexed { i, hole ->
-                    HoleRow(hole, onClick = { editing = i })
+                    HoleRow(hole, onEdit = { editing = i })
                 }
 
                 PrimaryActionButton(
@@ -238,6 +242,15 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
 
     if (editing >= 0) {
         ScoreDialpadDialog(
+            // Only a hole the detector scored has something to revert to.
+            onClear = holes.value.getOrNull(editing)?.detectedRing?.let {
+                {
+                    holes.value = holes.value.mapIndexed { i, hole ->
+                        if (i == editing) hole.withDetectedScore() else hole
+                    }
+                    editing = -1
+                }
+            },
             onPick = { pick ->
                 // Only the confirmed values change; detectedRing/-InnerTen stay,
                 // which is what makes the row read "8 -> 9".
@@ -256,20 +269,35 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
 }
 
 @Composable
-private fun HoleRow(hole: HoleDto, onClick: () -> Unit) {
+private fun HoleRow(hole: HoleDto, onEdit: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Detected: read-only, struck through once the user overrode it.
         Text(
-            text = hole.label(),
+            text = hole.detectedLabel() ?: "",
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = if (hole.isEdited()) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
+            textDecoration = if (hole.isEdited()) TextDecoration.LineThrough else null,
             modifier = Modifier.width(32.dp),
+        )
+        // Manual: the user's own value, and the only tappable cell.
+        Text(
+            text = hole.manualLabel() ?: stringResource(R.string.detail_no_score),
+            style = MaterialTheme.typography.titleLarge,
+            color = MANUAL_COLOR,
+            modifier = Modifier
+                .width(40.dp)
+                .clickable(onClick = onEdit)
+                .padding(vertical = 6.dp),
         )
         Text(
             // Whole millimetres only — no decimals anywhere in this UI.

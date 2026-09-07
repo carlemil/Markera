@@ -89,13 +89,29 @@ fun HitScore.toHoleDto(): HoleDto = HoleDto(
 )
 
 /** The user changed the score the detector reported for this hole. */
-private fun HoleDto.isEdited(): Boolean =
+fun HoleDto.isEdited(): Boolean =
     detectedRing != null && (detectedRing != ring || (detectedInnerTen == true) != innerTen)
 
 private fun scoreLabel(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()
 
 /** A hole's score as the pickers show it: `X` for an inner ten, else the ring. */
 fun HoleDto.label(): String = scoreLabel(ring, innerTen)
+
+/** What the detector scored this hole, or null when it never saw it. */
+fun HoleDto.detectedLabel(): String? =
+    detectedRing?.let { scoreLabel(it, detectedInnerTen == true) }
+
+/**
+ * The score to show in the detail screen's manual cell: the confirmed one when
+ * it overrides a detection, or when there is no detection to fall back on.
+ * Null means "nothing of the user's own here" — the cell shows a placeholder.
+ */
+fun HoleDto.manualLabel(): String? =
+    if (detectedRing == null || isEdited()) label() else null
+
+/** Puts the score back to what the detector said; the position is left alone. */
+fun HoleDto.withDetectedScore(): HoleDto =
+    if (detectedRing == null) this else copy(ring = detectedRing, innerTen = detectedInnerTen == true)
 
 /**
  * How a hole came about, for the detail list: `8 → 9` when the score was

@@ -57,6 +57,8 @@
     <string name="detail_kind_manual">manuell</string>
     <string name="detail_kind_typed">inskriven</string>
     <string name="detail_kind_moved">flyttad</string>
+    <string name="detail_use_detected">Använd detekterad</string>
+    <string name="detail_no_score">—</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>
