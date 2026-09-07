@@ -86,6 +86,18 @@ class Db(dbPath: String) : AutoCloseable {
                 st.executeUpdate("DROP TABLE holes")
                 st.executeUpdate("ALTER TABLE holes_new RENAME TO holes")
             }
+            // Databases created before the detector's own position was kept (the rebuild above already
+            // brought the columns along, so only the backfill is left in that case).
+            if ("detected_x" !in holeColumns) {
+                if ("detected_ring" in holeColumns) {
+                    st.executeUpdate("ALTER TABLE holes ADD COLUMN detected_x REAL")
+                    st.executeUpdate("ALTER TABLE holes ADD COLUMN detected_y REAL")
+                }
+                // Nothing could move a marker yet, so every detected hole sits where the detector put it.
+                st.executeUpdate(
+                    "UPDATE holes SET detected_x = x, detected_y = y WHERE detected_x IS NULL AND detected_ring IS NOT NULL"
+                )
+            }
         }
     }
 
@@ -134,9 +146,25 @@ class Db(dbPath: String) : AutoCloseable {
             it.executeUpdate()
             it.generatedKeys.use { rs -> rs.next(); seriesId = rs.getLong(1) }
         }
+        insertHoles(seriesId, holes)
+        return seriesId
+    }
+
+    /** Replaces a saved series wholesale: the app and the admin page both edit scores and marker positions. */
+    @Synchronized
+    fun replaceSeries(seriesId: Long, req: SeriesRequest) {
+        conn.prepareStatement("UPDATE series SET timestamp = ?, caliber = ? WHERE id = ?").use {
+            it.setString(1, req.timestamp); it.setString(2, req.caliber); it.setLong(3, seriesId); it.executeUpdate()
+        }
+        execute("DELETE FROM holes WHERE series_id = ?", seriesId)
+        insertHoles(seriesId, req.holes)
+    }
+
+    private fun insertHoles(seriesId: Long, holes: List<Hole>) {
         conn.prepareStatement(
-            """INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+            """INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten,
+                                 detected_x, detected_y)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         ).use { st ->
             for (h in holes) {
                 st.setLong(1, seriesId)
@@ -147,11 +175,12 @@ class Db(dbPath: String) : AutoCloseable {
                 st.setObject(6, h.distanceMm)
                 st.setObject(7, h.detectedRing)
                 st.setObject(8, h.detectedInnerTen?.let { if (it) 1 else 0 })
+                st.setObject(9, h.detectedX)
+                st.setObject(10, h.detectedY)
                 st.addBatch()
             }
             st.executeBatch()
         }
-        return seriesId
     }
 
     @Synchronized
@@ -247,7 +276,7 @@ class Db(dbPath: String) : AutoCloseable {
     private fun holesOf(seriesId: Long): List<Hole> {
         val holes = mutableListOf<Hole>()
         conn.prepareStatement(
-            """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten
+            """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten, detected_x, detected_y
                FROM holes WHERE series_id = ? ORDER BY id"""
         ).use { st ->
             st.setLong(1, seriesId)
@@ -255,7 +284,7 @@ class Db(dbPath: String) : AutoCloseable {
                 while (rs.next()) {
                     holes += Hole(
                         rs.doubleOrNull(1), rs.doubleOrNull(2), rs.getInt(3), rs.getInt(4) != 0, rs.doubleOrNull(5),
-                        rs.intOrNull(6), rs.intOrNull(7)?.let { it != 0 },
+                        rs.intOrNull(6), rs.intOrNull(7)?.let { it != 0 }, rs.doubleOrNull(8), rs.doubleOrNull(9),
                     )
                 }
             }
@@ -288,7 +317,9 @@ class Db(dbPath: String) : AutoCloseable {
                inner_ten INTEGER NOT NULL,
                distance_mm REAL,
                detected_ring INTEGER,
-               detected_inner_ten INTEGER"""
+               detected_inner_ten INTEGER,
+               detected_x REAL,
+               detected_y REAL"""
     }
 }
 

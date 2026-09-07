@@ -9,6 +9,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
@@ -208,12 +209,14 @@ class ApiTest {
         }
         // The old row was the detector's output verbatim, so it becomes an untouched detection.
         Db(dbFile.path).use { db ->
-            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, 9, true)), db.getSeries(1)?.holes)
+            // ...and the backfill puts the detected position where the old row already sat.
+            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, 9, true, 1.0, 2.0)), db.getSeries(1)?.holes)
             db.insertSeries(1, "2026-09-06T12:34:56Z", "9mm", listOf(Hole(null, null, 5, false, null)))
         }
         // Reopening must not run the rebuild again.
         Db(dbFile.path).use { db ->
-            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, 9, true)), db.getSeries(1)?.holes)
+            // ...and the backfill puts the detected position where the old row already sat.
+            assertEquals(listOf(Hole(1.0, 2.0, 9, true, 31.2, 9, true, 1.0, 2.0)), db.getSeries(1)?.holes)
             assertEquals(listOf(Hole(null, null, 5, false, null)), db.getSeries(2)?.holes)
         }
     }
@@ -265,6 +268,83 @@ class ApiTest {
 
         // The four non-plain holes are counted on the user's series list.
         assertTrue("<td>4</td>" in client.admin("/admin/users/${me.userId}").bodyAsText())
+    }
+
+    @Test
+    fun putReplacesTheSeriesKeepingWhatTheDetectorSaid() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val detected = Hole(1.0, 2.0, 8, false, 31.2, 8, false, 1.0, 2.0)
+        val id = client.createSeries(me.token, series().copy(holes = listOf(detected)))
+
+        // Score bumped to 9 and the marker dragged; the detected fields must survive untouched.
+        val edited = detected.copy(x = 40.0, y = 60.0, ring = 9)
+        val response = client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series(caliber = "22lr").copy(holes = listOf(edited)))
+        }
+        assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
+
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
+        assertEquals(id, stored.id)
+        assertEquals("22lr", stored.caliber)
+        assertEquals(listOf(edited), stored.holes)
+
+        assertTrue("<td>8 &rarr; 9, moved</td>" in client.admin("/admin/series/$id").bodyAsText())
+    }
+
+    @Test
+    fun putNeedsToBeTheOwner() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        val stranger = client.devAuth("stranger").token
+
+        assertEquals(HttpStatusCode.Unauthorized, client.put("/series/$id") {
+            contentType(ContentType.Application.Json); setBody(series(caliber = "22lr"))
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.put("/series/$id") {
+            bearerAuth(stranger); contentType(ContentType.Application.Json); setBody(series(caliber = "22lr"))
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.put("/series/999") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series())
+        }.status)
+        // Untouched.
+        assertEquals("9mm", client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().caliber)
+    }
+
+    @Test
+    fun adminPutEditsAnyUsersSeries() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        val fixed = series(caliber = "22lr").copy(holes = listOf(Hole(1.0, 2.0, 6, false, 90.0)))
+
+        assertEquals(HttpStatusCode.Unauthorized, client.put("/admin/series/$id") {
+            contentType(ContentType.Application.Json); setBody(fixed)
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.put("/admin/series/999") {
+            basicAuth("admin", ADMIN_PW); contentType(ContentType.Application.Json); setBody(fixed)
+        }.status)
+
+        val response = client.put("/admin/series/$id") {
+            basicAuth("admin", ADMIN_PW); contentType(ContentType.Application.Json); setBody(fixed)
+        }
+        assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
+
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
+        assertEquals("22lr", stored.caliber)
+        assertEquals(fixed.holes, stored.holes)
+    }
+
+    @Test
+    fun detectedPositionsAreStoredButNeverInferred() = apiTest { client ->
+        val me = client.devAuth("me")
+        // An old app build: detected ring, but no detectedX/Y at all.
+        val old = Hole(1.0, 2.0, 9, false, 31.2, detectedRing = 9)
+        val new = Hole(3.0, 4.0, 9, false, 31.2, 9, false, 5.0, 6.0)
+        client.createSeries(me.token, series().copy(holes = listOf(old, new)))
+
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes
+        assertEquals(listOf(old, new), stored)
+        assertEquals(null, stored[0].detectedX)
     }
 
     @Test

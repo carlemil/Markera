@@ -13,7 +13,8 @@ with user `admin` and this password; blank/unset leaves them unregistered),
 `TZ` (the zone the admin pages show timestamps in; compose sets `Europe/Stockholm`).
 
 API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
-`POST /series` / `GET /series` / `DELETE /series/{id}` (→ 204, 404 if not yours) with
+`POST /series` / `GET /series` / `PUT /series/{id}` (same body as POST, replaces timestamp, caliber and
+every hole → 204) / `DELETE /series/{id}` (→ 204, 404 if not yours) with
 `Authorization: Bearer <token>`, `DELETE /account` (→ 204; wipes the caller's series, images and sessions,
 so the token stops working), `POST /series/{id}/image` (raw `image/jpeg` body ≤ 5 MB → 204) /
 `GET /series/{id}/image`.
@@ -26,8 +27,12 @@ coordinates were measured in (the JPEG is that frame downscaled, same aspect). T
 as `imageWidth`/`imageHeight`, and the admin page uses them to draw the holes on the photo; without them the
 photo shows unmarked.
 
-A hole is `{x, y, ring, innerTen, distanceMm, detectedRing, detectedInnerTen}`. `ring`/`innerTen` is what
-the user confirmed, `detectedRing`/`detectedInnerTen` what the detector said (both optional, omitted or
-null when there was no detection — kept for training data). `x`/`y`/`distanceMm` may be null. The three
-kinds are derived, not stored: **detected** = `detectedRing != null` (**edited** when the confirmed pair
-differs from the detected one), **manual** = `x != null` without a detection, **typed** = `x == null`.
+A hole is `{x, y, ring, innerTen, distanceMm, detectedRing, detectedInnerTen, detectedX, detectedY}`.
+`ring`/`innerTen`/`x`/`y` is what the user confirmed, `detected*` what the detector said (all optional,
+omitted or null when there was no detection — kept for training data). `x`/`y`/`distanceMm` may be null.
+The three kinds are derived, not stored: **detected** = `detectedRing != null` (**edited** when the
+confirmed pair differs from the detected one, **moved** when `x`/`y` differ from `detectedX`/`detectedY`),
+**manual** = `x != null` without a detection, **typed** = `x == null`.
+
+`ADMIN_PASSWORD` also unlocks `PUT /admin/series/{id}` (same body and replace as `PUT /series/{id}`, for
+any user's series); everything else under `/admin` is read-only.

@@ -3,12 +3,15 @@ package markera.server
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
 import io.ktor.server.response.header
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
+import io.ktor.server.routing.put
 import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
@@ -85,6 +88,17 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         )
     }
 
+    // The one write the admin pages have: the same replace as `PUT /series/{id}`, for any user's series.
+    put("/admin/series/{id}") {
+        if (unauthorized(password)) return@put
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId) == null) return@put notFound("Unknown series")
+        val req = call.receive<SeriesRequest>()
+        if (invalid(req)) return@put
+        db.replaceSeries(seriesId, req)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
     get("/admin/series/{id}/image") {
         if (unauthorized(password)) return@get
         val file = imageFile(images, pathId())
@@ -124,11 +138,16 @@ private fun markers(series: Series): String {
 }
 
 /** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
-private fun kind(h: Hole) = when {
-    h.detectedRing == null -> if (h.x == null) "typed" else "manual"
-    h.ring != h.detectedRing || h.innerTen != (h.detectedInnerTen == true) ->
-        "${score(h.detectedRing, h.detectedInnerTen == true)} &rarr; ${score(h.ring, h.innerTen)}"
-    else -> ""
+private fun kind(h: Hole): String {
+    val score = when {
+        h.detectedRing == null -> if (h.x == null) "typed" else "manual"
+        h.ring != h.detectedRing || h.innerTen != (h.detectedInnerTen == true) ->
+            "${score(h.detectedRing, h.detectedInnerTen == true)} &rarr; ${score(h.ring, h.innerTen)}"
+        else -> ""
+    }
+    // The user dragged the marker off the detector's position.
+    if (h.detectedX == null || (h.x == h.detectedX && h.y == h.detectedY)) return score
+    return if (score.isEmpty()) "moved" else "$score, moved"
 }
 
 private fun score(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()

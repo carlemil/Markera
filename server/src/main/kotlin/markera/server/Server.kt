@@ -22,6 +22,7 @@ import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
@@ -80,6 +81,9 @@ data class Hole(
     val distanceMm: Double? = null,
     val detectedRing: Int? = null,
     val detectedInnerTen: Boolean? = null,
+    /** Where the detector put the hole; [x]/[y] differing from it means the user dragged the marker. */
+    val detectedX: Double? = null,
+    val detectedY: Double? = null,
 )
 
 @Serializable
@@ -145,18 +149,18 @@ fun Application.markeraModule(config: Config, db: Db) {
         post("/series") {
             val userId = authenticate(db) ?: return@post
             val req = call.receive<SeriesRequest>()
-            val error = when {
-                req.caliber !in CALIBERS -> "unknown caliber '${req.caliber}'"
-                req.holes.isEmpty() -> "holes must not be empty"
-                runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
-                else -> null
-            }
-            if (error != null) {
-                call.respond(HttpStatusCode.BadRequest, ErrorResponse(error))
-                return@post
-            }
+            if (invalid(req)) return@post
             val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes)
             call.respond(HttpStatusCode.Created, IdResponse(id))
+        }
+
+        // Editing a saved series: same body as POST, replaces timestamp, caliber and every hole.
+        put("/series/{id}") {
+            val seriesId = ownedSeries(db) ?: return@put
+            val req = call.receive<SeriesRequest>()
+            if (invalid(req)) return@put
+            db.replaceSeries(seriesId, req)
+            call.respond(HttpStatusCode.NoContent)
         }
 
         // Paging: `limit` (default 50, clamped 1..200) newest first, `before` = the last id of the previous page.
@@ -223,6 +227,18 @@ fun Application.markeraModule(config: Config, db: Db) {
 }
 
 internal fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seriesId.jpg")
+
+/** Responds 400 (and returns true) for a series body that cannot be stored. */
+internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
+    val error = when {
+        req.caliber !in CALIBERS -> "unknown caliber '${req.caliber}'"
+        req.holes.isEmpty() -> "holes must not be empty"
+        runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
+        else -> return false
+    }
+    call.respond(HttpStatusCode.BadRequest, ErrorResponse(error))
+    return true
+}
 
 /** Resolves `{id}` for the authenticated caller, responding 401/404 (and returning null) when it is not theirs. */
 private suspend fun RoutingContext.ownedSeries(db: Db): Long? {
