@@ -21,11 +21,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,7 +61,9 @@ import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.decodeSeriesJpeg
+import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.scoreLine
+import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 
@@ -79,6 +85,7 @@ fun SeriesHistoryScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
     var pending by remember { mutableStateOf<SeriesDto?>(null) }
+    var exporting by remember { mutableStateOf(false) }
     // Thumbnails are small and few; one map for the screen beats a real image
     // loader (no Coil in this app).
     val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
@@ -99,7 +106,46 @@ fun SeriesHistoryScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(title = stringResource(R.string.history_title), onBack = onBack)
+            CompetitionTopBar(
+                title = stringResource(R.string.history_title),
+                onBack = onBack,
+                actions = {
+                    if (exporting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        IconButton(
+                            enabled = auth != null && series.isNotEmpty(),
+                            onClick = {
+                                exporting = true
+                                scope.launch {
+                                    try {
+                                        shareFile(
+                                            context,
+                                            exportSeriesZip(context, services.repository),
+                                        )
+                                    } catch (_: Throwable) {
+                                        Toast.makeText(
+                                            context,
+                                            R.string.history_export_failed,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                    exporting = false
+                                }
+                            },
+                        ) {
+                            // No explicit tint: the button greys the icon when disabled.
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = stringResource(R.string.history_export),
+                            )
+                        }
+                    }
+                },
+            )
             when {
                 auth == null -> Centered { Text(stringResource(R.string.history_signed_out)) }
 

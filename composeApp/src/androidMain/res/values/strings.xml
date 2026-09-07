@@ -48,6 +48,8 @@
     <string name="history_delete_confirm">Radera</string>
     <string name="history_delete_cancel">Avbryt</string>
     <string name="history_delete_failed">Kunde inte radera</string>
+    <string name="history_export">Exportera</string>
+    <string name="history_export_failed">Kunde inte exportera</string>
 
     <!-- Statistik -->
     <string name="stats_title">Statistik</string>

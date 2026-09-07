@@ -161,6 +161,11 @@ re-downloads what the phone just took. History/Statistik/Detail read the flow (D
 its series up by id); `refresh()` runs at startup, on those screens opening, and after
 sign-in. Sign-out, account deletion and a different user `clear()` both tables and the
 image dir. JVM-tested in `SeriesRepositoryTest` (in-memory SQLite + `ktor-client-mock`).
+History's share action exports everything as one zip (`series.csv` + `holes.csv`,
+semicolon/CRLF/BOM so Excel opens them, plus `images/<id>.jpg`): the CSV text is pure
+`series/SeriesExport.kt`, the zip and `ACTION_SEND` are `series/SeriesExportAndroid.kt`,
+written to `cacheDir/export` and shared via the `${applicationId}.fileprovider`
+`FileProvider` (`res/xml/file_paths.xml`).
 The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
 `signInWithProvider` (Credential Manager + `googleid`, needs
 `markera.google.client.id` in `local.properties`). Backend URL is
