@@ -132,6 +132,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 28a | Server: `PUT /series/{id}` (owner only, body = the POST body, replaces caliber/timestamp/holes → 204) + `detectedX`/`detectedY` on holes (migration + backfill from x/y where detected_ring is set); admin kind shows "moved" | done 2026-09-07, deployed |
 | 28b | App: series detail screen from a history row — photo with markers, time, caliber, total, hole list (score, mm, kind); tap a score to edit it, drag a marker to move it; Spara → PUT; history refreshes | done — verified on the phone 2026-09-07 (series 11: 10 → 9 + moved) |
 | 28c | Admin web: the series page becomes editable — score inputs per hole, drag a marker to move it, click the photo to add a hole, delete per row, Save → `PUT /admin/series/{id}` (Basic auth; same body/logic as the app PUT) | done 2026-09-07, deployed |
+| 29 | Admin: score split into read-only `detected` and editable `manual` columns; manual empty = use detected; detected greyed out when overridden (requested 2026-09-07) | in progress |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)
