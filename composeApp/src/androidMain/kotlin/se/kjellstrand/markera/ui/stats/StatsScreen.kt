@@ -25,8 +25,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePickerDialog
@@ -34,6 +36,7 @@ import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
@@ -117,6 +120,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     // null = "Alla": no hole-count filter, which is the default.
     var hits by remember { mutableStateOf<Int?>(null) }
     var pickingDates by remember { mutableStateOf(false) }
+    var showingHelp by remember { mutableStateOf(false) }
 
     // Series counts are small, so the screen just pulls every page up front.
     LaunchedEffect(auth, reload) {
@@ -154,7 +158,19 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(title = stringResource(R.string.stats_title), onBack = onBack)
+            CompetitionTopBar(
+                title = stringResource(R.string.stats_title),
+                onBack = onBack,
+                actions = {
+                    IconButton(onClick = { showingHelp = true }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                            contentDescription = stringResource(R.string.stats_help),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
             when {
                 auth == null -> Centered { Text(stringResource(R.string.stats_signed_out)) }
 
@@ -215,6 +231,49 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
             },
         )
     }
+    if (showingHelp) HelpDialog(onDismiss = { showingHelp = false })
+}
+
+/** What every measurement under the target actually means. */
+@Composable
+private fun HelpDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.stats_help_close)) }
+        },
+        title = { Text(stringResource(R.string.stats_help)) },
+        text = {
+            // Scrolls inside the dialog: the list is taller than a phone screen.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                listOf(
+                    R.string.stats_series to R.string.stats_help_series,
+                    R.string.stats_hits to R.string.stats_help_hits,
+                    R.string.stats_mean_distance to R.string.stats_help_mean_distance,
+                    R.string.stats_mean_pairwise to R.string.stats_help_mean_pairwise,
+                    R.string.stats_group_size to R.string.stats_help_group_size,
+                    R.string.stats_impact to R.string.stats_help_impact,
+                    R.string.stats_impact_median to R.string.stats_help_impact_median,
+                    R.string.stats_mean_score to R.string.stats_help_mean_score,
+                    R.string.stats_tens_share to R.string.stats_help_tens_share,
+                    R.string.stats_help_extremes to R.string.stats_help_extremes_body,
+                    R.string.stats_help_colours to R.string.stats_help_colours_body,
+                ).forEach { (title, body) ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable

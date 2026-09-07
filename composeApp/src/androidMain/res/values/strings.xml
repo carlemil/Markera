@@ -84,6 +84,23 @@
     <string name="stats_percent">%1$d %%</string>
     <string name="stats_series_value">%1$d · %2$s</string>
 
+    <!-- Statistik: hjälpdialogen -->
+    <string name="stats_help">Om måtten</string>
+    <string name="stats_help_close">Stäng</string>
+    <string name="stats_help_series">Antal serier som filtret (kaliber, datum och antal träffar) släpper igenom. Bara serier med sparad träffbild kan ritas ut och räknas med.</string>
+    <string name="stats_help_hits">Totalt antal träffar i de serierna.</string>
+    <string name="stats_help_mean_distance">Avståndet från tavlans centrum till varje träff, i millimeter, snittat över alla träffar.</string>
+    <string name="stats_help_mean_pairwise">Avståndet mellan alla par av träffar inom en serie, snittat — och sedan snittat över serierna. Serier med bara en träff hoppas över.</string>
+    <string name="stats_help_group_size">Det största avståndet mellan två träffar i en serie (spridningen), snittat över serierna.</string>
+    <string name="stats_help_impact">Träffbildens medelpunkt: medelvärdet av alla träffars x och y, i millimeter höger om och nedanför centrum (negativa tal betyder vänster respektive uppåt). Ritas som ett + på tavlan.</string>
+    <string name="stats_help_impact_median">Medianen av alla träffars x och y var för sig — mindre känslig för enstaka utliggare än medelpunkten. Ritas som ett × på tavlan.</string>
+    <string name="stats_help_mean_score">Medelvärdet av seriernas totalpoäng.</string>
+    <string name="stats_help_tens_share">Andelen träffar som är tia eller innertia.</string>
+    <string name="stats_help_extremes">Bästa och sämsta serie</string>
+    <string name="stats_help_extremes_body">Serien med högst respektive lägst totalpoäng, med datum. Vid lika poäng visas den äldsta.</string>
+    <string name="stats_help_colours">Färgskalan</string>
+    <string name="stats_help_colours_body">Träffarna färgas efter när serien sköts: skalan under tavlan går från den äldsta serien till vänster till den nyaste till höger.</string>
+
     <!-- Series detail -->
     <string name="detail_title">Serie</string>
     <string name="detail_save">Spara</string>
