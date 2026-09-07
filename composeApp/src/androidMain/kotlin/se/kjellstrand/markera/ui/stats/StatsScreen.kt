@@ -95,8 +95,17 @@ private val PAPER = Color(0xFFE8DEC8)
 private val BLACK = Color(0xFF15151A)
 private val LINE_ON_BLACK = Color(0xFFEDEDED)
 private val LINE_ON_PAPER = Color(0xFF6B6455)
-private val OLD_HIT = Color(0xFF4FC3F7)
-private val NEW_HIT = Color(0xFF00E676)
+/**
+ * Oldest → newest hit colours, also the legend's gradient bar. Saturated the whole
+ * way so every stop stands out against both the cream paper and the black centre.
+ */
+private val HIT_SCALE = listOf(
+    Color(0xFF7C4DFF), // violet
+    Color(0xFF00B0FF), // blue
+    Color(0xFF00E5CC), // cyan
+    Color(0xFFFFD600), // yellow
+    Color(0xFFFF3D00), // orange-red
+)
 private val MEAN_MARK = Color(0xFFFFC107)
 private val MEDIAN_MARK = Color(0xFFFF4081)
 
@@ -475,7 +484,7 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
         }
 
         plotted.forEach { series ->
-            val colour = lerp(OLD_HIT, NEW_HIT, series.age)
+            val colour = hitColour(series.age)
             series.hits.forEach { hit ->
                 val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
                 drawCircle(colour, radius = 2.5f * scale, center = at)
@@ -497,6 +506,13 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
             )
         }
     }
+}
+
+/** [HIT_SCALE] sampled at [age] (0 = oldest, 1 = newest): a lerp within one segment. */
+private fun hitColour(age: Float): Color {
+    val t = age.coerceIn(0f, 1f) * (HIT_SCALE.size - 1)
+    val i = t.toInt().coerceAtMost(HIT_SCALE.size - 2)
+    return lerp(HIT_SCALE[i], HIT_SCALE[i + 1], t - i)
 }
 
 /**
@@ -557,7 +573,7 @@ private fun AgeLegend(plotted: List<PlottedSeries>) {
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Brush.horizontalGradient(listOf(OLD_HIT, NEW_HIT))),
+                .background(Brush.horizontalGradient(HIT_SCALE)),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
