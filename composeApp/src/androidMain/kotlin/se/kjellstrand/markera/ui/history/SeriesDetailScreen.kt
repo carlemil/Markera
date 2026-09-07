@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -307,16 +308,20 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                     )
                 }
 
-                holes.value.forEachIndexed { i, hole ->
-                    HoleRow(
-                        hole = hole,
-                        onEdit = { editing = i },
-                        onDelete = {
-                            // Indices shift, so any open edit is stale.
-                            editing = -1
-                            holes.value = holes.value.filterIndexed { j, _ -> j != i }
-                        },
-                    )
+                // Own column: the rows sit tight, the 16 dp outside stays
+                // between the photo/header/button blocks.
+                Column {
+                    holes.value.forEachIndexed { i, hole ->
+                        HoleRow(
+                            hole = hole,
+                            onEdit = { editing = i },
+                            onDelete = {
+                                // Indices shift, so any open edit is stale.
+                                editing = -1
+                                holes.value = holes.value.filterIndexed { j, _ -> j != i }
+                            },
+                        )
+                    }
                 }
 
                 PrimaryActionButton(
@@ -407,7 +412,7 @@ private fun HoleRow(hole: HoleDto, onEdit: () -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -446,12 +451,15 @@ private fun HoleRow(hole: HoleDto, onEdit: () -> Unit, onDelete: () -> Unit) {
                 manual = stringResource(R.string.detail_kind_manual),
                 typed = stringResource(R.string.detail_kind_typed),
                 moved = stringResource(R.string.detail_kind_moved),
+                detected = stringResource(R.string.detail_kind_detected),
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        IconButton(onClick = onDelete) {
+        // Trimmed from the 48 dp default so the text, not the button, sets
+        // the row height; the 24 dp icon still fits.
+        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = stringResource(R.string.detail_delete_hole),

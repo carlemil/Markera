@@ -162,10 +162,11 @@ fun HoleDto.withDetectedScore(): HoleDto =
 /**
  * How a hole came about, for the detail list: `8 → 9` when the score was
  * edited, else [manual] (positioned by hand), [typed] (no position at all) or
- * blank; `, `[moved] appended when it was dragged off the detected spot. The
- * words are parameters so the Swedish stays in `strings.xml`.
+ * [detected] (the detector's own, untouched); `, `[moved] appended when it was
+ * dragged off the detected spot — and a moved detection reads just [moved].
+ * The words are parameters so the Swedish stays in `strings.xml`.
  */
-fun HoleDto.kindText(manual: String, typed: String, moved: String): String {
+fun HoleDto.kindText(manual: String, typed: String, moved: String, detected: String): String {
     val base = when {
         isEdited() -> "${scoreLabel(detectedRing!!, detectedInnerTen == true)} → ${label()}"
         x == null -> typed
@@ -174,7 +175,7 @@ fun HoleDto.kindText(manual: String, typed: String, moved: String): String {
     }
     val wasMoved = detectedX != null && (x != detectedX || y != detectedY)
     return when {
-        !wasMoved -> base
+        !wasMoved -> base.ifEmpty { detected }
         base.isEmpty() -> moved
         else -> "$base, $moved"
     }

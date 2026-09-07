@@ -91,10 +91,10 @@ class SeriesDtosTest {
 
     @Test
     fun kindTextNamesEditedManualTypedAndMovedHoles() {
-        fun kind(hole: HoleDto) = hole.kindText("manuell", "inskriven", "flyttad")
+        fun kind(hole: HoleDto) = hole.kindText("manuell", "inskriven", "flyttad", "detekterad")
 
-        // Untouched detection: nothing to say.
-        assertEquals("", kind(HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0)))
+        // Untouched detection: the detector's own.
+        assertEquals("detekterad", kind(HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0)))
         // Score edited down from the detected 9.
         assertEquals("9 → 8", kind(HoleDto(1.0, 1.0, 8, false, 30.0, 9, false, 1.0, 1.0)))
         // Inner ten either way is an "X".
