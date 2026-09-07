@@ -3,6 +3,7 @@ package se.kjellstrand.markera.series
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -86,8 +87,17 @@ class SeriesApi(
     suspend fun postSeries(req: SeriesRequest): Long =
         postJson("/series", req, authorized = true).parseOrThrow<IdResponse>().id
 
-    suspend fun listSeries(): List<SeriesDto> =
-        client.get("$base/series") { auth() }.parseOrThrow()
+    /** Newest first, at most [limit]; [before] pages backwards (only ids below it). */
+    suspend fun listSeries(limit: Int = SERIES_PAGE_SIZE, before: Long? = null): List<SeriesDto> =
+        client.get("$base/series") {
+            auth()
+            parameter("limit", limit)
+            before?.let { parameter("before", it) }
+        }.parseOrThrow()
+
+    suspend fun deleteSeries(id: Long) {
+        client.delete("$base/series/$id") { auth() }.throwIfError()
+    }
 
     /**
      * The scanned snapshot for a saved series — a raw JPEG body, no multipart.

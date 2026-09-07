@@ -124,7 +124,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 22 | Admin: drop the "created" column from the users list (orchestrator-applied, 2026-09-06) | done |
 | 23 | Mock flavor: no auto-scan after Spara/Återställ (new image, wait for Detektera) so the flow mirrors the camera; first frame and preview tap still auto-scan (orchestrator-applied, 2026-09-07) | done |
 | 24 | Server: lock-down + deletes + pagination — `ADMIN_PASSWORD` basic auth replaces `ADMIN_UI`; `DELETE /series/{id}`; `DELETE /account`; `GET /series?limit&before`; tests; Mac mini `.env`: `ADMIN_PASSWORD=…` set on deploy, `DEV_AUTH=false` flipped once 25b is verified with the throwaway dev account | done (server side) |
-| 25a | App: history pagination (loads the next page when the list end is reached) and series delete (long-press a row → confirm dialog → `DELETE`, row disappears) | queued |
+| 25a | App: history pagination (loads the next page when the list end is reached) and series delete (long-press a row → confirm dialog → `DELETE`, row disappears) | done — phone check pending server deploy |
 | 25b | App: account deletion — "Radera konto" on Home under the signed-in row, confirm dialog naming what goes, `DELETE /account`, then sign out; camera + mock | queued |
 | 25c | App: remove a manual marker by tapping it again; picker slots shift; recorder re-published | queued |
 | 26 | Release signing: upload keystore + `keystore.properties` (gitignored), `signingConfigs.release` wired when the file exists, upload-key SHA-1 `56:A5:24:7E:75:96:CB:58:48:D9:63:F4:6E:AA:71:F6:36:B3:98:A2` (valid to 2054, alias `markera`), release APK verified signed (orchestrator-applied 2026-09-07) | done |

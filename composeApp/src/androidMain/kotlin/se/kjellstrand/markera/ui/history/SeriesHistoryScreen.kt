@@ -1,7 +1,9 @@
 package se.kjellstrand.markera.ui.history
 
 import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +20,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,14 +30,17 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,39 +48,71 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.nextPageCursor
 import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 
 private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
-/** The series saved on the Markera backend, newest first. */
+/** The series saved on the Markera backend, newest first, paged as you scroll. */
 @Composable
 fun SeriesHistoryScreen(services: SeriesServices, onBack: () -> Unit) {
     val auth by services.session.auth.collectAsState()
     var series by remember { mutableStateOf<List<SeriesDto>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
+    // Cursor for the next page; null once the last (short) page arrived.
+    var cursor by remember { mutableStateOf<Long?>(null) }
+    var pageError by remember { mutableStateOf(false) }
+    var pending by remember { mutableStateOf<SeriesDto?>(null) }
     // Thumbnails are small and few; one map for the screen beats a real image
     // loader (no Coil in this app).
     val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
+    val listState = rememberLazyListState()
+    val lastVisible by remember {
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+    }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
         series = null
         error = null
+        pageError = false
+        cursor = null
         try {
-            series = services.api.listSeries()
+            val page = services.api.listSeries()
+            series = page
+            cursor = nextPageCursor(page)
         } catch (t: Throwable) {
             error = t.message ?: t.toString()
+        }
+    }
+
+    // Next page once the last row is on screen. A failed page parks here until
+    // the retry row clears [pageError].
+    LaunchedEffect(lastVisible, cursor, pageError) {
+        val before = cursor ?: return@LaunchedEffect
+        val loaded = series ?: return@LaunchedEffect
+        if (pageError || lastVisible < loaded.lastIndex) return@LaunchedEffect
+        try {
+            val page = services.api.listSeries(before = before)
+            series = loaded + page
+            cursor = nextPageCursor(page)
+        } catch (_: Throwable) {
+            pageError = true
         }
     }
 
@@ -103,16 +142,74 @@ fun SeriesHistoryScreen(services: SeriesServices, onBack: () -> Unit) {
                 series!!.isEmpty() -> Centered { Text(stringResource(R.string.history_empty)) }
 
                 else -> LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(series!!, key = { it.id }) {
-                        SeriesCard(it, services, thumbnails)
+                    items(series!!, key = { it.id }) { item ->
+                        SeriesCard(item, services, thumbnails, onLongPress = { pending = item })
+                    }
+                    if (cursor != null) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (pageError) {
+                                    Button(onClick = { pageError = false }) {
+                                        Text(stringResource(R.string.history_retry))
+                                    }
+                                } else {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    pending?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(stringResource(R.string.history_delete_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.history_delete_message,
+                        localStamp(target.timestamp),
+                        target.total(),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pending = null
+                    scope.launch {
+                        try {
+                            services.api.deleteSeries(target.id)
+                            series = series?.filterNot { it.id == target.id }
+                            thumbnails.remove(target.id)
+                        } catch (_: Throwable) {
+                            Toast.makeText(
+                                context,
+                                R.string.history_delete_failed,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }
+                }) { Text(stringResource(R.string.history_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pending = null }) {
+                    Text(stringResource(R.string.history_delete_cancel))
+                }
+            },
+        )
     }
 }
 
@@ -126,6 +223,7 @@ private fun SeriesCard(
     series: SeriesDto,
     services: SeriesServices,
     thumbnails: MutableMap<Long, ImageBitmap>,
+    onLongPress: () -> Unit,
 ) {
     if (series.hasImage) {
         LaunchedEffect(series.id) {
@@ -141,7 +239,9 @@ private fun SeriesCard(
         }
     }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = {}, onLongClick = onLongPress),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Row(

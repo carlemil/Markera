@@ -48,6 +48,13 @@ data class SeriesDto(
 @Serializable
 data class BackendAuthResponse(val token: String, val userId: Long)
 
+/** History page size, and the `limit` the client asks for. */
+const val SERIES_PAGE_SIZE = 50
+
+/** `before` for the next page, or null when [page] was short — i.e. the last one. */
+fun nextPageCursor(page: List<SeriesDto>): Long? =
+    if (page.size == SERIES_PAGE_SIZE) page.lastOrNull()?.id else null
+
 /** An inner ten already carries ring 10, so a plain sum is the series total. */
 fun SeriesDto.total(): Int = holes.sumOf { it.ring }
 

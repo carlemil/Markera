@@ -105,8 +105,47 @@ class SeriesApiTest {
     fun baseUrlWorksWithAndWithoutTrailingSlash() = runBlocking {
         listOf("http://host:8080", "http://host:8080/").forEach { base ->
             api(baseUrl = base) { json("[]") }.listSeries()
-            assertEquals("http://host:8080/series", recorded.last().url.toString())
+            assertEquals("http://host:8080/series?limit=50", recorded.last().url.toString())
         }
+    }
+
+    @Test
+    fun listSeriesSendsLimitAndOnlySendsBeforeWhenPaging() = runBlocking {
+        val api = api(token = "tok") { json("[]") }
+
+        api.listSeries(limit = 20, before = 91)
+        assertEquals("http://host:8080/series?limit=20&before=91", recorded.last().url.toString())
+
+        api.listSeries(limit = 20)
+        assertEquals("http://host:8080/series?limit=20", recorded.last().url.toString())
+    }
+
+    @Test
+    fun deleteSeriesSendsAuthorizedDelete() = runBlocking {
+        val api = api(token = "tok") { respond("", HttpStatusCode.NoContent) }
+
+        api.deleteSeries(7)
+
+        val request = recorded.single()
+        assertEquals(HttpMethod.Delete, request.method)
+        assertEquals("http://host:8080/series/7", request.url.toString())
+        assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])
+    }
+
+    @Test
+    fun deleteSeriesThrowsWhenNotFound() {
+        val api = api(token = "tok") { json("""{"error":"not found"}""", HttpStatusCode.NotFound) }
+
+        val e = assertFailsWith<SeriesApiException> { runBlocking { api.deleteSeries(7) } }
+        assertEquals("not found", e.message)
+    }
+
+    @Test
+    fun nextPageCursorStopsOnAShortPage() {
+        val full = List(SERIES_PAGE_SIZE) { SeriesDto(it + 1L, "t", "-", emptyList()) }
+        assertEquals(SERIES_PAGE_SIZE.toLong(), nextPageCursor(full))
+        assertNull(nextPageCursor(full.dropLast(1)))
+        assertNull(nextPageCursor(emptyList()))
     }
 
     @Test

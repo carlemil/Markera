@@ -35,6 +35,11 @@
     <string name="history_signed_out">Logga in för att se historik</string>
     <string name="history_empty">Inga sparade serier än</string>
     <string name="history_retry">Försök igen</string>
+    <string name="history_delete_title">Radera serien?</string>
+    <string name="history_delete_message">%1$s · %2$d poäng</string>
+    <string name="history_delete_confirm">Radera</string>
+    <string name="history_delete_cancel">Avbryt</string>
+    <string name="history_delete_failed">Kunde inte radera</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>
