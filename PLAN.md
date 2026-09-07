@@ -63,6 +63,17 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
   Ordering: server half first and deployed (the server JSON is strict about unknown keys),
   then the app half. `HitScore` gains `manual: Boolean = false` so the DTO mapping and the
   overlay colour know the kind.
+- **Production hardening** (requested 2026-09-07, tasks 24–30): the admin UI is gated by a
+  password (`ADMIN_PASSWORD`, HTTP Basic, user `admin`; unset = admin routes off — replaces the
+  `ADMIN_UI` flag) and `DEV_AUTH=false` on the Mac mini, so the mock flavor can no longer sign in
+  against it (point it at a local server with `DEV_AUTH=true`, or re-enable temporarily).
+  Pagination is cursor-based: `GET /series?limit=N&before=<id>` (newest first, default 50, max
+  200; response stays a plain array). `DELETE /series/{id}` (owner only; holes + image go too)
+  and `DELETE /account` (everything the user owns, sessions included; the app signs out after).
+  Manual markers are removed by tapping them again (within the same 24 dp gap); a removed hole
+  shifts the picker slots after it left by one, so edits stay aligned. Release signing: upload
+  keystore at the repo root (`keystore`, gitignored) read from `keystore.properties`; Play App
+  Signing re-signs, so the Play-generated key's SHA-1 is what goes into the Android OAuth client.
 - Sub-agents run on `opus`.
 
 ## User actions needed (cannot be done by the orchestrator)
@@ -74,6 +85,15 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
       `server/.env` as `GOOGLE_CLIENT_ID=...`.
 - [ ] Apple Developer: enable "Sign in with Apple" on the iOS bundle id; set
       `APPLE_BUNDLE_ID` in `server/.env`.
+- [ ] Play Console → Setup → API access: link a Cloud project, create a service account with the
+      "Release manager" role, download its JSON key to `play-account.json` at the repo root
+      (gitignored). Needed by `/release`.
+- [ ] After the first upload with Play App Signing: copy the **App signing key certificate**
+      SHA-1 (Play Console → Setup → App signing) into the Android OAuth client in Google Cloud
+      Console (or add a second Android client with it). Until then the release build's Google
+      sign-in fails. The upload key's SHA-1 is printed by task 26 for reference.
+- [ ] A public privacy-policy URL and an account-deletion URL for the Play listing (the app's
+      in-app deletion from task 25b satisfies the in-app half).
 
 ## Tasks
 
@@ -103,6 +123,12 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 21 | Home texts: "Fri markering" → "Markera", "Skanna en tavla utan tävling" → "Scanna en tavla" (orchestrator-applied with task 20) | done |
 | 22 | Admin: drop the "created" column from the users list (orchestrator-applied, 2026-09-06) | done |
 | 23 | Mock flavor: no auto-scan after Spara/Återställ (new image, wait for Detektera) so the flow mirrors the camera; first frame and preview tap still auto-scan (orchestrator-applied, 2026-09-07) | done |
+| 24 | Server: lock-down + deletes + pagination — `ADMIN_PASSWORD` basic auth replaces `ADMIN_UI`; `DELETE /series/{id}`; `DELETE /account`; `GET /series?limit&before`; tests; Mac mini `.env`: `DEV_AUTH=false`, `ADMIN_PASSWORD=…` | queued |
+| 25a | App: history pagination (loads the next page when the list end is reached) and series delete (long-press a row → confirm dialog → `DELETE`, row disappears) | queued |
+| 25b | App: account deletion — "Radera konto" on Home under the signed-in row, confirm dialog naming what goes, `DELETE /account`, then sign out; camera + mock | queued |
+| 25c | App: remove a manual marker by tapping it again; picker slots shift; recorder re-published | queued |
+| 26 | Release signing: upload keystore + `keystore.properties` (gitignored), `signingConfigs.release` wired when the file exists, upload-key SHA-1 recorded (orchestrator-applied) | queued |
+| 27 | Store assets under `store/`: Swedish short/full description, 512 px icon, 1024×500 feature graphic, phone screenshots | queued |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | deferred — not needed on the LAN; recipe pinned below |
 
 ## API (server)
@@ -114,11 +140,13 @@ POST /auth/apple  {idToken}        -> 200 {token, userId}
 POST /auth/dev    {subject}        -> 200 {token, userId}   (DEV_AUTH=true only)
 POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x?,y?,ring,innerTen,distanceMm?,detectedRing?,detectedInnerTen?}]}
                                    -> 201 {id}
-GET  /series      Bearer           -> 200 [{id, timestamp, caliber, holes:[...], hasImage}]
+GET  /series      Bearer, ?limit=N&before=<id>  -> 200 [{id, timestamp, caliber, holes:[...], hasImage, imageWidth, imageHeight}] newest first
+DELETE /series/{id}  Bearer          -> 204 (owner only; holes + image removed)
+DELETE /account      Bearer          -> 204 (user, sessions, series, holes, images)
 POST /series/{id}/image  Bearer, raw image/jpeg body (≤ 5 MB) -> 204
 GET  /series/{id}/image  Bearer     -> 200 image/jpeg | 404
 POST /series/{id}/image?width=W&height=H   optional: size of the scored frame (markers on the admin photo)
-GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, no auth, only with ADMIN_UI=true
+GET  /admin, /admin/users/{id}, /admin/series/{id}[/image]   HTML, HTTP Basic admin:$ADMIN_PASSWORD; off when unset
 ```
 
 ## HTTPS recipe (task 9, apply the day the backend leaves the LAN)
@@ -131,8 +159,8 @@ No app code changes: OkHttp (Android) and Darwin (iOS) trust public CAs already.
    Let's Encrypt state). Stop publishing 8090 on the host.
 3. App: `markera.backend.url=https://<host>` in `gradle.properties`; drop the cleartext
    entry for 192.168.1.191 from `network_security_config.xml`.
-4. Set `DEV_AUTH=false` and `ADMIN_UI=false` in `server/.env` before exposing anything —
-   `/auth/dev` is a free login and `/admin` shows every user's series without one.
+4. `DEV_AUTH=false` and a strong `ADMIN_PASSWORD` in `server/.env` (done in task 24) — `/auth/dev`
+   is a free login and `/admin` shows every user's series.
 
 ## Follow-ups / out of scope
 
