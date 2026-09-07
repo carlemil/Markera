@@ -3,7 +3,6 @@ package se.kjellstrand.markera.ui.history
 import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,16 +58,13 @@ import se.kjellstrand.markera.series.detectedLabel
 import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.kindText
 import se.kjellstrand.markera.series.manualLabel
+import se.kjellstrand.markera.series.moveHole
 import se.kjellstrand.markera.series.nearestHoleIndex
-import se.kjellstrand.markera.series.pickInnerTen
-import se.kjellstrand.markera.series.pickRing
 import se.kjellstrand.markera.series.ring
-import se.kjellstrand.markera.series.withDetectedScore
 import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
-import se.kjellstrand.markera.ui.markera.ScoreDialpadDialog
 import se.kjellstrand.markera.ui.markera.photoGestures
 import se.kjellstrand.markera.ui.markera.rememberZoomPan
 import se.kjellstrand.markera.ui.markera.zoomPan
@@ -85,9 +80,9 @@ private val GRAB_RADIUS = 24.dp
 
 /**
  * One saved series: the scanned photo with a marker per positioned hole, the
- * hole list, and editing — tap a row to change its score, tap the photo to add
- * a hole, drag a marker to move it, pinch to zoom in first. "Spara" PUTs the
- * whole series back; going back discards.
+ * hole list, and editing — tap the photo to add a hole, drag a marker to move
+ * it, pinch to zoom in first. A score is never typed: it always comes from where
+ * the hole sits. "Spara" PUTs the whole series back; going back discards.
  */
 @Composable
 fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
@@ -97,7 +92,9 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
     // reads and writes the current list.
     val holes = remember(series.id) { mutableStateOf(series.holes) }
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
-    var editing by remember { mutableIntStateOf(-1) }
+    // A score only ever comes from a position, so without geometry the holes
+    // can't be edited at all.
+    val geometry = series.geometry
     var saving by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val zoomPan = rememberZoomPan(series.id)
@@ -153,31 +150,45 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                         .aspectRatio(1f)
                         // Pinch to zoom, drag a marker to move it, tap empty
                         // target to add a hole — the same loop the scan screen
-                        // uses (deleting here is the row's own button).
+                        // uses (deleting here is the row's own button). Without
+                        // stored geometry there is nothing to score a position
+                        // against, so such a series only zooms.
                         .photoGestures(
                             t = zoomPan,
                             imageW = imageW,
                             imageH = imageH,
                             grabPx = grabPx,
-                            key = series.geometry,
+                            key = geometry,
                             holeAt = { x, y, reach ->
-                                holes.value.nearestHoleIndex(
-                                    x.toDouble(),
-                                    y.toDouble(),
-                                    reach.toDouble(),
-                                )
+                                if (geometry == null) {
+                                    -1
+                                } else {
+                                    holes.value.nearestHoleIndex(
+                                        x.toDouble(),
+                                        y.toDouble(),
+                                        reach.toDouble(),
+                                    )
+                                }
                             },
                             onMove = { i, x, y ->
-                                holes.value = holes.value.moveHole(i, x to y, series)
+                                if (geometry == null) {
+                                    -1
+                                } else {
+                                    val moved =
+                                        holes.value.moveHole(i, x.toDouble(), y.toDouble(), geometry)
+                                    holes.value = moved
+                                    // Rescoring re-sorts: find the hole again by
+                                    // where it was just put, so the drag follows.
+                                    moved.indexOfFirst {
+                                        it.x == x.toDouble() && it.y == y.toDouble()
+                                    }
+                                }
                             },
                             onAdd = { x, y, _ ->
-                                holes.value = holes.value.withNewHole(
-                                    x.toDouble(),
-                                    y.toDouble(),
-                                    series.geometry,
-                                )
-                                // No geometry means no score to derive.
-                                if (series.geometry == null) editing = holes.value.lastIndex
+                                geometry?.let {
+                                    holes.value =
+                                        holes.value.withNewHole(x.toDouble(), y.toDouble(), it)
+                                }
                             },
                         ),
                 ) {
@@ -231,10 +242,7 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                     holes.value.forEachIndexed { i, hole ->
                         HoleRow(
                             hole = hole,
-                            onEdit = { editing = i },
                             onDelete = {
-                                // Indices shift, so any open edit is stale.
-                                editing = -1
                                 holes.value = holes.value.filterIndexed { j, _ -> j != i }
                             },
                         )
@@ -289,57 +297,10 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
             },
         )
     }
-
-    if (editing >= 0) {
-        ScoreDialpadDialog(
-            // Only a hole the detector scored has something to revert to.
-            onClear = holes.value.getOrNull(editing)?.detectedRing?.let {
-                {
-                    holes.value = holes.value.mapIndexed { i, hole ->
-                        if (i == editing) hole.withDetectedScore() else hole
-                    }
-                    editing = -1
-                }
-            },
-            onPick = { pick ->
-                // Only the confirmed values change; detectedRing/-InnerTen stay,
-                // which is what makes the row read "8 -> 9".
-                holes.value = holes.value.mapIndexed { i, hole ->
-                    if (i == editing) {
-                        hole.copy(ring = pickRing(pick), innerTen = pickInnerTen(pick))
-                    } else {
-                        hole
-                    }
-                }
-                editing = -1
-            },
-            onDismiss = { editing = -1 },
-        )
-    }
 }
 
-/**
- * Hole [index] moved to [p] (image px). The distance is re-measured from the
- * stored scan geometry — a series saved without it just loses the distance —
- * and the confirmed ring/inner-ten stay as they are.
- */
-private fun List<HoleDto>.moveHole(index: Int, p: Pair<Float, Float>, series: SeriesDto) =
-    mapIndexed { i, hole ->
-        if (i != index) {
-            hole
-        } else {
-            hole.copy(
-                x = p.first.toDouble(),
-                y = p.second.toDouble(),
-                distanceMm = series.geometry?.let { g ->
-                    distanceMm(p.first, p.second, g.centre(), g.ring())
-                },
-            )
-        }
-    }
-
 @Composable
-private fun HoleRow(hole: HoleDto, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun HoleRow(hole: HoleDto, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -347,7 +308,8 @@ private fun HoleRow(hole: HoleDto, onEdit: () -> Unit, onDelete: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Detected: read-only, struck through once the user overrode it.
+        // Detected: what the model said, struck through once the hole was moved
+        // somewhere that scores differently.
         Text(
             text = hole.detectedLabel() ?: "",
             style = MaterialTheme.typography.titleLarge,
@@ -359,14 +321,13 @@ private fun HoleRow(hole: HoleDto, onEdit: () -> Unit, onDelete: () -> Unit) {
             textDecoration = if (hole.isEdited()) TextDecoration.LineThrough else null,
             modifier = Modifier.width(32.dp),
         )
-        // Manual: the user's own value, and the only tappable cell.
+        // Manual: the score the hole got where the user put it.
         Text(
             text = hole.manualLabel() ?: stringResource(R.string.detail_no_score),
             style = MaterialTheme.typography.titleLarge,
             color = MANUAL_COLOR,
             modifier = Modifier
                 .width(40.dp)
-                .clickable(onClick = onEdit)
                 .padding(vertical = 6.dp),
         )
         Text(

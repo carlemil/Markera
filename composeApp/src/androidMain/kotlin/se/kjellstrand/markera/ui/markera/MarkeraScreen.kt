@@ -145,7 +145,6 @@ fun MarkeraScreen(
                         isFrozen = isFrozen,
                         processing = processing,
                         uiState = uiState,
-                        onValueChange = viewModel::setTopScoreAt,
                         onScan = onDetectClick,
                         onResume = onResumeLive,
                         onReset = onReset,
@@ -157,7 +156,6 @@ fun MarkeraScreen(
                             isFrozen = isFrozen,
                             processing = processing,
                             uiState = uiState,
-                            onValueChange = viewModel::setTopScoreAt,
                             onScan = onDetectClick,
                             onResume = onResumeLive,
                             onReset = onReset,
@@ -248,7 +246,6 @@ private fun BottomArea(
     isFrozen: Boolean,
     processing: Boolean,
     uiState: MarkeraUiState,
-    onValueChange: (index: Int, value: Int) -> Unit,
     onScan: () -> Unit,
     onResume: () -> Unit,
     onReset: () -> Unit,
@@ -273,7 +270,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onValueChange, onResume, onReset, landscape)
+            else -> ResultsContent(uiState, onResume, onReset, landscape)
         }
     }
 }
@@ -302,7 +299,6 @@ private fun LiveHint() {
 @Composable
 private fun ResultsContent(
     uiState: MarkeraUiState,
-    onValueChange: (index: Int, value: Int) -> Unit,
     onResume: () -> Unit,
     onReset: () -> Unit,
     landscape: Boolean,
@@ -314,9 +310,10 @@ private fun ResultsContent(
     ) {
         TotalBadge(total)
         if (landscape) {
-            ScorePickerVerticalColumn(values = uiState.topScores, onValueChange = onValueChange)
+            ScorePickerVerticalColumn(values = uiState.topScores)
         } else {
-            ScorePickerHorizontalRow(values = uiState.topScores, onValueChange = onValueChange)
+            // Read-only: a score only ever follows the hole it belongs to.
+            ScorePickerHorizontalRow(values = uiState.topScores)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = onReset) {

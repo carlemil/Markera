@@ -5,10 +5,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
+import se.kjellstrand.markera.vision.HIT_SCORE_ORDER
 import se.kjellstrand.markera.vision.HitScore
 
 class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
@@ -54,56 +56,26 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
     }
 
     override fun onHolesDetected(detections: List<Detection>, scores: List<HitScore>) {
-        // Auto-fill the pickers from the top hits (inner-X -> index 11, else the
-        // ring value), padded to the picker count. Still user-editable afterwards.
-        val picks = scores.take(SCORE_PICKER_COUNT)
-            .map { if (it.isInnerTen) SCORE_PICKER_INNER_TEN else it.ring }
-        val topScores = List(SCORE_PICKER_COUNT) { i -> picks.getOrElse(i) { 0 } }
         _uiState.update {
-            it.copy(
-                detections = detections,
-                scores = scores,
-                topScores = topScores,
-                phase = ScanPhase.IDLE,
-                error = null,
-            )
+            it.withHoles(detections, scores).copy(phase = ScanPhase.IDLE, error = null)
         }
     }
 
     override fun addManualHit(detection: Detection, hit: HitScore) {
-        _uiState.update {
-            val scores = it.scores + hit
-            // Positional, exactly like onHolesDetected: hole i is picker slot i.
-            val slot = scores.size - 1
-            val pick = if (hit.isInnerTen) SCORE_PICKER_INNER_TEN else hit.ring
-            it.copy(
-                detections = it.detections + detection,
-                scores = scores,
-                topScores = if (slot < SCORE_PICKER_COUNT) {
-                    it.topScores.toMutableList().apply { this[slot] = pick }
-                } else {
-                    it.topScores
-                },
-            )
-        }
+        _uiState.update { it.withHoles(it.detections + detection, it.scores + hit) }
     }
 
-    override fun moveHit(index: Int, detection: Detection, hit: HitScore) {
-        _uiState.update { state ->
-            if (index !in state.scores.indices || index !in state.detections.indices) {
-                return@update state
-            }
-            val pick = if (hit.isInnerTen) SCORE_PICKER_INNER_TEN else hit.ring
-            state.copy(
-                detections = state.detections.toMutableList().apply { this[index] = detection },
-                scores = state.scores.toMutableList().apply { this[index] = hit },
-                topScores = if (index < SCORE_PICKER_COUNT) {
-                    state.topScores.toMutableList().apply { this[index] = pick }
-                } else {
-                    state.topScores
-                },
+    override fun moveHit(index: Int, detection: Detection, hit: HitScore): Int {
+        if (index !in _uiState.value.scores.indices) return -1
+        val state = _uiState.updateAndGet {
+            it.withHoles(
+                it.detections.toMutableList().apply { this[index] = detection },
+                it.scores.toMutableList().apply { this[index] = hit },
             )
         }
+        // Re-scoring re-sorts, so the hole the user is dragging has moved in the
+        // list; the caller needs to know where to, to keep dragging it.
+        return state.scores.indexOfFirst { it === hit }
     }
 
     override fun removeHit(index: Int) {
@@ -111,28 +83,9 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
             if (index !in state.scores.indices || index !in state.detections.indices) {
                 return@update state
             }
-            val scores = state.scores.toMutableList().apply { removeAt(index) }
-            val topScores = if (index < SCORE_PICKER_COUNT) {
-                // Shift the picks (not the scores) left, so user edits in the
-                // later slots survive, and fill the freed last slot from the
-                // hole that just moved into picker range.
-                val entering = scores.getOrNull(SCORE_PICKER_COUNT - 1)
-                val pick = when {
-                    entering == null -> 0
-                    entering.isInnerTen -> SCORE_PICKER_INNER_TEN
-                    else -> entering.ring
-                }
-                state.topScores.toMutableList().apply {
-                    removeAt(index)
-                    add(pick)
-                }
-            } else {
-                state.topScores
-            }
-            state.copy(
-                detections = state.detections.toMutableList().apply { removeAt(index) },
-                scores = scores,
-                topScores = topScores,
+            state.withHoles(
+                state.detections.toMutableList().apply { removeAt(index) },
+                state.scores.toMutableList().apply { removeAt(index) },
             )
         }
     }
@@ -157,13 +110,25 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
     override fun setError(message: String?) {
         _uiState.update { it.copy(error = message, phase = ScanPhase.IDLE) }
     }
+}
 
-    override fun setTopScoreAt(index: Int, value: Int) {
-        if (index !in 0 until SCORE_PICKER_COUNT) return
-        val clamped = value.coerceIn(0, SCORE_PICKER_INNER_TEN)
-        _uiState.update {
-            val updated = it.topScores.toMutableList().apply { this[index] = clamped }
-            it.copy(topScores = updated)
-        }
-    }
+/**
+ * Publish holes and scores in score order — the order a fresh detection comes in
+ * — and refill the pickers from them, since a score now only ever comes from
+ * where its hole sits. Hole `i` stays picker slot `i` (what `withPicks` saves
+ * by). Detections without scores (no geometry) are left as the model found them.
+ */
+private fun MarkeraUiState.withHoles(
+    detections: List<Detection>,
+    scores: List<HitScore>,
+): MarkeraUiState {
+    val order = scores.indices.sortedWith(compareBy(HIT_SCORE_ORDER) { scores[it] })
+    val sorted = order.map { scores[it] }
+    return copy(
+        detections = if (detections.size == scores.size) order.map { detections[it] } else detections,
+        scores = sorted,
+        topScores = List(SCORE_PICKER_COUNT) { i ->
+            sorted.getOrNull(i)?.let { if (it.isInnerTen) SCORE_PICKER_INNER_TEN else it.ring } ?: 0
+        },
+    )
 }

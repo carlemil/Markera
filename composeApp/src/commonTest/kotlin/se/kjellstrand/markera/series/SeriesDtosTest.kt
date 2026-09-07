@@ -146,12 +146,6 @@ class SeriesDtosTest {
         assertTrue(edited.isEdited())
         assertFalse(untouched.isEdited())
         assertFalse(manual.isEdited())
-
-        // Reverting restores the detected pair (and only that).
-        assertEquals(untouched, edited.withDetectedScore())
-        assertEquals(untouched, untouched.copy(innerTen = true).withDetectedScore())
-        // Nothing to revert to leaves the hole alone.
-        assertEquals(manual, manual.withDetectedScore())
     }
 
     @Test
@@ -168,24 +162,37 @@ class SeriesDtosTest {
         assertEquals(-1, holes.nearestHoleIndex(0.0, 0.0, 20.0))
     }
 
+    // Centre (100,100), a circular 6/7 ring of 100 px = 100 mm, so 1 px = 1 mm.
+    private val geometry = GeometryDto(100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0)
+
     @Test
-    fun withNewHoleScoresFromTheStoredGeometryOrLeavesItUnscored() {
-        // Centre (100,100), a circular 6/7 ring of 100 px = 100 mm, so 1 px = 1 mm.
-        val geometry = GeometryDto(100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0)
+    fun withNewHoleScoresFromTheStoredGeometryAndSortsHighestFirst() {
         val existing = listOf(HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0))
 
-        val innerTen = existing.withNewHole(110.0, 100.0, geometry)
-        assertEquals(existing, innerTen.dropLast(1))
-        assertEquals(HoleDto(110.0, 100.0, 10, true, 10.0), innerTen.last())
-
-        // 60 mm out lands in ring 8, and no edge gauge is applied.
+        // An inner ten sorts ahead of the ring 9 that was already there.
         assertEquals(
-            HoleDto(100.0, 160.0, 8, false, 60.0),
-            existing.withNewHole(100.0, 160.0, geometry).last(),
+            listOf(HoleDto(110.0, 100.0, 10, true, 10.0)) + existing,
+            existing.withNewHole(110.0, 100.0, geometry),
+        )
+        // 60 mm out lands in ring 8, behind the 9, and no edge gauge is applied.
+        assertEquals(
+            existing + HoleDto(100.0, 160.0, 8, false, 60.0),
+            existing.withNewHole(100.0, 160.0, geometry),
+        )
+    }
+
+    @Test
+    fun moveHoleRescoresTheHoleKeepsWhatWasDetectedAndReSorts() {
+        val holes = listOf(
+            HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0),
+            HoleDto(2.0, 2.0, 8, false, 60.0, 8, false, 2.0, 2.0),
         )
 
-        // No geometry: nothing to measure or score against.
-        assertEquals(HoleDto(5.0, 6.0, 0, false, null), existing.withNewHole(5.0, 6.0, null).last())
+        // The ring 8 dragged onto the centre: rescored to an inner X, first now,
+        // and still carrying what the detector said about it.
+        val moved = holes.moveHole(1, 105.0, 100.0, geometry)
+        assertEquals(HoleDto(105.0, 100.0, 10, true, 5.0, 8, false, 2.0, 2.0), moved.first())
+        assertEquals(holes[0], moved.last())
     }
 
     @Test

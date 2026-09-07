@@ -121,13 +121,13 @@ class HitScoringTest {
     }
 
     @Test
-    fun `results are sorted highest-score first`() {
+    fun `results stay in input order, hit i is detection i`() {
         val low = pointAt(400f, 400f, 240f) // ring 1
         val high = pointAt(400f, 400f, 5f) // inner X
         val mid = pointAt(400f, 400f, 60f) // ring 8
         val scores = scoreHits(listOf(low, high, mid), centre(400f, 400f), ring(400f, 400f))
-        assertEquals(listOf(10, 8, 1), scores.map { it.ring })
-        assertTrue(scores.first().isInnerTen)
+        assertEquals(listOf(1, 10, 8), scores.map { it.ring })
+        assertTrue(scores[1].isInnerTen)
     }
 
     @Test

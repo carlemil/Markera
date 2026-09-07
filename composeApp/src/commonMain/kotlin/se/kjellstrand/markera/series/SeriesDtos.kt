@@ -163,10 +163,6 @@ fun HoleDto.detectedLabel(): String? =
 fun HoleDto.manualLabel(): String? =
     if (detectedRing == null || isEdited()) label() else null
 
-/** Puts the score back to what the detector said; the position is left alone. */
-fun HoleDto.withDetectedScore(): HoleDto =
-    if (detectedRing == null) this else copy(ring = detectedRing, innerTen = detectedInnerTen == true)
-
 /**
  * How a hole came about, for the detail list: `8 → 9` when the score was
  * edited, else [manual] (positioned by hand), [typed] (no position at all) or
@@ -209,20 +205,55 @@ fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int {
 }
 
 /**
- * Appends a hand-placed hole at [x],[y] (source-image px). With [geometry] the
- * score comes straight off the distance — no edge gauge, a tap carries no hole
- * size — otherwise the hole is unscored (ring 0) and the caller asks the user.
+ * A hole at [x],[y] (source-image px) scored against this scan geometry: the
+ * same target spec the scan itself scores by, minus the edge gauge — a marker
+ * the user placed carries no hole size. The only way a stored score changes.
  */
-fun List<HoleDto>.withNewHole(x: Double, y: Double, geometry: GeometryDto?): List<HoleDto> {
-    val dist = geometry?.let { distanceMm(x.toFloat(), y.toFloat(), it.centre(), it.ring()) }
-    return this + HoleDto(
+fun GeometryDto.scoreHoleAt(x: Double, y: Double): HoleDto {
+    val dist = distanceMm(x.toFloat(), y.toFloat(), centre(), ring())
+    return HoleDto(
         x = x,
         y = y,
-        ring = dist?.let { ringForDistance(it) } ?: 0,
-        innerTen = dist != null && dist <= INNER_TEN_RADIUS_MM,
+        ring = ringForDistance(dist),
+        innerTen = dist <= INNER_TEN_RADIUS_MM,
         distanceMm = dist,
     )
 }
+
+/**
+ * The order holes are shown and stored in — inner-X first, then highest ring,
+ * then nearest, matching `HIT_SCORE_ORDER` on the scan side. A positionless
+ * (typed) hole has no distance and sorts last within its ring.
+ */
+val HOLE_ORDER: Comparator<HoleDto> = compareByDescending<HoleDto> { it.innerTen }
+    .thenByDescending { it.ring }
+    .thenBy { it.distanceMm ?: Double.MAX_VALUE }
+
+/**
+ * Appends a hand-placed hole at [x],[y] (source-image px), scored where it lands.
+ * Re-sorted, so the list always reads highest first.
+ */
+fun List<HoleDto>.withNewHole(x: Double, y: Double, geometry: GeometryDto): List<HoleDto> =
+    (this + geometry.scoreHoleAt(x, y)).sortedWith(HOLE_ORDER)
+
+/**
+ * Hole [index] dragged to [x],[y] (source-image px): rescored where it now sits,
+ * keeping what the detector said about it so the pair stays training data. The
+ * list comes back re-sorted, so the moved hole may not be at [index] any more.
+ */
+fun List<HoleDto>.moveHole(index: Int, x: Double, y: Double, geometry: GeometryDto): List<HoleDto> =
+    mapIndexed { i, hole ->
+        if (i != index) {
+            hole
+        } else {
+            geometry.scoreHoleAt(x, y).copy(
+                detectedRing = hole.detectedRing,
+                detectedInnerTen = hole.detectedInnerTen,
+                detectedX = hole.detectedX,
+                detectedY = hole.detectedY,
+            )
+        }
+    }.sortedWith(HOLE_ORDER)
 
 /**
  * Overlay the score pickers on the detected holes: picker slot `i` is hole `i`

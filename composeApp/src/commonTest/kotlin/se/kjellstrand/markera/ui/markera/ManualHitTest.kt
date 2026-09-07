@@ -48,16 +48,18 @@ class ManualHitTest {
     }
 
     @Test
-    fun addManualHitAppendsAndFillsTheNextPickerSlot() {
+    fun addManualHitScoresTheHoleAndSortsItIntoThePickers() {
         val vm = MarkeraViewModelImpl()
         vm.onHolesDetected(listOf(box(0f, 0f, 10f)), listOf(hit(ring = 9)))
         assertEquals(listOf(9, 0, 0, 0, 0), vm.uiState.value.topScores)
 
-        vm.addManualHit(box(50f, 50f, 10f), hit(ring = 10, inner = true, manual = true))
+        val added = box(50f, 50f, 10f)
+        vm.addManualHit(added, hit(ring = 10, inner = true, manual = true))
 
         assertEquals(2, vm.uiState.value.scores.size)
-        assertEquals(2, vm.uiState.value.detections.size)
-        assertEquals(listOf(9, SCORE_PICKER_INNER_TEN, 0, 0, 0), vm.uiState.value.topScores)
+        // The inner X sorts ahead of the 9 — holes and pickers both.
+        assertEquals(added, vm.uiState.value.detections.first())
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 9, 0, 0, 0), vm.uiState.value.topScores)
     }
 
     @Test
@@ -90,12 +92,36 @@ class ManualHitTest {
         vm.onHolesDetected(List(2) { box(it * 100f, 0f, 10f) }, List(2) { hit(ring = 7) })
 
         val moved = box(500f, 500f, 10f)
-        vm.moveHit(1, moved, hit(ring = 10, inner = true))
+        // Rescored to an inner X, it sorts first — and the drag is told so.
+        assertEquals(0, vm.moveHit(1, moved, hit(ring = 10, inner = true)))
 
         assertEquals(2, vm.uiState.value.scores.size)
-        assertEquals(moved, vm.uiState.value.detections[1])
-        assertEquals(10, vm.uiState.value.scores[1].ring)
-        assertEquals(listOf(7, SCORE_PICKER_INNER_TEN, 0, 0, 0), vm.uiState.value.topScores)
+        assertEquals(moved, vm.uiState.value.detections.first())
+        assertEquals(10, vm.uiState.value.scores.first().ring)
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 7, 0, 0, 0), vm.uiState.value.topScores)
+    }
+
+    @Test
+    fun holesAndScoresStayPairedThroughTheSort() {
+        val vm = MarkeraViewModelImpl()
+        // Detector order is not score order: the middle box is the best hit.
+        val boxes = listOf(box(10f, 10f, 10f), box(20f, 20f, 10f), box(30f, 30f, 10f))
+        vm.onHolesDetected(boxes, listOf(hit(ring = 7), hit(ring = 10, inner = true), hit(ring = 9)))
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 9, 7, 0, 0), vm.uiState.value.topScores)
+        // Every box kept the score it was detected with.
+        assertEquals(listOf(boxes[1], boxes[2], boxes[0]), vm.uiState.value.detections)
+
+        // Drag the ring 7 (last after the sort) into the ten ring.
+        val moved = box(15f, 15f, 10f)
+        val at = vm.moveHit(2, moved, hit(ring = 10))
+        val state = vm.uiState.value
+
+        assertEquals(moved, state.detections[at])
+        assertEquals(10, state.scores[at].ring)
+        // The other two are untouched and still hold their own boxes.
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 10, 9, 0, 0), state.topScores)
+        assertEquals(boxes[1], state.detections[0])
+        assertEquals(boxes[2], state.detections[2])
     }
 
     @Test
@@ -103,37 +129,37 @@ class ManualHitTest {
         val vm = MarkeraViewModelImpl()
         vm.onHolesDetected(listOf(box(0f, 0f, 10f)), listOf(hit(ring = 7)))
 
-        vm.moveHit(3, box(1f, 1f, 10f), hit(ring = 10))
+        assertEquals(-1, vm.moveHit(3, box(1f, 1f, 10f), hit(ring = 10)))
 
         assertEquals(1, vm.uiState.value.scores.size)
         assertEquals(listOf(7, 0, 0, 0, 0), vm.uiState.value.topScores)
     }
 
     @Test
-    fun removingAHoleShiftsLaterPicksLeftAndKeepsUserEdits() {
+    fun removingAHoleShiftsTheLaterPicksLeft() {
         val vm = MarkeraViewModelImpl()
-        vm.onHolesDetected(List(3) { box(it * 100f, 0f, 10f) }, List(3) { hit(ring = 7 + it) })
-        vm.setTopScoreAt(2, SCORE_PICKER_INNER_TEN) // user corrected the third slot
-        assertEquals(listOf(7, 8, SCORE_PICKER_INNER_TEN, 0, 0), vm.uiState.value.topScores)
+        vm.onHolesDetected(List(3) { box(it * 100f, 0f, 10f) }, List(3) { hit(ring = 9 - it) })
+        assertEquals(listOf(9, 8, 7, 0, 0), vm.uiState.value.topScores)
 
         vm.removeHit(1)
 
         assertEquals(2, vm.uiState.value.scores.size)
         assertEquals(2, vm.uiState.value.detections.size)
-        assertEquals(listOf(7, SCORE_PICKER_INNER_TEN, 0, 0, 0), vm.uiState.value.topScores)
+        assertEquals(listOf(9, 7, 0, 0, 0), vm.uiState.value.topScores)
     }
 
     @Test
     fun removingAHolePullsTheNextOneIntoTheLastPickerSlot() {
         val vm = MarkeraViewModelImpl()
         val six = List(6) { box(it * 100f, 0f, 10f) }
+        // Fed in any order, the results come out highest first.
         vm.onHolesDetected(six, List(5) { hit(ring = 5 + it) } + hit(ring = 10, inner = true))
-        assertEquals(listOf(5, 6, 7, 8, 9), vm.uiState.value.topScores)
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 9, 8, 7, 6), vm.uiState.value.topScores)
 
-        vm.removeHit(2)
+        vm.removeHit(2) // the 8
 
         assertEquals(5, vm.uiState.value.scores.size)
-        assertEquals(listOf(5, 6, 8, 9, SCORE_PICKER_INNER_TEN), vm.uiState.value.topScores)
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 9, 7, 6, 5), vm.uiState.value.topScores)
     }
 
     @Test

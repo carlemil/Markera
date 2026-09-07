@@ -95,7 +95,6 @@
     <string name="detail_kind_typed">inskriven</string>
     <string name="detail_kind_moved">flyttad</string>
     <string name="detail_kind_detected">detekterad</string>
-    <string name="detail_use_detected">Använd detekterad</string>
     <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Ta bort träff</string>
 

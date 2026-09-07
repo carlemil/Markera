@@ -171,7 +171,8 @@ class TargetScanController(
      * The user dragged hole [index] to [x],[y] (source-image px). The hole keeps
      * its box size and is rescored against the scan's own geometry; a detected
      * hole keeps what the detector said about it in [HitScore.original], so it
-     * still saves its `detected*` values.
+     * still saves its `detected*` values. Returns the hole's index in the
+     * re-sorted results, or -1 when nothing moved.
      */
     fun moveHit(
         viewModel: MarkeraViewModel,
@@ -179,19 +180,24 @@ class TargetScanController(
         index: Int,
         x: Float,
         y: Float,
-    ) = editHoles(viewModel, snapshot) { state, centre, ring ->
-        val old = state.scores.getOrNull(index) ?: return@editHoles false
-        val moved = state.detections.getOrNull(index)?.movedTo(x, y) ?: return@editHoles false
-        val hit = scoreHits(listOf(moved), centre, ring).firstOrNull() ?: return@editHoles false
-        viewModel.moveHit(
-            index,
-            moved,
-            hit.copy(
-                manual = old.manual,
-                original = if (old.manual) null else (old.original ?: old),
-            ),
-        )
-        true
+    ): Int {
+        // Where the hole ends up: rescoring re-sorts, so the drag has to follow it.
+        var landed = -1
+        editHoles(viewModel, snapshot) { state, centre, ring ->
+            val old = state.scores.getOrNull(index) ?: return@editHoles false
+            val moved = state.detections.getOrNull(index)?.movedTo(x, y) ?: return@editHoles false
+            val hit = scoreHits(listOf(moved), centre, ring).firstOrNull() ?: return@editHoles false
+            landed = viewModel.moveHit(
+                index,
+                moved,
+                hit.copy(
+                    manual = old.manual,
+                    original = if (old.manual) null else (old.original ?: old),
+                ),
+            )
+            landed >= 0
+        }
+        return landed
     }
 
     /** The user long-pressed hole [index]: drop it, detected or hand-placed. */
@@ -272,7 +278,14 @@ class TargetScanController(
         )
         viewModel.onHolesDetected(detections, scores)
         if (scores.isNotEmpty()) {
-            onSeriesDetected?.invoke(scores, snapshot, ring?.let { geometryDto(centre, it) })
+            // The published state, not the local list: the pickers are saved by
+            // position, so the series must carry the same order the view model
+            // sorted the holes into.
+            onSeriesDetected?.invoke(
+                viewModel.uiState.value.scores,
+                snapshot,
+                ring?.let { geometryDto(centre, it) },
+            )
         }
     }
 }
@@ -349,7 +362,7 @@ fun rememberCameraPermission(frameSource: FrameSource): CameraPermissionState {
  */
 class HoleEditing(
     val add: (x: Float, y: Float, reach: Float) -> Unit,
-    val move: (index: Int, x: Float, y: Float) -> Unit,
+    val move: (index: Int, x: Float, y: Float) -> Int,
     val remove: (index: Int) -> Unit,
 )
 
@@ -407,7 +420,7 @@ fun TargetScanner(
                 holeAt = { x, y, reach ->
                     nearestDetectionIndex(x, y, state.detections, reach)
                 },
-                onMove = { i, x, y -> edit?.move(i, x, y) },
+                onMove = { i, x, y -> edit?.move(i, x, y) ?: -1 },
                 onAdd = { x, y, reach -> edit?.add(x, y, reach) },
                 onRemove = { i -> edit?.remove(i) },
             )

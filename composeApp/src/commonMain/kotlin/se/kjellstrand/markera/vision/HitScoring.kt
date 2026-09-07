@@ -108,12 +108,16 @@ fun scoreHits(
             ring = ringForDistance(edgeMm),
             isInnerTen = edgeMm <= INNER_TEN_RADIUS_MM,
         )
-    }.sortedWith(
-        compareByDescending<HitScore> { it.isInnerTen }
-            .thenByDescending { it.ring }
-            .thenBy { it.distanceMm },
-    )
+    }
 }
+
+/**
+ * The order hits are always shown (and stored) in: inner-X first, then highest
+ * ring, then nearest — so the first five map straight onto the score pickers.
+ */
+val HIT_SCORE_ORDER: Comparator<HitScore> = compareByDescending<HitScore> { it.isInnerTen }
+    .thenByDescending { it.ring }
+    .thenBy { it.distanceMm }
 
 /** Ring for a scoring distance in mm; 0 = outside the target (a miss). */
 fun ringForDistance(distMm: Double): Int {

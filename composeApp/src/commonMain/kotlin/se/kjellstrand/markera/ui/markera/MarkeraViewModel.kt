@@ -26,35 +26,29 @@ interface MarkeraViewModel {
     )
 
     /**
-     * Phase 2 done: publish the holes and their [scores], auto-fill the score
-     * pickers from the top hits, and return to idle.
+     * Phase 2 done: publish the holes and their [scores] (highest first), fill
+     * the score pickers from the top hits, and return to idle.
      */
     fun onHolesDetected(detections: List<Detection>, scores: List<HitScore>)
 
     /**
-     * A hole the user tapped on the frozen frame: append it to the results and
-     * fill the next free picker slot with its score, like a detected one.
+     * A hole the user tapped on the frozen frame: added to the results and the
+     * pickers, in score order, like a detected one.
      */
     fun addManualHit(detection: Detection, hit: HitScore)
 
     /**
      * The user dragged hole [index] somewhere else: replace its box and score
-     * (rescored against the same geometry) and refresh its picker slot.
+     * (rescored against the same geometry). Returns where the hole ended up in
+     * the re-sorted list, or -1 when there was no such hole.
      */
-    fun moveHit(index: Int, detection: Detection, hit: HitScore)
+    fun moveHit(index: Int, detection: Detection, hit: HitScore): Int
 
-    /**
-     * The user long-pressed a hole: drop hole [index] and its score, shifting
-     * the picks in the later slots one step left (user edits included) and
-     * pulling the hole that now reaches the pickers into the freed slot.
-     */
+    /** The user long-pressed a hole: drop hole [index] and its score. */
     fun removeHit(index: Int)
 
     /** Clear detection overlay state. */
     fun clearResults()
 
     fun setError(message: String?)
-
-    /** Update one slot of the top-scores list (user edited a picker). */
-    fun setTopScoreAt(index: Int, value: Int)
 }

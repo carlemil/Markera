@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,13 +40,14 @@ private val DIALPAD_KEYS = listOf(
 )
 
 /**
- * One hole's score: a highlighted box showing only the current value. Tapping it
- * opens a dialpad dialog; picking a key reports it and closes.
+ * One hole's score: a highlighted box showing only the current value. With an
+ * [onValueChange] tapping it opens the dialpad; without one (the scan screen,
+ * where a score may only come from where the hole sits) it just displays.
  */
 @Composable
 private fun ScoreBox(
     value: Int,
-    onValueChange: (Int) -> Unit,
+    onValueChange: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showDialog by remember { mutableStateOf(false) }
@@ -57,7 +57,13 @@ private fun ScoreBox(
             .height(PICKER_ITEM_HEIGHT)
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
             .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE)
-            .clickable { showDialog = true },
+            .then(
+                if (onValueChange == null) {
+                    Modifier
+                } else {
+                    Modifier.clickable { showDialog = true }
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -65,7 +71,7 @@ private fun ScoreBox(
             style = MaterialTheme.typography.titleLarge,
         )
     }
-    if (showDialog) {
+    if (showDialog && onValueChange != null) {
         ScoreDialpadDialog(
             onPick = {
                 onValueChange(it)
@@ -77,25 +83,17 @@ private fun ScoreBox(
 }
 
 /**
- * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. Shared
- * with the series detail screen, so one score input for the whole app.
- * [onClear] adds a "back to the detected score" button — only the detail
- * screen has something to revert to, so it defaults to no button at all.
+ * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. Only the
+ * competition wizard types scores — everywhere else a score follows the hole.
  */
 @Composable
-fun ScoreDialpadDialog(
+private fun ScoreDialpadDialog(
     onPick: (Int) -> Unit,
     onDismiss: () -> Unit,
-    onClear: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
-        dismissButton = onClear?.let {
-            {
-                TextButton(onClick = it) { Text(stringResource(R.string.detail_use_detected)) }
-            }
-        },
         title = { Text(stringResource(R.string.score_pick_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
@@ -123,36 +121,35 @@ private fun DialpadKey(value: Int, onClick: () -> Unit) {
     }
 }
 
-/** Portrait — the score boxes in a row. */
+/** Portrait — the score boxes in a row; read-only without [onValueChange]. */
 @Composable
 fun ScorePickerHorizontalRow(
     values: List<Int>,
-    onValueChange: (index: Int, value: Int) -> Unit,
     modifier: Modifier = Modifier,
+    onValueChange: ((index: Int, value: Int) -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(PICKER_GAP),
     ) {
         values.forEachIndexed { i, v ->
-            ScoreBox(value = v, onValueChange = { onValueChange(i, it) })
+            ScoreBox(value = v, onValueChange = onValueChange?.let { f -> { v2: Int -> f(i, v2) } })
         }
     }
 }
 
-/** Landscape — the score boxes in a column. */
+/** Landscape — the score boxes in a column, read-only (only the scan screen). */
 @Composable
 fun ScorePickerVerticalColumn(
     values: List<Int>,
-    onValueChange: (index: Int, value: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(PICKER_GAP),
     ) {
-        values.forEachIndexed { i, v ->
-            ScoreBox(value = v, onValueChange = { onValueChange(i, it) })
+        values.forEach { v ->
+            ScoreBox(value = v, onValueChange = null)
         }
     }
 }
