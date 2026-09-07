@@ -490,7 +490,7 @@ class ApiTest {
         val wrongType = client.putImage(me.token, id, "not a jpeg".toByteArray(), ContentType.Text.Plain)
         assertEquals(HttpStatusCode.UnsupportedMediaType, wrongType.status)
 
-        val tooBig = client.putImage(me.token, id, ByteArray(6 * 1024 * 1024))
+        val tooBig = client.putImage(me.token, id, ByteArray(MAX_IMAGE_BYTES + 1))
         assertEquals(HttpStatusCode.PayloadTooLarge, tooBig.status)
 
         assertEquals(emptyList(), imagesDir.listFiles().orEmpty().map { it.name })

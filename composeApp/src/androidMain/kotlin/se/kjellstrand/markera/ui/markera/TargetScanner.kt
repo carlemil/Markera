@@ -3,6 +3,7 @@ package se.kjellstrand.markera.ui.markera
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.os.SystemClock
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -115,8 +116,8 @@ class TargetScanController(
 
     /**
      * Captures a frame, freezes it into [snapshotVm], and runs geometry + hole
-     * detection, publishing into [viewModel]. Returns false when no frame is
-     * available or a scan is already in flight.
+     * detection, publishing into [viewModel]. Returns false when a scan is
+     * already in flight.
      */
     fun startScan(
         frameSource: FrameSource,
@@ -125,17 +126,25 @@ class TargetScanController(
         scope: CoroutineScope,
         errorMessage: String,
     ): Boolean {
-        // Square the frame to match the FILL_CENTER live preview, so what the
-        // user framed is exactly what gets analysed and shown frozen.
-        val snapshot = (frameSource.capture() ?: return false).centerSquare()
         // Claim the detector; reject re-entry until this pass finishes.
         if (!detecting.compareAndSet(false, true)) return false
-        // Freeze the frame immediately so the user sees the static image
-        // the model will analyse instead of the live preview.
-        snapshotVm.set(snapshot)
         viewModel.startDetect()
         scope.launch {
             try {
+                // The still takes ~0.5 s, so the live preview stays up until it
+                // lands — what the user framed is what gets analysed.
+                val started = SystemClock.elapsedRealtime()
+                val frame = frameSource.capture()
+                Log.i(TAG, "capture ${SystemClock.elapsedRealtime() - started} ms")
+                if (frame == null) {
+                    viewModel.setError(errorMessage)
+                    return@launch
+                }
+                // Square the frame to match the FILL_CENTER live preview, so
+                // what the user framed is exactly what gets analysed and shown
+                // frozen.
+                val snapshot = frame.centerSquare()
+                snapshotVm.set(snapshot)
                 runPipeline(snapshot, viewModel)
             } catch (t: Throwable) {
                 Log.w(TAG, "snapshot inference failed", t)
@@ -235,7 +244,9 @@ class TargetScanController(
         // drawn from this geometry). The digits give a circle seed at
         // the centre; refine snaps it to the black->white edge. The
         // seed fit and grayscale edge scan are CPU-bound, so off-main.
+        val ocrStarted = SystemClock.elapsedRealtime()
         val digits = digitDetector.detect(snapshot)
+        Log.i(TAG, "digit OCR ${SystemClock.elapsedRealtime() - ocrStarted} ms")
         val centre = estimateCentre(digits, snapshot.width, snapshot.height)
         val ring = if (centre.method != CentreMethod.NONE) {
             withContext(Dispatchers.Default) {

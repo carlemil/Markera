@@ -61,7 +61,8 @@ data class Config(
     }
 }
 
-const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
+// A ~3000² q90 target photo is ~2 MB; this is headroom for a bigger sensor.
+const val MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 val CALIBERS = setOf("-", "22lr", "32", "38", "357", "45", "44", "9mm", "10mm")
 

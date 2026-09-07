@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui.history
 
-import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +53,7 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.centre
+import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.detectedLabel
 import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.kindText
@@ -78,6 +78,9 @@ private val MANUAL_COLOR = Color(0xFFFFB74D)
 
 /** How close a drag has to start to a marker to grab it. */
 private val GRAB_RADIUS = 24.dp
+
+/** Plenty for the zoomable photo; the stored frame is ~3000² (36 MB decoded). */
+private const val PHOTO_MAX_DIM = 1536
 
 /**
  * One saved series: the scanned photo with a marker per positioned hole, the
@@ -108,7 +111,7 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
         if (!series.hasImage) return@LaunchedEffect
         try {
             val bytes = services.api.getSeriesImage(series.id)
-            photo = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            photo = decodeSeriesJpeg(bytes, PHOTO_MAX_DIM)?.asImageBitmap()
         } catch (_: Throwable) {
             // No photo is the whole fallback; the list still works.
         }

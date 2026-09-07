@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui.history
 
-import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -58,12 +57,16 @@ import kotlinx.coroutines.launch
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.nextPageCursor
 import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 
 private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
+/** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
+private const val THUMB_MAX_DIM = 256
 
 /** The series saved on the Markera backend, newest first, paged as you scroll. */
 @Composable
@@ -253,7 +256,7 @@ private fun SeriesCard(
             if (thumbnails[series.id] != null) return@LaunchedEffect
             try {
                 val bytes = services.api.getSeriesImage(series.id)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let {
+                decodeSeriesJpeg(bytes, THUMB_MAX_DIM)?.let {
                     thumbnails[series.id] = it.asImageBitmap()
                 }
             } catch (_: Throwable) {

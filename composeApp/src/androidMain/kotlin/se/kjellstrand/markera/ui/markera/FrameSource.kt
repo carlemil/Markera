@@ -18,8 +18,8 @@ interface FrameSource {
     @Composable
     fun Preview(onError: (Throwable) -> Unit, modifier: Modifier)
 
-    /** Grab the frame currently shown, or null if not ready yet. */
-    fun capture(): Bitmap?
+    /** Grab the frame currently framed, or null if the camera is not ready. */
+    suspend fun capture(): Bitmap?
 
     /** Called when the user taps "resume live" to drop a frozen snapshot. */
     fun onResumeLive()

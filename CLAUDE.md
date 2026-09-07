@@ -67,7 +67,10 @@ internal track).
 Single `:composeApp` KMP module — `commonMain` / `androidMain` / `iosMain`. iOS
 `HoleDetector`/`DigitDetector` are stubs; Android is the working platform. The frame
 fed into detection comes from `FrameSource` (androidMain) — `CameraFrameSource`, a live
-CameraX preview, via `rememberFrameSource()`.
+CameraX preview, via `rememberFrameSource()`. `capture()` is a full-resolution
+`ImageCapture` still (~3000² on the OnePlus 9 Pro), cropped by a 1:1 `ViewPort` to
+exactly what the square preview shows; `previewView.bitmap` (a ~1440² screen render)
+is only the fallback when `takePicture` fails. That same frame is what gets stored.
 
 ### The scoring pipeline (the core, in `vision/`)
 
@@ -141,7 +144,7 @@ wizard) merges the picker values into the pending request via `withPicks` — so
 `ring`/`innerTen` are what the user confirmed and `detectedRing`/`detectedInnerTen` what the
 detector said (null for a hand-placed or typed-in hole) — then
 saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then the scanned frame
-goes up as a ≤1024 px JPEG (`POST /series/{id}/image`; a failed upload never fails the
+goes up as a ≤3072 px q90 JPEG (`POST /series/{id}/image`; a failed upload never fails the
 series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
 The history screen (`ui/history/`) lists series with thumbnails.
 The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is

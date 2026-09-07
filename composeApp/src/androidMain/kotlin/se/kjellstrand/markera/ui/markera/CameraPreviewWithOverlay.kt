@@ -1,8 +1,12 @@
 package se.kjellstrand.markera.ui.markera
 
+import android.util.Rational
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.ViewPort
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -23,12 +27,13 @@ private const val TAG = "Markera"
 
 /**
  * Live camera preview, no per-frame inference. The caller owns the
- * [PreviewView] so it can call [PreviewView.getBitmap] for on-demand
- * snapshots when the user taps the Detect FAB.
+ * [PreviewView] and the [imageCapture] it takes the full-resolution still from
+ * when the user taps Scan.
  */
 @Composable
 fun CameraPreview(
     previewView: PreviewView,
+    imageCapture: ImageCapture,
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
     onCameraReady: (Camera) -> Unit = {},
@@ -48,11 +53,26 @@ fun CameraPreview(
                     .setResolutionSelector(selector)
                     .build()
                     .also { it.surfaceProvider = previewView.surfaceProvider }
+                // The PreviewView is a square FILL_CENTER view, so a 1:1
+                // FILL_CENTER viewport crops the still to exactly what the
+                // preview shows (previewView.viewPort would need it laid out).
+                val rotation = previewView.display?.rotation
+                    ?: ContextCompat.getDisplayOrDefault(context).rotation
+                imageCapture.targetRotation = rotation
+                val useCases = UseCaseGroup.Builder()
+                    .setViewPort(
+                        ViewPort.Builder(Rational(1, 1), rotation)
+                            .setScaleType(ViewPort.FILL_CENTER)
+                            .build(),
+                    )
+                    .addUseCase(preview)
+                    .addUseCase(imageCapture)
+                    .build()
                 provider.unbindAll()
                 val camera = provider.bindToLifecycle(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
+                    useCases,
                 )
                 onCameraReady(camera)
             } catch (t: Throwable) {

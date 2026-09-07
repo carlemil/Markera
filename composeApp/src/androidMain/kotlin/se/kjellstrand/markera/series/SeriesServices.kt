@@ -2,6 +2,7 @@ package se.kjellstrand.markera.series
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -33,11 +34,12 @@ class SeriesServices(context: Context) {
     }
 }
 
-private const val IMAGE_MAX_DIM = 1024
+private const val IMAGE_MAX_DIM = 3072
 
 /**
- * The scanned frame as a modest JPEG for the backend — the thumbnail in the
- * history list is all it feeds, so 1024 px on the longer side is plenty.
+ * The scanned frame as a JPEG for the backend. These images are training data,
+ * so they go up close to what the sensor gave: the cap only guards against a
+ * bigger sensor than today's ~3000 px square capture.
  */
 suspend fun encodeSeriesJpeg(image: Bitmap): EncodedImage = withContext(Dispatchers.Default) {
     val longest = maxOf(image.width, image.height)
@@ -48,11 +50,28 @@ suspend fun encodeSeriesJpeg(image: Bitmap): EncodedImage = withContext(Dispatch
         image
     }
     ByteArrayOutputStream().use { out ->
-        scaled.compress(Bitmap.CompressFormat.JPEG, 85, out)
+        scaled.compress(Bitmap.CompressFormat.JPEG, 90, out)
         if (scaled !== image) scaled.recycle()
         // The size reported is the *source* one the hole coordinates are in.
         EncodedImage(out.toByteArray(), image.width, image.height)
     }
+}
+
+/**
+ * Decode a stored series JPEG down to at most [maxDim] px on the longer side.
+ * The full frame is ~3000² (36 MB as ARGB), far more than any screen needs, so
+ * every display path subsamples. Hole markers are placed from the series'
+ * stored `imageWidth`/`imageHeight`, so the decoded size does not matter.
+ */
+fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    var sample = 1
+    while (maxOf(bounds.outWidth, bounds.outHeight) / sample > maxDim) sample *= 2
+    return BitmapFactory.decodeByteArray(
+        bytes, 0, bytes.size,
+        BitmapFactory.Options().apply { inSampleSize = sample },
+    )
 }
 
 private val Context.backendDataStore by preferencesDataStore(name = "markera_backend")
