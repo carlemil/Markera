@@ -10,6 +10,7 @@ import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import kotlinx.serialization.json.Json
@@ -97,7 +98,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
-                    """<p>$add<button id="save">Save</button>""" +
+                    """<p>$add<button id="save">Save</button> """ +
+                    """<button id="delete" data-user="$userId">Delete</button>""" +
                     """<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
                     """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
@@ -116,6 +118,16 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val req = call.receive<SeriesRequest>()
         if (invalid(req)) return@put
         db.replaceSeries(seriesId, req)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // Same removal as `DELETE /series/{id}`, for any user's series.
+    delete("/admin/series/{id}") {
+        if (unauthorized(password)) return@delete
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId) == null) return@delete notFound("Unknown series")
+        db.deleteSeries(seriesId)
+        imageFile(images, seriesId).delete()
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -430,6 +442,17 @@ document.getElementById('save').onclick = () => {
                           // Deleted rows are null; a positionless hole nobody gave a score is an "Add hole" left behind.
                           holes: S.holes.filter(h => h && !(h.x == null && h.detectedRing == null && h.ring === 0))})
   }).then(r => r.status === 204 ? location.reload()
+                                : r.text().then(t => msg.textContent = r.status + ' ' + t),
+          e => msg.textContent = e);
+};
+
+const del = document.getElementById('delete');
+del.onclick = () => {
+  if (!confirm('Delete series ' + S.id + '?')) return;
+  const msg = document.getElementById('msg');
+  msg.textContent = 'deleting...';
+  fetch(location.pathname, {method: 'DELETE', credentials: 'include'})
+    .then(r => r.status === 204 ? location.href = '/admin/users/' + del.dataset.user
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
 };

@@ -335,6 +335,32 @@ class ApiTest {
     }
 
     @Test
+    fun adminDeletesAnyUsersSeries() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val kept = client.createSeries(me.token)
+        val doomed = client.createSeries(me.token)
+        client.putImage(me.token, doomed, ByteArray(16))
+        assertTrue(imagesDir.resolve("$doomed.jpg").isFile)
+        assertTrue("""<button id="delete" data-user="${me.userId}">""" in client.admin("/admin/series/$doomed").bodyAsText())
+
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/admin/series/$doomed").status)
+        assertEquals(
+            HttpStatusCode.Unauthorized,
+            client.delete("/admin/series/$doomed") { basicAuth("admin", "nope") }.status,
+        )
+        assertEquals(
+            HttpStatusCode.NotFound,
+            client.delete("/admin/series/999") { basicAuth("admin", ADMIN_PW) }.status,
+        )
+
+        val response = client.delete("/admin/series/$doomed") { basicAuth("admin", ADMIN_PW) }
+        assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/series/$doomed").status)
+        assertTrue(!imagesDir.resolve("$doomed.jpg").isFile)
+        assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
+    }
+
+    @Test
     fun detectedPositionsAreStoredButNeverInferred() = apiTest { client ->
         val me = client.devAuth("me")
         // An old app build: detected ring, but no detectedX/Y at all.
