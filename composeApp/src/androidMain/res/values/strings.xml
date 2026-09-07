@@ -72,6 +72,9 @@
     <string name="stats_mean_pairwise">Medelavstånd mellan träffar</string>
     <string name="stats_group_size">Gruppstorlek</string>
     <string name="stats_impact">Medelträffläge</string>
+    <string name="stats_impact_median">Medianträffläge</string>
+    <string name="stats_legend_mean">Medel</string>
+    <string name="stats_legend_median">Median</string>
     <string name="stats_mean_score">Medelpoäng</string>
     <string name="stats_tens_share">Andel tior</string>
     <string name="stats_best">Bästa serie</string>

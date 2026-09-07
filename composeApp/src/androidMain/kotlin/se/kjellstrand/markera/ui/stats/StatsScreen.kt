@@ -92,6 +92,8 @@ private val LINE_ON_BLACK = Color(0xFFEDEDED)
 private val LINE_ON_PAPER = Color(0xFF6B6455)
 private val OLD_HIT = Color(0xFF4FC3F7)
 private val NEW_HIT = Color(0xFF00E676)
+private val MEAN_MARK = Color(0xFFFFC107)
+private val MEDIAN_MARK = Color(0xFFFF4081)
 
 private const val DAY_MS = 24L * 60 * 60 * 1000
 
@@ -192,8 +194,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
-                        TargetCanvas(plotted)
+                        TargetCanvas(plotted, stats)
                         AgeLegend(plotted)
+                        MarkerLegend()
                         MeasurementRows(stats)
                     }
                 }
@@ -328,7 +331,7 @@ private fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Uni
  * image axes (y down), so they map straight onto canvas coordinates.
  */
 @Composable
-private fun TargetCanvas(plotted: List<PlottedSeries>) {
+private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?) {
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -375,6 +378,50 @@ private fun TargetCanvas(plotted: List<PlottedSeries>) {
                 val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
                 drawCircle(colour, radius = 2.5f * scale, center = at)
                 drawCircle(BLACK, radius = 2.5f * scale, center = at, style = Stroke(width = 1f))
+            }
+        }
+
+        // Mean (+) and median (×) point of impact, on top of the hits.
+        if (stats != null) {
+            val arm = 4f * scale
+            fun mark(xMm: Double, yMm: Double, colour: Color, diagonal: Boolean) {
+                val at = Offset(centre.x + r(xMm), centre.y + r(yMm))
+                val (a, b) = if (diagonal) {
+                    Offset(arm, arm) to Offset(arm, -arm)
+                } else {
+                    Offset(arm, 0f) to Offset(0f, arm)
+                }
+                // Dark pass first, so the marker reads on both paper and black.
+                listOf(BLACK to 4f, colour to 2f).forEach { (c, width) ->
+                    drawLine(c, at - a, at + a, strokeWidth = width)
+                    drawLine(c, at - b, at + b, strokeWidth = width)
+                }
+            }
+            mark(stats.impactXMm, stats.impactYMm, MEAN_MARK, diagonal = false)
+            mark(stats.medianXMm, stats.medianYMm, MEDIAN_MARK, diagonal = true)
+        }
+    }
+}
+
+/** What the two point-of-impact markers on the target mean. */
+@Composable
+private fun MarkerLegend() {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        listOf(
+            "+" to (MEAN_MARK to R.string.stats_legend_mean),
+            "×" to (MEDIAN_MARK to R.string.stats_legend_median),
+        ).forEach { (glyph, it) ->
+            val (colour, label) = it
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(glyph, color = colour, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    stringResource(label),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -425,6 +472,14 @@ private fun MeasurementRows(stats: SeriesStatistics) {
                 R.string.stats_impact_value,
                 stats.impactXMm.roundToInt(),
                 stats.impactYMm.roundToInt(),
+            ),
+        )
+        Measurement(
+            stringResource(R.string.stats_impact_median),
+            stringResource(
+                R.string.stats_impact_value,
+                stats.medianXMm.roundToInt(),
+                stats.medianYMm.roundToInt(),
             ),
         )
         Measurement(stringResource(R.string.stats_mean_score), "%.1f".format(stats.meanScore))

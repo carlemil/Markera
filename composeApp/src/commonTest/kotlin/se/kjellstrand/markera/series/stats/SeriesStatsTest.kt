@@ -142,6 +142,32 @@ class SeriesStatsTest {
     }
 
     @Test
+    fun `median impact takes the middle hit, or the mean of the middle two`() {
+        // Odd: x 0,10,40 → 10; y 0,-30,-10 → -10.
+        val odd = series(
+            id = 1,
+            holes = listOf(hole(500.0, 500.0, 10), hole(510.0, 470.0, 9), hole(540.0, 490.0, 8)),
+        )
+        val oddStats = listOf(odd).plotSeries(StatsFilter(hits = 3)).statistics()!!
+        assertEquals(10.0, oddStats.medianXMm, 1e-9)
+        assertEquals(-10.0, oddStats.medianYMm, 1e-9)
+
+        // Even: x 0,10,30,40 → 20; y 0,-10,-30,-40 → -20.
+        val even = series(
+            id = 2,
+            holes = listOf(
+                hole(500.0, 500.0, 10),
+                hole(510.0, 490.0, 9),
+                hole(530.0, 470.0, 8),
+                hole(540.0, 460.0, 7),
+            ),
+        )
+        val evenStats = listOf(even).plotSeries(StatsFilter(hits = 4)).statistics()!!
+        assertEquals(20.0, evenStats.medianXMm, 1e-9)
+        assertEquals(-20.0, evenStats.medianYMm, 1e-9)
+    }
+
+    @Test
     fun `equal totals hand best and worst to the earliest series`() {
         val holes = fiveHoles(10, 9, 9, 8, 8)
         val early = series(id = 1, timestamp = "2026-09-01T10:00:00Z", holes = holes)

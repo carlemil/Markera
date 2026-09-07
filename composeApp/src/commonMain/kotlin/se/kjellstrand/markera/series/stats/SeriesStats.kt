@@ -92,6 +92,8 @@ data class SeriesStatistics(
     val meanGroupSizeMm: Double,
     val impactXMm: Double,
     val impactYMm: Double,
+    val medianXMm: Double,
+    val medianYMm: Double,
     val tensShare: Double,
     val best: Pair<SeriesDto, Int>?,
     val worst: Pair<SeriesDto, Int>?,
@@ -116,6 +118,8 @@ fun List<PlottedSeries>.statistics(): SeriesStatistics? {
         meanGroupSizeMm = pairwise.map { it.max() }.mean(),
         impactXMm = hits.map { it.xMm }.mean(),
         impactYMm = hits.map { it.yMm }.mean(),
+        medianXMm = hits.map { it.xMm }.median(),
+        medianYMm = hits.map { it.yMm }.median(),
         tensShare = if (hits.isEmpty()) 0.0 else {
             hits.count { it.ring == 10 || it.innerTen }.toDouble() / hits.size
         },
@@ -138,3 +142,10 @@ private fun List<PlottedHit>.pairDistances(): List<Double> {
 
 /** Mean, with an empty selection reading 0 rather than NaN. */
 private fun List<Double>.mean(): Double = if (isEmpty()) 0.0 else sum() / size
+
+/** Median (even count → the mean of the two middle values), 0 when empty. */
+private fun List<Double>.median(): Double {
+    if (isEmpty()) return 0.0
+    val s = sorted()
+    return if (size % 2 == 1) s[size / 2] else (s[size / 2 - 1] + s[size / 2]) / 2.0
+}
