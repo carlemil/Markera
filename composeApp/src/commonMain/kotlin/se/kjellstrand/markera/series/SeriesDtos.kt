@@ -9,6 +9,9 @@ import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
+import se.kjellstrand.markera.vision.distanceMm
+import se.kjellstrand.markera.vision.ringForDistance
 
 /**
  * The Markera backend payloads (see `server/`). Deliberately duplicated
@@ -194,6 +197,22 @@ fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int {
         }
     }
     return best
+}
+
+/**
+ * Appends a hand-placed hole at [x],[y] (source-image px). With [geometry] the
+ * score comes straight off the distance — no edge gauge, a tap carries no hole
+ * size — otherwise the hole is unscored (ring 0) and the caller asks the user.
+ */
+fun List<HoleDto>.withNewHole(x: Double, y: Double, geometry: GeometryDto?): List<HoleDto> {
+    val dist = geometry?.let { distanceMm(x.toFloat(), y.toFloat(), it.centre(), it.ring()) }
+    return this + HoleDto(
+        x = x,
+        y = y,
+        ring = dist?.let { ringForDistance(it) } ?: 0,
+        innerTen = dist != null && dist <= INNER_TEN_RADIUS_MM,
+        distanceMm = dist,
+    )
 }
 
 /**

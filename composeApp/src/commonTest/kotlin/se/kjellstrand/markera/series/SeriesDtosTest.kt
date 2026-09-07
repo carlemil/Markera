@@ -154,6 +154,26 @@ class SeriesDtosTest {
     }
 
     @Test
+    fun withNewHoleScoresFromTheStoredGeometryOrLeavesItUnscored() {
+        // Centre (100,100), a circular 6/7 ring of 100 px = 100 mm, so 1 px = 1 mm.
+        val geometry = GeometryDto(100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 0.0)
+        val existing = listOf(HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0))
+
+        val innerTen = existing.withNewHole(110.0, 100.0, geometry)
+        assertEquals(existing, innerTen.dropLast(1))
+        assertEquals(HoleDto(110.0, 100.0, 10, true, 10.0), innerTen.last())
+
+        // 60 mm out lands in ring 8, and no edge gauge is applied.
+        assertEquals(
+            HoleDto(100.0, 160.0, 8, false, 60.0),
+            existing.withNewHole(100.0, 160.0, geometry).last(),
+        )
+
+        // No geometry: nothing to measure or score against.
+        assertEquals(HoleDto(5.0, 6.0, 0, false, null), existing.withNewHole(5.0, 6.0, null).last())
+    }
+
+    @Test
     fun totalSumsRingsAndScoreLineSortsHighestFirst() {
         val series = SeriesDto(
             id = 1,

@@ -100,7 +100,8 @@ fun scoreHits(
     )
 }
 
-private fun ringForDistance(distMm: Double): Int {
+/** Ring for a scoring distance in mm; 0 = outside the target (a miss). */
+fun ringForDistance(distMm: Double): Int {
     // RING_RADII_MM[0] is ring 10, [9] is ring 1. First index whose radius
     // contains the hit wins; nothing matched = miss (ring 0).
     for (i in RING_RADII_MM.indices) {

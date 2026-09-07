@@ -4,7 +4,11 @@ import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,13 +26,17 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,10 +44,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -64,6 +77,7 @@ import se.kjellstrand.markera.series.pickInnerTen
 import se.kjellstrand.markera.series.pickRing
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withDetectedScore
+import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
@@ -79,10 +93,14 @@ private val MANUAL_COLOR = Color(0xFFFFB74D)
 /** How close a drag has to start to a marker to grab it. */
 private val GRAB_RADIUS = 24.dp
 
+/** Deep enough to place a hole precisely, shallow enough to stay sharp. */
+private const val MAX_ZOOM = 5f
+
 /**
  * One saved series: the scanned photo with a marker per positioned hole, the
- * hole list, and editing — tap a row to change its score, drag a marker to move
- * it. "Spara" PUTs the whole series back; going back discards.
+ * hole list, and editing — tap a row to change its score, tap the photo to add
+ * a hole, drag a marker to move it, pinch to zoom in first. "Spara" PUTs the
+ * whole series back; going back discards.
  */
 @Composable
 fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
@@ -94,6 +112,10 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
     var editing by remember { mutableIntStateOf(-1) }
     var saving by remember { mutableStateOf(false) }
+    // Zoom/pan of the photo layer; translation is in viewport px, origin top-left.
+    var zoom by remember(series.id) { mutableFloatStateOf(1f) }
+    var panX by remember(series.id) { mutableFloatStateOf(0f) }
+    var panY by remember(series.id) { mutableFloatStateOf(0f) }
     val savedText = stringResource(R.string.detail_saved)
     val failedText = stringResource(R.string.detail_save_failed)
     val grabPx = with(LocalDensity.current) { GRAB_RADIUS.toPx() }
@@ -127,76 +149,142 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
-                    photo?.let {
-                        Image(
-                            bitmap = it,
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clipToBounds()
+                        // One gesture loop for all three interactions, on the
+                        // *untransformed* box: two fingers zoom/pan, one finger
+                        // on a marker drags it, one finger elsewhere pans while
+                        // zoomed in, and a tap on empty target adds a hole. At
+                        // zoom 1 an unhandled drag stays unconsumed so the
+                        // surrounding column still scrolls.
+                        .pointerInput(imageW, imageH, series.geometry) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val w = size.width.toFloat()
+                                val h = size.height.toFloat()
+                                val slop = viewConfiguration.touchSlop
+                                fun imageAt(o: Offset) = viewportToImage(
+                                    (o.x - panX) / zoom,
+                                    (o.y - panY) / zoom,
+                                    w,
+                                    h,
+                                    imageW,
+                                    imageH,
+                                )
+                                // Constant on-screen grab reach, in image px.
+                                val reach =
+                                    (grabPx / zoom / min(w / imageW, h / imageH)).toDouble()
+                                var holeIndex = imageAt(down.position)?.let {
+                                    holes.value.nearestHoleIndex(
+                                        it.first.toDouble(),
+                                        it.second.toDouble(),
+                                        reach,
+                                    )
+                                } ?: -1
+                                var travel = 0f
+                                var pinched = false
+
+                                do {
+                                    val event = awaitPointerEvent()
+                                    if (event.changes.count { it.pressed } >= 2) {
+                                        pinched = true
+                                        holeIndex = -1
+                                        val centroid = event.calculateCentroid(useCurrent = false)
+                                        val pan = event.calculatePan()
+                                        val next = (zoom * event.calculateZoom())
+                                            .coerceIn(1f, MAX_ZOOM)
+                                        // Keep the content under the centroid put.
+                                        val k = next / zoom
+                                        panX = centroid.x + pan.x - (centroid.x - panX) * k
+                                        panY = centroid.y + pan.y - (centroid.y - panY) * k
+                                        zoom = next
+                                        panX = clampPan(panX, zoom, w)
+                                        panY = clampPan(panY, zoom, h)
+                                        event.changes.forEach { it.consume() }
+                                        continue
+                                    }
+                                    val change =
+                                        event.changes.firstOrNull { it.id == down.id } ?: continue
+                                    val delta = change.positionChange()
+                                    travel += delta.getDistance()
+                                    when {
+                                        holeIndex >= 0 -> {
+                                            // Below the slop it is still a tap on
+                                            // the marker, so don't nudge the hole.
+                                            if (travel > slop) {
+                                                imageAt(change.position)?.let { p ->
+                                                    holes.value = holes.value.moveHole(
+                                                        holeIndex,
+                                                        p,
+                                                        series,
+                                                    )
+                                                }
+                                            }
+                                            change.consume()
+                                        }
+
+                                        zoom > 1f -> {
+                                            panX = clampPan(panX + delta.x, zoom, w)
+                                            panY = clampPan(panY + delta.y, zoom, h)
+                                            change.consume()
+                                        }
+
+                                        pinched -> change.consume()
+                                    }
+                                } while (event.changes.any { it.pressed })
+
+                                // A clean tap on empty target: place a hole there.
+                                if (!pinched && holeIndex < 0 && travel <= slop) {
+                                    imageAt(down.position)?.let { p ->
+                                        holes.value = holes.value.withNewHole(
+                                            p.first.toDouble(),
+                                            p.second.toDouble(),
+                                            series.geometry,
+                                        )
+                                        // No geometry means no score to derive.
+                                        if (series.geometry == null) {
+                                            editing = holes.value.lastIndex
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = zoom
+                                scaleY = zoom
+                                translationX = panX
+                                translationY = panY
+                                transformOrigin = TransformOrigin(0f, 0f)
+                            },
+                    ) {
+                        photo?.let {
+                            Image(
+                                bitmap = it,
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                        DetectionOverlay(
+                            detections = emptyList(),
+                            imageWidth = imageW,
+                            imageHeight = imageH,
+                            centre = series.geometry?.centre(),
+                            ring = series.geometry?.ring(),
+                            scores = holes.value.mapNotNull { it.asHitScore() },
+                            holeColor = DETECTED_COLOR,
+                            scoreColor = DETECTED_COLOR,
+                            manualColor = MANUAL_COLOR,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    DetectionOverlay(
-                        detections = emptyList(),
-                        imageWidth = imageW,
-                        imageHeight = imageH,
-                        centre = series.geometry?.centre(),
-                        ring = series.geometry?.ring(),
-                        scores = holes.value.mapNotNull { it.asHitScore() },
-                        holeColor = DETECTED_COLOR,
-                        scoreColor = DETECTED_COLOR,
-                        manualColor = MANUAL_COLOR,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(imageW, imageH) {
-                                var index = -1
-                                detectDragGestures(
-                                    onDragStart = { start ->
-                                        val w = size.width.toFloat()
-                                        val h = size.height.toFloat()
-                                        val p = viewportToImage(start.x, start.y, w, h, imageW, imageH)
-                                        val scale = min(w / imageW, h / imageH)
-                                        index = p?.let {
-                                            holes.value.nearestHoleIndex(
-                                                it.first.toDouble(),
-                                                it.second.toDouble(),
-                                                (grabPx / scale).toDouble(),
-                                            )
-                                        } ?: -1
-                                    },
-                                    onDragEnd = { index = -1 },
-                                    onDragCancel = { index = -1 },
-                                    onDrag = { change, _ ->
-                                        if (index < 0) return@detectDragGestures
-                                        change.consume()
-                                        val p = viewportToImage(
-                                            change.position.x,
-                                            change.position.y,
-                                            size.width.toFloat(),
-                                            size.height.toFloat(),
-                                            imageW,
-                                            imageH,
-                                        ) ?: return@detectDragGestures
-                                        holes.value = holes.value.mapIndexed { i, hole ->
-                                            // Re-measure from the stored scan geometry; a
-                                            // series saved without it just loses the distance.
-                                            // The confirmed ring/inner-ten stay as they are.
-                                            if (i == index) {
-                                                hole.copy(
-                                                    x = p.first.toDouble(),
-                                                    y = p.second.toDouble(),
-                                                    distanceMm = series.geometry?.let { g ->
-                                                        distanceMm(p.first, p.second, g.centre(), g.ring())
-                                                    },
-                                                )
-                                            } else {
-                                                hole
-                                            }
-                                        }
-                                    },
-                                )
-                            },
-                    )
                 }
 
                 Row(
@@ -220,13 +308,22 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
                 }
 
                 holes.value.forEachIndexed { i, hole ->
-                    HoleRow(hole, onEdit = { editing = i })
+                    HoleRow(
+                        hole = hole,
+                        onEdit = { editing = i },
+                        onDelete = {
+                            // Indices shift, so any open edit is stale.
+                            editing = -1
+                            holes.value = holes.value.filterIndexed { j, _ -> j != i }
+                        },
+                    )
                 }
 
                 PrimaryActionButton(
                     text = stringResource(R.string.detail_save),
                     icon = Icons.Default.Save,
-                    enabled = !saving && holes.value != series.holes,
+                    // The server rejects an empty hole list, so don't offer it.
+                    enabled = !saving && holes.value.isNotEmpty() && holes.value != series.holes,
                     onClick = {
                         saving = true
                         scope.launch {
@@ -281,8 +378,32 @@ fun SeriesDetailScreen(series: SeriesDto, services: SeriesServices, onBack: () -
     }
 }
 
+/** Translation that keeps the scaled square covering the viewport; 0 at zoom 1. */
+private fun clampPan(t: Float, zoom: Float, size: Float): Float =
+    t.coerceIn(-(zoom - 1f) * size, 0f)
+
+/**
+ * Hole [index] moved to [p] (image px). The distance is re-measured from the
+ * stored scan geometry — a series saved without it just loses the distance —
+ * and the confirmed ring/inner-ten stay as they are.
+ */
+private fun List<HoleDto>.moveHole(index: Int, p: Pair<Float, Float>, series: SeriesDto) =
+    mapIndexed { i, hole ->
+        if (i != index) {
+            hole
+        } else {
+            hole.copy(
+                x = p.first.toDouble(),
+                y = p.second.toDouble(),
+                distanceMm = series.geometry?.let { g ->
+                    distanceMm(p.first, p.second, g.centre(), g.ring())
+                },
+            )
+        }
+    }
+
 @Composable
-private fun HoleRow(hole: HoleDto, onEdit: () -> Unit) {
+private fun HoleRow(hole: HoleDto, onEdit: () -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -328,7 +449,15 @@ private fun HoleRow(hole: HoleDto, onEdit: () -> Unit) {
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
         )
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = stringResource(R.string.detail_delete_hole),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
