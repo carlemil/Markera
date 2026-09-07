@@ -241,7 +241,7 @@ tr[onclick]:hover td{background:#1c2416}
 img{display:block;max-width:480px;margin-top:12px;border:1px solid #35402c}
 .shot{position:relative;display:inline-block}
 .hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
-font-size:10px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:grab;touch-action:none}
+font-size:10px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 select,button{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
 .note{color:#a8b39a}
