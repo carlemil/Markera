@@ -33,6 +33,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -304,6 +305,7 @@ private fun FilterRow(
     hits: Int?,
     onHits: (Int?) -> Unit,
 ) {
+    val chipColors = statsChipColors()
     // One child of the caller's 16 dp column, so only the filter rows sit tight.
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -311,12 +313,16 @@ private fun FilterRow(
                 selected = caliber == null,
                 onClick = { onCaliber(null) },
                 label = { Text(stringResource(R.string.stats_caliber_all)) },
+                colors = chipColors,
+                border = null,
             )
             calibers.forEach {
                 FilterChip(
                     selected = caliber == it,
                     onClick = { onCaliber(it) },
                     label = { Text(it.label) },
+                    colors = chipColors,
+                    border = null,
                 )
             }
         }
@@ -331,6 +337,8 @@ private fun FilterRow(
                     selected = preset == value,
                     onClick = { onPreset(value) },
                     label = { Text(stringResource(label)) },
+                    colors = chipColors,
+                    border = null,
                 )
             }
             FilterChip(
@@ -349,6 +357,8 @@ private fun FilterRow(
                         },
                     )
                 },
+                colors = chipColors,
+                border = null,
             )
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -356,16 +366,32 @@ private fun FilterRow(
                 selected = hits == null,
                 onClick = { onHits(null) },
                 label = { Text(stringResource(R.string.stats_caliber_all)) },
+                colors = chipColors,
+                border = null,
             )
             // The usual five-shot series is the only count worth a chip.
             FilterChip(
                 selected = hits == 5,
                 onClick = { onHits(5) },
                 label = { Text(stringResource(R.string.stats_hits_label, 5)) },
+                colors = chipColors,
+                border = null,
             )
         }
     }
 }
+
+/**
+ * Selected reads as a solid green pill with a dark label; unselected recedes into a
+ * borderless surface-variant pill — the stock outline made every chip look selected.
+ */
+@Composable
+private fun statsChipColors() = FilterChipDefaults.filterChipColors(
+    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    selectedContainerColor = MaterialTheme.colorScheme.primary,
+    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+)
 
 /** `yyyy-MM-dd` of a UTC start-of-day millis, which is what the range picker returns. */
 private fun utcDay(millis: Long): String =
