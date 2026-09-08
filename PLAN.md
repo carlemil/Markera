@@ -92,6 +92,8 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
       SHA-1 (Play Console → Setup → App signing) into the Android OAuth client in Google Cloud
       Console (or add a second Android client with it). Until then the release build's Google
       sign-in fails. The upload key's SHA-1 is printed by task 26 for reference.
+      Read from the Play-installed 1.2.0 (3) on 2026-09-08: app signing key SHA-1
+      `92:96:43:90:D0:7B:94:74:B7:BA:83:CE:7E:10:79:C4:E0:A0:A3:49` (CN=Android, O=Google Inc.).
 - [ ] A public privacy-policy URL and an account-deletion URL for the Play listing (the app's
       in-app deletion from task 25b satisfies the in-app half).
 - [x] Review test account for Play's App access declaration (done 2026-09-08: Google account
