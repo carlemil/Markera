@@ -351,25 +351,30 @@ private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // The key back to the marker on the photo.
-        Text(
-            text = letter,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        // Detected: what the model said, struck through once the hole was moved
-        // somewhere that scores differently.
-        Text(
-            text = hole.detectedLabel() ?: "",
-            style = MaterialTheme.typography.titleLarge,
-            color = if (hole.isEdited()) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-            textDecoration = if (hole.isEdited()) TextDecoration.LineThrough else null,
-            modifier = Modifier.width(32.dp),
-        )
+        // The key letter back to the marker on the photo shares a cell with the
+        // detected score, so the kind column keeps its width ("detekterad" must
+        // not wrap).
+        Box(modifier = Modifier.width(44.dp)) {
+            Text(
+                text = letter,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
+            // Detected: what the model said, struck through once the hole was
+            // moved somewhere that scores differently.
+            Text(
+                text = hole.detectedLabel() ?: "",
+                style = MaterialTheme.typography.titleLarge,
+                color = if (hole.isEdited()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+                textDecoration = if (hole.isEdited()) TextDecoration.LineThrough else null,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
+        }
         // Manual: the score the hole got where the user put it.
         Text(
             text = hole.manualLabel() ?: stringResource(R.string.detail_no_score),
@@ -385,7 +390,7 @@ private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
                 ?.let { stringResource(R.string.detail_mm, it.roundToInt()) }
                 ?: stringResource(R.string.detail_no_distance),
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(72.dp),
+            modifier = Modifier.width(64.dp),
         )
         Text(
             text = hole.kindText(
