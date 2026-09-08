@@ -94,8 +94,9 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
       sign-in fails. The upload key's SHA-1 is printed by task 26 for reference.
       Read from the Play-installed 1.2.0 (3) on 2026-09-08: app signing key SHA-1
       `92:96:43:90:D0:7B:94:74:B7:BA:83:CE:7E:10:79:C4:E0:A0:A3:49` (CN=Android, O=Google Inc.).
-- [ ] A public privacy-policy URL and an account-deletion URL for the Play listing (the app's
-      in-app deletion from task 25b satisfies the in-app half).
+- [ ] A public privacy-policy URL for the Play listing. The account-deletion URL exists since
+      2026-09-08: `https://markera.duckdns.org/delete-account` (task 61; the app's in-app deletion
+      from task 25b satisfies the in-app half). Paste it into Play Console → App content → Data safety.
 - [x] Review test account for Play's App access declaration (done 2026-09-08: Google account
       "Markera Review", signed in and tested by the user; credentials live only in Play Console).
 
@@ -170,6 +171,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 58 | Export from Historik: "Exportera" builds one ZIP (`series.csv`, `holes.csv`, `images/<seriesId>.jpg`) in `cacheDir` and shares it through `ACTION_SEND` via a FileProvider content URI (`application/zip`); CSVs semicolon-separated with a header, UTF-8 BOM so Excel opens them; data from the local cache once 57b lands (else from the API pages) (requested 2026-09-07) | done (2026-09-07; 155 tests; phone-checked 2026-09-08: share sheet opens with `markera-export-<stamp>.zip`, zip holds series.csv/holes.csv/images) |
 | 59 | Full-resolution scan capture: CameraX `ImageCapture` cropped to the square viewport (~3000² on the OnePlus) feeds both detection and the saved JPEG (`IMAGE_MAX_DIM` 3072, q90, server `MAX_IMAGE_BYTES` 10 MB); `FrameSource.capture()` suspends, preview bitmap only as fallback; History/Detail decode with `inSampleSize`. Reason: training photos are 12 MP (hole ~80 px), the 1024 px upload gives ~18 px (plan `~/.claude/plans/compiled-spinning-boole.md`; requested 2026-09-07, do before 57a/b) | done (2026-09-07; phone shows snapshot 3000x3000, capture 797 ms, OCR 288 ms; accuracy on a real target awaits the user) |
 | 60 | Screen rotation must not reset navigation: the sealed-class back stack in `AppNavHost` (and the frozen scan/result state) has to survive the Activity recreation, e.g. `rememberSaveable` for the stack or `configChanges` for orientation (requested 2026-09-08, seen on the phone: rotating on the scan screen lands on Home) | done (2026-09-08; `android:screenOrientation="portrait"` on MainActivity — the layout is portrait-only and the camera viewport is bound with one rotation, so a rotation never recreates the Activity; phone reports the portrait request and adb cannot force a rotation on the OnePlus, so a hand rotation by the user is the final check) |
+| 61 | Public account-deletion page on the backend for the Play listing: `GET /delete-account` (no auth) serves a small static HTML page, Swedish + English, saying how to delete in the app (Home → Radera konto), what goes (account, every series, image, session; immediately, nothing kept) and how to ask by mail when the app is unavailable (`CONTACT_EMAIL` env, line omitted when unset); ApiTest cover; deploy (requested 2026-09-08) | done (2026-09-08; 51 server tests; live at `https://markera.duckdns.org/delete-account`, no `CONTACT_EMAIL` set so the page points at the Play listing's developer e-mail) |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)
