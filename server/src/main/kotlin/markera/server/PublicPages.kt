@@ -43,12 +43,16 @@ fun deleteAccountPage(contactEmail: String?): String {
 Kontot raderas omedelbart.</p>
 <p>Det som raderas: kontot, alla sparade serier med sina träffar, alla uppladdade tavelfoton och alla
 inloggningar (sessioner). Raderingen sker direkt och är permanent – servern behåller ingenting efteråt.</p>
+<p>Vill du bara ta bort en enskild serie utan att radera kontot: öppna serien under <strong>Historik</strong>
+och tryck på <strong>Radera</strong>. Serien och dess tavelfoto tas bort direkt.</p>
 $svFallback
 <h2>Delete account – Markera</h2>
 <p>In the app: open Markera, on the Home screen (Hem) tap <strong>Radera konto</strong> and confirm. This
 deletes the account immediately.</p>
 <p>What is deleted: the account, every saved series with its holes, every uploaded target photo, and all
 sessions. Deletion is immediate and permanent — the server keeps nothing afterwards.</p>
+<p>To delete a single series without deleting the account: open it under <strong>Historik</strong> and tap
+<strong>Radera</strong>. The series and its target photo are removed at once.</p>
 $enFallback""",
     )
 }
