@@ -116,6 +116,26 @@ class ApiTest {
     }
 
     @Test
+    fun privacyPageIsPublicBilingualHtml() = apiTest { client ->
+        val response = client.get("/privacy")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Text.Html, response.contentType()?.withoutParameters())
+        val body = response.bodyAsText()
+        assertTrue(body.contains("Integritetspolicy"), body)
+        assertTrue(body.contains("Privacy policy"), body)
+        assertTrue(body.contains("\"/delete-account\""), body)
+        // No contact address configured: point at the Play listing instead of a dead mailto.
+        assertTrue(!body.contains("mailto:"), body)
+        assertTrue(body.contains("Google Play"), body)
+    }
+
+    @Test
+    fun privacyPageShowsTheConfiguredContactEmail() = apiTest(contactEmail = "x@y.z") { client ->
+        val body = client.get("/privacy").bodyAsText()
+        assertTrue(body.contains("mailto:x@y.z"), body)
+    }
+
+    @Test
     fun devAuthIssuesTokenAndReusesTheUser() = apiTest { client ->
         val first = client.devAuth("tester")
         val second = client.devAuth("tester")
