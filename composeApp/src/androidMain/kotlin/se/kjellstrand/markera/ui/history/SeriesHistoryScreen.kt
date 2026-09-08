@@ -253,6 +253,26 @@ internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConf
     )
 }
 
+/** The same confirmation for removing a single hole, on the scan and detail screens. */
+@Composable
+internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.hole_delete_title)) },
+        text = { Text(stringResource(R.string.hole_delete_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.hole_delete_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.history_delete_cancel))
+            }
+        },
+    )
+}
+
 @Composable
 private fun Centered(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }

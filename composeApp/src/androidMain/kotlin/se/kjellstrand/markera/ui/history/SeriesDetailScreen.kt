@@ -107,6 +107,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     val geometry = series.geometry
     var saving by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var pendingDeleteIndex by remember(series.id) { mutableStateOf<Int?>(null) }
     var showingHelp by remember { mutableStateOf(false) }
     val zoomPan = rememberZoomPan(series.id)
     val savedText = stringResource(R.string.detail_saved)
@@ -254,9 +255,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     holes.value.forEachIndexed { i, hole ->
                         HoleRow(
                             hole = hole,
-                            onDelete = {
-                                holes.value = holes.value.filterIndexed { j, _ -> j != i }
-                            },
+                            onDelete = { pendingDeleteIndex = i },
                         )
                     }
                 }
@@ -301,6 +300,16 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 R.string.help_detail_delete to R.string.help_detail_delete_body,
             ),
             onDismiss = { showingHelp = false },
+        )
+    }
+
+    pendingDeleteIndex?.let { index ->
+        DeleteHoleDialog(
+            onDismiss = { pendingDeleteIndex = null },
+            onConfirm = {
+                pendingDeleteIndex = null
+                holes.value = holes.value.filterIndexed { j, _ -> j != index }
+            },
         )
     }
 

@@ -54,6 +54,7 @@ import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
+import se.kjellstrand.markera.ui.history.DeleteHoleDialog
 
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
@@ -78,6 +79,8 @@ fun MarkeraScreen(
     // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
     var showDebug by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
+    // Long press only asks; the dialog's confirm is what removes the hole.
+    var pendingDeleteIndex by remember { mutableStateOf<Int?>(null) }
     val onDetectClick: () -> Unit = {
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
     }
@@ -90,7 +93,7 @@ fun MarkeraScreen(
                 scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach)
             },
             move = { i, x, y -> scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y) },
-            remove = { i -> scanController.removeHit(viewModel, snapshotVm.snapshot, i) },
+            remove = { i -> pendingDeleteIndex = i },
         )
     }
 
@@ -192,6 +195,17 @@ fun MarkeraScreen(
         }
 
     }
+    }
+
+    // `removeHit` ignores an out-of-range index, so no extra guard is needed here.
+    pendingDeleteIndex?.let { index ->
+        DeleteHoleDialog(
+            onDismiss = { pendingDeleteIndex = null },
+            onConfirm = {
+                pendingDeleteIndex = null
+                scanController.removeHit(viewModel, snapshotVm.snapshot, index)
+            },
+        )
     }
 
     if (showingHelp) {
