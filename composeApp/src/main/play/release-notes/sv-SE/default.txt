@@ -1,8 +1,5 @@
-Nytt i 1.4.0:
-• Skarpare foton i full upplösning ger säkrare träffdetektering
-• Nyp för att zooma, dra för att flytta och håll inne för att ta bort en träff
-• Hjälp (?) på varje skärm
-• Historiken fungerar även utan nät och kan exporteras som zip
-• Statistik: enklare filter, tydligare val och hjälptext för måtten
-• Bekräftelse innan en träff eller serie tas bort
-• Skärmen vrids inte längre bort från det du håller på med
+Nytt i 1.5.0:
+• Varje träff får en liten bokstav (a–e) på fotot, i poängrutan och i serielistan, så du ser vilken poäng som hör till vilken träff
+• När du drar en träff hålls den en centimeter ovanför fingret, så du ser var den hamnar
+• Spara-knappen på seriesidan sitter direkt under fotot och tänds först när något ändrats
+• Statistik: Medelradie och Spridning (SD) visar hur samlad träffbilden är, oavsett var på tavlan den sitter
