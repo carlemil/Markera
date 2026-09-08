@@ -4,14 +4,20 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -278,54 +284,79 @@ private fun HomeScreen(
     backendAuth: BackendAuth?,
     seriesServices: SeriesServices,
 ) {
+    var showingHelp by remember { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.height(48.dp))
-            HomeCard(
-                title = stringResource(R.string.home_free_marking),
-                subtitle = stringResource(R.string.home_free_marking_hint),
-                icon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                onClick = onFreeMarking,
-            )
-            // Competition marking is hidden until it is prioritised again (PLAN task 20);
-            // the wizard and its screens stay in place behind `onCompetition`.
-            if (SHOW_COMPETITION) {
+        // No top bar here, so the "?" floats in the corner the other screens put it in.
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(48.dp))
+                HomeCard(
+                    title = stringResource(R.string.home_free_marking),
+                    subtitle = stringResource(R.string.home_free_marking_hint),
+                    icon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                    onClick = onFreeMarking,
+                )
+                // Competition marking is hidden until it is prioritised again (PLAN task 20);
+                // the wizard and its screens stay in place behind `onCompetition`.
+                if (SHOW_COMPETITION) {
+                    Spacer(Modifier.height(16.dp))
+                    HomeCard(
+                        title = stringResource(R.string.home_competition),
+                        subtitle = stringResource(R.string.home_competition_hint),
+                        icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                        onClick = onCompetition,
+                    )
+                }
                 Spacer(Modifier.height(16.dp))
                 HomeCard(
-                    title = stringResource(R.string.home_competition),
-                    subtitle = stringResource(R.string.home_competition_hint),
-                    icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                    onClick = onCompetition,
+                    title = stringResource(R.string.home_history),
+                    subtitle = stringResource(R.string.home_history_hint),
+                    icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                    onClick = onHistory,
                 )
+                Spacer(Modifier.height(16.dp))
+                HomeCard(
+                    title = stringResource(R.string.home_stats),
+                    subtitle = stringResource(R.string.home_stats_hint),
+                    icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(36.dp)) },
+                    onClick = onStatistics,
+                )
+                Spacer(Modifier.height(16.dp))
+                AccountRow(backendAuth, seriesServices)
             }
-            Spacer(Modifier.height(16.dp))
-            HomeCard(
-                title = stringResource(R.string.home_history),
-                subtitle = stringResource(R.string.home_history_hint),
-                icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                onClick = onHistory,
+            HelpAction(
+                onClick = { showingHelp = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+                    .padding(8.dp),
             )
-            Spacer(Modifier.height(16.dp))
-            HomeCard(
-                title = stringResource(R.string.home_stats),
-                subtitle = stringResource(R.string.home_stats_hint),
-                icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                onClick = onStatistics,
-            )
-            Spacer(Modifier.height(16.dp))
-            AccountRow(backendAuth, seriesServices)
         }
+    }
+
+    if (showingHelp) {
+        HelpDialog(
+            title = stringResource(R.string.help_home_title),
+            sections = listOf(
+                R.string.help_home_how to R.string.help_home_how_body,
+                R.string.help_home_marking to R.string.help_home_marking_body,
+                R.string.help_home_history to R.string.help_home_history_body,
+                R.string.help_home_stats to R.string.help_home_stats_body,
+                R.string.help_home_account to R.string.help_home_account_body,
+            ),
+            onDismiss = { showingHelp = false },
+        )
     }
 }
 

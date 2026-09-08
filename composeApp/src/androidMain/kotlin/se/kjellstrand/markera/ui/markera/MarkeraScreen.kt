@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import se.kjellstrand.markera.R
 import se.kjellstrand.markera.series.SeriesRecorder
+import se.kjellstrand.markera.ui.HelpAction
+import se.kjellstrand.markera.ui.HelpDialog
 
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
@@ -75,6 +77,7 @@ fun MarkeraScreen(
     // Off by default — the clean result view. Toggle in the top bar reveals the
     // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
     var showDebug by remember { mutableStateOf(false) }
+    var showingHelp by remember { mutableStateOf(false) }
     val onDetectClick: () -> Unit = {
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
     }
@@ -128,6 +131,7 @@ fun MarkeraScreen(
                 MarkeraTopBar(
                     showDebug = showDebug,
                     onToggleDebug = { showDebug = !showDebug },
+                    onHelp = { showingHelp = true },
                     onBack = onBack,
                 )
                 if (isPortrait) {
@@ -189,6 +193,21 @@ fun MarkeraScreen(
 
     }
     }
+
+    if (showingHelp) {
+        HelpDialog(
+            title = stringResource(R.string.help_scan_title),
+            sections = listOf(
+                R.string.help_scan_scan to R.string.help_scan_scan_body,
+                R.string.help_scan_edit to R.string.help_scan_edit_body,
+                R.string.help_scan_score to R.string.help_scan_score_body,
+                R.string.help_scan_caliber to R.string.help_scan_caliber_body,
+                R.string.help_scan_save to R.string.help_scan_save_body,
+                R.string.help_scan_debug to R.string.help_scan_debug_body,
+            ),
+            onDismiss = { showingHelp = false },
+        )
+    }
 }
 
 /** Slim top bar: app name + a toggle that reveals the raw detection overlay. */
@@ -196,6 +215,7 @@ fun MarkeraScreen(
 private fun MarkeraTopBar(
     showDebug: Boolean,
     onToggleDebug: () -> Unit,
+    onHelp: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -220,6 +240,7 @@ private fun MarkeraTopBar(
             color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.weight(1f))
+        HelpAction(onClick = onHelp)
         IconButton(onClick = onToggleDebug) {
             Icon(
                 imageVector = Icons.Default.Tune,

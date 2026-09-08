@@ -84,9 +84,60 @@
     <string name="stats_percent">%1$d %%</string>
     <string name="stats_series_value">%1$d · %2$s</string>
 
+    <!-- Hjälp: delas av alla skärmars (?)-dialog -->
+    <string name="help">Hjälp</string>
+    <string name="help_close">Stäng</string>
+
+    <!-- Hjälp: startskärmen -->
+    <string name="help_home_title">Om Markera</string>
+    <string name="help_home_how">Så fungerar det</string>
+    <string name="help_home_how_body">Fotografera en precisionstavla så hittar Markera träffarna, ringarna och centrum och räknar poängen för serien.</string>
+    <string name="help_home_marking">Markera</string>
+    <string name="help_home_marking_body">Öppnar kameran. Rikta mot tavlan och tryck för att scanna.</string>
+    <string name="help_home_history">Historik</string>
+    <string name="help_home_history_body">Alla sparade serier med bild, kaliber och poäng.</string>
+    <string name="help_home_stats">Statistik</string>
+    <string name="help_home_stats_body">Träffbild och mått över tid, filtrerat på kaliber, datum och antal träffar.</string>
+    <string name="help_home_account">Konto</string>
+    <string name="help_home_account_body">Logga in med Google för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto.</string>
+
+    <!-- Hjälp: scannerskärmen -->
+    <string name="help_scan_title">Så scannar du</string>
+    <string name="help_scan_scan">Scanna</string>
+    <string name="help_scan_scan_body">Fyll rutan med tavlan och tryck på Detektera. Markera hittar träffarna, ringarna och centrum och räknar poängen.</string>
+    <string name="help_scan_edit">Justera träffar</string>
+    <string name="help_scan_edit_body">Tryck på en missad träff i bilden för att lägga till den. Dra en träff för att flytta den. Håll inne en träff för att ta bort den. Nyp för att zooma.</string>
+    <string name="help_scan_score">Poäng</string>
+    <string name="help_scan_score_body">Poängen räknas från träffens läge på tavlan och går inte att skriva in. Blev något fel: flytta, lägg till eller ta bort träffen i bilden, så räknas poängen om.</string>
+    <string name="help_scan_caliber">Kaliber</string>
+    <string name="help_scan_caliber_body">Brickan bredvid poängen visar vilken kaliber serien sparas med. Tryck på den för att byta — har du ingen vald frågar appen när du sparar. Kalibern visas i historiken och går att filtrera på i statistiken.</string>
+    <string name="help_scan_save">Spara</string>
+    <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. Återställ slänger scanningen utan att spara.</string>
+    <string name="help_scan_debug">Felsökning</string>
+    <string name="help_scan_debug_body">Reglage-ikonen längst upp till höger visar detektorns råa rutor, sifferrader och linjer.</string>
+
+    <!-- Hjälp: historiken -->
+    <string name="help_history_title">Om historiken</string>
+    <string name="help_history_list">Listan</string>
+    <string name="help_history_list_body">Varje rad är en sparad serie: bild, tid, kaliber, poäng och träffarna. Nyast först.</string>
+    <string name="help_history_detail">Detaljer</string>
+    <string name="help_history_detail_body">Tryck på en serie för att se den i stort, justera träffar eller ta bort den. Håll inne en rad för att radera den direkt.</string>
+    <string name="help_history_export">Exportera</string>
+    <string name="help_history_export_body">Dela-ikonen packar alla serier i en zip: series.csv och holes.csv (öppnas i Excel) samt de sparade bilderna.</string>
+    <string name="help_history_offline">Utan nät</string>
+    <string name="help_history_offline_body">Listan och bilderna finns kvar på telefonen och visas även utan uppkoppling.</string>
+
+    <!-- Hjälp: seriedetaljen -->
+    <string name="help_detail_title">Om serien</string>
+    <string name="help_detail_photo">Bilden</string>
+    <string name="help_detail_photo_body">Den scannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge.</string>
+    <string name="help_detail_holes">Träffarna</string>
+    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen. Ändringarna sparas först när du trycker Spara.</string>
+    <string name="help_detail_delete">Radera</string>
+    <string name="help_detail_delete_body">Papperskorgen längst upp till höger tar bort hela serien från ditt konto.</string>
+
     <!-- Statistik: hjälpdialogen -->
     <string name="stats_help">Om måtten</string>
-    <string name="stats_help_close">Stäng</string>
     <string name="stats_help_series">Antal serier som filtret (kaliber, datum och antal träffar) släpper igenom. Bara serier med sparad träffbild kan ritas ut och räknas med.</string>
     <string name="stats_help_hits">Totalt antal träffar i de serierna.</string>
     <string name="stats_help_mean_distance">Avståndet från tavlans centrum till varje träff, i millimeter, snittat över alla träffar.</string>

@@ -63,6 +63,8 @@ import se.kjellstrand.markera.series.moveHole
 import se.kjellstrand.markera.series.nearestHoleIndex
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
+import se.kjellstrand.markera.ui.HelpAction
+import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
@@ -105,6 +107,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     val geometry = series.geometry
     var saving by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var showingHelp by remember { mutableStateOf(false) }
     val zoomPan = rememberZoomPan(series.id)
     val savedText = stringResource(R.string.detail_saved)
     val failedText = stringResource(R.string.detail_save_failed)
@@ -133,6 +136,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 title = stringResource(R.string.detail_title),
                 onBack = onBack,
                 actions = {
+                    HelpAction(onClick = { showingHelp = true })
                     IconButton(onClick = { confirmDelete = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -286,6 +290,18 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 )
             }
         }
+    }
+
+    if (showingHelp) {
+        HelpDialog(
+            title = stringResource(R.string.help_detail_title),
+            sections = listOf(
+                R.string.help_detail_photo to R.string.help_detail_photo_body,
+                R.string.help_detail_holes to R.string.help_detail_holes_body,
+                R.string.help_detail_delete to R.string.help_detail_delete_body,
+            ),
+            onDismiss = { showingHelp = false },
+        )
     }
 
     if (confirmDelete) {

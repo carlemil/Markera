@@ -65,6 +65,8 @@ import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.series.total
+import se.kjellstrand.markera.ui.HelpAction
+import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 
 private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
@@ -86,6 +88,7 @@ fun SeriesHistoryScreen(
     var reload by remember { mutableIntStateOf(0) }
     var pending by remember { mutableStateOf<SeriesDto?>(null) }
     var exporting by remember { mutableStateOf(false) }
+    var showingHelp by remember { mutableStateOf(false) }
     // Thumbnails are small and few; one map for the screen beats a real image
     // loader (no Coil in this app).
     val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
@@ -110,6 +113,7 @@ fun SeriesHistoryScreen(
                 title = stringResource(R.string.history_title),
                 onBack = onBack,
                 actions = {
+                    HelpAction(onClick = { showingHelp = true })
                     if (exporting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
@@ -183,6 +187,19 @@ fun SeriesHistoryScreen(
                 }
             }
         }
+    }
+
+    if (showingHelp) {
+        HelpDialog(
+            title = stringResource(R.string.help_history_title),
+            sections = listOf(
+                R.string.help_history_list to R.string.help_history_list_body,
+                R.string.help_history_detail to R.string.help_history_detail_body,
+                R.string.help_history_export to R.string.help_history_export_body,
+                R.string.help_history_offline to R.string.help_history_offline_body,
+            ),
+            onDismiss = { showingHelp = false },
+        )
     }
 
     pending?.let { target ->
