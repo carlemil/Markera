@@ -17,10 +17,17 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.unit.dp
 import kotlin.math.min
 
 /** Deep enough to place a hole precisely, shallow enough to stay sharp. */
 private const val MAX_ZOOM = 5f
+
+/**
+ * A dragged hole sits this far above the finger on screen (about 1 cm), so the
+ * finger doesn't cover the spot it is being placed on.
+ */
+private val DRAG_LIFT = 63.dp
 
 /**
  * Zoom/pan of a photo layer: [zoom] about the top-left corner, [panX]/[panY] in
@@ -51,7 +58,8 @@ fun Modifier.zoomPan(t: ZoomPan): Modifier = graphicsLayer {
  * fingers zoom/pan, one finger on a hole ([grabPx] on-screen reach, whatever the
  * zoom) drags it, one finger elsewhere pans while zoomed in, a tap on empty
  * target adds a hole and a long press (measured on release — a still finger
- * sends no events) removes the hole it started on. At zoom 1 an unhandled drag
+ * sends no events) removes the hole it started on. A dragged hole is held
+ * [DRAG_LIFT] above the finger so it stays visible. At zoom 1 an unhandled drag
  * stays unconsumed, so a surrounding column still scrolls.
  *
  * [onMove] returns the moved hole's (possibly new) index in the list.
@@ -77,6 +85,7 @@ fun Modifier.photoGestures(
         val h = size.height.toFloat()
         val slop = viewConfiguration.touchSlop
         val longPress = viewConfiguration.longPressTimeoutMillis
+        val lift = Offset(0f, DRAG_LIFT.toPx())
         fun imageAt(o: Offset) =
             viewportToImage((o.x - t.panX) / t.zoom, (o.y - t.panY) / t.zoom, w, h, imageW, imageH)
         // Constant on-screen grab reach, in image px.
@@ -112,7 +121,7 @@ fun Modifier.photoGestures(
                 holeIndex >= 0 -> {
                     // Below the slop it is still a press on the hole, so don't nudge it.
                     if (travel > slop) {
-                        imageAt(change.position)?.let {
+                        imageAt(change.position - lift)?.let {
                             // Rescoring re-sorts the holes, so follow the moved
                             // one to wherever it landed in the list.
                             val next = onMove(holeIndex, it.first, it.second)
