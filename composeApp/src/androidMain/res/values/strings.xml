@@ -57,8 +57,8 @@
     <string name="stats_retry">Försök igen</string>
     <string name="stats_empty">Inga serier matchar filtret.</string>
     <string name="stats_caliber_all">Alla</string>
-    <string name="stats_date_week">7 dagar</string>
-    <string name="stats_date_month">30 dagar</string>
+    <string name="stats_date_week">7 d</string>
+    <string name="stats_date_month">30 d</string>
     <string name="stats_date_year">1 år</string>
     <string name="stats_date_all">Alla</string>
     <string name="stats_date_custom">Välj…</string>
@@ -66,8 +66,6 @@
     <string name="stats_date_ok">Klar</string>
     <string name="stats_date_cancel">Avbryt</string>
     <string name="stats_hits_label">%1$d träffar</string>
-    <string name="stats_hits_fewer">Färre träffar</string>
-    <string name="stats_hits_more">Fler träffar</string>
     <string name="stats_series">Serier</string>
     <string name="stats_hits">Träffar</string>
     <string name="stats_mean_distance">Medelavstånd till centrum</string>

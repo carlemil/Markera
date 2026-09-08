@@ -26,8 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,7 +36,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -336,46 +333,6 @@ private fun FilterRow(
                     label = { Text(stringResource(label)) },
                 )
             }
-        }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = hits == null,
-                onClick = { onHits(null) },
-                label = { Text(stringResource(R.string.stats_caliber_all)) },
-            )
-            // From "Alla" either button picks up the usual five-shot series.
-            OutlinedIconButton(
-                onClick = { onHits(hits?.minus(1) ?: 5) },
-                enabled = hits == null || hits > 1,
-            ) {
-                Icon(
-                    Icons.Default.Remove,
-                    contentDescription = stringResource(R.string.stats_hits_fewer),
-                )
-            }
-            OutlinedIconButton(
-                onClick = { onHits(hits?.plus(1) ?: 5) },
-                enabled = hits == null || hits < 20,
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = stringResource(R.string.stats_hits_more),
-                )
-            }
-            Text(
-                // Greyed at the count the buttons would land on while "Alla" is picked.
-                stringResource(R.string.stats_hits_label, hits ?: 5),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (hits == null) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                modifier = Modifier.weight(1f),
-            )
             FilterChip(
                 selected = preset == DatePreset.CUSTOM,
                 onClick = onPickDates,
@@ -392,6 +349,19 @@ private fun FilterRow(
                         },
                     )
                 },
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = hits == null,
+                onClick = { onHits(null) },
+                label = { Text(stringResource(R.string.stats_caliber_all)) },
+            )
+            // The usual five-shot series is the only count worth a chip.
+            FilterChip(
+                selected = hits == 5,
+                onClick = { onHits(5) },
+                label = { Text(stringResource(R.string.stats_hits_label, 5)) },
             )
         }
     }
