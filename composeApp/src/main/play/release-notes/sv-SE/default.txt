@@ -1,8 +1,8 @@
-Nytt i 1.3.0:
+Nytt i 1.4.0:
 • Skarpare foton i full upplösning ger säkrare träffdetektering
 • Nyp för att zooma, dra för att flytta och håll inne för att ta bort en träff
-• Historiken fungerar även utan nät och laddar snabbare
-• Exportera alla serier med bilder som en zip från historiken
-• Ta bort en serie direkt från seriesidan
-• Statistik: hjälptext för måtten, enklare filter och tydligare färgskala
+• Hjälp (?) på varje skärm
+• Historiken fungerar även utan nät och kan exporteras som zip
+• Statistik: enklare filter, tydligare val och hjälptext för måtten
+• Bekräftelse innan en träff eller serie tas bort
 • Skärmen vrids inte längre bort från det du håller på med
