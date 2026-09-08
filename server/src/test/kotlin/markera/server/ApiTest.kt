@@ -42,13 +42,17 @@ class ApiTest {
     private fun apiTest(
         devAuth: Boolean = true,
         adminPassword: String? = null,
+        contactEmail: String? = null,
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
             val dbFile = File.createTempFile("markera-test", ".db").also { it.delete(); it.deleteOnExit() }
             imagesDir = File(dbFile.path + "-images").also { it.deleteOnExit() }
             application {
-                markeraModule(Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword), Db(dbFile.path))
+                markeraModule(
+                    Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword, contactEmail),
+                    Db(dbFile.path),
+                )
             }
             val client = createClient { install(ClientContentNegotiation) { json() } }
             block(client)
@@ -90,6 +94,25 @@ class ApiTest {
         val response = client.get("/health")
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("""{"status":"ok"}""", response.bodyAsText())
+    }
+
+    @Test
+    fun deleteAccountPageIsPublicBilingualHtml() = apiTest { client ->
+        val response = client.get("/delete-account")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Text.Html, response.contentType()?.withoutParameters())
+        val body = response.bodyAsText()
+        assertTrue(body.contains("Radera konto"), body)
+        assertTrue(body.contains("Delete account"), body)
+        // No contact address configured: point at the Play listing instead of a dead mailto.
+        assertTrue(!body.contains("mailto:"), body)
+        assertTrue(body.contains("Google Play"), body)
+    }
+
+    @Test
+    fun deleteAccountPageShowsTheConfiguredContactEmail() = apiTest(contactEmail = "x@y.z") { client ->
+        val body = client.get("/delete-account").bodyAsText()
+        assertTrue(body.contains("mailto:x@y.z"), body)
     }
 
     @Test

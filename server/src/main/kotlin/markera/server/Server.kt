@@ -42,6 +42,8 @@ data class Config(
     val imagesDir: String = defaultImagesDir(dbPath),
     /** Password for the read-only `/admin` pages (HTTP Basic, user `admin`); blank/null leaves them unregistered. */
     val adminPassword: String? = null,
+    /** Shown on the public `/delete-account` page as the address to mail when the app is gone; null hides it. */
+    val contactEmail: String? = null,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -56,6 +58,7 @@ data class Config(
                 devAuth = System.getenv("DEV_AUTH") == "true",
                 imagesDir = System.getenv("IMAGES_DIR")?.ifBlank { null } ?: defaultImagesDir(dbPath),
                 adminPassword = System.getenv("ADMIN_PASSWORD")?.ifBlank { null },
+                contactEmail = System.getenv("CONTACT_EMAIL")?.ifBlank { null },
             )
         }
     }
@@ -163,6 +166,9 @@ fun Application.markeraModule(config: Config, db: Db) {
 
     routing {
         get("/health") { call.respondText("""{"status":"ok"}""", ContentType.Application.Json) }
+
+        // Public, unauthenticated: the account-deletion instructions Google Play requires a URL for.
+        get("/delete-account") { call.respondText(deleteAccountPage(config.contactEmail), ContentType.Text.Html) }
 
         post("/auth/google") { providerAuth(db, "google", google) }
         post("/auth/apple") { providerAuth(db, "apple", apple) }
