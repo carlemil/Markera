@@ -94,9 +94,10 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
       sign-in fails. The upload key's SHA-1 is printed by task 26 for reference.
       Read from the Play-installed 1.2.0 (3) on 2026-09-08: app signing key SHA-1
       `92:96:43:90:D0:7B:94:74:B7:BA:83:CE:7E:10:79:C4:E0:A0:A3:49` (CN=Android, O=Google Inc.).
-- [ ] Privacy policy: Play Console still lists the generic flycricket page (set 2026-09-07); replace it
-      with `https://markera.duckdns.org/privacy` (task 62, live 2026-09-08). All 10 App content
-      declarations are actioned (checked 2026-09-08).
+- [x] Privacy policy: Play Console now points at `https://markera.duckdns.org/privacy` (swapped
+      2026-09-08 via the browser; saved as a pending change — the user sends it for review from
+      Publishing overview, best together with the Data safety fix). All 10 App content declarations
+      are actioned.
 - [ ] Data safety declaration is wrong (says "App doesn't collect or share data", "Data isn't
       encrypted"): the app collects account info (Google sign-in name + subject), photos (target
       frames) and user content (series), all encrypted in transit (HTTPS), with in-app deletion. Fix
