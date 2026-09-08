@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.series.stats
 
 import kotlin.math.hypot
+import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -90,6 +91,8 @@ data class SeriesStatistics(
     val meanPairwiseMm: Double,
     val meanScore: Double,
     val meanGroupSizeMm: Double,
+    val meanRadiusMm: Double,
+    val radialSdMm: Double,
     val impactXMm: Double,
     val impactYMm: Double,
     val medianXMm: Double,
@@ -102,13 +105,18 @@ data class SeriesStatistics(
 /**
  * Group measurements over the plotted selection, or null when it is empty.
  * Per-hit means (distance, impact, tens share) run over every hit; the
- * per-series means (pairwise spread, group size, score) average the series,
- * and a one-hole series has no pair so it sits out those two.
+ * per-series means (pairwise spread, group size, mean radius, score) average the
+ * series, and a one-hole series has no pair so it sits out those three.
+ * [SeriesStatistics.meanRadiusMm] and [SeriesStatistics.radialSdMm] measure the
+ * spread around the hits' own mean point, so they ignore the target centre entirely.
  */
 fun List<PlottedSeries>.statistics(): SeriesStatistics? {
     if (isEmpty()) return null
     val hits = flatMap { it.hits }
-    val pairwise = mapNotNull { it.hits.pairDistances().takeIf { d -> d.isNotEmpty() } }
+    val withPairs = filter { it.hits.size >= 2 }
+    val pairwise = withPairs.map { it.hits.pairDistances() }
+    val impactX = hits.map { it.xMm }.mean()
+    val impactY = hits.map { it.yMm }.mean()
     return SeriesStatistics(
         seriesCount = size,
         hitCount = hits.size,
@@ -116,8 +124,10 @@ fun List<PlottedSeries>.statistics(): SeriesStatistics? {
         meanPairwiseMm = pairwise.map { it.mean() }.mean(),
         meanScore = map { it.series.total().toDouble() }.mean(),
         meanGroupSizeMm = pairwise.map { it.max() }.mean(),
-        impactXMm = hits.map { it.xMm }.mean(),
-        impactYMm = hits.map { it.yMm }.mean(),
+        meanRadiusMm = withPairs.map { it.hits.radiiFromOwnMean().mean() }.mean(),
+        radialSdMm = sqrt(hits.map { hypot(it.xMm - impactX, it.yMm - impactY).let { d -> d * d } }.mean()),
+        impactXMm = impactX,
+        impactYMm = impactY,
         medianXMm = hits.map { it.xMm }.median(),
         medianYMm = hits.map { it.yMm }.median(),
         tensShare = if (hits.isEmpty()) 0.0 else {
@@ -138,6 +148,13 @@ private fun List<PlottedHit>.pairDistances(): List<Double> {
         }
     }
     return out
+}
+
+/** Each hole's distance to the group's own mean point — no target centre involved. */
+private fun List<PlottedHit>.radiiFromOwnMean(): List<Double> {
+    val cx = map { it.xMm }.mean()
+    val cy = map { it.yMm }.mean()
+    return map { hypot(it.xMm - cx, it.yMm - cy) }
 }
 
 /** Mean, with an empty selection reading 0 rather than NaN. */

@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series.stats
 
+import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -145,6 +146,47 @@ class SeriesStatsTest {
         assertEquals(0.4, stats.tensShare, 1e-9)
         assertEquals(2L to 27, stats.best!!.let { it.first.id to it.second })
         assertEquals(1L to 19, stats.worst!!.let { it.first.id to it.second })
+    }
+
+    /** A 10 mm square, offset [dx] mm to the right: mean point at (dx+5, 5). */
+    private fun square(id: Long, dx: Double = 0.0) = series(
+        id = id,
+        holes = listOf(
+            hole(500.0 + dx, 500.0, 10),
+            hole(510.0 + dx, 500.0, 9),
+            hole(500.0 + dx, 510.0, 9),
+            hole(510.0 + dx, 510.0, 8),
+        ),
+    )
+
+    @Test
+    fun `mean radius and radial SD measure the group around its own mean point`() {
+        val stats = listOf(square(1)).plotSeries(StatsFilter()).statistics()!!
+        // Every corner sits sqrt(50) mm from the centre (5,5), so both read the same.
+        assertEquals(7.0710678, stats.meanRadiusMm, 1e-6)
+        assertEquals(7.0710678, stats.radialSdMm, 1e-6)
+    }
+
+    @Test
+    fun `a one-hit series sits out the mean radius but counts in the radial SD`() {
+        val far = series(id = 2, timestamp = "2026-09-02T10:00:00Z", holes = listOf(hole(600.0, 600.0, 5)))
+        val stats = listOf(square(1), far).plotSeries(StatsFilter()).statistics()!!
+        assertEquals(7.0710678, stats.meanRadiusMm, 1e-6)
+        // Five hits: (0,0),(10,0),(0,10),(10,10),(100,100) → mean (24,24).
+        val xs = listOf(0.0, 10.0, 0.0, 10.0, 100.0)
+        // x and y match on every hit, so the squared distance to (24,24) is 2*(x-24)^2.
+        val expected = sqrt(xs.sumOf { 2 * (it - 24.0) * (it - 24.0) } / 5.0)
+        assertEquals(24.0, stats.impactXMm, 1e-9)
+        assertEquals(24.0, stats.impactYMm, 1e-9)
+        assertEquals(expected, stats.radialSdMm, 1e-6)
+    }
+
+    @Test
+    fun `both spread measures ignore where on the target the group sits`() {
+        val here = listOf(square(1)).plotSeries(StatsFilter()).statistics()!!
+        val shifted = listOf(square(2, dx = 50.0)).plotSeries(StatsFilter()).statistics()!!
+        assertEquals(here.meanRadiusMm, shifted.meanRadiusMm, 1e-9)
+        assertEquals(here.radialSdMm, shifted.radialSdMm, 1e-9)
     }
 
     @Test

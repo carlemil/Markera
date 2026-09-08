@@ -234,6 +234,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 R.string.stats_mean_distance to R.string.stats_help_mean_distance,
                 R.string.stats_mean_pairwise to R.string.stats_help_mean_pairwise,
                 R.string.stats_group_size to R.string.stats_help_group_size,
+                R.string.stats_mean_radius to R.string.stats_help_mean_radius,
+                R.string.stats_radial_sd to R.string.stats_help_radial_sd,
                 R.string.stats_impact to R.string.stats_help_impact,
                 R.string.stats_impact_median to R.string.stats_help_impact_median,
                 R.string.stats_mean_score to R.string.stats_help_mean_score,
@@ -554,6 +556,8 @@ private fun MeasurementRows(stats: SeriesStatistics) {
         Measurement(stringResource(R.string.stats_mean_distance), mm(stats.meanDistanceMm))
         Measurement(stringResource(R.string.stats_mean_pairwise), mm(stats.meanPairwiseMm))
         Measurement(stringResource(R.string.stats_group_size), mm(stats.meanGroupSizeMm))
+        Measurement(stringResource(R.string.stats_mean_radius), mm(stats.meanRadiusMm))
+        Measurement(stringResource(R.string.stats_radial_sd), mm(stats.radialSdMm))
         Measurement(
             stringResource(R.string.stats_impact),
             stringResource(

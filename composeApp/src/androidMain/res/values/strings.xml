@@ -74,6 +74,8 @@
     <string name="stats_mean_distance">Medelavstånd till centrum</string>
     <string name="stats_mean_pairwise">Medelavstånd mellan träffar</string>
     <string name="stats_group_size">Gruppstorlek</string>
+    <string name="stats_mean_radius">Medelradie</string>
+    <string name="stats_radial_sd">Spridning (SD)</string>
     <string name="stats_impact">Medelträffläge</string>
     <string name="stats_impact_median">Medianträffläge</string>
     <string name="stats_legend_mean">Medel</string>
@@ -146,6 +148,8 @@
     <string name="stats_help_mean_distance">Avståndet från tavlans centrum till varje träff, i millimeter, snittat över alla träffar.</string>
     <string name="stats_help_mean_pairwise">Avståndet mellan alla par av träffar inom en serie, snittat — och sedan snittat över serierna. Serier med bara en träff hoppas över.</string>
     <string name="stats_help_group_size">Det största avståndet mellan två träffar i en serie (spridningen), snittat över serierna.</string>
+    <string name="stats_help_mean_radius">Medelavståndet från träffarna till seriens egen mittpunkt (träffbildens medelpunkt), snittat över serierna. Mäter hur samlad serien är oavsett var på tavlan den sitter. Serier med bara en träff hoppas över.</string>
+    <string name="stats_help_radial_sd">Standardavvikelsen för alla valda träffars avstånd till deras gemensamma medelpunkt, i millimeter. Lågt värde = träffarna ligger tätt, oavsett var på tavlan.</string>
     <string name="stats_help_impact">Träffbildens medelpunkt: medelvärdet av alla träffars x och y, i millimeter höger om och nedanför centrum (negativa tal betyder vänster respektive uppåt). Ritas som ett + på tavlan.</string>
     <string name="stats_help_impact_median">Medianen av alla träffars x och y var för sig — mindre känslig för enstaka utliggare än medelpunkten. Ritas som ett × på tavlan.</string>
     <string name="stats_help_mean_score">Medelvärdet av seriernas totalpoäng.</string>
