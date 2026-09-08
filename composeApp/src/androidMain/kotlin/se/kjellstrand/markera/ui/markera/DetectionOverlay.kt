@@ -44,6 +44,12 @@ fun DetectionOverlay(
     centre: CentreEstimate? = null,
     ring: FittedEllipse? = null,
     scores: List<HitScore> = emptyList(),
+    /**
+     * Key letters drawn by the hole markers, parallel to [scores]; when a
+     * position is missing the caller must pass these so marker and list stay in
+     * step. Defaults to the score's own index ("a", "b", …).
+     */
+    letters: List<String> = emptyList(),
     showDebug: Boolean = false,
     boxColor: Color = Color(0xFF00E676),
     digitColor: Color = Color(0xFF00B0FF),
@@ -107,6 +113,27 @@ fun DetectionOverlay(
                 val hx = (d.left + d.right) / 2f * scale + offsetX
                 val hy = (d.top + d.bottom) / 2f * scale + offsetY
                 drawCircle(holeColor, radius = dotRadius, center = Offset(hx, hy))
+            }
+        }
+
+        // Key letter just below-right of each hole, tying the marker to its
+        // score box / list row. Deliberately small and unbolded — the ring
+        // value above the hole is the primary label.
+        if (scores.isNotEmpty()) {
+            val letterPaint = Paint().apply {
+                isAntiAlias = true
+                textSize = (28f * scale).coerceIn(44f, 128f) * 0.52f
+                textAlign = Paint.Align.LEFT
+                setShadowLayer(5f, 0f, 1f, android.graphics.Color.BLACK)
+            }
+            scores.forEachIndexed { i, hit ->
+                letterPaint.color = (if (hit.manual) manualColor else holeColor).toArgb()
+                drawContext.canvas.nativeCanvas.drawText(
+                    letters.getOrElse(i) { holeLetter(i) },
+                    hit.centerXpx * scale + offsetX + dotRadius * 1.6f,
+                    hit.centerYpx * scale + offsetY + dotRadius + letterPaint.textSize * 0.9f,
+                    letterPaint,
+                )
             }
         }
 

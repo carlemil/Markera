@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,16 +40,21 @@ private val DIALPAD_KEYS = listOf(
     listOf(9, 10, SCORE_PICKER_INNER_TEN),
 )
 
+/** The key letter for hole [index]: a, b, c… — same on the photo and the box. */
+fun holeLetter(index: Int): String = ('a' + index).toString()
+
 /**
  * One hole's score: a highlighted box showing only the current value. With an
  * [onValueChange] tapping it opens the dialpad; without one (the scan screen,
  * where a score may only come from where the hole sits) it just displays.
+ * [letter] is the small key tying the box to its marker on the photo.
  */
 @Composable
 private fun ScoreBox(
     value: Int,
     onValueChange: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
+    letter: String? = null,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     Box(
@@ -70,6 +76,16 @@ private fun ScoreBox(
             text = SCORE_PICKER_LABELS[value.coerceIn(0, SCORE_PICKER_INNER_TEN)],
             style = MaterialTheme.typography.titleLarge,
         )
+        if (letter != null) {
+            Text(
+                text = letter,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 4.dp, top = 1.dp),
+            )
+        }
     }
     if (showDialog && onValueChange != null) {
         ScoreDialpadDialog(
@@ -127,13 +143,19 @@ fun ScorePickerHorizontalRow(
     values: List<Int>,
     modifier: Modifier = Modifier,
     onValueChange: ((index: Int, value: Int) -> Unit)? = null,
+    /** How many leading boxes carry a key letter — i.e. how many holes there are. */
+    letteredCount: Int = 0,
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(PICKER_GAP),
     ) {
         values.forEachIndexed { i, v ->
-            ScoreBox(value = v, onValueChange = onValueChange?.let { f -> { v2: Int -> f(i, v2) } })
+            ScoreBox(
+                value = v,
+                onValueChange = onValueChange?.let { f -> { v2: Int -> f(i, v2) } },
+                letter = if (i < letteredCount) holeLetter(i) else null,
+            )
         }
     }
 }
@@ -143,13 +165,18 @@ fun ScorePickerHorizontalRow(
 fun ScorePickerVerticalColumn(
     values: List<Int>,
     modifier: Modifier = Modifier,
+    letteredCount: Int = 0,
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(PICKER_GAP),
     ) {
-        values.forEach { v ->
-            ScoreBox(value = v, onValueChange = null)
+        values.forEachIndexed { i, v ->
+            ScoreBox(
+                value = v,
+                onValueChange = null,
+                letter = if (i < letteredCount) holeLetter(i) else null,
+            )
         }
     }
 }

@@ -343,10 +343,16 @@ private fun ResultsContent(
     ) {
         TotalBadge(total)
         if (landscape) {
-            ScorePickerVerticalColumn(values = uiState.topScores)
+            ScorePickerVerticalColumn(
+                values = uiState.topScores,
+                letteredCount = uiState.scores.size,
+            )
         } else {
             // Read-only: a score only ever follows the hole it belongs to.
-            ScorePickerHorizontalRow(values = uiState.topScores)
+            ScorePickerHorizontalRow(
+                values = uiState.topScores,
+                letteredCount = uiState.scores.size,
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = onReset) {

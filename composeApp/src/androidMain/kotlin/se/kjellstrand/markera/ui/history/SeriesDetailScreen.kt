@@ -70,6 +70,7 @@ import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
+import se.kjellstrand.markera.ui.markera.holeLetter
 import se.kjellstrand.markera.ui.markera.photoGestures
 import se.kjellstrand.markera.ui.markera.rememberZoomPan
 import se.kjellstrand.markera.ui.markera.zoomPan
@@ -215,13 +216,20 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
+                        // A hole without a position has no marker, so carry the
+                        // letter along from the list index — otherwise the
+                        // markers would renumber and stop matching the rows.
+                        val marked = holes.value.mapIndexedNotNull { i, h ->
+                            h.asHitScore()?.let { it to holeLetter(i) }
+                        }
                         DetectionOverlay(
                             detections = emptyList(),
                             imageWidth = imageW,
                             imageHeight = imageH,
                             centre = series.geometry?.centre(),
                             ring = series.geometry?.ring(),
-                            scores = holes.value.mapNotNull { it.asHitScore() },
+                            scores = marked.map { it.first },
+                            letters = marked.map { it.second },
                             holeColor = DETECTED_COLOR,
                             scoreColor = DETECTED_COLOR,
                             manualColor = MANUAL_COLOR,
@@ -256,6 +264,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     holes.value.forEachIndexed { i, hole ->
                         HoleRow(
                             hole = hole,
+                            letter = holeLetter(i),
                             onDelete = { pendingDeleteIndex = i },
                         )
                     }
@@ -334,7 +343,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
 }
 
 @Composable
-private fun HoleRow(hole: HoleDto, onDelete: () -> Unit) {
+private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -342,6 +351,12 @@ private fun HoleRow(hole: HoleDto, onDelete: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The key back to the marker on the photo.
+        Text(
+            text = letter,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         // Detected: what the model said, struck through once the hole was moved
         // somewhere that scores differently.
         Text(
