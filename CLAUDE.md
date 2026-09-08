@@ -23,8 +23,11 @@ goal and a history of detection approaches tried (and which are in use vs. aband
 `composeApp/proguard-rules.pro` (only two blocks: readable stack traces, and
 `ai.onnxruntime.**` for JNI; kotlinx-serialization ships its own consumer rules).
 Mapping lands at `composeApp/build/outputs/mapping/release/mapping.txt` and rides
-to Play inside the AAB, so the Play plugin needs no mapping config. The bundled
-`.so`s are stripped prebuilts, so `ndk.debugSymbolLevel` has nothing to extract.
+to Play inside the AAB, so the Play plugin needs no mapping config. Native symbol
+tables (`ndk.debugSymbolLevel = "SYMBOL_TABLE"`) ride along too as
+`BUNDLE-METADATA/com.android.tools.build.debugsymbols/` — that only works when
+`android.ndkVersion` names an NDK that is actually installed (AGP's default may not
+be, and then the extraction silently produces nothing).
 
 Instrumented (`androidTest`) tests don't accept `--tests`; select with the runner arg,
 and pin to one device with `ANDROID_SERIAL` (the task runs on every connected device,

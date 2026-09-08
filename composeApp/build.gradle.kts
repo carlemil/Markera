@@ -99,6 +99,9 @@ val keystoreProps: Properties? = rootProject.file("keystore.properties").takeIf 
 
 android {
     namespace = "se.kjellstrand.markera"
+    // Play symbolises native crashes only when the AAB carries the .so symbol tables;
+    // extracting them needs an NDK that is actually installed (AGP's default may not be).
+    ndkVersion = "29.0.13113456"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -136,6 +139,10 @@ android {
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
+            // The prebuilt .so files are stripped, but their dynamic symbol tables are
+            // enough for Play to symbolise native crashes (and to drop its
+            // "no debug symbols uploaded" warning). Needs an NDK installed.
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
