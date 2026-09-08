@@ -238,6 +238,36 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     }
                 }
 
+                // Right under the photo, greyed out until a hole was moved,
+                // added or removed.
+                PrimaryActionButton(
+                    text = stringResource(R.string.detail_save),
+                    icon = Icons.Default.Save,
+                    // The server rejects an empty hole list, so don't offer it.
+                    enabled = !saving && holes.value.isNotEmpty() && holes.value != series.holes,
+                    onClick = {
+                        saving = true
+                        scope.launch {
+                            try {
+                                services.repository.update(
+                                    series.id,
+                                    SeriesRequest(
+                                        series.timestamp,
+                                        series.caliber,
+                                        holes.value,
+                                        series.geometry,
+                                    ),
+                                )
+                                Toast.makeText(context, savedText, Toast.LENGTH_SHORT).show()
+                                onBack()
+                            } catch (_: Throwable) {
+                                Toast.makeText(context, failedText, Toast.LENGTH_SHORT).show()
+                                saving = false
+                            }
+                        }
+                    },
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -269,34 +299,6 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                         )
                     }
                 }
-
-                PrimaryActionButton(
-                    text = stringResource(R.string.detail_save),
-                    icon = Icons.Default.Save,
-                    // The server rejects an empty hole list, so don't offer it.
-                    enabled = !saving && holes.value.isNotEmpty() && holes.value != series.holes,
-                    onClick = {
-                        saving = true
-                        scope.launch {
-                            try {
-                                services.repository.update(
-                                    series.id,
-                                    SeriesRequest(
-                                        series.timestamp,
-                                        series.caliber,
-                                        holes.value,
-                                        series.geometry,
-                                    ),
-                                )
-                                Toast.makeText(context, savedText, Toast.LENGTH_SHORT).show()
-                                onBack()
-                            } catch (_: Throwable) {
-                                Toast.makeText(context, failedText, Toast.LENGTH_SHORT).show()
-                                saving = false
-                            }
-                        }
-                    },
-                )
             }
         }
     }
