@@ -1,0 +1,1 @@
+Första iOS-versionen: fotografera eller välj en tavla, få serien poängsatt automatiskt, spara den med kaliber och se historik och statistik.

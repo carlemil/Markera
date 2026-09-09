@@ -35,3 +35,9 @@ play-account.json
 iosApp/iosApp.xcodeproj/
 iosApp/build/
 iosApp/Config/Local.xcconfig
+# fastlane: the App Store Connect key + env stay local
+iosApp/fastlane/.env
+iosApp/fastlane/*.p8
+iosApp/fastlane/report.xml
+iosApp/fastlane/README.md
+iosApp/fastlane/Preview.html

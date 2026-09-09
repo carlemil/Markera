@@ -1,0 +1,53 @@
+default_platform(:ios)
+opt_out_usage
+
+# fastlane auto-loads iosApp/fastlane/.env (gitignored): ASC_KEY_ID,
+# ASC_ISSUER_ID, ASC_KEY_PATH, FASTLANE_TEAM_ID — see .env.template.
+# Same shape as FieldShootingTimer's lane; the ASC key is per team, so that
+# project's key works here too once the Markera app record exists.
+
+APP_ID = "se.kjellstrand.markera"
+
+platform :ios do
+  desc "Regenerate iosApp.xcodeproj from project.yml (idempotent)."
+  lane :gen do
+    sh("cd .. && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodegen generate")
+  end
+
+  desc "Build a signed App Store archive and upload it to TestFlight."
+  lane :beta do
+    gen
+    api_key = app_store_connect_api_key(
+      key_id:       ENV.fetch("ASC_KEY_ID"),
+      issuer_id:    ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+      in_house:     false,
+    )
+    get_certificates(api_key: api_key)
+    get_provisioning_profile(api_key: api_key, app_identifier: APP_ID)
+    profile_name = lane_context[SharedValues::SIGH_NAME]
+
+    # CURRENT_PROJECT_VERSION in project.yml mirrors the Android versionCode;
+    # ASC rejects a build number <= any already uploaded, so bump past it.
+    latest = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID).to_i
+    build_number = ENV["BUILD_NUMBER"] || `grep CURRENT_PROJECT_VERSION ../project.yml`[/\d+/]
+    build_number = (latest + 1).to_s if build_number.to_i <= latest
+    UI.message("Using build number #{build_number}")
+
+    build_app(
+      xcargs: %(CURRENT_PROJECT_VERSION=#{build_number} PROVISIONING_PROFILE_SPECIFIER="#{profile_name}"),
+      export_options: {
+        method:               "app-store",
+        signingStyle:         "manual",
+        teamID:               ENV.fetch("FASTLANE_TEAM_ID"),
+        uploadSymbols:        true,
+        provisioningProfiles: { APP_ID => profile_name },
+      },
+    )
+    upload_to_testflight(
+      api_key:                           api_key,
+      skip_waiting_for_build_processing: true,
+      changelog:                         File.read("metadata/sv/release_notes.txt").strip,
+    )
+  end
+end

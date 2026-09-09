@@ -1,0 +1,8 @@
+project          "iosApp.xcodeproj"
+scheme           "iosApp"
+configuration    "Release"
+output_directory "build/ios"
+output_name      "iosApp"
+export_method    "app-store"
+clean            true
+include_symbols  true
