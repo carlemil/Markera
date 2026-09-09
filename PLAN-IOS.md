@@ -107,8 +107,8 @@ Shared with no seam:
   `images` → `Cast(FLOAT16)` → old input; output → `Cast(FLOAT)`. ORT's Cast is
   round-to-nearest-even like `Fp16Conversions.floatToFp16`, so Android/`:eval`/iOS
   stay **bit-identical**; Android and `:eval` already branch on the declared input
-  type, so the regenerated `best.onnx` needs no code change. Keep the original as
-  `best.fp16.onnx` locally (neither is committed).
+  type, so the regenerated `best.onnx` needs no code change. Keep the original at
+  `D:/ml/holes/best.fp16.onnx` (outside `assets/`, or it ships in the APK).
 - iosMain `interface HoleModel { fun run(input: NSData, shape: List<Long>): NSData }`
   (exported as an ObjC protocol); `HoleDetector.ios` packs the `FloatArray` to
   `NSData` (`usePinned`), calls it on `Dispatchers.Default`, unpacks floats, applies
@@ -193,7 +193,7 @@ plus `git ls-files -d` removals. The Mac never commits or pushes. One-off: scp
 | C0 | Sync/build scripts, `.gitignore` entries, scp model + test photos, fix `iosApp/README.md` paths. | Mac HEAD = Windows HEAD; `best.onnx` on the Mac | done (2026-09-09; `scripts/mac-sync.sh` + `scripts/mac.sh`; model + 3 dataset photos in `macmini:~/eval/`; README fixed in C1; framework link at HEAD verified on the Mac) |
 | C1 | **Placeholder iOS app on the simulator first**: project.yml, iOSApp.swift, entitlements, Info.plist, `Local.xcconfig.example`, SPM package, `linkerOpts("-lsqlite3")`. Runs the existing `App()` placeholder. | `sh gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64`; xcodebuild + install; screenshot shows the placeholder text | done (2026-09-09; `scripts/mac-build.sh`; ORT SPM pinned by commit (newest tag is 1.19.2, main = 1.24.2 binaries); Compose aborts without `CADisableMinimumFrameDurationOnPhone`; two simulators are booted so the script names the iPhone; placeholder screenshot checked) |
 | C2 | Install idb on the Mac; prove describe-all + tap + screenshot on the placeholder. | screenshot after a tap | done (2026-09-09; `brew trust facebook/fb` was needed first; the tree is empty until the first tap; recipe in `iosApp/README.md`) |
-| A1 | `scripts/cast_model_io.py`; regenerate local `best.onnx` (fp32 I/O), keep `best.fp16.onnx`. | Android gate; `/eval` seed 42 detections identical to before; phone scan unchanged; scp to the Mac | open |
+| A1 | `scripts/cast_model_io.py`; regenerate local `best.onnx` (fp32 I/O), keep `best.fp16.onnx`. | Android gate; `/eval` seed 42 detections identical to before; phone scan unchanged; scp to the Mac | done (2026-09-09; local `best.onnx` now fp32 I/O, original kept at `D:/ml/holes/best.fp16.onnx` (not under assets/, it would be packaged); eval seed 42: identical hole counts on all 9 images, mosaics differ by 147 antialiased edge pixels in 3 tiles, so equivalent but not bit-identical; phone scan check pending, phone absent) |
 | A2 | Strings → composeResources (sed pass + hand fixes), `app_name` kept in androidMain. | Android gate; phone: a help dialog and the signed-in text with its arg | open |
 | A3 | Toast → `LocalToast` snackbar; drop `LocalContext` from AppNavHost/History/Detail. | Android gate; save/failed message shows | open |
 | A4 | Common `SeriesServices` + `AppServices`; `MainActivity` builds them; caliber defaults on `BackendTokenStore`; `FileImageCache` on kotlinx-io; delete the iOS/Android service copies. | Android gate; History thumbnails still served from `cacheDir/series` | open |

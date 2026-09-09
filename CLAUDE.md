@@ -61,7 +61,9 @@ internal track).
 
 ### Model asset (required to build/run)
 
-`best.onnx` (a YOLOv8 export, ~80 MB) is **not** committed. Place it at
+`best.onnx` (a YOLOv8 export, ~40 MB, fp16 body with fp32 inputs/outputs — the
+iOS ORT API has no fp16 tensors; `scripts/cast_model_io.py` makes one from an fp16
+export) is **not** committed. Place it at
 `composeApp/src/androidMain/assets/best.onnx` before building; the model runs at
 1536×1536 input. Builds/detection won't work without it.
 
