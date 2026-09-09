@@ -189,6 +189,7 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
         Screen.History -> SeriesHistoryScreen(
             services = seriesServices,
             onBack = pop,
+            shareFile = app.shareFile,
             onOpen = { push(Screen.SeriesDetail(it)) },
         )
 

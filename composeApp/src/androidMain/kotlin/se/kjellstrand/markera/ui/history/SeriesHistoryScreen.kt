@@ -49,12 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -64,15 +60,13 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
+import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.scoreLine
-import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
-
-private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
 /** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
 private const val THUMB_MAX_DIM = 256
@@ -82,6 +76,7 @@ private const val THUMB_MAX_DIM = 256
 fun SeriesHistoryScreen(
     services: SeriesServices,
     onBack: () -> Unit,
+    shareFile: suspend (path: String) -> Unit,
     onOpen: (SeriesDto) -> Unit = {},
 ) {
     val auth by services.session.auth.collectAsState()
@@ -97,7 +92,6 @@ fun SeriesHistoryScreen(
     val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val toast = LocalToast.current
 
     LaunchedEffect(auth, reload) {
@@ -131,8 +125,10 @@ fun SeriesHistoryScreen(
                                 scope.launch {
                                     try {
                                         shareFile(
-                                            context,
-                                            exportSeriesZip(context, services.repository),
+                                            exportSeriesZip(
+                                                services.repository,
+                                                services.cacheDir,
+                                            ).toString(),
                                         )
                                     } catch (_: Throwable) {
                                         toast(getString(Res.string.history_export_failed))
@@ -345,11 +341,4 @@ private fun SeriesCard(
             }
         }
     }
-}
-
-/** Falls back to the raw string if the server ever sends something unparsable. */
-internal fun localStamp(timestamp: String): String = try {
-    stampFormat.format(Instant.parse(timestamp).atZone(ZoneId.systemDefault()))
-} catch (_: Exception) {
-    timestamp
 }

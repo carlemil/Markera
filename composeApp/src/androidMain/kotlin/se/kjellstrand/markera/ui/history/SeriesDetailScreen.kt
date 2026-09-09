@@ -53,6 +53,7 @@ import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.centre
 import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.detectedLabel

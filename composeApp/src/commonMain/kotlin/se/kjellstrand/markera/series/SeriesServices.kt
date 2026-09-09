@@ -19,7 +19,7 @@ class SeriesServices(
     baseUrl: String,
     val store: BackendTokenStore,
     driver: SqlDriver,
-    cacheDir: Path,
+    val cacheDir: Path,
 ) {
     val session: BackendSessionRepository
     val api: SeriesApi

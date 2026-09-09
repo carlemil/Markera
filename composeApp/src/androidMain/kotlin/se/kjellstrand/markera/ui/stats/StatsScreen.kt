@@ -56,7 +56,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import java.time.ZoneOffset
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -69,6 +68,8 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.localStamp
+import se.kjellstrand.markera.series.utcDay
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.SeriesStatistics
@@ -78,7 +79,6 @@ import se.kjellstrand.markera.series.stats.statistics
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
-import se.kjellstrand.markera.ui.history.localStamp
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
@@ -362,10 +362,6 @@ private fun statsChipColors() = FilterChipDefaults.filterChipColors(
     selectedContainerColor = MaterialTheme.colorScheme.primary,
     selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
 )
-
-/** `yyyy-MM-dd` of a UTC start-of-day millis, which is what the range picker returns. */
-private fun utcDay(millis: Long): String =
-    java.time.Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
