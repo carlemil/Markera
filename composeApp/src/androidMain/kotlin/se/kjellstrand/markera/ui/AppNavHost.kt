@@ -67,18 +67,15 @@ import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
 import se.kjellstrand.markera.series.signInWithProvider
+import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
-import se.kjellstrand.markera.ui.competition.CompetitionListScreen
-import se.kjellstrand.markera.ui.competition.LoginScreen
-import se.kjellstrand.markera.ui.competition.MarkingGroupsScreen
-import se.kjellstrand.markera.ui.competition.MarkingWizardScreen
+import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.history.SeriesDetailScreen
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
 import se.kjellstrand.markera.ui.stats.StatsScreen
-import se.kjellstrand.markera.webshooter.WebshooterServices
 
 /** Shows a short message; the host lives in [AppNavHost], above every screen. */
 val LocalToast = staticCompositionLocalOf<(String) -> Unit> { error("no toast host") }
@@ -93,15 +90,18 @@ sealed interface Screen {
     /** One saved series, editable. Carries the DTO the history row already has. */
     data class SeriesDetail(val series: SeriesDto) : Screen
 
-    data object Login : Screen
-    data object Competitions : Screen
-    data class MarkingGroups(val competitionId: Int) : Screen
-    data class MarkingWizard(
-        val competitionId: Int,
-        val groupGuid: String,
-        val groupName: String,
-    ) : Screen
+    /** The optional platform flow, if the host supplied one. */
+    data object Competition : Screen
 }
+
+/** An optional flow the platform plugs into the nav host (the Android-only webshooter marking). */
+class CompetitionHost(
+    val content: @Composable (
+        frameSource: FrameSource,
+        scanController: TargetScanController,
+        onExit: () -> Unit,
+    ) -> Unit,
+)
 
 /**
  * Navigation root. The frame source and the scan controller (the single ONNX
@@ -110,9 +110,7 @@ sealed interface Screen {
  * screen switch.
  */
 @Composable
-fun AppNavHost(app: AppServices) {
-    val context = LocalContext.current
-    val services = remember { WebshooterServices(context) }
+fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
     val seriesServices = app.series
     val frameSource = rememberFrameSource()
     val scanController = rememberTargetScanController(app.modelPath)
@@ -159,14 +157,11 @@ fun AppNavHost(app: AppServices) {
 
     BackHandler(enabled = stack.size > 1) { pop() }
 
-    // Restore a persisted login once at startup.
-    LaunchedEffect(Unit) { services.sessionRepository.restore() }
     // The cache is published before the delta lands, so History has rows at once.
     LaunchedEffect(Unit) {
         seriesServices.session.restore()
         seriesServices.repository.refresh()
     }
-    val session by services.sessionRepository.session.collectAsState()
     val backendAuth by seriesServices.session.auth.collectAsState()
 
     CompositionLocalProvider(
@@ -177,9 +172,7 @@ fun AppNavHost(app: AppServices) {
     when (val screen = current) {
         Screen.Home -> HomeScreen(
             onFreeMarking = { push(Screen.FreeMarking) },
-            onCompetition = {
-                push(if (session != null) Screen.Competitions else Screen.Login)
-            },
+            onCompetition = competition?.let { { push(Screen.Competition) } },
             onHistory = { push(Screen.History) },
             onStatistics = { push(Screen.Statistics) },
             backendAuth = backendAuth,
@@ -207,37 +200,7 @@ fun AppNavHost(app: AppServices) {
             onBack = pop,
         )
 
-        Screen.Login -> LoginScreen(
-            services = services,
-            onLoggedIn = { stack = stack.dropLast(1) + Screen.Competitions },
-            onBack = pop,
-        )
-
-        Screen.Competitions -> CompetitionListScreen(
-            services = services,
-            onBack = pop,
-            onLoggedOut = { stack = listOf(Screen.Home) },
-            onSelect = { push(Screen.MarkingGroups(it)) },
-        )
-
-        is Screen.MarkingGroups -> MarkingGroupsScreen(
-            services = services,
-            competitionId = screen.competitionId,
-            onBack = pop,
-            onOpenGroup = { group ->
-                push(Screen.MarkingWizard(screen.competitionId, group.guid, group.name))
-            },
-        )
-
-        is Screen.MarkingWizard -> MarkingWizardScreen(
-            services = services,
-            frameSource = frameSource,
-            scanController = scanController,
-            competitionId = screen.competitionId,
-            groupGuid = screen.groupGuid,
-            groupName = screen.groupName,
-            onExit = pop,
-        )
+        Screen.Competition -> competition!!.content(frameSource, scanController, pop)
     }
     SnackbarHost(
         snackbarHostState,
@@ -300,7 +263,8 @@ private fun CaliberDialog(
 @Composable
 private fun HomeScreen(
     onFreeMarking: () -> Unit,
-    onCompetition: () -> Unit,
+    /** Null hides the card: the platform supplied no competition flow. */
+    onCompetition: (() -> Unit)?,
     onHistory: () -> Unit,
     onStatistics: () -> Unit,
     backendAuth: BackendAuth?,
@@ -329,9 +293,7 @@ private fun HomeScreen(
                     icon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(36.dp)) },
                     onClick = onFreeMarking,
                 )
-                // Competition marking is hidden until it is prioritised again (PLAN task 20);
-                // the wizard and its screens stay in place behind `onCompetition`.
-                if (SHOW_COMPETITION) {
+                if (onCompetition != null) {
                     Spacer(Modifier.height(16.dp))
                     HomeCard(
                         title = stringResource(Res.string.home_competition),
@@ -472,8 +434,6 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
         }
     }
 }
-
-private const val SHOW_COMPETITION = false
 
 @Composable
 private fun HomeCard(
