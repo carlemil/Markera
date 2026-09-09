@@ -1,65 +1,48 @@
-# iOS app (placeholder)
+# iOS app
 
-This directory is reserved for the iOS Xcode project that consumes the shared
-Compose Multiplatform framework produced by the `:composeApp` module
-(`baseName = "ComposeApp"`).
+The Xcode project is generated from `project.yml` by [xcodegen](https://github.com/yonaskolb/XcodeGen);
+`iosApp.xcodeproj` is gitignored. The app links the static `ComposeApp`
+framework from `:composeApp` (built by the pre-build script through
+`embedAndSignAppleFrameworkForXcode`), the ONNX Runtime Objective-C bindings
+(Swift package, pinned by commit in `project.yml`) and the system sqlite.
 
-## Scaffold the Xcode project
+## Build and run on the simulator (Mac mini)
 
-Option A — Kotlin Multiplatform Wizard (https://kmp.jetbrains.com/):
-choose "Compose Multiplatform UI" with iOS enabled, then copy the generated
-`iosApp/` contents on top of this directory.
-
-Option B — Android Studio with the Kotlin Multiplatform plugin: right-click
-the project root and pick **New > iOS App in iosApp/**.
-
-## Wire the framework into Xcode
-
-In the iOS app target's **Build Phases**, add a *Run Script* phase that runs:
+From Windows, mirror the working tree and build over ssh:
 
 ```sh
-cd "$SRCROOT/.."
-./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
+sh scripts/mac-sync.sh                     # HEAD + uncommitted files -> ~/source/Markera on the Mac
+sh scripts/mac.sh sh scripts/mac-build.sh  # xcodegen + xcodebuild + simctl install/launch
 ```
 
-Add `$(SRCROOT)/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)` to the
-target's **Framework Search Paths**, and link `ComposeApp.framework`.
+`scripts/mac-build.sh` copies `Config/Local.xcconfig.example` to the gitignored
+`Config/Local.xcconfig` (developer team) on first use, writes the build log to
+`iosApp/build/xcodebuild.log` and launches `se.kjellstrand.markera` on the booted
+"iPhone 17 Pro Max". `CONFIGURATION=Release` builds the release configuration.
+
+Useful on the Mac (`export PATH=/opt/homebrew/bin:$PATH` first):
+
+```sh
+xcrun simctl io booted screenshot shot.png
+xcrun simctl addmedia booted ~/eval/IMG20260426151712.jpg   # a target photo into Photos
+xcrun simctl spawn booted log stream --predicate 'process == "iosApp"'
+```
+
+## Configuration
+
+`Debug` points the app at `http://127.0.0.1:8091` with dev auth (Info.plist
+`MarkeraBackendUrl` / `MarkeraDevAuth`); run the backend locally in `server/`:
+
+```sh
+PORT=8091 DEV_AUTH=true APPLE_BUNDLE_ID=se.kjellstrand.markera DB_PATH=/tmp/markera-dev.db sh gradlew run
+```
+
+`Release` uses `https://markera.duckdns.org` without dev auth. Sign in with Apple
+needs the App ID `se.kjellstrand.markera` with that capability and
+`APPLE_BUNDLE_ID=se.kjellstrand.markera` in the server's `.env` (the identity
+token's audience).
 
 ## Entry point
 
-In `iOSApp.swift` (or the `UIApplicationDelegate`), present the root view:
-
-```swift
-import UIKit
-import ComposeApp
-
-struct ComposeView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIViewController =
-        MainViewControllerKt.MainViewController()
-    func updateUIViewController(_ vc: UIViewController, context: Context) {}
-}
-```
-
-`MainViewController()` lives at
+`iosApp/iOSApp.swift` presents `MainViewControllerKt.MainViewController()` from
 `composeApp/src/iosMain/kotlin/se/kjellstrand/markera/MainViewController.kt`.
-
-## Build the iOS framework standalone
-
-```sh
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
-```
-
-## Backend + Sign in with Apple
-
-Entry points live in `composeApp/src/iosMain/.../series/`: `SeriesServices`
-(HTTP client → `SeriesApi` → `BackendSessionRepository`, token in
-`NSUserDefaults`) and `signInWithProvider(session)` (AuthenticationServices,
-call it from the main thread).
-
-Xcode target setup:
-
-- Enable the **Sign in with Apple** capability (entitlement
-  `com.apple.developer.applesignin`).
-- The target's bundle id must equal `APPLE_BUNDLE_ID` in the server's `.env` —
-  the backend verifies it as the identity token's audience.
-- The backend is HTTPS (`https://markera.duckdns.org`), so no ATS exception is needed.

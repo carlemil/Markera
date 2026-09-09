@@ -21,6 +21,9 @@ kotlin {
         target.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            binaryOption("bundleId", "se.kjellstrand.markera")
+            // The SQLDelight native driver needs the system sqlite at app link time.
+            linkerOpts("-lsqlite3")
         }
     }
 

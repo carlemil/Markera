@@ -1,0 +1,4 @@
+// Copy to Local.xcconfig (gitignored). The team id is only needed for device
+// and App Store builds; the simulator builds without it.
+DEVELOPMENT_TEAM = BSZST7M33J
+CODE_SIGN_STYLE = Automatic
