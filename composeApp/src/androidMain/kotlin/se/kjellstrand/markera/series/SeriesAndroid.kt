@@ -7,66 +7,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import io.ktor.client.engine.okhttp.OkHttp
 import java.io.ByteArrayOutputStream
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import se.kjellstrand.markera.BuildConfig
-import se.kjellstrand.markera.series.db.MarkeraDb
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
-
-/**
- * Wires the Markera series backend stack (HTTP client → API → session → local
- * cache). One instance for the app; create it in the nav root and pass it down.
- */
-class SeriesServices(context: Context) {
-
-    val session: BackendSessionRepository
-    val api: SeriesApi
-    val store = DataStoreBackendTokenStore(context)
-    val repository: SeriesRepository
-
-    init {
-        val client = createWebshooterHttpClient(OkHttp.create())
-        lateinit var repo: BackendSessionRepository
-        api = SeriesApi(client, BuildConfig.BACKEND_URL, tokenProvider = { repo.currentToken })
-        repo = BackendSessionRepository(api, store)
-        session = repo
-        repository = SeriesRepository(
-            api = api,
-            db = MarkeraDb(AndroidSqliteDriver(MarkeraDb.Schema, context, "markera-series.db")),
-            images = FileImageCache(File(context.cacheDir, "series")),
-            session = repo,
-        )
-    }
-}
-
-/** The cached series JPEGs, one file per id under `cacheDir/series/`. */
-class FileImageCache(private val dir: File) : ImageCache {
-
-    private fun file(id: Long) = File(dir, "$id.jpg")
-
-    override fun read(id: Long): ByteArray? =
-        file(id).takeIf { it.isFile }?.let { runCatching { it.readBytes() }.getOrNull() }
-
-    override fun write(id: Long, bytes: ByteArray) {
-        runCatching {
-            dir.mkdirs()
-            file(id).writeBytes(bytes)
-        }
-    }
-
-    override fun delete(id: Long) {
-        file(id).delete()
-    }
-
-    override fun clear() {
-        dir.deleteRecursively()
-    }
-}
 
 private const val IMAGE_MAX_DIM = 3072
 
@@ -122,11 +66,10 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         val caliber = stringPreferencesKey("caliber")
     }
 
-    /** The chosen caliber shares this store but survives [clear] (sign-out). */
-    suspend fun readCaliber(): Caliber =
+    override suspend fun readCaliber(): Caliber =
         Caliber.fromLabel(dataStore.data.first()[Keys.caliber] ?: "")
 
-    suspend fun writeCaliber(caliber: Caliber) {
+    override suspend fun writeCaliber(caliber: Caliber) {
         dataStore.edit { it[Keys.caliber] = caliber.label }
     }
 

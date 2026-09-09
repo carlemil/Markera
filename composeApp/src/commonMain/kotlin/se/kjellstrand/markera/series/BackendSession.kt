@@ -12,6 +12,10 @@ interface BackendTokenStore {
     suspend fun read(): BackendAuth?
     suspend fun write(auth: BackendAuth)
     suspend fun clear()
+
+    /** The chosen caliber shares this store but survives [clear] (sign-out). */
+    suspend fun readCaliber(): Caliber = Caliber.NONE
+    suspend fun writeCaliber(caliber: Caliber) {}
 }
 
 /** In-memory store for tests. */

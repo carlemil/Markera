@@ -60,13 +60,12 @@ import se.kjellstrand.markera.ui.history.DeleteHoleDialog
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
  * the pickers. The detectors and frame source are hoisted by the caller (the
- * nav host) so they are shared with the competition wizard; the defaults keep
- * the screen self-contained when composed alone.
+ * nav host) so they are shared with the competition wizard.
  */
 @Composable
 fun MarkeraScreen(
     frameSource: FrameSource = rememberFrameSource(),
-    scanController: TargetScanController = rememberTargetScanController(),
+    scanController: TargetScanController,
     onBack: (() -> Unit)? = null,
 ) {
     val viewModel: MarkeraViewModelImpl = viewModel { MarkeraViewModelImpl() }

@@ -15,7 +15,8 @@ if [ -n "$files" ]; then
     git ls-files -moz --exclude-standard | tar --null -cf - -T - |
         ssh macmini 'tar -C ~/source/Markera -xf -'
 fi
-deleted=$(git ls-files -d)
+# Deleted or renamed away, staged or not.
+deleted=$(git diff --name-only --no-renames --diff-filter=D HEAD)
 if [ -n "$deleted" ]; then
     printf '%s\n' "$deleted" | ssh macmini 'cd ~/source/Markera && xargs rm -f'
 fi

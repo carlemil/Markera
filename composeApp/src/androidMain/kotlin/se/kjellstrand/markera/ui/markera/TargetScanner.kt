@@ -81,7 +81,6 @@ import se.kjellstrand.markera.vision.scoreHits
 private const val TAG = "Markera"
 private const val CONFIDENCE_THRESHOLD = 0.35f
 private const val IOU_THRESHOLD = 0.45f
-private const val MODEL_ASSET = "best.onnx"
 private const val MODEL_INPUT_SIZE = 1536
 
 /**
@@ -309,26 +308,10 @@ class TargetScanController(
  * (never mid-scan on a screen switch).
  */
 @Composable
-fun rememberTargetScanController(): TargetScanController {
-    val context = LocalContext.current
+fun rememberTargetScanController(modelPath: String): TargetScanController {
     val controller = remember {
-        // Stream the asset to a plain file once and hand ONNX Runtime the
-        // path: the native runtime reads the ~40 MB model directly, instead
-        // of readBytes() staging it on the Java heap (which OOMed small heaps).
-        // Re-copied after each app update (the asset may have changed); the
-        // temp-file + rename keeps an interrupted copy from being trusted.
-        val modelFile = java.io.File(context.filesDir, MODEL_ASSET)
-        val apkTime = context.packageManager
-            .getPackageInfo(context.packageName, 0).lastUpdateTime
-        if (!modelFile.exists() || modelFile.lastModified() < apkTime) {
-            val tmp = java.io.File(context.filesDir, "$MODEL_ASSET.tmp")
-            context.assets.open(MODEL_ASSET).use { input ->
-                tmp.outputStream().use { input.copyTo(it) }
-            }
-            check(tmp.renameTo(modelFile)) { "could not move $tmp into place" }
-        }
         TargetScanController(
-            detector = HoleDetector(modelFile.absolutePath, inputSize = MODEL_INPUT_SIZE),
+            detector = HoleDetector(modelPath, inputSize = MODEL_INPUT_SIZE),
             digitDetector = DigitDetector(),
         )
     }

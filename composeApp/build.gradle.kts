@@ -41,6 +41,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.sqldelight.runtime)
+            implementation(libs.kotlinx.io.core)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -73,6 +74,7 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
         }
     }
 }

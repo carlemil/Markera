@@ -58,6 +58,7 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.AppServices
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SaveStatus
@@ -109,12 +110,12 @@ sealed interface Screen {
  * screen switch.
  */
 @Composable
-fun AppNavHost() {
+fun AppNavHost(app: AppServices) {
     val context = LocalContext.current
     val services = remember { WebshooterServices(context) }
-    val seriesServices = remember { SeriesServices(context) }
+    val seriesServices = app.series
     val frameSource = rememberFrameSource()
-    val scanController = rememberTargetScanController()
+    val scanController = rememberTargetScanController(app.modelPath)
 
     // Auto-save: every scan the shared controller completes is offered to the
     // recorder, whichever screen started it.
