@@ -28,6 +28,17 @@ xcrun simctl addmedia booted ~/eval/IMG20260426151712.jpg   # a target photo int
 xcrun simctl spawn booted log stream --predicate 'process == "iosApp"'
 ```
 
+Taps and the accessibility tree come from [idb](https://fbidb.io) (`brew install
+facebook/fb/idb-companion`, `pipx install fb-idb`, client in `~/.local/bin`);
+Compose fills the tree after the first query, so tap once before describing:
+
+```sh
+U=$(xcrun simctl list devices | grep 'iPhone 17 Pro Max' | grep -o '[0-9A-F-]\{36\}')
+idb ui tap --udid $U 220 490
+idb ui describe-all --udid $U --nested   # labels + frames in points (440x956)
+idb ui text --udid $U 'hello'
+```
+
 ## Configuration
 
 `Debug` points the app at `http://127.0.0.1:8091` with dev auth (Info.plist
