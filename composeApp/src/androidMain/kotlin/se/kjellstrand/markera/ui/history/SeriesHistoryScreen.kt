@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui.history
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +69,7 @@ import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
+import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 
 private val stampFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
@@ -98,6 +98,7 @@ fun SeriesHistoryScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val toast = LocalToast.current
 
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
@@ -134,11 +135,7 @@ fun SeriesHistoryScreen(
                                             exportSeriesZip(context, services.repository),
                                         )
                                     } catch (_: Throwable) {
-                                        Toast.makeText(
-                                            context,
-                                            getString(Res.string.history_export_failed),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                                        toast(getString(Res.string.history_export_failed))
                                     }
                                     exporting = false
                                 }
@@ -216,11 +213,7 @@ fun SeriesHistoryScreen(
                         services.repository.delete(target.id)
                         thumbnails.remove(target.id)
                     } catch (_: Throwable) {
-                        Toast.makeText(
-                            context,
-                            getString(Res.string.history_delete_failed),
-                            Toast.LENGTH_SHORT,
-                        ).show()
+                        toast(getString(Res.string.history_delete_failed))
                     }
                 }
             },

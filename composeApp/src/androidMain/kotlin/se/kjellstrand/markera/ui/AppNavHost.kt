@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +32,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +78,9 @@ import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
 import se.kjellstrand.markera.ui.stats.StatsScreen
 import se.kjellstrand.markera.webshooter.WebshooterServices
+
+/** Shows a short message; the host lives in [AppNavHost], above every screen. */
+val LocalToast = staticCompositionLocalOf<(String) -> Unit> { error("no toast host") }
 
 /** The app's screens; a simple list-backed stack, no navigation library. */
 sealed interface Screen {
@@ -126,6 +131,9 @@ fun AppNavHost() {
     }
     DisposableEffect(recorder) { onDispose { recorder.dispose() } }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val toast: (String) -> Unit = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+
     // The only save feedback, for both screens: one toast per outcome. Collected
     // (not read from the current value), so a recomposition never repeats it.
     val savedText = stringResource(Res.string.series_status_saved)
@@ -139,7 +147,7 @@ fun AppNavHost() {
                 SaveStatus.SignedOut -> signInText
                 else -> return@collect
             }
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            toast(message)
         }
     }
 
@@ -160,7 +168,11 @@ fun AppNavHost() {
     val session by services.sessionRepository.session.collectAsState()
     val backendAuth by seriesServices.session.auth.collectAsState()
 
-    CompositionLocalProvider(LocalSeriesRecorder provides recorder) {
+    CompositionLocalProvider(
+        LocalSeriesRecorder provides recorder,
+        LocalToast provides toast,
+    ) {
+    Box(Modifier.fillMaxSize()) {
     when (val screen = current) {
         Screen.Home -> HomeScreen(
             onFreeMarking = { push(Screen.FreeMarking) },
@@ -225,6 +237,13 @@ fun AppNavHost() {
             groupName = screen.groupName,
             onExit = pop,
         )
+    }
+    SnackbarHost(
+        snackbarHostState,
+        Modifier
+            .align(Alignment.BottomCenter)
+            .windowInsetsPadding(WindowInsets.safeDrawing),
+    )
     }
     }
 
@@ -366,6 +385,7 @@ private fun HomeScreen(
 @Composable
 private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
     val context = LocalContext.current
+    val toast = LocalToast.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -386,11 +406,7 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                             seriesServices.repository.clear()
                         } catch (_: Throwable) {
                             // Stay signed in; the account is still there.
-                            Toast.makeText(
-                                context,
-                                getString(Res.string.home_delete_account_failed),
-                                Toast.LENGTH_LONG,
-                            ).show()
+                            toast(getString(Res.string.home_delete_account_failed))
                         } finally {
                             busy = false
                         }
@@ -420,7 +436,7 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                     // A different account must not inherit the last one's cache.
                     seriesServices.repository.refresh()
                 } catch (t: Throwable) {
-                    Toast.makeText(context, t.message ?: t.toString(), Toast.LENGTH_LONG).show()
+                    toast(t.message ?: t.toString())
                 } finally {
                     busy = false
                 }

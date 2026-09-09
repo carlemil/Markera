@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui.history
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +65,7 @@ import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
+import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
@@ -99,7 +98,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     // Looked up in the cache by id, so an edit made anywhere else shows here.
     val cached by services.repository.series.collectAsState()
     val series = cached.firstOrNull { it.id == initial.id } ?: initial
-    val context = LocalContext.current
+    val toast = LocalToast.current
     val scope = rememberCoroutineScope()
     // A plain State (not `by`), so the drag gesture — which is not recomposed —
     // reads and writes the current list.
@@ -259,10 +258,10 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                         series.geometry,
                                     ),
                                 )
-                                Toast.makeText(context, savedText, Toast.LENGTH_SHORT).show()
+                                toast(savedText)
                                 onBack()
                             } catch (_: Throwable) {
-                                Toast.makeText(context, failedText, Toast.LENGTH_SHORT).show()
+                                toast(failedText)
                                 saving = false
                             }
                         }
@@ -337,7 +336,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                         services.repository.delete(series.id)
                         onBack()
                     } catch (_: Throwable) {
-                        Toast.makeText(context, deleteFailedText, Toast.LENGTH_SHORT).show()
+                        toast(deleteFailedText)
                     }
                 }
             },
