@@ -85,6 +85,9 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
       `server/.env` as `GOOGLE_CLIENT_ID=...`.
 - [ ] Apple Developer: enable "Sign in with Apple" on the iOS bundle id; set
       `APPLE_BUNDLE_ID` in `server/.env`.
+- [ ] App Store Connect: app record for `se.kjellstrand.markera` + API key into
+      `iosApp/fastlane/.env` (see `.env.template`; the FieldShootingTimer key is the
+      same team), then `fastlane beta` from `iosApp/` on the Mac.
 - [ ] Play Console → Setup → API access: link a Cloud project, create a service account with the
       "Release manager" role, download its JSON key to `play-account.json` at the repo root
       (gitignored). Needed by `/release`.
@@ -190,7 +193,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 70 | Hole letters a–e: after detection, each hole marker in the overlay and its score box in the picker row carry the same small letter (clearly smaller than the score digit) so the user sees which digit belongs to which hole; the same letters on the Serie detail page (overlay + hole rows) (requested 2026-09-08) | done (2026-09-08; 158 tests; phone-checked on a Serie page: letters on markers and rows, no row wrap; user confirmed the scan screen on a live scan) |
 | 71 | Dragging a hole on the photo (scan + Serie page) holds it about 1 cm above the finger, so the finger does not cover the spot being placed (requested 2026-09-08) | done (2026-09-08; one change in `PhotoGestures.kt`; phone-checked: a 400 px swipe left the hole ~1 cm above the finger) |
 | 72 | Serie page: the Spara button sits right below the photo and stays greyed out until a hole was changed (requested 2026-09-08) | done (2026-09-08; the button was already disabled while unchanged, only moved) |
-| 73 | iOS version of the app (requested 2026-09-09): full parity on the simulator, shared Compose UI, bundle id `se.kjellstrand.markera`, competition wizard stays Android-only. Design + per-task status in `PLAN-IOS.md` | in progress (C0 done 2026-09-09) |
+| 73 | iOS version of the app (requested 2026-09-09): full parity on the simulator, shared Compose UI, bundle id `se.kjellstrand.markera`, competition wizard stays Android-only. Design + per-task status in `PLAN-IOS.md` | done 2026-09-10 on the simulator (C0–D1 in `PLAN-IOS.md`; commits 5b0a230…c4129b3); open: `fastlane beta` needs the user's App Store Connect key, the device camera is compile-only |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)

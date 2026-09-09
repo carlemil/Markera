@@ -209,7 +209,7 @@ plus `git ls-files -d` removals. The Mac never commits or pushes. One-off: scp
 | C3 | App icon, launch colour, `DEVELOPMENT_TEAM` from `Local.xcconfig`, Release simulator build. | Release sim screenshot | done 2026-09-10 (167 tests; Release sim build runs, icon on the springboard, launch colour = theme background; linkRelease* OOMs the Gradle daemon at 2 GB → org.gradle.jvmargs=-Xmx4g; team id already via Local.xcconfig) |
 | C4 | fastlane `beta` lane + `Appfile` (blocked on the user's App Store Connect API key + App ID). | `fastlane beta` once the key exists | awaiting user 2026-09-10 (lanes gen+beta authored, parse + list on the Mac; needs iosApp/fastlane/.env from .env.template with the ASC key — the FieldShootingTimer key is the same team, so it works once the Markera app record exists) |
 | D1 | Move `SeriesApiTest`, `BackendSessionRepositoryTest`, `SeriesRecorderTest` to commonTest with `runTest` and `expect fun testImage()` (Android: today's `Unsafe`; iOS: `UIImage()`); `SeriesRepositoryTest` stays JVM (JDBC driver). | Android gate stays 158; optionally `sh gradlew :composeApp:iosSimulatorArm64Test` | done 2026-09-10 (JVM gate 167; iosSimulatorArm64Test 150/0 failures — first time it ran: five backtick test names had , or () which Kotlin/Native rejects; testImage()/testSeriesDb() expect-actuals in commonTest, runBlocking kept) |
-| D2 | Docs: CLAUDE.md/README iOS sections (build, sim, idb, dev server, model cast), PLAN.md rows, memory note. | — | open |
+| D2 | Docs: CLAUDE.md/README iOS sections (build, sim, idb, dev server, model cast), PLAN.md rows, memory note. | — | done 2026-09-10 (CLAUDE.md iOS section + architecture rewrite, README iOS section, iosApp/README.md: docker dev backend on 8091, console-log recipe, entry point, TestFlight; PLAN.md task 73 + user action) |
 
 Rationale: C0–C2 make every later task screenshot-verifiable; A1–A7 are Android-visible
 refactors that keep the gate green; A8 lands with iOS compiling; B1–B4 make the
@@ -234,7 +234,8 @@ hardware or user credentials.
 - Apple Developer portal: App ID `se.kjellstrand.markera` with Sign in with Apple.
 - Xcode on the Mac: sign into the Apple ID once (Settings → Accounts) for device/TestFlight signing; create `iosApp/Config/Local.xcconfig` with `DEVELOPMENT_TEAM = BSZST7M33J` (simulator work needs neither).
 - Server: `APPLE_BUNDLE_ID=se.kjellstrand.markera` in the Mac's `server/.env`, then `docker compose up -d --build`.
-- App Store Connect: app record + API key (`.p8`, untracked under `iosApp/fastlane/`) for `fastlane beta`.
+- App Store Connect: app record + API key (`.p8`, untracked under `iosApp/fastlane/`) for `fastlane beta` — lane authored in C4, waiting on this.
+- Phone checks still pending for A1–A8 (phone absent during the port): scan, help dialog, snackbar, export.
 - Approving this plan also approves: brew-installing idb on the Mac (C2) and regenerating the local `best.onnx` with fp32 I/O (A1, original kept as `best.fp16.onnx`).
 
 ## Verification (end to end)

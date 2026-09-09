@@ -59,6 +59,24 @@ Project skills exist for the routine workflows: `/deploy` (build + adb install/l
 the USB phone), `/eval` (detection-quality mosaic), `/release` (version bump + Play
 internal track).
 
+### iOS (simulator on the Mac mini)
+
+No iPhone: the iOS app is built and verified on the simulator over ssh
+(`ssh macmini`). `iosApp/README.md` holds the recipes; the short form:
+
+```sh
+sh scripts/mac-sync.sh                         # mirror HEAD + uncommitted files to the Mac
+sh scripts/mac.sh 'sh gradlew -q :composeApp:linkDebugFrameworkIosSimulatorArm64'
+sh scripts/mac.sh 'sh gradlew :composeApp:iosSimulatorArm64Test'   # the commonTest suite on K/N
+sh scripts/mac.sh 'bash scripts/mac-build.sh'  # xcodegen + xcodebuild + simctl install/launch
+```
+
+`CONFIGURATION=Release` builds release; the optimised framework link needs the
+4 GB `org.gradle.jvmargs` in `gradle.properties` (`sh gradlew --stop` after changing
+it). The Mac clone needs `best.onnx` copied into `composeApp/src/androidMain/assets/`
+too (xcodegen bundles it from there). Kotlin/Native rejects test names containing
+`,` or `()`. `fastlane beta` (TestFlight) waits on the App Store Connect key.
+
 ### Model asset (required to build/run)
 
 `best.onnx` (a YOLOv8 export, ~40 MB, fp16 body with fp32 inputs/outputs — the
@@ -69,21 +87,31 @@ export) is **not** committed. Place it at
 
 ## Architecture
 
-Single `:composeApp` KMP module — `commonMain` / `androidMain` / `iosMain`. iOS
-`HoleDetector`/`DigitDetector` are stubs; Android is the working platform. The frame
-fed into detection comes from `FrameSource` (androidMain) — `CameraFrameSource`, a live
-CameraX preview, via `rememberFrameSource()`. `capture()` is a full-resolution
-`ImageCapture` still (~3000² on the OnePlus 9 Pro), cropped by a 1:1 `ViewPort` to
-exactly what the square preview shows; `previewView.bitmap` (a ~1440² screen render)
-is only the fallback when `takePicture` fails. That same frame is what gets stored.
+Single `:composeApp` KMP module — `commonMain` / `androidMain` / `iosMain`. All
+screens, navigation (`AppNavHost`), view models, strings (`composeResources`, `Res`)
+and the scoring pipeline live in commonMain; `AppServices` (services + model path +
+share) is built by `MainActivity` / `MainViewController`. Platform edges are
+`expect`/`actual`: `HoleDetector`, `DigitDetector`, `PlatformImage` (`Bitmap` /
+`UIImage`), `rememberFrameSource`, `rememberCameraPermission`, `rememberSignIn`,
+`encodeSeriesJpeg`/`decodeSeriesJpeg`. The frame fed into detection comes from
+`FrameSource` via `rememberFrameSource()`. Android: `CameraFrameSource`, a live CameraX
+preview; `capture()` is a full-resolution `ImageCapture` still (~3000² on the OnePlus 9
+Pro), cropped by a 1:1 `ViewPort` to exactly what the square preview shows;
+`previewView.bitmap` (a ~1440² screen render) is only the fallback when `takePicture`
+fails. iOS: AVFoundation `CameraFrameSource` on a device (compile-only, no iPhone to
+test on) and `PhotoPickerFrameSource` (PHPicker, "Välj foto") on the simulator or
+wherever no camera exists. That same frame is what gets stored.
 
 ### The scoring pipeline (the core, in `vision/`)
 
 Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
 `MarkeraScreen`):
 
-1. **Holes** — `HoleDetector` (ONNX YOLOv8) → `Detection` boxes.
-2. **Centre** — `DigitDetector` (ML Kit OCR) reads ring digits; `estimateCentre`
+1. **Holes** — `HoleDetector` (ONNX YOLOv8; Android runs ORT directly, iOS hands the
+   letterboxed tensor to the Swift `OrtHoleModel` through the `HoleModel` protocol) →
+   `Detection` boxes.
+2. **Centre** — `DigitDetector` (ML Kit OCR on Android, Vision `VNRecognizeTextRequest`
+   on iOS) reads ring digits; `estimateCentre`
    intersects the lines fit through the 6–9 digit rows.
 3. **6/7 ring** — `fit67RingFromDigits` seeds a circle from the digit centre + a robust
    median radius, then `refine67ToEdge` snaps it to the black→white rim (a two-pass
@@ -121,9 +149,11 @@ lean DTOs (`ignoreUnknownKeys`; booleans arrive as both `true/false` and `0/1` �
 bracket-array form posts — `audit[shots][0]=X`), `ShotMapping` (picker 0..10 → shots,
 11 → `"X"`), `MarkingLogic` (resume/skip/locked/isSelf decisions) and
 `MarkingWizardViewModel` (plain class + `dispose()`, deliberately *not* an androidx
-ViewModel so polling/claims die with the screen). Android side: `AppNavHost` (sealed-class
-back stack, hoists the single `TargetScanController` + `FrameSource` above navigation),
-`DataStoreTokenStore`, and the competition screens. Real captured API fixtures live in
+ViewModel so polling/claims die with the screen). `AppNavHost` (commonMain sealed-class
+back stack, hoists the single `TargetScanController` + `FrameSource` above navigation)
+reaches the wizard only through the `CompetitionHost` seam: androidMain
+`ui/competition/CompetitionFlow.kt` owns the four steps, `SHOW_COMPETITION`,
+`DataStoreTokenStore` and the competition screens; iOS passes `null`. Real captured API fixtures live in
 `composeApp/src/androidUnitTest/resources/webshooter/`. The test server's
 "Testa mobilregistrering" (competition 244) is the wizard's dev target.
 
@@ -174,12 +204,14 @@ written to `cacheDir/export` and shared via the `${applicationId}.fileprovider`
 The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
 `signInWithProvider` (Credential Manager + `googleid`, needs
 `markera.google.client.id` in `local.properties`). Backend URL is
-the Gradle property `markera.backend.url` (BuildConfig). iOS has the same entry points
-in `iosMain/series/` but no host app yet.
+the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple in
+`iosMain/series/SignIn.kt` with a dev-auth fallback when Info.plist `MarkeraDevAuth`
+is set (Debug), backend URL from `MarkeraBackendUrl` (Debug `http://127.0.0.1:8091`,
+Release production), token in NSUserDefaults, share via `UIActivityViewController`.
 
 ### UI
 
-`MarkeraScreen` (androidMain) is the single screen: top bar (with a debug-overlay
+`MarkeraScreen` (commonMain) is the scan screen: top bar (with a debug-overlay
 toggle) → square `Viewport` (live preview or frozen frame + `DetectionOverlay`) →
 results area (total badge, editable `ScorePickerRow`, actions). `DetectionOverlay`'s
 `showDebug` gates the raw detection boxes/digit boxes/row-lines; the clean view shows
@@ -189,3 +221,6 @@ geometry (`ManualHit.kt` holds the pure viewport→image and box-sizing maths) a
 drawn orange, `manual = true`, so it saves with no `detected*` values.
 `topScores` are picker indices 0–10
 plus 11 = inner-X. Theme is a deliberate dark, green-accented scheme (no dynamic color).
+Overlay text is drawn with `TextMeasurer` (Skia on iOS, so the two platforms render alike);
+back navigation is Compose's common `BackHandler`; toasts are one `SnackbarHost` behind
+`LocalToast`.
