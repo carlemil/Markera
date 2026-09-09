@@ -14,6 +14,7 @@ import se.kjellstrand.markera.series.UserDefaultsBackendTokenStore
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.ui.AppNavHost
 import se.kjellstrand.markera.ui.theme.MarkeraTheme
+import se.kjellstrand.markera.vision.HoleModel
 
 /** Built once: it owns the DB, the token store and the bundled model file. */
 private val app by lazy {
@@ -35,7 +36,11 @@ private val app by lazy {
     )
 }
 
+/** [holeModel] is the host's ONNX Runtime bridge; null leaves detection dead. */
 @Suppress("FunctionName", "unused")
-fun MainViewController(): UIViewController = ComposeUIViewController {
-    MarkeraTheme { AppNavHost(app) }
+fun MainViewController(holeModel: HoleModel?): UIViewController {
+    se.kjellstrand.markera.vision.holeModel = holeModel
+    return ComposeUIViewController {
+        MarkeraTheme { AppNavHost(app) }
+    }
 }

@@ -235,4 +235,5 @@
     <string name="wizard_final_done">Alla serier är färdigmarkerade.</string>
     <string name="wizard_shots_unsupported">Serier med %1$d skott stöds inte ännu.</string>
     <string name="error_network">Nätverksfel. Kontrollera uppkopplingen och försök igen.</string>
+    <string name="ios_pick_photo">Välj foto</string>
 </resources>

@@ -91,14 +91,14 @@ private class AppleSignInDelegate(
     ): ASPresentationAnchor = keyWindow()
 }
 
-/** The app's key window; the sheet has nowhere to go without one. */
-private fun keyWindow(): UIWindow =
+/** The app's key window; a sheet has nowhere to go without one. */
+internal fun keyWindow(): UIWindow =
     UIApplication.sharedApplication.connectedScenes
         .filterIsInstance<UIWindowScene>()
         .flatMap { it.windows }
         .filterIsInstance<UIWindow>()
         .firstOrNull()
-        ?: error("Sign in with Apple: the app has no window to present from")
+        ?: error("The app has no window to present from")
 
 @Composable
 actual fun rememberSignIn(session: BackendSessionRepository): suspend () -> BackendAuth =
