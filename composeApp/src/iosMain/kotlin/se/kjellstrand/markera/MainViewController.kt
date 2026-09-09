@@ -11,6 +11,7 @@ import platform.Foundation.NSUserDomainMask
 import platform.UIKit.UIViewController
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.UserDefaultsBackendTokenStore
+import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.ui.AppNavHost
 import se.kjellstrand.markera.ui.theme.MarkeraTheme
@@ -32,7 +33,7 @@ private val app by lazy {
             ),
         ),
         modelPath = NSBundle.mainBundle.pathForResource("best", "onnx") ?: "",
-        shareFile = { /* B4: UIActivityViewController */ },
+        shareFile = { path -> shareFile(path) },
     )
 }
 

@@ -11,7 +11,9 @@ import platform.AuthenticationServices.ASAuthorizationController
 import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
 import platform.AuthenticationServices.ASAuthorizationControllerPresentationContextProvidingProtocol
 import platform.AuthenticationServices.ASPresentationAnchor
+import platform.Foundation.NSBundle
 import platform.Foundation.NSError
+import platform.Foundation.NSNumber
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.create
@@ -19,6 +21,7 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIWindow
 import platform.UIKit.UIWindowScene
 import platform.darwin.NSObject
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Sign in with Apple, exchanged for a backend session token.
@@ -100,6 +103,29 @@ internal fun keyWindow(): UIWindow =
         .firstOrNull()
         ?: error("The app has no window to present from")
 
+/** The xcconfig `MARKERA_DEV_AUTH` flag, as xcodegen wrote it into Info.plist. */
+private val devAuth: Boolean by lazy {
+    when (val flag = NSBundle.mainBundle.objectForInfoDictionaryKey("MarkeraDevAuth")) {
+        is String -> flag.equals("YES", ignoreCase = true)
+        is NSNumber -> flag.boolValue
+        is Boolean -> flag
+        else -> false
+    }
+}
+
 @Composable
-actual fun rememberSignIn(session: BackendSessionRepository): suspend () -> BackendAuth =
-    { signInWithProvider(session) }
+actual fun rememberSignIn(session: BackendSessionRepository): suspend () -> BackendAuth = {
+    // Debug builds fall back to dev auth: the simulator has no Apple ID.
+    if (devAuth) {
+        try {
+            signInWithProvider(session)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            println("Sign in with Apple failed, using dev auth: $e")
+            session.signInDev("ios-sim")
+        }
+    } else {
+        signInWithProvider(session)
+    }
+}
