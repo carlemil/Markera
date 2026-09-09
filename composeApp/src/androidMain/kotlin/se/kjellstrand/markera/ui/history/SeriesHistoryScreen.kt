@@ -47,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -284,7 +283,7 @@ private fun SeriesCard(
             // Cached on disk after the first fetch, so reopening downloads nothing.
             val bytes = services.repository.image(series.id) ?: return@LaunchedEffect
             decodeSeriesJpeg(bytes, THUMB_MAX_DIM)?.let {
-                thumbnails[series.id] = it.asImageBitmap()
+                thumbnails[series.id] = it
             }
         }
     }

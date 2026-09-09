@@ -38,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextDecoration
@@ -122,7 +121,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
         if (!series.hasImage) return@LaunchedEffect
         // Null (a failed download with nothing cached) is the whole fallback.
         val bytes = services.repository.image(series.id) ?: return@LaunchedEffect
-        photo = decodeSeriesJpeg(bytes, PHOTO_MAX_DIM)?.asImageBitmap()
+        photo = decodeSeriesJpeg(bytes, PHOTO_MAX_DIM)
     }
 
     // Without the source-frame size the hole pixels mean nothing against the

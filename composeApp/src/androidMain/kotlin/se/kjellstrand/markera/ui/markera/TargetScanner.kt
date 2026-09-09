@@ -2,7 +2,6 @@ package se.kjellstrand.markera.ui.markera
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.SystemClock
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -40,7 +39,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
@@ -70,6 +68,7 @@ import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.HoleDetector
 import se.kjellstrand.markera.vision.PlatformImage
+import se.kjellstrand.markera.vision.centerSquare
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.fit67RingFromDigits
@@ -164,7 +163,7 @@ class TargetScanController(
      */
     fun addHit(
         viewModel: MarkeraViewModel,
-        snapshot: Bitmap?,
+        snapshot: PlatformImage?,
         x: Float,
         y: Float,
         minGapPx: Float,
@@ -185,7 +184,7 @@ class TargetScanController(
      */
     fun moveHit(
         viewModel: MarkeraViewModel,
-        snapshot: Bitmap?,
+        snapshot: PlatformImage?,
         index: Int,
         x: Float,
         y: Float,
@@ -210,7 +209,7 @@ class TargetScanController(
     }
 
     /** The user long-pressed hole [index]: drop it, detected or hand-placed. */
-    fun removeHit(viewModel: MarkeraViewModel, snapshot: Bitmap?, index: Int) =
+    fun removeHit(viewModel: MarkeraViewModel, snapshot: PlatformImage?, index: Int) =
         editHoles(viewModel, snapshot) { _, _, _ ->
             viewModel.removeHit(index)
             true
@@ -223,7 +222,7 @@ class TargetScanController(
      */
     private fun editHoles(
         viewModel: MarkeraViewModel,
-        snapshot: Bitmap?,
+        snapshot: PlatformImage?,
         edit: (MarkeraUiState, CentreEstimate, FittedEllipse) -> Boolean,
     ) {
         val state = viewModel.uiState.value
@@ -238,7 +237,7 @@ class TargetScanController(
         )
     }
 
-    private suspend fun runPipeline(snapshot: Bitmap, viewModel: MarkeraViewModel) {
+    private suspend fun runPipeline(snapshot: PlatformImage, viewModel: MarkeraViewModel) {
         // Phase 1 — geometry: digit OCR -> centre -> 6/7 ring. Runs
         // first and with no spinner (it's fast, and the spinner is
         // drawn from this geometry). The digits give a circle seed at
@@ -426,7 +425,7 @@ fun TargetScanner(
         Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
             if (frozen != null) {
                 Image(
-                    bitmap = frozen.asImageBitmap(),
+                    bitmap = frozen.toImageBitmap(),
                     contentDescription = null,
                     // Fit-centre so the DetectionOverlay boxes (also fit-centre)
                     // line up with the holes in this non-square snapshot.

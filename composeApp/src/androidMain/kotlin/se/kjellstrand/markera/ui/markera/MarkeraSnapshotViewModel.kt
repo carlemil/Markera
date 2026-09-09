@@ -1,16 +1,16 @@
 package se.kjellstrand.markera.ui.markera
 
-import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import se.kjellstrand.markera.vision.PlatformImage
 
 class MarkeraSnapshotViewModel : ViewModel() {
-    var snapshot: Bitmap? by mutableStateOf(null)
+    var snapshot: PlatformImage? by mutableStateOf(null)
         private set
 
-    fun set(bitmap: Bitmap) {
+    fun set(bitmap: PlatformImage) {
         snapshot = bitmap
     }
 
