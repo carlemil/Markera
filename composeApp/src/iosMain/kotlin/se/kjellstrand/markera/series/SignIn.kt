@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series
 
+import androidx.compose.runtime.Composable
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.CompletableDeferred
@@ -98,3 +99,7 @@ private fun keyWindow(): UIWindow =
         .filterIsInstance<UIWindow>()
         .firstOrNull()
         ?: error("Sign in with Apple: the app has no window to present from")
+
+@Composable
+actual fun rememberSignIn(session: BackendSessionRepository): suspend () -> BackendAuth =
+    { signInWithProvider(session) }

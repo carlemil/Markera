@@ -1,7 +1,5 @@
 package se.kjellstrand.markera.ui.markera
 
-import android.graphics.Paint
-import android.graphics.RectF
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,8 +10,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
@@ -62,6 +64,7 @@ fun DetectionOverlay(
     manualColor: Color = Color(0xFFFFB74D),
     strokeWidthPx: Float = 4f,
 ) {
+    val textMeasurer = rememberTextMeasurer()
     Canvas(modifier = modifier) {
         if (imageWidth <= 0 || imageHeight <= 0) return@Canvas
         val scale = min(size.width / imageWidth, size.height / imageHeight)
@@ -120,19 +123,23 @@ fun DetectionOverlay(
         // score box / list row. Deliberately small and unbolded — the ring
         // value above the hole is the primary label.
         if (scores.isNotEmpty()) {
-            val letterPaint = Paint().apply {
-                isAntiAlias = true
-                textSize = (28f * scale).coerceIn(44f, 128f) * 0.52f
-                textAlign = Paint.Align.LEFT
-                setShadowLayer(5f, 0f, 1f, android.graphics.Color.BLACK)
-            }
+            val letterSize = (28f * scale).coerceIn(44f, 128f) * 0.52f
             scores.forEachIndexed { i, hit ->
-                letterPaint.color = (if (hit.manual) manualColor else holeColor).toArgb()
-                drawContext.canvas.nativeCanvas.drawText(
+                val layout = textMeasurer.measure(
                     letters.getOrElse(i) { holeLetter(i) },
-                    hit.centerXpx * scale + offsetX + dotRadius * 1.6f,
-                    hit.centerYpx * scale + offsetY + dotRadius + letterPaint.textSize * 0.9f,
-                    letterPaint,
+                    TextStyle(
+                        color = if (hit.manual) manualColor else holeColor,
+                        fontSize = letterSize.toSp(),
+                        shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
+                    ),
+                )
+                drawText(
+                    layout,
+                    topLeft = Offset(
+                        hit.centerXpx * scale + offsetX + dotRadius * 1.6f,
+                        hit.centerYpx * scale + offsetY + dotRadius + letterSize * 0.9f -
+                            layout.firstBaseline,
+                    ),
                 )
             }
         }
@@ -152,34 +159,35 @@ fun DetectionOverlay(
         // Ring-value label above each scored hole ("X" for inner-ten), nudged up
         // to avoid overlapping labels in dense clusters.
         if (scores.isNotEmpty()) {
-            val labelPaint = Paint().apply {
-                isAntiAlias = true
-                color = scoreColor.toArgb()
-                textSize = (28f * scale).coerceIn(44f, 128f)
-                textAlign = Paint.Align.CENTER
-                setShadowLayer(6f, 0f, 2f, android.graphics.Color.BLACK)
-                isFakeBoldText = true
-            }
-            val gap = labelPaint.textSize * 0.15f
-            val placed = ArrayList<RectF>(scores.size)
+            val labelSize = (28f * scale).coerceIn(44f, 128f)
+            val gap = labelSize * 0.15f
+            val placed = ArrayList<Rect>(scores.size)
             // Place top holes first so lower labels stack above them.
             scores.sortedBy { it.topYpx }.forEach { hit ->
                 val label = if (hit.isInnerTen) "X" else hit.ring.toString()
-                labelPaint.color = (if (hit.manual) manualColor else scoreColor).toArgb()
-                val w = labelPaint.measureText(label)
+                val layout = textMeasurer.measure(
+                    label,
+                    TextStyle(
+                        color = if (hit.manual) manualColor else scoreColor,
+                        fontSize = labelSize.toSp(),
+                        fontWeight = FontWeight.Bold,
+                        shadow = Shadow(Color.Black, Offset(0f, 2f), blurRadius = 6f),
+                    ),
+                )
+                val w = layout.size.width.toFloat()
                 val x = hit.centerXpx * scale + offsetX
-                var baseline = hit.topYpx * scale + offsetY - labelPaint.textSize * 0.2f
-                var top = baseline - labelPaint.textSize
+                var baseline = hit.topYpx * scale + offsetY - labelSize * 0.2f
+                var top = baseline - labelSize
                 var guard = 0
                 while (guard++ <= placed.size) {
                     val hitRect = placed.firstOrNull { r ->
                         x + w / 2f > r.left && x - w / 2f < r.right && baseline > r.top && top < r.bottom
                     } ?: break
                     baseline = hitRect.top - gap
-                    top = baseline - labelPaint.textSize
+                    top = baseline - labelSize
                 }
-                drawContext.canvas.nativeCanvas.drawText(label, x, baseline, labelPaint)
-                placed.add(RectF(x - w / 2f, top, x + w / 2f, baseline))
+                drawText(layout, topLeft = Offset(x - w / 2f, baseline - layout.firstBaseline))
+                placed.add(Rect(x - w / 2f, top, x + w / 2f, baseline))
             }
         }
 

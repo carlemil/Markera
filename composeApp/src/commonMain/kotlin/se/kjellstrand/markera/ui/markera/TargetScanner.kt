@@ -1,11 +1,5 @@
 package se.kjellstrand.markera.ui.markera
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.SystemClock
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -42,15 +36,15 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,10 +66,12 @@ import se.kjellstrand.markera.vision.centerSquare
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.fit67RingFromDigits
+import se.kjellstrand.markera.vision.height
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
 import se.kjellstrand.markera.vision.refine67ToEdge
 import se.kjellstrand.markera.vision.scoreHits
+import se.kjellstrand.markera.vision.width
 
 private const val TAG = "Markera"
 private const val CONFIDENCE_THRESHOLD = 0.35f
@@ -89,6 +85,7 @@ private const val MODEL_INPUT_SIZE = 1536
  * instance, created with [rememberTargetScanController] above the navigation
  * so it is never rebuilt per screen.
  */
+@OptIn(ExperimentalAtomicApi::class)
 class TargetScanController(
     val detector: HoleDetector,
     val digitDetector: DigitDetector,
@@ -132,9 +129,9 @@ class TargetScanController(
             try {
                 // The still takes ~0.5 s, so the live preview stays up until it
                 // lands — what the user framed is what gets analysed.
-                val started = SystemClock.elapsedRealtime()
+                val started = TimeSource.Monotonic.markNow()
                 val frame = frameSource.capture()
-                Log.i(TAG, "capture ${SystemClock.elapsedRealtime() - started} ms")
+                println("$TAG: capture ${started.elapsedNow()}")
                 if (frame == null) {
                     viewModel.setError(errorMessage)
                     return@launch
@@ -146,10 +143,10 @@ class TargetScanController(
                 snapshotVm.set(snapshot)
                 runPipeline(snapshot, viewModel)
             } catch (t: Throwable) {
-                Log.w(TAG, "snapshot inference failed", t)
+                println("$TAG: snapshot inference failed " + t.stackTraceToString())
                 viewModel.setError(errorMessage)
             } finally {
-                detecting.set(false)
+                detecting.store(false)
             }
         }
         return true
@@ -243,9 +240,9 @@ class TargetScanController(
         // drawn from this geometry). The digits give a circle seed at
         // the centre; refine snaps it to the black->white edge. The
         // seed fit and grayscale edge scan are CPU-bound, so off-main.
-        val ocrStarted = SystemClock.elapsedRealtime()
+        val ocrStarted = TimeSource.Monotonic.markNow()
         val digits = digitDetector.detect(snapshot)
-        Log.i(TAG, "digit OCR ${SystemClock.elapsedRealtime() - ocrStarted} ms")
+        println("$TAG: digit OCR ${ocrStarted.elapsedNow()}")
         val centre = estimateCentre(digits, snapshot.width, snapshot.height)
         val ring = if (centre.method != CentreMethod.NONE) {
             withContext(Dispatchers.Default) {
@@ -279,12 +276,11 @@ class TargetScanController(
         } else {
             emptyList()
         }
-        Log.d(
-            TAG,
-            "snapshot ${snapshot.width}x${snapshot.height}: " +
+        println(
+            "$TAG: snapshot ${snapshot.width}x${snapshot.height}: " +
                 "raw=${raws.size} kept=${detections.size} " +
                 "digits=${digits.size} centre=${centre.method} ring=${ring != null} " +
-                "scores=${scores.map { if (it.isInnerTen) "X" else it.ring.toString() }}",
+                "scores=${scores.map { if (it.isInnerTen) "X" else it.ring.toString() }}"
         )
         viewModel.onHolesDetected(detections, scores)
         if (scores.isNotEmpty()) {
@@ -318,33 +314,6 @@ fun rememberTargetScanController(modelPath: String): TargetScanController {
         onDispose { controller.close() }
     }
     return controller
-}
-
-/** Camera permission gate shared by every scanning screen. */
-class CameraPermissionState(
-    val granted: Boolean,
-    val request: () -> Unit,
-)
-
-@Composable
-fun rememberCameraPermission(frameSource: FrameSource): CameraPermissionState {
-    val context = LocalContext.current
-    val requiresPermission = frameSource.requiresCameraPermission
-    // `granted` doubles as the "ready to use" gate.
-    var granted by remember {
-        mutableStateOf(
-            !requiresPermission ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                    PackageManager.PERMISSION_GRANTED
-        )
-    }
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted = it }
-    LaunchedEffect(Unit) {
-        if (requiresPermission && !granted) launcher.launch(Manifest.permission.CAMERA)
-    }
-    return CameraPermissionState(granted) { launcher.launch(Manifest.permission.CAMERA) }
 }
 
 /**

@@ -1,9 +1,9 @@
 package se.kjellstrand.markera.ui.markera
 
-import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import se.kjellstrand.markera.vision.PlatformImage
 
 /**
  * Source of the frame fed into hole detection: a live CameraX preview, see
@@ -19,8 +19,11 @@ interface FrameSource {
     fun Preview(onError: (Throwable) -> Unit, modifier: Modifier)
 
     /** Grab the frame currently framed, or null if the camera is not ready. */
-    suspend fun capture(): Bitmap?
+    suspend fun capture(): PlatformImage?
 
     /** Called when the user taps "resume live" to drop a frozen snapshot. */
     fun onResumeLive()
 }
+
+@Composable
+expect fun rememberFrameSource(): FrameSource

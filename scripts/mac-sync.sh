@@ -1,18 +1,15 @@
 #!/bin/sh
-# Mirror this working tree (HEAD + uncommitted changes) onto the Mac mini clone
-# at ~/source/Markera, where the iOS app is built. The Mac never commits: HEAD
-# goes over as branch `sync` (checked out there as `build`), and modified/new
-# files ride along as a tar stream. Run from Git Bash on Windows.
 set -e
 cd "$(dirname "$0")/.."
-
 git remote get-url macmini >/dev/null 2>&1 || git remote add macmini macmini:source/Markera
 git push -q -f macmini HEAD:refs/heads/sync
 ssh macmini 'cd ~/source/Markera && git checkout -qf -B build sync && git clean -qfd'
-
-files=$(git ls-files -mo --exclude-standard)
+# Everything that differs from HEAD in the working tree: modified, untracked,
+# and staged adds/renames whose content matches the index (which
+# `git ls-files -m` would miss).
+files=$( (git diff --name-only --no-renames --diff-filter=AM HEAD; git ls-files -o --exclude-standard) | sort -u)
 if [ -n "$files" ]; then
-    git ls-files -moz --exclude-standard | tar --null -cf - -T - |
+    printf '%s\n' "$files" | tar -cf - -T - |
         ssh macmini 'tar -C ~/source/Markera -xf -'
 fi
 # Deleted or renamed away, staged or not.

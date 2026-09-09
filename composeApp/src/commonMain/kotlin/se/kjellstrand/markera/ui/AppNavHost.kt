@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,8 +48,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -66,7 +66,7 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
-import se.kjellstrand.markera.series.signInWithProvider
+import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanController
@@ -109,6 +109,7 @@ class CompetitionHost(
  * and the competition wizard share them and nothing heavy is rebuilt per
  * screen switch.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
     val seriesServices = app.series
@@ -348,7 +349,7 @@ private fun HomeScreen(
 /** Markera-backend account: sign in to save scanned series, or sign out. */
 @Composable
 private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
-    val context = LocalContext.current
+    val signIn = rememberSignIn(seriesServices.session)
     val toast = LocalToast.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -394,9 +395,7 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
             busy = true
             scope.launch {
                 try {
-                    // LocalContext inside MainActivity is the Activity, which is
-                    // what Credential Manager needs.
-                    signInWithProvider(context, seriesServices.session)
+                    signIn()
                     // A different account must not inherit the last one's cache.
                     seriesServices.repository.refresh()
                 } catch (t: Throwable) {

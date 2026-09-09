@@ -116,7 +116,7 @@ fun MarkingWizardScreen(
 
     // Shared scanner state (same instances as free marking; flows are serial).
     val markeraVm: MarkeraViewModelImpl = viewModel { MarkeraViewModelImpl() }
-    val snapshotVm: MarkeraSnapshotViewModel = viewModel()
+    val snapshotVm: MarkeraSnapshotViewModel = viewModel { MarkeraSnapshotViewModel() }
     val markeraState by markeraVm.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val permission = rememberCameraPermission(frameSource)

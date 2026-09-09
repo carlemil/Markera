@@ -79,7 +79,7 @@ private class CameraFrameSource(
 }
 
 @Composable
-fun rememberFrameSource(): FrameSource {
+actual fun rememberFrameSource(): FrameSource {
     val context = LocalContext.current
     val previewView = remember {
         // Fill-centre so the live preview spans the full viewport width (the

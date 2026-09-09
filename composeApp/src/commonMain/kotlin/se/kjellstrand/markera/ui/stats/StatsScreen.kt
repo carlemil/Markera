@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.ui.stats
 
-import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,8 +52,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -393,6 +393,7 @@ private fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Uni
  */
 @Composable
 private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?) {
+    val textMeasurer = rememberTextMeasurer()
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -415,23 +416,28 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
         }
 
         // Ring digits 5..9, centred in their band on all four axis arms.
-        val digitPaint = Paint().apply {
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-            textSize = 11f * scale
+        val digitSize = 11f * scale
+        // Centred horizontally; the third of the text size centres vertically.
+        fun digit(ring: Int, colour: Color, x: Float, y: Float) {
+            val layout = textMeasurer.measure(
+                ring.toString(),
+                TextStyle(color = colour, fontSize = digitSize.toSp()),
+            )
+            drawText(
+                layout,
+                topLeft = Offset(
+                    x - layout.size.width / 2f,
+                    y + digitSize / 3f - layout.firstBaseline,
+                ),
+            )
         }
-        // textAlign centres horizontally; the third of the text size centres vertically.
-        fun digit(ring: Int, x: Float, y: Float) = drawContext.canvas.nativeCanvas.drawText(
-            ring.toString(), x, y + digitPaint.textSize / 3f, digitPaint,
-        )
         for (ring in 5..9) {
             val mid = (RING_RADII_MM[10 - ring] + RING_RADII_MM[9 - ring]) / 2.0
-            digitPaint.color =
-                (if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER).toArgb()
-            digit(ring, centre.x - r(mid), centre.y)
-            digit(ring, centre.x + r(mid), centre.y)
-            digit(ring, centre.x, centre.y - r(mid))
-            digit(ring, centre.x, centre.y + r(mid))
+            val colour = if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER
+            digit(ring, colour, centre.x - r(mid), centre.y)
+            digit(ring, colour, centre.x + r(mid), centre.y)
+            digit(ring, colour, centre.x, centre.y - r(mid))
+            digit(ring, colour, centre.x, centre.y + r(mid))
         }
 
         plotted.forEach { series ->
@@ -571,7 +577,7 @@ private fun MeasurementRows(stats: SeriesStatistics) {
                 stats.medianYMm.roundToInt(),
             ),
         )
-        Measurement(stringResource(Res.string.stats_mean_score), "%.1f".format(stats.meanScore))
+        Measurement(stringResource(Res.string.stats_mean_score), ((stats.meanScore * 10).roundToInt() / 10.0).toString())
         Measurement(
             stringResource(Res.string.stats_tens_share),
             stringResource(Res.string.stats_percent, (stats.tensShare * 100).roundToInt()),

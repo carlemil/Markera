@@ -69,7 +69,7 @@ fun MarkeraScreen(
     onBack: (() -> Unit)? = null,
 ) {
     val viewModel: MarkeraViewModelImpl = viewModel { MarkeraViewModelImpl() }
-    val snapshotVm: MarkeraSnapshotViewModel = viewModel()
+    val snapshotVm: MarkeraSnapshotViewModel = viewModel { MarkeraSnapshotViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val permission = rememberCameraPermission(frameSource)

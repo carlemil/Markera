@@ -1,6 +1,8 @@
 package se.kjellstrand.markera.series
 
 import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -28,4 +30,12 @@ suspend fun signInWithProvider(context: Context, session: BackendSessionReposito
         .getCredential(context, GetCredentialRequest(listOf(option)))
     val idToken = GoogleIdTokenCredential.createFrom(response.credential.data).idToken
     return session.signInGoogle(idToken)
+}
+
+@Composable
+actual fun rememberSignIn(session: BackendSessionRepository): suspend () -> BackendAuth {
+    // LocalContext inside MainActivity is the Activity, which is what
+    // Credential Manager needs.
+    val context = LocalContext.current
+    return { signInWithProvider(context, session) }
 }
