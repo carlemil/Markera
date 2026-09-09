@@ -2,10 +2,11 @@
 
     python store/gen_assets.py
 
-Writes store/icon-512.png, store/feature-1024x500.png and the legacy
-ic_launcher(.round).webp mipmaps (API < 26; API 26+ uses the adaptive vector
-in res/drawable, drawn to match). Design: dark ground (#12160F), green rings
-(#9CCC65), bright centre (#00E676) — the app's theme.
+Writes store/icon-512.png, store/feature-1024x500.png, the iOS
+AppIcon.appiconset/icon-1024.png and the legacy ic_launcher(.round).webp
+mipmaps (API < 26; API 26+ uses the adaptive vector in res/drawable, drawn to
+match). Design: dark ground (#12160F), green rings (#9CCC65), bright centre
+(#00E676) — the app's theme.
 """
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "composeApp/src/androidMain/res"
 OUT = ROOT / "store"
+IOS_ICON = ROOT / "iosApp/iosApp/Assets.xcassets/AppIcon.appiconset"
 
 BG = (0x12, 0x16, 0x0F)
 RING = (0x9C, 0xCC, 0x65)
@@ -58,6 +60,12 @@ def main() -> None:
     # Play store icon: 512 px, opaque, no rounding (Play masks it).
     target(512, pad=0.18).convert("RGB").save(OUT / "icon-512.png")
 
+    # iOS app icon: 1024 px, no alpha and no rounding (iOS masks it, and the
+    # App Store rejects an icon with an alpha channel). Contents.json is
+    # checked in by hand next to it.
+    IOS_ICON.mkdir(parents=True, exist_ok=True)
+    target(1024, pad=0.18).convert("RGB").save(IOS_ICON / "icon-1024.png")
+
     # Feature graphic 1024x500.
     fg = Image.new("RGB", (1024, 500), BG)
     icon = target(300, pad=0.12)
@@ -76,7 +84,13 @@ def main() -> None:
         base = target(px, pad=0.2)
         rounded(base, px * 0.18).save(folder / "ic_launcher.webp", lossless=True)
         circle(base).save(folder / "ic_launcher_round.webp", lossless=True)
-    print("wrote", OUT / "icon-512.png", OUT / "feature-1024x500.png", "and the mipmaps")
+    print(
+        "wrote",
+        OUT / "icon-512.png",
+        OUT / "feature-1024x500.png",
+        IOS_ICON / "icon-1024.png",
+        "and the mipmaps",
+    )
 
 
 if __name__ == "__main__":
