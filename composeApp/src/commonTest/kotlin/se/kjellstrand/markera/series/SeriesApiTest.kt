@@ -24,8 +24,8 @@ import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 import se.kjellstrand.markera.webshooter.api.webshooterJson
 
-// Lives in androidUnitTest (not commonTest) only because runBlocking is not
-// part of the common coroutines API; the code under test is commonMain.
+// commonTest: it runs on the JVM and on iOS. runBlocking is not part of the
+// *common* coroutines API but exists on both of this project's targets.
 class SeriesApiTest {
 
     private val recorded = mutableListOf<HttpRequestData>()

@@ -76,7 +76,7 @@ class SeriesStatsTest {
     }
 
     @Test
-    fun `caliber null keeps everything, a caliber keeps only its own`() {
+    fun `caliber null keeps everything and a caliber keeps only its own`() {
         val other = series(id = 3, caliber = "22lr", holes = seriesA.holes)
         val all = listOf(seriesA, other).plotSeries(StatsFilter(hits = 2))
         assertEquals(listOf(1L, 3L), all.map { it.series.id })
@@ -100,7 +100,7 @@ class SeriesStatsTest {
     }
 
     @Test
-    fun `series without geometry, without positions or with a bad timestamp are dropped`() {
+    fun `series without geometry or positions or with a bad timestamp are dropped`() {
         val noGeometry = series(id = 1, holes = listOf(hole(500.0, 500.0, 10)), geometry = null)
         val typedHole = series(id = 2, holes = listOf(hole(null, null, 10)))
         val badStamp = series(id = 3, timestamp = "igår", holes = listOf(hole(500.0, 500.0, 10)))
@@ -190,7 +190,7 @@ class SeriesStatsTest {
     }
 
     @Test
-    fun `median impact takes the middle hit, or the mean of the middle two`() {
+    fun `median impact takes the middle hit or the mean of the middle two`() {
         // Odd: x 0,10,40 → 10; y 0,-30,-10 → -10.
         val odd = series(
             id = 1,

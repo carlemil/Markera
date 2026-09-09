@@ -59,7 +59,7 @@ class HitScoringTest {
     }
 
     @Test
-    fun `100mm boundary is ring 7 (the black 6_7 edge)`() {
+    fun `100mm boundary is ring 7 - the black 6_7 edge`() {
         val s = scoreHits(listOf(pointAt(200f, 200f, 100f)), centre(200f, 200f), ring(200f, 200f)).single()
         assertEquals(7, s.ring)
     }
@@ -121,7 +121,7 @@ class HitScoringTest {
     }
 
     @Test
-    fun `results stay in input order, hit i is detection i`() {
+    fun `results stay in input order - hit i is detection i`() {
         val low = pointAt(400f, 400f, 240f) // ring 1
         val high = pointAt(400f, 400f, 5f) // inner X
         val mid = pointAt(400f, 400f, 60f) // ring 8

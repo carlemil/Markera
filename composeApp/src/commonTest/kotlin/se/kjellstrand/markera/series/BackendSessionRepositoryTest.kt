@@ -14,8 +14,8 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
-// androidUnitTest rather than commonTest: runBlocking is not in the common
-// coroutines API. The repository itself is commonMain.
+// commonTest: it runs on the JVM and on iOS. runBlocking is not part of the
+// *common* coroutines API but exists on both of this project's targets.
 class BackendSessionRepositoryTest {
 
     private val recorded = mutableListOf<HttpRequestData>()

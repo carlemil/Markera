@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.series
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
@@ -20,26 +19,13 @@ import kotlinx.coroutines.runBlocking
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
-/** An [ImageCache] in a map, so a test can see what was stored. */
-class FakeImageCache : ImageCache {
-    val files = mutableMapOf<Long, ByteArray>()
-    override fun read(id: Long): ByteArray? = files[id]
-    override fun write(id: Long, bytes: ByteArray) { files[id] = bytes }
-    override fun delete(id: Long) { files.remove(id) }
-    override fun clear() = files.clear()
-}
-
-/** A fresh in-memory SQLite cache. */
-fun testSeriesDb(): MarkeraDb =
-    MarkeraDb(JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { MarkeraDb.Schema.create(it) })
-
 /** Signed in as [userId] without talking to the network. */
 fun testSession(api: SeriesApi, userId: Long = 1): BackendSessionRepository =
     BackendSessionRepository(api, InMemoryBackendTokenStore(BackendAuth("tok", userId, "dev")))
         .also { runBlocking { it.restore() } }
 
-// androidUnitTest (not commonTest) for runBlocking and the JDBC SQLite driver;
-// the code under test is commonMain.
+// androidUnitTest (not commonTest): the paged-refresh assertions lean on the
+// JDBC SQLite driver; the code under test is commonMain.
 class SeriesRepositoryTest {
 
     private val recorded = mutableListOf<HttpRequestData>()

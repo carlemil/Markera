@@ -21,14 +21,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import sun.misc.Unsafe
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
-// androidUnitTest (not commonTest) for runBlocking; the code under test is
-// commonMain. The recorder saves on its own scope, so the tests wait on the
-// status flow instead of assuming a dispatcher.
+// The recorder saves on its own scope, so the tests wait on the status flow
+// instead of assuming a dispatcher.
 class SeriesRecorderTest {
 
     private val recorded = mutableListOf<HttpRequestData>()
@@ -43,19 +41,12 @@ class SeriesRecorderTest {
     /** Most tests are about *when* a series is saved, not about the picker edits. */
     private val noPicks = emptyList<Int>()
 
-    // PlatformImage is android.graphics.Bitmap, which a JVM unit test cannot
-    // construct (every method of the mockable android.jar throws, and there is
-    // no Robolectric here). An uninitialised instance is enough: the recorder
-    // only ever hands it to encodeJpeg, and the encoders below ignore it.
-    private val image: PlatformImage = run {
-        val field = Unsafe::class.java.getDeclaredField("theUnsafe").apply { isAccessible = true }
-        (field.get(null) as Unsafe).allocateInstance(PlatformImage::class.java) as PlatformImage
-    }
+    private val image: PlatformImage = testImage()
 
     private val jpeg = byteArrayOf(-1, -40, 4, 2)
 
-    // The fake Bitmap above cannot report a size, so the encoder carries it —
-    // which is what the real one does too (the source size, not the JPEG's).
+    // The fake image cannot report a size, so the encoder carries it — which is
+    // what the real one does too (the source size, not the JPEG's).
     private val encoded = EncodedImage(jpeg, 1200, 1200)
 
     private fun recorder(
