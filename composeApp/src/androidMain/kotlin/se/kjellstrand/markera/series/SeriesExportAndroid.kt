@@ -11,7 +11,9 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.getString
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 
 /** Excel only reads the CSVs as UTF-8 if they start with a BOM. */
 private fun csvBytes(csv: String): ByteArray = "\uFEFF$csv".toByteArray()
@@ -48,7 +50,7 @@ suspend fun exportSeriesZip(context: Context, repository: SeriesRepository): Fil
     }
 
 /** Hands [file] to the system chooser through the app's FileProvider. */
-fun shareFile(context: Context, file: File) {
+suspend fun shareFile(context: Context, file: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "application/zip"
@@ -56,6 +58,6 @@ fun shareFile(context: Context, file: File) {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(
-        Intent.createChooser(send, context.getString(R.string.history_export)),
+        Intent.createChooser(send, getString(Res.string.history_export)),
     )
 }

@@ -46,11 +46,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
@@ -74,7 +75,7 @@ fun MarkeraScreen(
     val coroutineScope = rememberCoroutineScope()
     val permission = rememberCameraPermission(frameSource)
 
-    val errorInference = stringResource(R.string.markera_error_inference)
+    val errorInference = stringResource(Res.string.markera_error_inference)
     // Off by default — the clean result view. Toggle in the top bar reveals the
     // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
     var showDebug by remember { mutableStateOf(false) }
@@ -210,14 +211,14 @@ fun MarkeraScreen(
 
     if (showingHelp) {
         HelpDialog(
-            title = stringResource(R.string.help_scan_title),
+            title = stringResource(Res.string.help_scan_title),
             sections = listOf(
-                R.string.help_scan_scan to R.string.help_scan_scan_body,
-                R.string.help_scan_edit to R.string.help_scan_edit_body,
-                R.string.help_scan_score to R.string.help_scan_score_body,
-                R.string.help_scan_caliber to R.string.help_scan_caliber_body,
-                R.string.help_scan_save to R.string.help_scan_save_body,
-                R.string.help_scan_debug to R.string.help_scan_debug_body,
+                Res.string.help_scan_scan to Res.string.help_scan_scan_body,
+                Res.string.help_scan_edit to Res.string.help_scan_edit_body,
+                Res.string.help_scan_score to Res.string.help_scan_score_body,
+                Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
+                Res.string.help_scan_save to Res.string.help_scan_save_body,
+                Res.string.help_scan_debug to Res.string.help_scan_debug_body,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -243,13 +244,13 @@ private fun MarkeraTopBar(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.markera_back),
+                    contentDescription = stringResource(Res.string.markera_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
         Text(
-            text = stringResource(R.string.app_name),
+            text = stringResource(Res.string.app_name),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -258,7 +259,7 @@ private fun MarkeraTopBar(
         IconButton(onClick = onToggleDebug) {
             Icon(
                 imageVector = Icons.Default.Tune,
-                contentDescription = stringResource(R.string.markera_toggle_debug),
+                contentDescription = stringResource(Res.string.markera_toggle_debug),
                 tint = if (showDebug) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -288,7 +289,7 @@ private fun BottomArea(
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
         when {
             processing -> Text(
-                text = stringResource(R.string.markera_analyzing),
+                text = stringResource(Res.string.markera_analyzing),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -298,7 +299,7 @@ private fun BottomArea(
             ) {
                 LiveHint()
                 PrimaryActionButton(
-                    text = stringResource(R.string.markera_detect),
+                    text = stringResource(Res.string.markera_detect),
                     icon = Icons.Default.PhotoCamera,
                     onClick = onScan,
                 )
@@ -321,7 +322,7 @@ private fun LiveHint() {
             modifier = Modifier.size(32.dp),
         )
         Text(
-            text = stringResource(R.string.markera_hint),
+            text = stringResource(Res.string.markera_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -358,10 +359,10 @@ private fun ResultsContent(
             OutlinedButton(onClick = onReset) {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.markera_reset))
+                Text(stringResource(Res.string.markera_reset))
             }
             PrimaryActionButton(
-                text = stringResource(R.string.markera_resume_live),
+                text = stringResource(Res.string.markera_resume_live),
                 icon = Icons.Default.Save,
                 onClick = onResume,
             )
@@ -406,7 +407,7 @@ fun TotalBadge(total: Int) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = stringResource(R.string.markera_total_label),
+                    text = stringResource(Res.string.markera_total_label),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )

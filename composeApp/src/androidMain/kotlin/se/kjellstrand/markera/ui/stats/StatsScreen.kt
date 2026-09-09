@@ -55,7 +55,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import java.time.ZoneOffset
 import kotlin.math.min
@@ -64,7 +63,9 @@ import kotlin.math.sqrt
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
@@ -159,12 +160,12 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
             CompetitionTopBar(
-                title = stringResource(R.string.stats_title),
+                title = stringResource(Res.string.stats_title),
                 onBack = onBack,
                 actions = { HelpAction(onClick = { showingHelp = true }) },
             )
             when {
-                auth == null -> Centered { Text(stringResource(R.string.stats_signed_out)) }
+                auth == null -> Centered { Text(stringResource(Res.string.stats_signed_out)) }
 
                 // Cached series still plot: an error only shows with nothing to draw.
                 error != null && series.isEmpty() -> Centered {
@@ -173,7 +174,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(error!!, style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = { reload++ }) { Text(stringResource(R.string.stats_retry)) }
+                        Button(onClick = { reload++ }) { Text(stringResource(Res.string.stats_retry)) }
                     }
                 }
 
@@ -199,7 +200,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                     )
                     if (stats == null) {
                         Text(
-                            stringResource(R.string.stats_empty),
+                            stringResource(Res.string.stats_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -227,21 +228,21 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     if (showingHelp) {
         // What every measurement under the target actually means.
         HelpDialog(
-            title = stringResource(R.string.stats_help),
+            title = stringResource(Res.string.stats_help),
             sections = listOf(
-                R.string.stats_series to R.string.stats_help_series,
-                R.string.stats_hits to R.string.stats_help_hits,
-                R.string.stats_mean_distance to R.string.stats_help_mean_distance,
-                R.string.stats_mean_pairwise to R.string.stats_help_mean_pairwise,
-                R.string.stats_group_size to R.string.stats_help_group_size,
-                R.string.stats_mean_radius to R.string.stats_help_mean_radius,
-                R.string.stats_radial_sd to R.string.stats_help_radial_sd,
-                R.string.stats_impact to R.string.stats_help_impact,
-                R.string.stats_impact_median to R.string.stats_help_impact_median,
-                R.string.stats_mean_score to R.string.stats_help_mean_score,
-                R.string.stats_tens_share to R.string.stats_help_tens_share,
-                R.string.stats_help_extremes to R.string.stats_help_extremes_body,
-                R.string.stats_help_colours to R.string.stats_help_colours_body,
+                Res.string.stats_series to Res.string.stats_help_series,
+                Res.string.stats_hits to Res.string.stats_help_hits,
+                Res.string.stats_mean_distance to Res.string.stats_help_mean_distance,
+                Res.string.stats_mean_pairwise to Res.string.stats_help_mean_pairwise,
+                Res.string.stats_group_size to Res.string.stats_help_group_size,
+                Res.string.stats_mean_radius to Res.string.stats_help_mean_radius,
+                Res.string.stats_radial_sd to Res.string.stats_help_radial_sd,
+                Res.string.stats_impact to Res.string.stats_help_impact,
+                Res.string.stats_impact_median to Res.string.stats_help_impact_median,
+                Res.string.stats_mean_score to Res.string.stats_help_mean_score,
+                Res.string.stats_tens_share to Res.string.stats_help_tens_share,
+                Res.string.stats_help_extremes to Res.string.stats_help_extremes_body,
+                Res.string.stats_help_colours to Res.string.stats_help_colours_body,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -281,7 +282,7 @@ private fun FilterRow(
             FilterChip(
                 selected = caliber == null,
                 onClick = { onCaliber(null) },
-                label = { Text(stringResource(R.string.stats_caliber_all)) },
+                label = { Text(stringResource(Res.string.stats_caliber_all)) },
                 colors = chipColors,
                 border = null,
             )
@@ -297,10 +298,10 @@ private fun FilterRow(
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                DatePreset.ALL to R.string.stats_date_all,
-                DatePreset.WEEK to R.string.stats_date_week,
-                DatePreset.MONTH to R.string.stats_date_month,
-                DatePreset.YEAR to R.string.stats_date_year,
+                DatePreset.ALL to Res.string.stats_date_all,
+                DatePreset.WEEK to Res.string.stats_date_week,
+                DatePreset.MONTH to Res.string.stats_date_month,
+                DatePreset.YEAR to Res.string.stats_date_year,
             ).forEach { (value, label) ->
                 FilterChip(
                     selected = preset == value,
@@ -317,12 +318,12 @@ private fun FilterRow(
                     Text(
                         if (preset == DatePreset.CUSTOM && customRange != null) {
                             stringResource(
-                                R.string.stats_date_range,
+                                Res.string.stats_date_range,
                                 utcDay(customRange.first),
                                 utcDay(customRange.second),
                             )
                         } else {
-                            stringResource(R.string.stats_date_custom)
+                            stringResource(Res.string.stats_date_custom)
                         },
                     )
                 },
@@ -334,7 +335,7 @@ private fun FilterRow(
             FilterChip(
                 selected = hits == null,
                 onClick = { onHits(null) },
-                label = { Text(stringResource(R.string.stats_caliber_all)) },
+                label = { Text(stringResource(Res.string.stats_caliber_all)) },
                 colors = chipColors,
                 border = null,
             )
@@ -342,7 +343,7 @@ private fun FilterRow(
             FilterChip(
                 selected = hits == 5,
                 onClick = { onHits(5) },
-                label = { Text(stringResource(R.string.stats_hits_label, 5)) },
+                label = { Text(stringResource(Res.string.stats_hits_label, 5)) },
                 colors = chipColors,
                 border = null,
             )
@@ -378,10 +379,10 @@ private fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Uni
             TextButton(
                 onClick = { if (start != null && end != null) onPicked(start, end) },
                 enabled = start != null && end != null,
-            ) { Text(stringResource(R.string.stats_date_ok)) }
+            ) { Text(stringResource(Res.string.stats_date_ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.stats_date_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.stats_date_cancel)) }
         },
     ) {
         // Weighted so the tall range picker scrolls inside the dialog instead of
@@ -494,8 +495,8 @@ private fun DrawScope.drawMark(at: Offset, colour: Color, diagonal: Boolean) {
 private fun MarkerLegend() {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         listOf(
-            false to (MEAN_MARK to R.string.stats_legend_mean),
-            true to (MEDIAN_MARK to R.string.stats_legend_median),
+            false to (MEAN_MARK to Res.string.stats_legend_mean),
+            true to (MEDIAN_MARK to Res.string.stats_legend_median),
         ).forEach { (diagonal, it) ->
             val (colour, label) = it
             Row(
@@ -549,46 +550,46 @@ private fun AgeLegend(plotted: List<PlottedSeries>) {
 
 @Composable
 private fun MeasurementRows(stats: SeriesStatistics) {
-    val mm = @Composable { value: Double -> stringResource(R.string.stats_mm, value.roundToInt()) }
+    val mm = @Composable { value: Double -> stringResource(Res.string.stats_mm, value.roundToInt()) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Measurement(stringResource(R.string.stats_series), stats.seriesCount.toString())
-        Measurement(stringResource(R.string.stats_hits), stats.hitCount.toString())
-        Measurement(stringResource(R.string.stats_mean_distance), mm(stats.meanDistanceMm))
-        Measurement(stringResource(R.string.stats_mean_pairwise), mm(stats.meanPairwiseMm))
-        Measurement(stringResource(R.string.stats_group_size), mm(stats.meanGroupSizeMm))
-        Measurement(stringResource(R.string.stats_mean_radius), mm(stats.meanRadiusMm))
-        Measurement(stringResource(R.string.stats_radial_sd), mm(stats.radialSdMm))
+        Measurement(stringResource(Res.string.stats_series), stats.seriesCount.toString())
+        Measurement(stringResource(Res.string.stats_hits), stats.hitCount.toString())
+        Measurement(stringResource(Res.string.stats_mean_distance), mm(stats.meanDistanceMm))
+        Measurement(stringResource(Res.string.stats_mean_pairwise), mm(stats.meanPairwiseMm))
+        Measurement(stringResource(Res.string.stats_group_size), mm(stats.meanGroupSizeMm))
+        Measurement(stringResource(Res.string.stats_mean_radius), mm(stats.meanRadiusMm))
+        Measurement(stringResource(Res.string.stats_radial_sd), mm(stats.radialSdMm))
         Measurement(
-            stringResource(R.string.stats_impact),
+            stringResource(Res.string.stats_impact),
             stringResource(
-                R.string.stats_impact_value,
+                Res.string.stats_impact_value,
                 stats.impactXMm.roundToInt(),
                 stats.impactYMm.roundToInt(),
             ),
         )
         Measurement(
-            stringResource(R.string.stats_impact_median),
+            stringResource(Res.string.stats_impact_median),
             stringResource(
-                R.string.stats_impact_value,
+                Res.string.stats_impact_value,
                 stats.medianXMm.roundToInt(),
                 stats.medianYMm.roundToInt(),
             ),
         )
-        Measurement(stringResource(R.string.stats_mean_score), "%.1f".format(stats.meanScore))
+        Measurement(stringResource(Res.string.stats_mean_score), "%.1f".format(stats.meanScore))
         Measurement(
-            stringResource(R.string.stats_tens_share),
-            stringResource(R.string.stats_percent, (stats.tensShare * 100).roundToInt()),
+            stringResource(Res.string.stats_tens_share),
+            stringResource(Res.string.stats_percent, (stats.tensShare * 100).roundToInt()),
         )
         stats.best?.let { (series, total) ->
             Measurement(
-                stringResource(R.string.stats_best),
-                stringResource(R.string.stats_series_value, total, localStamp(series.timestamp)),
+                stringResource(Res.string.stats_best),
+                stringResource(Res.string.stats_series_value, total, localStamp(series.timestamp)),
             )
         }
         stats.worst?.let { (series, total) ->
             Measurement(
-                stringResource(R.string.stats_worst),
-                stringResource(R.string.stats_series_value, total, localStamp(series.timestamp)),
+                stringResource(Res.string.stats_worst),
+                stringResource(Res.string.stats_series_value, total, localStamp(series.timestamp)),
             )
         }
     }

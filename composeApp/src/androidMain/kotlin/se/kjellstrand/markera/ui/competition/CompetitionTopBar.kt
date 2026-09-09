@@ -13,10 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 
 /** Shared slim top bar for the competition flow screens. */
 @Composable
@@ -37,7 +38,7 @@ fun CompetitionTopBar(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.markera_back),
+                    contentDescription = stringResource(Res.string.markera_back),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

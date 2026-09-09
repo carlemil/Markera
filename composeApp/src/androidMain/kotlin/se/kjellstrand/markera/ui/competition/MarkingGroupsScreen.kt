@@ -36,10 +36,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
 import se.kjellstrand.markera.webshooter.api.dto.MarkingGroupDto
 
@@ -69,7 +70,7 @@ fun MarkingGroupsScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
             CompetitionTopBar(
-                title = stringResource(R.string.marking_title),
+                title = stringResource(Res.string.marking_title),
                 subtitle = uiState.targets?.competition?.name,
                 onBack = onBack,
             )
@@ -95,7 +96,7 @@ fun MarkingGroupsScreen(
                             } else {
                                 activePatrol.sortorder?.let { sortorder ->
                                     Text(
-                                        text = stringResource(R.string.marking_active_patrol, sortorder) +
+                                        text = stringResource(Res.string.marking_active_patrol, sortorder) +
                                             (activePatrol.startTimeHuman?.let { " ($it)" } ?: ""),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -108,7 +109,7 @@ fun MarkingGroupsScreen(
                         if (groups.isEmpty() && !uiState.notEnabled) {
                             item {
                                 Text(
-                                    text = stringResource(R.string.marking_empty),
+                                    text = stringResource(Res.string.marking_empty),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -150,12 +151,12 @@ private fun NoActivePatrolBanner(onRetry: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = stringResource(R.string.marking_no_active_patrol),
+                text = stringResource(Res.string.marking_no_active_patrol),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
             OutlinedButton(onClick = onRetry) {
-                Text(stringResource(R.string.wizard_retry))
+                Text(stringResource(Res.string.wizard_retry))
             }
         }
     }
@@ -181,7 +182,7 @@ private fun MarkingGroupCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(group.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = stringResource(R.string.marking_lanes, group.laneStart, group.laneEnd),
+                        text = stringResource(Res.string.marking_lanes, group.laneStart, group.laneEnd),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -200,7 +201,7 @@ private fun MarkingGroupCard(
                 if (group.expectedCount > 0) {
                     Text(
                         text = stringResource(
-                            R.string.marking_progress, group.markedCount, group.expectedCount,
+                            Res.string.marking_progress, group.markedCount, group.expectedCount,
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -209,13 +210,13 @@ private fun MarkingGroupCard(
                 val last = group.lastMarked
                 if (last?.serie != null && last.lane != null && last.shooter != null) {
                     Text(
-                        text = stringResource(R.string.marking_last, last.serie!!, last.shooter!!, last.lane!!),
+                        text = stringResource(Res.string.marking_last, last.serie!!, last.shooter!!, last.lane!!),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Text(
-                        text = stringResource(R.string.marking_none_yet),
+                        text = stringResource(Res.string.marking_none_yet),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -224,17 +225,17 @@ private fun MarkingGroupCard(
             if (confirming) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(R.string.marking_reenter_question),
+                    text = stringResource(Res.string.marking_reenter_question),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onConfirm) {
-                        Text(stringResource(R.string.marking_reenter_yes))
+                        Text(stringResource(Res.string.marking_reenter_yes))
                     }
                     OutlinedButton(onClick = onCancel) {
-                        Text(stringResource(R.string.marking_cancel))
+                        Text(stringResource(Res.string.marking_cancel))
                     }
                 }
             }
@@ -260,7 +261,7 @@ private fun CompleteBadge() {
                 modifier = Modifier.height(14.dp),
             )
             Text(
-                text = stringResource(R.string.marking_complete),
+                text = stringResource(Res.string.marking_complete),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )

@@ -26,12 +26,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
 
 @Composable
@@ -57,7 +58,7 @@ fun LoginScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(title = stringResource(R.string.login_title), onBack = onBack)
+            CompetitionTopBar(title = stringResource(Res.string.login_title), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -68,7 +69,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.login_email)) },
+                    label = { Text(stringResource(Res.string.login_email)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth(),
@@ -76,7 +77,7 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.login_password)) },
+                    label = { Text(stringResource(Res.string.login_password)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -84,7 +85,7 @@ fun LoginScreen(
                 )
                 if (uiState.failed) {
                     Text(
-                        text = stringResource(R.string.login_failed),
+                        text = stringResource(Res.string.login_failed),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -97,7 +98,7 @@ fun LoginScreen(
                         enabled = email.isNotBlank() && password.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(stringResource(R.string.login_button))
+                        Text(stringResource(Res.string.login_button))
                     }
                 }
             }

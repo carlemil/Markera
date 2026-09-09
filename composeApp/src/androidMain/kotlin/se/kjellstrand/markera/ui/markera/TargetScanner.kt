@@ -46,7 +46,6 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import java.util.concurrent.atomic.AtomicBoolean
@@ -58,7 +57,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.geometryDto
@@ -681,11 +682,11 @@ fun CameraPermissionPrompt(onGrantClick: () -> Unit) {
             modifier = Modifier.padding(24.dp),
         ) {
             Text(
-                text = stringResource(R.string.markera_camera_permission_required),
+                text = stringResource(Res.string.markera_camera_permission_required),
                 style = MaterialTheme.typography.bodyLarge,
             )
             Button(onClick = onGrantClick) {
-                Text(stringResource(R.string.markera_grant_permission))
+                Text(stringResource(Res.string.markera_grant_permission))
             }
         }
     }

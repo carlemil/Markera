@@ -28,11 +28,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
 import se.kjellstrand.markera.webshooter.api.dto.CompetitionSummaryDto
 
@@ -56,7 +57,7 @@ fun CompetitionListScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
             CompetitionTopBar(
-                title = stringResource(R.string.competitions_title),
+                title = stringResource(Res.string.competitions_title),
                 subtitle = services.sessionRepository.session.collectAsState().value?.userName,
                 onBack = onBack,
                 actions = {
@@ -68,7 +69,7 @@ fun CompetitionListScreen(
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = stringResource(R.string.logout),
+                            contentDescription = stringResource(Res.string.logout),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -77,7 +78,7 @@ fun CompetitionListScreen(
             OutlinedTextField(
                 value = uiState.search,
                 onValueChange = viewModel::setSearch,
-                placeholder = { Text(stringResource(R.string.competitions_search)) },
+                placeholder = { Text(stringResource(Res.string.competitions_search)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -96,7 +97,7 @@ fun CompetitionListScreen(
                     contentAlignment = androidx.compose.ui.Alignment.Center,
                 ) {
                     Text(
-                        text = stringResource(R.string.competitions_empty),
+                        text = stringResource(Res.string.competitions_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -151,12 +152,12 @@ internal fun ErrorRetry(onRetry: () -> Unit) {
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.error_network),
+            text = stringResource(Res.string.error_network),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
         )
         androidx.compose.material3.Button(onClick = onRetry) {
-            Text(stringResource(R.string.wizard_retry))
+            Text(stringResource(Res.string.wizard_retry))
         }
     }
 }

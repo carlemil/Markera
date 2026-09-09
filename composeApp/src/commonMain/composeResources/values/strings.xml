@@ -1,0 +1,238 @@
+<resources>
+    <string name="app_name">Markera</string>
+    <string name="markera_camera_permission_required">Kameran behövs för att markera träffar. Tryck för att ge åtkomst.</string>
+    <string name="markera_grant_permission">Tillåt åtkomst</string>
+    <string name="markera_detect">Detektera</string>
+    <string name="markera_resume_live">Spara</string>
+    <string name="markera_reset">Återställ</string>
+    <string name="markera_error_inference">Detekteringen misslyckades.</string>
+    <string name="markera_total_label">Summa</string>
+    <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
+    <string name="markera_analyzing">Analyserar träffar…</string>
+    <string name="markera_toggle_debug">Visa detektionsdata</string>
+    <string name="markera_back">Tillbaka</string>
+    <string name="score_pick_title">Poäng</string>
+
+    <!-- Home -->
+    <string name="home_free_marking">Markera</string>
+    <string name="home_free_marking_hint">Scanna en tavla</string>
+    <string name="home_competition">Tävling</string>
+    <string name="home_competition_hint">Markera i en Webshooter-tävling</string>
+    <string name="home_history">Historik</string>
+    <string name="home_history_hint">Sparade serier</string>
+    <string name="home_stats">Statistik</string>
+    <string name="home_stats_hint">Träffbild och mått över tid</string>
+    <string name="home_sign_in">Logga in för att spara serier</string>
+    <string name="home_signed_in">Inloggad via %1$s</string>
+    <string name="home_sign_out">Logga ut</string>
+    <string name="home_delete_account">Radera konto</string>
+    <string name="home_delete_account_title">Radera kontot?</string>
+    <string name="home_delete_account_message">Alla sparade serier och bilder tas bort permanent. Det går inte att ångra.</string>
+    <string name="home_delete_account_confirm">Radera</string>
+    <string name="home_delete_account_cancel">Avbryt</string>
+    <string name="home_delete_account_failed">Kunde inte radera kontot</string>
+
+    <!-- Series auto-save -->
+    <string name="series_caliber_title">Välj kaliber</string>
+    <string name="series_caliber_none">Ingen vald</string>
+    <string name="series_status_saved">Sparad</string>
+    <string name="series_status_failed">Kunde inte spara</string>
+
+    <!-- Series history -->
+    <string name="history_title">Historik</string>
+    <string name="history_signed_out">Logga in för att se historik</string>
+    <string name="history_empty">Inga sparade serier än</string>
+    <string name="history_retry">Försök igen</string>
+    <string name="history_delete_title">Radera serien?</string>
+    <string name="history_delete_message">%1$s · %2$d poäng</string>
+    <string name="history_delete_confirm">Radera</string>
+    <string name="history_delete_cancel">Avbryt</string>
+    <string name="history_delete_failed">Kunde inte radera</string>
+    <string name="hole_delete_title">Ta bort träffen?</string>
+    <string name="hole_delete_message">Träffen tas bort och poängen räknas om.</string>
+    <string name="hole_delete_confirm">Ta bort</string>
+    <string name="history_export">Exportera</string>
+    <string name="history_export_failed">Kunde inte exportera</string>
+
+    <!-- Statistik -->
+    <string name="stats_title">Statistik</string>
+    <string name="stats_signed_out">Logga in för att se statistik</string>
+    <string name="stats_retry">Försök igen</string>
+    <string name="stats_empty">Inga serier matchar filtret.</string>
+    <string name="stats_caliber_all">Alla</string>
+    <string name="stats_date_week">7 d</string>
+    <string name="stats_date_month">30 d</string>
+    <string name="stats_date_year">1 år</string>
+    <string name="stats_date_all">Alla</string>
+    <string name="stats_date_custom">Välj…</string>
+    <string name="stats_date_range">%1$s – %2$s</string>
+    <string name="stats_date_ok">Klar</string>
+    <string name="stats_date_cancel">Avbryt</string>
+    <string name="stats_hits_label">%1$d träffar</string>
+    <string name="stats_series">Serier</string>
+    <string name="stats_hits">Träffar</string>
+    <string name="stats_mean_distance">Medelavstånd till centrum</string>
+    <string name="stats_mean_pairwise">Medelavstånd mellan träffar</string>
+    <string name="stats_group_size">Gruppstorlek</string>
+    <string name="stats_mean_radius">Medelradie</string>
+    <string name="stats_radial_sd">Spridning (SD)</string>
+    <string name="stats_impact">Medelträffläge</string>
+    <string name="stats_impact_median">Medianträffläge</string>
+    <string name="stats_legend_mean">Medel</string>
+    <string name="stats_legend_median">Median</string>
+    <string name="stats_mean_score">Medelpoäng</string>
+    <string name="stats_tens_share">Andel tior</string>
+    <string name="stats_best">Bästa serie</string>
+    <string name="stats_worst">Sämsta serie</string>
+    <string name="stats_mm">%1$d mm</string>
+    <string name="stats_impact_value">%1$d mm, %2$d mm</string>
+    <!-- Compose resources do not unescape %%; a single % is the literal here. -->
+    <string name="stats_percent">%1$d %</string>
+    <string name="stats_series_value">%1$d · %2$s</string>
+
+    <!-- Hjälp: delas av alla skärmars (?)-dialog -->
+    <string name="help">Hjälp</string>
+    <string name="help_close">Stäng</string>
+
+    <!-- Hjälp: startskärmen -->
+    <string name="help_home_title">Om Markera</string>
+    <string name="help_home_how">Så fungerar det</string>
+    <string name="help_home_how_body">Fotografera en precisionstavla så hittar Markera träffarna, ringarna och centrum och räknar poängen för serien.</string>
+    <string name="help_home_marking">Markera</string>
+    <string name="help_home_marking_body">Öppnar kameran. Rikta mot tavlan och tryck för att scanna.</string>
+    <string name="help_home_history">Historik</string>
+    <string name="help_home_history_body">Alla sparade serier med bild, kaliber och poäng.</string>
+    <string name="help_home_stats">Statistik</string>
+    <string name="help_home_stats_body">Träffbild och mått över tid, filtrerat på kaliber, datum och antal träffar.</string>
+    <string name="help_home_account">Konto</string>
+    <string name="help_home_account_body">Logga in med Google för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto.</string>
+
+    <!-- Hjälp: scannerskärmen -->
+    <string name="help_scan_title">Så scannar du</string>
+    <string name="help_scan_scan">Scanna</string>
+    <string name="help_scan_scan_body">Fyll rutan med tavlan och tryck på Detektera. Markera hittar träffarna, ringarna och centrum och räknar poängen.</string>
+    <string name="help_scan_edit">Justera träffar</string>
+    <string name="help_scan_edit_body">Tryck på en missad träff i bilden för att lägga till den. Dra en träff för att flytta den. Håll inne en träff för att ta bort den — du får bekräfta först. Nyp för att zooma.</string>
+    <string name="help_scan_score">Poäng</string>
+    <string name="help_scan_score_body">Poängen räknas från träffens läge på tavlan och går inte att skriva in. Blev något fel: flytta, lägg till eller ta bort träffen i bilden, så räknas poängen om.</string>
+    <string name="help_scan_caliber">Kaliber</string>
+    <string name="help_scan_caliber_body">Brickan bredvid poängen visar vilken kaliber serien sparas med. Tryck på den för att byta — har du ingen vald frågar appen när du sparar. Kalibern visas i historiken och går att filtrera på i statistiken.</string>
+    <string name="help_scan_save">Spara</string>
+    <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. Återställ slänger scanningen utan att spara.</string>
+    <string name="help_scan_debug">Felsökning</string>
+    <string name="help_scan_debug_body">Reglage-ikonen längst upp till höger visar detektorns råa rutor, sifferrader och linjer.</string>
+
+    <!-- Hjälp: historiken -->
+    <string name="help_history_title">Om historiken</string>
+    <string name="help_history_list">Listan</string>
+    <string name="help_history_list_body">Varje rad är en sparad serie: bild, tid, kaliber, poäng och träffarna. Nyast först.</string>
+    <string name="help_history_detail">Detaljer</string>
+    <string name="help_history_detail_body">Tryck på en serie för att se den i stort, justera träffar eller ta bort den. Håll inne en rad för att radera den direkt.</string>
+    <string name="help_history_export">Exportera</string>
+    <string name="help_history_export_body">Dela-ikonen packar alla serier i en zip: series.csv och holes.csv (öppnas i Excel) samt de sparade bilderna.</string>
+    <string name="help_history_offline">Utan nät</string>
+    <string name="help_history_offline_body">Listan och bilderna finns kvar på telefonen och visas även utan uppkoppling.</string>
+
+    <!-- Hjälp: seriedetaljen -->
+    <string name="help_detail_title">Om serien</string>
+    <string name="help_detail_photo">Bilden</string>
+    <string name="help_detail_photo_body">Den scannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge.</string>
+    <string name="help_detail_holes">Träffarna</string>
+    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Ändringarna sparas först när du trycker Spara.</string>
+    <string name="help_detail_delete">Radera</string>
+    <string name="help_detail_delete_body">Papperskorgen längst upp till höger tar bort hela serien från ditt konto.</string>
+
+    <!-- Statistik: hjälpdialogen -->
+    <string name="stats_help">Om måtten</string>
+    <string name="stats_help_series">Antal serier som filtret (kaliber, datum och antal träffar) släpper igenom. Bara serier med sparad träffbild kan ritas ut och räknas med.</string>
+    <string name="stats_help_hits">Totalt antal träffar i de serierna.</string>
+    <string name="stats_help_mean_distance">Avståndet från tavlans centrum till varje träff, i millimeter, snittat över alla träffar.</string>
+    <string name="stats_help_mean_pairwise">Avståndet mellan alla par av träffar inom en serie, snittat — och sedan snittat över serierna. Serier med bara en träff hoppas över.</string>
+    <string name="stats_help_group_size">Det största avståndet mellan två träffar i en serie (spridningen), snittat över serierna.</string>
+    <string name="stats_help_mean_radius">Medelavståndet från träffarna till seriens egen mittpunkt (träffbildens medelpunkt), snittat över serierna. Mäter hur samlad serien är oavsett var på tavlan den sitter. Serier med bara en träff hoppas över.</string>
+    <string name="stats_help_radial_sd">Standardavvikelsen för alla valda träffars avstånd till deras gemensamma medelpunkt, i millimeter. Lågt värde = träffarna ligger tätt, oavsett var på tavlan.</string>
+    <string name="stats_help_impact">Träffbildens medelpunkt: medelvärdet av alla träffars x och y, i millimeter höger om och nedanför centrum (negativa tal betyder vänster respektive uppåt). Ritas som ett + på tavlan.</string>
+    <string name="stats_help_impact_median">Medianen av alla träffars x och y var för sig — mindre känslig för enstaka utliggare än medelpunkten. Ritas som ett × på tavlan.</string>
+    <string name="stats_help_mean_score">Medelvärdet av seriernas totalpoäng.</string>
+    <string name="stats_help_tens_share">Andelen träffar som är tia eller innertia.</string>
+    <string name="stats_help_extremes">Bästa och sämsta serie</string>
+    <string name="stats_help_extremes_body">Serien med högst respektive lägst totalpoäng, med datum. Vid lika poäng visas den äldsta.</string>
+    <string name="stats_help_colours">Färgskalan</string>
+    <string name="stats_help_colours_body">Träffarna färgas efter när serien sköts: skalan under tavlan går från den äldsta serien till vänster till den nyaste till höger.</string>
+
+    <!-- Series detail -->
+    <string name="detail_title">Serie</string>
+    <string name="detail_save">Spara</string>
+    <string name="detail_saved">Sparat</string>
+    <string name="detail_save_failed">Kunde inte spara</string>
+    <string name="detail_mm">%1$d mm</string>
+    <string name="detail_no_distance">–</string>
+    <string name="detail_kind_manual">manuell</string>
+    <string name="detail_kind_typed">inskriven</string>
+    <string name="detail_kind_moved">flyttad</string>
+    <string name="detail_kind_detected">detekterad</string>
+    <string name="detail_no_score">—</string>
+    <string name="detail_delete_hole">Ta bort träff</string>
+
+    <!-- Webshooter login -->
+    <string name="login_title">Logga in på Webshooter</string>
+    <string name="login_email">E-post</string>
+    <string name="login_password">Lösenord</string>
+    <string name="login_button">Logga in</string>
+    <string name="login_failed">Inloggningen misslyckades. Kontrollera e-post och lösenord.</string>
+    <string name="logout">Logga ut</string>
+
+    <!-- Competition list -->
+    <string name="competitions_title">Välj tävling</string>
+    <string name="competitions_search">Sök tävling…</string>
+    <string name="competitions_empty">Inga tävlingar hittades.</string>
+
+    <!-- Marking groups -->
+    <string name="marking_title">Markering</string>
+    <string name="marking_pick_group">Välj markeringsgrupp</string>
+    <string name="marking_active_patrol">Uppropat skjutlag just nu: Skjutlag %1$d</string>
+    <string name="marking_no_active_patrol">Inget skjutlag är uppropat för mobilregistrering ännu — aktivera skjutlaget i uppropsvyn först, annars går markeringen inte att öppna.</string>
+    <string name="marking_lanes">bana %1$d–%2$d</string>
+    <string name="marking_progress">%1$d av %2$d banor färdigmarkerade</string>
+    <string name="marking_last">Senast: serie %1$d · %2$s (bana %3$d)</string>
+    <string name="marking_none_yet">Inget markerat än</string>
+    <string name="marking_complete">Färdigmarkerad</string>
+    <string name="marking_reenter_question">Alla serier är markerade i den här hallen. Vill du ändå gå in, till exempel för att rätta något?</string>
+    <string name="marking_reenter_yes">Gå in ändå</string>
+    <string name="marking_cancel">Avbryt</string>
+    <string name="marking_empty">Inga markeringsgrupper upplagda för tävlingen.</string>
+
+    <!-- Marking wizard -->
+    <string name="wizard_series">Serie %1$d av %2$d</string>
+    <string name="wizard_lane">Bana %1$d</string>
+    <string name="wizard_scan">Skanna tavlan</string>
+    <string name="wizard_rescan">Skanna om</string>
+    <string name="wizard_save">Spara</string>
+    <string name="wizard_saving">Sparar…</string>
+    <string name="wizard_saved">Sparat! Bana %1$d: %2$d poäng · %3$d X</string>
+    <string name="wizard_locked">Resultatet är redan registrerat</string>
+    <string name="wizard_unlock">Lås upp för ändring</string>
+    <string name="wizard_self">Du kan inte markera din egen tavla</string>
+    <string name="wizard_self_hint">Låt någon annan i laget markera, eller gå vidare till nästa bana.</string>
+    <string name="wizard_skip">Hoppa över</string>
+    <string name="wizard_claimed">%1$s håller på med den här banan</string>
+    <string name="wizard_claim_retry">Försök igen</string>
+    <string name="wizard_show_summary">Visa serie</string>
+    <string name="wizard_station_summary">Serie %1$d — sammanfattning</string>
+    <string name="wizard_next_station">Gå till serie %1$d</string>
+    <string name="wizard_all_marked">Alla banor är färdigmarkerade i den här serien.</string>
+    <string name="wizard_registered_count">%1$d av %2$d registrerade</string>
+    <string name="wizard_duplicate">Redan markerad av %1$s</string>
+    <string name="wizard_save_error">Kunde inte spara. Försök igen.</string>
+    <string name="wizard_resume_hint">Fortsätt där markeringen slutade — serie %1$d, bana %2$d</string>
+    <string name="wizard_resume_go">Hoppa dit</string>
+    <string name="wizard_resume_stay">Stanna kvar här</string>
+    <string name="wizard_not_active">Skjutlaget är inte aktivt</string>
+    <string name="wizard_not_active_hint">Be tävlingsadmin att aktivera skjutlaget från uppropsvyn, eller ropa upp skjutlaget för att aktivera automatiskt.</string>
+    <string name="wizard_retry">Försök igen</string>
+    <string name="wizard_standings">Ställning · totalt</string>
+    <string name="wizard_tied">Särskjutning krävs</string>
+    <string name="wizard_final_done">Alla serier är färdigmarkerade.</string>
+    <string name="wizard_shots_unsupported">Serier med %1$d skott stöds inte ännu.</string>
+    <string name="error_network">Nätverksfel. Kontrollera uppkopplingen och försök igen.</string>
+</resources>

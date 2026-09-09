@@ -14,9 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 
 /** The "?" every screen puts last in its top bar. */
 @Composable
@@ -24,7 +26,7 @@ fun HelpAction(onClick: () -> Unit, modifier: Modifier = Modifier) {
     IconButton(onClick = onClick, modifier = modifier) {
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
-            contentDescription = stringResource(R.string.help),
+            contentDescription = stringResource(Res.string.help),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -35,11 +37,15 @@ fun HelpAction(onClick: () -> Unit, modifier: Modifier = Modifier) {
  * in order. Scrolls inside the dialog — the lists are taller than a phone screen.
  */
 @Composable
-fun HelpDialog(title: String, sections: List<Pair<Int, Int>>, onDismiss: () -> Unit) {
+fun HelpDialog(
+    title: String,
+    sections: List<Pair<StringResource, StringResource>>,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.help_close)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.help_close)) }
         },
         title = { Text(title) },
         text = {

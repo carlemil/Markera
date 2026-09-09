@@ -51,14 +51,16 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.decodeSeriesJpeg
@@ -111,7 +113,7 @@ fun SeriesHistoryScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
             CompetitionTopBar(
-                title = stringResource(R.string.history_title),
+                title = stringResource(Res.string.history_title),
                 onBack = onBack,
                 actions = {
                     HelpAction(onClick = { showingHelp = true })
@@ -134,7 +136,7 @@ fun SeriesHistoryScreen(
                                     } catch (_: Throwable) {
                                         Toast.makeText(
                                             context,
-                                            R.string.history_export_failed,
+                                            getString(Res.string.history_export_failed),
                                             Toast.LENGTH_SHORT,
                                         ).show()
                                     }
@@ -145,14 +147,14 @@ fun SeriesHistoryScreen(
                             // No explicit tint: the button greys the icon when disabled.
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = stringResource(R.string.history_export),
+                                contentDescription = stringResource(Res.string.history_export),
                             )
                         }
                     }
                 },
             )
             when {
-                auth == null -> Centered { Text(stringResource(R.string.history_signed_out)) }
+                auth == null -> Centered { Text(stringResource(Res.string.history_signed_out)) }
 
                 // A failed delta only takes over the screen with nothing cached to show.
                 error != null && series.isEmpty() -> Column(
@@ -163,12 +165,12 @@ fun SeriesHistoryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(error!!, style = MaterialTheme.typography.bodyMedium)
-                    Button(onClick = { reload++ }) { Text(stringResource(R.string.history_retry)) }
+                    Button(onClick = { reload++ }) { Text(stringResource(Res.string.history_retry)) }
                 }
 
                 loading && series.isEmpty() -> Centered { CircularProgressIndicator() }
 
-                series.isEmpty() -> Centered { Text(stringResource(R.string.history_empty)) }
+                series.isEmpty() -> Centered { Text(stringResource(Res.string.history_empty)) }
 
                 else -> LazyColumn(
                     state = listState,
@@ -192,12 +194,12 @@ fun SeriesHistoryScreen(
 
     if (showingHelp) {
         HelpDialog(
-            title = stringResource(R.string.help_history_title),
+            title = stringResource(Res.string.help_history_title),
             sections = listOf(
-                R.string.help_history_list to R.string.help_history_list_body,
-                R.string.help_history_detail to R.string.help_history_detail_body,
-                R.string.help_history_export to R.string.help_history_export_body,
-                R.string.help_history_offline to R.string.help_history_offline_body,
+                Res.string.help_history_list to Res.string.help_history_list_body,
+                Res.string.help_history_detail to Res.string.help_history_detail_body,
+                Res.string.help_history_export to Res.string.help_history_export_body,
+                Res.string.help_history_offline to Res.string.help_history_offline_body,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -216,7 +218,7 @@ fun SeriesHistoryScreen(
                     } catch (_: Throwable) {
                         Toast.makeText(
                             context,
-                            R.string.history_delete_failed,
+                            getString(Res.string.history_delete_failed),
                             Toast.LENGTH_SHORT,
                         ).show()
                     }
@@ -231,11 +233,11 @@ fun SeriesHistoryScreen(
 internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.history_delete_title)) },
+        title = { Text(stringResource(Res.string.history_delete_title)) },
         text = {
             Text(
                 stringResource(
-                    R.string.history_delete_message,
+                    Res.string.history_delete_message,
                     localStamp(series.timestamp),
                     series.total(),
                 ),
@@ -243,12 +245,12 @@ internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConf
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.history_delete_confirm))
+                Text(stringResource(Res.string.history_delete_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.history_delete_cancel))
+                Text(stringResource(Res.string.history_delete_cancel))
             }
         },
     )
@@ -259,16 +261,16 @@ internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConf
 internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.hole_delete_title)) },
-        text = { Text(stringResource(R.string.hole_delete_message)) },
+        title = { Text(stringResource(Res.string.hole_delete_title)) },
+        text = { Text(stringResource(Res.string.hole_delete_message)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.hole_delete_confirm))
+                Text(stringResource(Res.string.hole_delete_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.history_delete_cancel))
+                Text(stringResource(Res.string.history_delete_cancel))
             }
         },
     )

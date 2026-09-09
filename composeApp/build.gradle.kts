@@ -77,6 +77,11 @@ kotlin {
     }
 }
 
+compose.resources {
+    packageOfResClass = "se.kjellstrand.markera.res"
+    generateResClass = always
+}
+
 sqldelight {
     databases {
         create("MarkeraDb") { packageName.set("se.kjellstrand.markera.series.db") }

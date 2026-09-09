@@ -48,7 +48,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,7 +56,9 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.random.Random
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.ui.markera.CameraPermissionPrompt
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.MarkeraSnapshotViewModel
@@ -119,7 +120,7 @@ fun MarkingWizardScreen(
     val markeraState by markeraVm.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val permission = rememberCameraPermission(frameSource)
-    val errorInference = stringResource(R.string.markera_error_inference)
+    val errorInference = stringResource(Res.string.markera_error_inference)
 
     val recorder = LocalSeriesRecorder.current
     // Back to a live viewfinder; [save] the scan we are leaving behind (moving
@@ -166,7 +167,7 @@ fun MarkingWizardScreen(
             CompetitionTopBar(
                 title = groupName,
                 subtitle = state.station?.let {
-                    stringResource(R.string.wizard_series, it.sortorder, stationCount)
+                    stringResource(Res.string.wizard_series, it.sortorder, stationCount)
                 },
                 onBack = onExit,
             )
@@ -185,7 +186,7 @@ fun MarkingWizardScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = stringResource(R.string.wizard_shots_unsupported, state.unsupportedShots!!),
+                        text = stringResource(Res.string.wizard_shots_unsupported, state.unsupportedShots!!),
                         color = MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center,
                     )
@@ -368,7 +369,7 @@ private fun StepContent(
     ) {
         state.duplicateBy?.let { name ->
             Text(
-                text = stringResource(R.string.wizard_duplicate, name),
+                text = stringResource(Res.string.wizard_duplicate, name),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -377,13 +378,13 @@ private fun StepContent(
             is LaneStep.Entering -> {
                 if (processing) {
                     Text(
-                        text = stringResource(R.string.markera_analyzing),
+                        text = stringResource(Res.string.markera_analyzing),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     PrimaryActionButton(
-                        text = stringResource(R.string.wizard_scan),
+                        text = stringResource(Res.string.wizard_scan),
                         icon = Icons.Default.PhotoCamera,
                         onClick = onScan,
                     )
@@ -399,7 +400,7 @@ private fun StepContent(
                 )
                 if (state.saveError) {
                     Text(
-                        text = stringResource(R.string.wizard_save_error),
+                        text = stringResource(Res.string.wizard_save_error),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -408,12 +409,12 @@ private fun StepContent(
                     OutlinedButton(onClick = onRescan) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.height(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.wizard_rescan))
+                        Text(stringResource(Res.string.wizard_rescan))
                     }
                     Button(onClick = wizardVm::save) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.height(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.wizard_save))
+                        Text(stringResource(Res.string.wizard_save))
                     }
                 }
             }
@@ -421,7 +422,7 @@ private fun StepContent(
             is LaneStep.Saving -> {
                 CircularProgressIndicator()
                 Text(
-                    text = stringResource(R.string.wizard_saving),
+                    text = stringResource(Res.string.wizard_saving),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -434,7 +435,7 @@ private fun StepContent(
                     modifier = Modifier.height(48.dp).aspectRatio(1f),
                 )
                 Text(
-                    text = stringResource(R.string.wizard_saved, step.lane, step.points, step.xCount),
+                    text = stringResource(Res.string.wizard_saved, step.lane, step.points, step.xCount),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -447,34 +448,34 @@ private fun StepContent(
 
             is LaneStep.Self -> {
                 Text(
-                    text = stringResource(R.string.wizard_self),
+                    text = stringResource(Res.string.wizard_self),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
                 Text(
-                    text = stringResource(R.string.wizard_self_hint),
+                    text = stringResource(Res.string.wizard_self_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 Button(onClick = wizardVm::skipToNextOpenLane) {
-                    Text(stringResource(R.string.wizard_skip))
+                    Text(stringResource(Res.string.wizard_skip))
                 }
             }
 
             is LaneStep.ClaimedByOther -> {
                 Text(
-                    text = stringResource(R.string.wizard_claimed, step.holder.name ?: "?"),
+                    text = stringResource(Res.string.wizard_claimed, step.holder.name ?: "?"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = wizardVm::retryLane) {
-                        Text(stringResource(R.string.wizard_claim_retry))
+                        Text(stringResource(Res.string.wizard_claim_retry))
                     }
                     Button(onClick = wizardVm::skipToNextOpenLane) {
-                        Text(stringResource(R.string.wizard_skip))
+                        Text(stringResource(Res.string.wizard_skip))
                     }
                 }
             }
@@ -509,7 +510,7 @@ private fun LockedContent(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = stringResource(R.string.wizard_locked),
+                text = stringResource(Res.string.wizard_locked),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -535,12 +536,12 @@ private fun LockedContent(
         OutlinedButton(onClick = onUnlock) {
             Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.height(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.wizard_unlock))
+            Text(stringResource(Res.string.wizard_unlock))
         }
         Button(onClick = onSkip) {
             Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.height(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.wizard_skip))
+            Text(stringResource(Res.string.wizard_skip))
         }
     }
 }
@@ -563,13 +564,13 @@ private fun ResumeHintBanner(
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = stringResource(R.string.wizard_resume_hint, hint.stationSortorder, hint.lane),
+                text = stringResource(Res.string.wizard_resume_hint, hint.stationSortorder, hint.lane),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onGo) { Text(stringResource(R.string.wizard_resume_go)) }
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.wizard_resume_stay)) }
+                Button(onClick = onGo) { Text(stringResource(Res.string.wizard_resume_go)) }
+                OutlinedButton(onClick = onDismiss) { Text(stringResource(Res.string.wizard_resume_stay)) }
             }
         }
     }
@@ -585,16 +586,16 @@ private fun NotActiveContent(onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.wizard_not_active),
+            text = stringResource(Res.string.wizard_not_active),
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = stringResource(R.string.wizard_not_active_hint),
+            text = stringResource(Res.string.wizard_not_active_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onRetry) { Text(stringResource(R.string.wizard_retry)) }
+        Button(onClick = onRetry) { Text(stringResource(Res.string.wizard_retry)) }
     }
 }
 
@@ -616,7 +617,7 @@ private fun StationSummaryContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = stringResource(R.string.wizard_station_summary, station.sortorder),
+            text = stringResource(Res.string.wizard_station_summary, station.sortorder),
             style = MaterialTheme.typography.titleMedium,
         )
         var registered = 0
@@ -669,7 +670,7 @@ private fun StationSummaryContent(
             }
         }
         Text(
-            text = stringResource(R.string.wizard_registered_count, registered, context.lanes.size),
+            text = stringResource(Res.string.wizard_registered_count, registered, context.lanes.size),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -680,7 +681,7 @@ private fun StationSummaryContent(
                 onClick = onNextStation,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
-                Text(stringResource(R.string.wizard_next_station, next?.sortorder ?: station.sortorder + 1))
+                Text(stringResource(Res.string.wizard_next_station, next?.sortorder ?: station.sortorder + 1))
                 Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.height(18.dp))
             }
         } else {
@@ -699,13 +700,13 @@ private fun FinishSummary(state: WizardUiState) {
     val summary = state.summary ?: return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = stringResource(R.string.wizard_final_done),
+            text = stringResource(Res.string.wizard_final_done),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary,
         )
         if (summary.standings.isNotEmpty()) {
             Text(
-                text = stringResource(R.string.wizard_standings),
+                text = stringResource(Res.string.wizard_standings),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -735,7 +736,7 @@ private fun FinishSummary(state: WizardUiState) {
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             val sub = if (standing.tied) {
-                                stringResource(R.string.wizard_tied)
+                                stringResource(Res.string.wizard_tied)
                             } else {
                                 listOfNotNull(
                                     standing.lane?.let { "bana $it" },

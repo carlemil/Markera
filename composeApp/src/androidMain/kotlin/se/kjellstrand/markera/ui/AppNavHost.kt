@@ -49,11 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SaveStatus
@@ -126,9 +128,9 @@ fun AppNavHost() {
 
     // The only save feedback, for both screens: one toast per outcome. Collected
     // (not read from the current value), so a recomposition never repeats it.
-    val savedText = stringResource(R.string.series_status_saved)
-    val failedText = stringResource(R.string.series_status_failed)
-    val signInText = stringResource(R.string.home_sign_in)
+    val savedText = stringResource(Res.string.series_status_saved)
+    val failedText = stringResource(Res.string.series_status_failed)
+    val signInText = stringResource(Res.string.home_sign_in)
     LaunchedEffect(recorder) {
         recorder.status.collect { status ->
             val message = when (status) {
@@ -246,7 +248,7 @@ private fun CaliberDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.series_caliber_title)) },
+        title = { Text(stringResource(Res.string.series_caliber_title)) },
         confirmButton = {},
         text = {
             // Compact rows: the whole row is the tap target, so the radio's 48 dp minimum is off.
@@ -262,7 +264,7 @@ private fun CaliberDialog(
                         ) {
                             RadioButton(selected = caliber == selected, onClick = { onSelect(caliber) })
                             Text(
-                                if (caliber == Caliber.NONE) stringResource(R.string.series_caliber_none) else caliber.label,
+                                if (caliber == Caliber.NONE) stringResource(Res.string.series_caliber_none) else caliber.label,
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(start = 8.dp),
                             )
@@ -296,14 +298,14 @@ private fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = stringResource(R.string.app_name),
+                    text = stringResource(Res.string.app_name),
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(48.dp))
                 HomeCard(
-                    title = stringResource(R.string.home_free_marking),
-                    subtitle = stringResource(R.string.home_free_marking_hint),
+                    title = stringResource(Res.string.home_free_marking),
+                    subtitle = stringResource(Res.string.home_free_marking_hint),
                     icon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(36.dp)) },
                     onClick = onFreeMarking,
                 )
@@ -312,23 +314,23 @@ private fun HomeScreen(
                 if (SHOW_COMPETITION) {
                     Spacer(Modifier.height(16.dp))
                     HomeCard(
-                        title = stringResource(R.string.home_competition),
-                        subtitle = stringResource(R.string.home_competition_hint),
+                        title = stringResource(Res.string.home_competition),
+                        subtitle = stringResource(Res.string.home_competition_hint),
                         icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
                         onClick = onCompetition,
                     )
                 }
                 Spacer(Modifier.height(16.dp))
                 HomeCard(
-                    title = stringResource(R.string.home_history),
-                    subtitle = stringResource(R.string.home_history_hint),
+                    title = stringResource(Res.string.home_history),
+                    subtitle = stringResource(Res.string.home_history_hint),
                     icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(36.dp)) },
                     onClick = onHistory,
                 )
                 Spacer(Modifier.height(16.dp))
                 HomeCard(
-                    title = stringResource(R.string.home_stats),
-                    subtitle = stringResource(R.string.home_stats_hint),
+                    title = stringResource(Res.string.home_stats),
+                    subtitle = stringResource(Res.string.home_stats_hint),
                     icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(36.dp)) },
                     onClick = onStatistics,
                 )
@@ -347,13 +349,13 @@ private fun HomeScreen(
 
     if (showingHelp) {
         HelpDialog(
-            title = stringResource(R.string.help_home_title),
+            title = stringResource(Res.string.help_home_title),
             sections = listOf(
-                R.string.help_home_how to R.string.help_home_how_body,
-                R.string.help_home_marking to R.string.help_home_marking_body,
-                R.string.help_home_history to R.string.help_home_history_body,
-                R.string.help_home_stats to R.string.help_home_stats_body,
-                R.string.help_home_account to R.string.help_home_account_body,
+                Res.string.help_home_how to Res.string.help_home_how_body,
+                Res.string.help_home_marking to Res.string.help_home_marking_body,
+                Res.string.help_home_history to Res.string.help_home_history_body,
+                Res.string.help_home_stats to Res.string.help_home_stats_body,
+                Res.string.help_home_account to Res.string.help_home_account_body,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -371,8 +373,8 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.home_delete_account_title)) },
-            text = { Text(stringResource(R.string.home_delete_account_message)) },
+            title = { Text(stringResource(Res.string.home_delete_account_title)) },
+            text = { Text(stringResource(Res.string.home_delete_account_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
@@ -386,18 +388,18 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                             // Stay signed in; the account is still there.
                             Toast.makeText(
                                 context,
-                                R.string.home_delete_account_failed,
+                                getString(Res.string.home_delete_account_failed),
                                 Toast.LENGTH_LONG,
                             ).show()
                         } finally {
                             busy = false
                         }
                     }
-                }) { Text(stringResource(R.string.home_delete_account_confirm)) }
+                }) { Text(stringResource(Res.string.home_delete_account_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(R.string.home_delete_account_cancel))
+                    Text(stringResource(Res.string.home_delete_account_cancel))
                 }
             },
         )
@@ -424,13 +426,13 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                 }
             }
         }) {
-            Text(stringResource(R.string.home_sign_in))
+            Text(stringResource(Res.string.home_sign_in))
         }
     } else {
         // Column, not one row: three items side by side clip on a narrow phone.
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                stringResource(R.string.home_signed_in, auth.provider.replaceFirstChar { it.uppercase() }),
+                stringResource(Res.string.home_signed_in, auth.provider.replaceFirstChar { it.uppercase() }),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -441,11 +443,11 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                         seriesServices.repository.clear()
                     }
                 }) {
-                    Text(stringResource(R.string.home_sign_out))
+                    Text(stringResource(Res.string.home_sign_out))
                 }
                 TextButton(onClick = { confirmDelete = true }) {
                     Text(
-                        stringResource(R.string.home_delete_account),
+                        stringResource(Res.string.home_delete_account),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }

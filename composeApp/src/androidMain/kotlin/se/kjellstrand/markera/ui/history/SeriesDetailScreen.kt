@@ -43,13 +43,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
@@ -112,9 +113,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     var pendingDeleteIndex by remember(series.id) { mutableStateOf<Int?>(null) }
     var showingHelp by remember { mutableStateOf(false) }
     val zoomPan = rememberZoomPan(series.id)
-    val savedText = stringResource(R.string.detail_saved)
-    val failedText = stringResource(R.string.detail_save_failed)
-    val deleteFailedText = stringResource(R.string.history_delete_failed)
+    val savedText = stringResource(Res.string.detail_saved)
+    val failedText = stringResource(Res.string.detail_save_failed)
+    val deleteFailedText = stringResource(Res.string.history_delete_failed)
     val grabPx = with(LocalDensity.current) { GRAB_RADIUS.toPx() }
 
     LaunchedEffect(series.id) {
@@ -136,14 +137,14 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
             CompetitionTopBar(
-                title = stringResource(R.string.detail_title),
+                title = stringResource(Res.string.detail_title),
                 onBack = onBack,
                 actions = {
                     HelpAction(onClick = { showingHelp = true })
                     IconButton(onClick = { confirmDelete = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.history_delete_confirm),
+                            contentDescription = stringResource(Res.string.history_delete_confirm),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -241,7 +242,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 // Right under the photo, greyed out until a hole was moved,
                 // added or removed.
                 PrimaryActionButton(
-                    text = stringResource(R.string.detail_save),
+                    text = stringResource(Res.string.detail_save),
                     icon = Icons.Default.Save,
                     // The server rejects an empty hole list, so don't offer it.
                     enabled = !saving && holes.value.isNotEmpty() && holes.value != series.holes,
@@ -305,11 +306,11 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
 
     if (showingHelp) {
         HelpDialog(
-            title = stringResource(R.string.help_detail_title),
+            title = stringResource(Res.string.help_detail_title),
             sections = listOf(
-                R.string.help_detail_photo to R.string.help_detail_photo_body,
-                R.string.help_detail_holes to R.string.help_detail_holes_body,
-                R.string.help_detail_delete to R.string.help_detail_delete_body,
+                Res.string.help_detail_photo to Res.string.help_detail_photo_body,
+                Res.string.help_detail_holes to Res.string.help_detail_holes_body,
+                Res.string.help_detail_delete to Res.string.help_detail_delete_body,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -379,7 +380,7 @@ private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
         }
         // Manual: the score the hole got where the user put it.
         Text(
-            text = hole.manualLabel() ?: stringResource(R.string.detail_no_score),
+            text = hole.manualLabel() ?: stringResource(Res.string.detail_no_score),
             style = MaterialTheme.typography.titleLarge,
             color = MANUAL_COLOR,
             modifier = Modifier
@@ -389,17 +390,17 @@ private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
         Text(
             // Whole millimetres only — no decimals anywhere in this UI.
             text = hole.distanceMm
-                ?.let { stringResource(R.string.detail_mm, it.roundToInt()) }
-                ?: stringResource(R.string.detail_no_distance),
+                ?.let { stringResource(Res.string.detail_mm, it.roundToInt()) }
+                ?: stringResource(Res.string.detail_no_distance),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.width(64.dp),
         )
         Text(
             text = hole.kindText(
-                manual = stringResource(R.string.detail_kind_manual),
-                typed = stringResource(R.string.detail_kind_typed),
-                moved = stringResource(R.string.detail_kind_moved),
-                detected = stringResource(R.string.detail_kind_detected),
+                manual = stringResource(Res.string.detail_kind_manual),
+                typed = stringResource(Res.string.detail_kind_typed),
+                moved = stringResource(Res.string.detail_kind_moved),
+                detected = stringResource(Res.string.detail_kind_detected),
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -410,7 +411,7 @@ private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = stringResource(R.string.detail_delete_hole),
+                contentDescription = stringResource(Res.string.detail_delete_hole),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

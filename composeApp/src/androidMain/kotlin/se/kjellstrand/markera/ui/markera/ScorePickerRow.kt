@@ -22,9 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import se.kjellstrand.markera.R
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 
 private val PICKER_GAP = 6.dp
 private val PICKER_ITEM_WIDTH = 44.dp
@@ -110,7 +111,7 @@ private fun ScoreDialpadDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
-        title = { Text(stringResource(R.string.score_pick_title)) },
+        title = { Text(stringResource(Res.string.score_pick_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
                 DIALPAD_KEYS.forEach { row ->
