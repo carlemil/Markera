@@ -18,6 +18,9 @@ targets:
     platform: iOS
     sources:
       - path: iosApp
+      # The detection model, shared with the Android assets (gitignored, ~40 MB).
+      - path: ../composeApp/src/androidMain/assets/best.onnx
+        buildPhase: resources
     dependencies:
       - package: onnxruntime
         product: onnxruntime
