@@ -1,1 +1,3 @@
 Första iOS-versionen: fotografera eller välj en tavla, få serien poängsatt automatiskt, spara den med kaliber och se historik och statistik.
+• Ny app-ikon: en tavla med ringar, siffror och en femskottsserie
+• Skanningen behåller högst fem träffar, så en serie aldrig får extra hål
