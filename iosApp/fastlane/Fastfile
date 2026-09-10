@@ -24,7 +24,18 @@ platform :ios do
       in_house:     false,
     )
     get_certificates(api_key: api_key)
-    get_provisioning_profile(api_key: api_key, app_identifier: APP_ID)
+    # The archive entitles Sign in with Apple, so the App ID must carry that
+    # capability; a profile created before it did has to be regenerated.
+    bundle = Spaceship::ConnectAPI::BundleId.find(APP_ID)
+    added = bundle.get_capabilities.none? { |c| c.capability_type == "APPLE_ID_AUTH" }
+    if added
+      UI.important("Enabling Sign in with Apple on #{APP_ID}")
+      bundle.create_capability(
+        Spaceship::ConnectAPI::BundleIdCapability::Type::APPLE_ID_AUTH,
+        settings: [{ key: "APPLE_ID_AUTH_APP_CONSENT", options: [{ key: "PRIMARY_APP_CONSENT" }] }],
+      )
+    end
+    get_provisioning_profile(api_key: api_key, app_identifier: APP_ID, force: added)
     profile_name = lane_context[SharedValues::SIGH_NAME]
 
     # CURRENT_PROJECT_VERSION in project.yml mirrors the Android versionCode;
@@ -35,7 +46,9 @@ platform :ios do
     UI.message("Using build number #{build_number}")
 
     build_app(
-      xcargs: %(CURRENT_PROJECT_VERSION=#{build_number} PROVISIONING_PROFILE_SPECIFIER="#{profile_name}"),
+      # Local.xcconfig keeps automatic signing for simulator builds; the archive
+      # needs manual signing with the profile sigh just resolved.
+      xcargs: %(CURRENT_PROJECT_VERSION=#{build_number} CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="#{profile_name}"),
       export_options: {
         method:               "app-store",
         signingStyle:         "manual",

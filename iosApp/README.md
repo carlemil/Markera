@@ -104,5 +104,8 @@ with `metadata/sv/release_notes.txt` as the changelog). It needs
 `.env` are gitignored) and the app record on App Store Connect:
 
 ```sh
-cd ~/source/Markera/iosApp && fastlane beta
+cd ~/source/Markera/iosApp && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 fastlane beta
 ```
+
+The locale matters over non-interactive ssh: without it fastlane's xcodebuild
+output parsing dies with `"Cr" on UTF-16` inside `build_app`.
