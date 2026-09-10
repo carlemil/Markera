@@ -14,15 +14,24 @@ platform :ios do
     sh("cd .. && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodegen generate")
   end
 
-  desc "Build a signed App Store archive and upload it to TestFlight."
-  lane :beta do
-    gen
-    api_key = app_store_connect_api_key(
+  private_lane :asc_key do
+    app_store_connect_api_key(
       key_id:       ENV.fetch("ASC_KEY_ID"),
       issuer_id:    ENV.fetch("ASC_ISSUER_ID"),
       key_filepath: ENV.fetch("ASC_KEY_PATH"),
       in_house:     false,
     )
+  end
+
+  desc "Print the newest TestFlight build number."
+  lane :latest do
+    UI.success("Latest TestFlight build: #{latest_testflight_build_number(api_key: asc_key, app_identifier: APP_ID)}")
+  end
+
+  desc "Build a signed App Store archive and upload it to TestFlight."
+  lane :beta do
+    gen
+    api_key = asc_key
     get_certificates(api_key: api_key)
     # The archive entitles Sign in with Apple, so the App ID must carry that
     # capability; a profile created before it did has to be regenerated.
