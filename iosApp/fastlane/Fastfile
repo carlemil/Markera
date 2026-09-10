@@ -105,6 +105,18 @@ platform :ios do
       },
     )
     dedupe_screenshots
+    # deliver only selects the build when submitting; attach it on a plain
+    # metadata push too, so the editable version always carries the newest one.
+    unless submit
+      app = Spaceship::ConnectAPI::App.find(APP_ID)
+      candidate = app.get_builds(filter: { version: build }).find { |b| b.processing_state == "VALID" }
+      if candidate
+        app.get_edit_app_store_version(platform: "IOS").select_build(build_id: candidate.id)
+        UI.success("Attached build #{build} to #{version}")
+      else
+        UI.important("Build #{build} is not processed yet; rerun `fastlane metadata` later to attach it")
+      end
+    end
   end
 
   # deliver uploads the screenshot set, re-reads it before ASC has indexed the
