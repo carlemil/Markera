@@ -1,9 +1,0 @@
-{
-  "data": [
-    { "category": "NAME", "purposes": ["APP_FUNCTIONALITY"], "data_protections": ["DATA_LINKED_TO_YOU", "DATA_NOT_USED_FOR_TRACKING"] },
-    { "category": "EMAIL_ADDRESS", "purposes": ["APP_FUNCTIONALITY"], "data_protections": ["DATA_LINKED_TO_YOU", "DATA_NOT_USED_FOR_TRACKING"] },
-    { "category": "USER_ID", "purposes": ["APP_FUNCTIONALITY"], "data_protections": ["DATA_LINKED_TO_YOU", "DATA_NOT_USED_FOR_TRACKING"] },
-    { "category": "PHOTOS_OR_VIDEOS", "purposes": ["APP_FUNCTIONALITY"], "data_protections": ["DATA_LINKED_TO_YOU", "DATA_NOT_USED_FOR_TRACKING"] },
-    { "category": "OTHER_USER_CONTENT", "purposes": ["APP_FUNCTIONALITY"], "data_protections": ["DATA_LINKED_TO_YOU", "DATA_NOT_USED_FOR_TRACKING"] }
-  ]
-}
