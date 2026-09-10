@@ -267,7 +267,7 @@ class TargetScanController(
             nonMaxSuppression(
                 filterByConfidence(raws, CONFIDENCE_THRESHOLD),
                 IOU_THRESHOLD,
-            ),
+            ).take(SCORE_PICKER_COUNT), // a series is five shots: keep the most confident five
             detector.inputSize, snapshot.width, snapshot.height,
         )
         // Score each hole against the digit centre and the 6/7 ring.
