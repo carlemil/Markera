@@ -32,7 +32,11 @@ platform :ios do
   lane :beta do
     gen
     api_key = asc_key
-    get_certificates(api_key: api_key)
+    # codesign over non-interactive ssh cannot touch the (locked) login
+    # keychain, so the distribution identity lives in its own keychain whose
+    # password is in .env; cert imports there with the partition list set.
+    unlock_keychain(path: ENV.fetch("BUILD_KEYCHAIN_PATH"), password: ENV.fetch("BUILD_KEYCHAIN_PASSWORD"), set_default: false)
+    get_certificates(api_key: api_key, keychain_path: ENV.fetch("BUILD_KEYCHAIN_PATH"), keychain_password: ENV.fetch("BUILD_KEYCHAIN_PASSWORD"))
     # The archive entitles Sign in with Apple, so the App ID must carry that
     # capability; a profile created before it did has to be regenerated.
     bundle = Spaceship::ConnectAPI::BundleId.find(APP_ID)
@@ -44,7 +48,8 @@ platform :ios do
         settings: [{ key: "APPLE_ID_AUTH_APP_CONSENT", options: [{ key: "PRIMARY_APP_CONSENT" }] }],
       )
     end
-    get_provisioning_profile(api_key: api_key, app_identifier: APP_ID, force: added)
+    # Regenerate every run so the profile carries exactly the cert just resolved.
+    get_provisioning_profile(api_key: api_key, app_identifier: APP_ID, force: true, cert_id: lane_context[SharedValues::CERT_CERTIFICATE_ID])
     profile_name = lane_context[SharedValues::SIGH_NAME]
 
     # CURRENT_PROJECT_VERSION in project.yml mirrors the Android versionCode;

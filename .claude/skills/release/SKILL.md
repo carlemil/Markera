@@ -193,11 +193,11 @@ Wait for it to complete. If it fails, show the error output and stop.
 
 Only when `iosApp/` exists. Keep `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
 `iosApp/project.yml` equal to the Android versionName / versionCode, and copy the release
-notes to `iosApp/fastlane/metadata/sv/release_notes.txt`. Then, from a real terminal (the
-archive needs the Mac keychain unlocked):
+notes to `iosApp/fastlane/metadata/sv/release_notes.txt`. Then run the archive + TestFlight
+upload yourself (signing uses the build keychain from `iosApp/fastlane/.env`):
 
 ```
-ssh -t macmini bash source/Markera/scripts/mac-beta.sh     # archive + TestFlight
+sh scripts/mac.sh 'bash scripts/mac-beta.sh'     # archive + TestFlight
 ```
 
 Once App Store Connect has processed the build (`sh scripts/mac.sh 'cd iosApp && fastlane latest'`

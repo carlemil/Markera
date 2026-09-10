@@ -104,11 +104,13 @@ with `metadata/sv/release_notes.txt` as the changelog). It needs
 `.env` are gitignored) and the app record on App Store Connect:
 
 ```sh
-ssh -t macmini bash source/Markera/scripts/mac-beta.sh   # from a real terminal, not scripts/mac.sh
+sh scripts/mac.sh 'bash scripts/mac-beta.sh'
 ```
 
-The script unlocks the login keychain (prompts for the Mac password; codesign
-needs it unlocked in the same session, which a non-interactive ssh cannot do),
+Signing uses a dedicated build keychain (`BUILD_KEYCHAIN_PATH`/`_PASSWORD` in
+`.env`; creation recipe in `.env.template`) because codesign cannot use the
+locked login keychain over non-interactive ssh — the lane unlocks it, and `cert`
+creates/imports the Apple Distribution identity there. The script
 sets a UTF-8 locale (without it fastlane dies with `"Cr" on UTF-16` inside
 `build_app`) and runs `fastlane beta`. The lane enables Sign in with Apple on the
 App ID if missing and signs manually at archive time only (`Local.xcconfig`
