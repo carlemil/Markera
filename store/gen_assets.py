@@ -5,8 +5,8 @@
 Writes store/icon-512.png, store/feature-1024x500.png, the iOS
 AppIcon.appiconset/icon-1024.png and the legacy ic_launcher(.round).webp
 mipmaps (API < 26; API 26+ uses the adaptive vector in res/drawable, drawn to
-match). Design: dark ground (#12160F), green rings (#9CCC65), bright centre
-(#00E676) — the app's theme.
+match). Design: the Statistik target (paper, black centre, ring lines, coloured
+hits) on the theme's dark ground (#12160F).
 """
 from pathlib import Path
 
@@ -18,9 +18,26 @@ OUT = ROOT / "store"
 IOS_ICON = ROOT / "iosApp/iosApp/Assets.xcassets/AppIcon.appiconset"
 
 BG = (0x12, 0x16, 0x0F)
-RING = (0x9C, 0xCC, 0x65)
 CENTRE = (0x00, 0xE6, 0x76)
 TEXT = (0xE6, 0xEA, 0xD9)
+# The Statistik target (ui/stats/StatsScreen.kt): paper out to ring 5, black to
+# the 6/7 edge, ring lines every 25 mm, hits in the date scale's colours.
+PAPER = (0xE8, 0xDE, 0xC8)
+BLACK = (0x15, 0x15, 0x1A)
+LINE_ON_BLACK = (0xED, 0xED, 0xED)
+LINE_ON_PAPER = (0x6B, 0x64, 0x55)
+PLOT_RADIUS_MM = 150.0
+BLACK_RADIUS_MM = 100.0
+RING_LINES_MM = (12.5, 25.0, 50.0, 75.0, 125.0)
+# (x mm, y mm, colour) — a five-shot group around the ten, oldest to newest.
+HITS = (
+    (-18, 12, (0x7C, 0x4D, 0xFF)),
+    (24, -16, (0x00, 0xB0, 0xFF)),
+    (6, 30, (0x00, 0xE5, 0xCC)),
+    (-34, -26, (0xFF, 0xD6, 0x00)),
+    (38, 34, (0xFF, 0x3D, 0x00)),
+)
+HIT_RADIUS_MM = 8.0
 
 
 def target(size: int, pad: float = 0.0, background=BG) -> Image.Image:
@@ -29,13 +46,19 @@ def target(size: int, pad: float = 0.0, background=BG) -> Image.Image:
     img = Image.new("RGBA", (s, s), background + (255,) if background else (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     c = s / 2
-    r_max = s / 2 * (1 - pad)
-    stroke = max(2, int(s * 0.035))
-    for f in (1.0, 0.72, 0.44):
-        r = r_max * f
-        d.ellipse((c - r, c - r, c + r, c + r), outline=RING, width=stroke)
-    r = r_max * 0.17
-    d.ellipse((c - r, c - r, c + r, c + r), fill=CENTRE)
+    k = s / 2 * (1 - pad) / PLOT_RADIUS_MM  # px per mm
+
+    def disc(x, y, r_mm, **kw):
+        r = r_mm * k
+        d.ellipse((c + x * k - r, c + y * k - r, c + x * k + r, c + y * k + r), **kw)
+
+    disc(0, 0, PLOT_RADIUS_MM, fill=PAPER)
+    disc(0, 0, BLACK_RADIUS_MM, fill=BLACK)
+    line = max(2, int(s * 0.006))
+    for mm in RING_LINES_MM:
+        disc(0, 0, mm, outline=LINE_ON_BLACK if mm <= BLACK_RADIUS_MM else LINE_ON_PAPER, width=line)
+    for x, y, colour in HITS:
+        disc(x, y, HIT_RADIUS_MM, fill=colour, outline=BLACK, width=line)
     return img.resize((size, size), Image.LANCZOS)
 
 
