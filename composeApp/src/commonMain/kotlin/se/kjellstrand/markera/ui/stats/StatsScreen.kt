@@ -2,6 +2,12 @@ package se.kjellstrand.markera.ui.stats
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,12 +52,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -83,8 +93,9 @@ import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 
-/** Ring 5's outer edge — the whole drawn target, and the canvas' mm half-width. */
-private const val PLOT_RADIUS_MM = 150f
+/** Ring 1's outer edge — the whole drawn target, and the canvas' mm half-width. */
+private const val PLOT_RADIUS_MM = 250f
+private const val MAX_ZOOM = 6f
 
 private val PAPER = Color(0xFFE8DEC8)
 private val BLACK = Color(0xFF15151A)
@@ -388,24 +399,60 @@ private fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Uni
 }
 
 /**
- * The drawn target out to ring 5 with every filtered hit on it. Offsets are in
- * image axes (y down), so they map straight onto canvas coordinates.
+ * The whole target (rings 1-10) with every filtered hit on it. Offsets are in
+ * image axes (y down), so they map straight onto canvas coordinates. Pinch to
+ * zoom, drag to pan once zoomed, double-tap to reset.
  */
 @Composable
 private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?) {
     val textMeasurer = rememberTextMeasurer()
+    // The layer scales about its top-left corner, so zooming about the pinch
+    // centroid is a plain "keep the centroid still" rescale of the pan.
+    var zoom by remember { mutableStateOf(1f) }
+    var pan by remember { mutableStateOf(Offset.Zero) }
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .clipToBounds()
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { zoom = 1f; pan = Offset.Zero })
+            }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    do {
+                        val event = awaitPointerEvent()
+                        // One finger on the unzoomed target still scrolls the page.
+                        if (event.changes.size > 1 || zoom > 1f) {
+                            val newZoom = (zoom * event.calculateZoom()).coerceIn(1f, MAX_ZOOM)
+                            val centroid = event.calculateCentroid()
+                            val moved = (pan - centroid) * (newZoom / zoom) + centroid + event.calculatePan()
+                            zoom = newZoom
+                            pan = Offset(
+                                moved.x.coerceIn(size.width * (1f - newZoom), 0f),
+                                moved.y.coerceIn(size.height * (1f - newZoom), 0f),
+                            )
+                            event.changes.forEach { it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            }
+            .graphicsLayer {
+                scaleX = zoom
+                scaleY = zoom
+                translationX = pan.x
+                translationY = pan.y
+                transformOrigin = TransformOrigin(0f, 0f)
+            },
     ) {
         val scale = min(size.width, size.height) / 2f / PLOT_RADIUS_MM
         val centre = Offset(size.width / 2f, size.height / 2f)
         fun r(mm: Double) = mm.toFloat() * scale
 
-        drawCircle(PAPER, radius = PLOT_RADIUS_MM * scale, center = centre)
+        drawRect(PAPER)
         drawCircle(BLACK, radius = r(TARGET_BLACK_RING_RADIUS_MM), center = centre)
-        // Ring lines out to ring 5, plus the inner-ten circle.
+        // Every ring line, plus the inner-ten circle.
         (RING_RADII_MM.filter { it <= PLOT_RADIUS_MM } + INNER_TEN_RADIUS_MM).forEach { mm ->
             drawCircle(
                 color = if (mm <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER,
@@ -415,7 +462,7 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
             )
         }
 
-        // Ring digits 5..9, centred in their band on all four axis arms.
+        // Ring digits 1..9, centred in their band on all four axis arms.
         val digitSize = 11f * scale
         // Centred horizontally; the third of the text size centres vertically.
         fun digit(ring: Int, colour: Color, x: Float, y: Float) {
@@ -431,7 +478,7 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
                 ),
             )
         }
-        for (ring in 5..9) {
+        for (ring in 1..9) {
             val mid = (RING_RADII_MM[10 - ring] + RING_RADII_MM[9 - ring]) / 2.0
             val colour = if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER
             digit(ring, colour, centre.x - r(mid), centre.y)
