@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -424,9 +425,11 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
                     do {
                         val event = awaitPointerEvent()
                         // One finger on the unzoomed target still scrolls the page.
-                        if (event.changes.size > 1 || zoom > 1f) {
+                        // The centroid is unspecified once the last finger lifts;
+                        // using it would turn the pan into NaN and blank the layer.
+                        val centroid = event.calculateCentroid()
+                        if (centroid.isSpecified && (event.changes.size > 1 || zoom > 1f)) {
                             val newZoom = (zoom * event.calculateZoom()).coerceIn(1f, MAX_ZOOM)
-                            val centroid = event.calculateCentroid()
                             val moved = (pan - centroid) * (newZoom / zoom) + centroid + event.calculatePan()
                             zoom = newZoom
                             pan = Offset(
