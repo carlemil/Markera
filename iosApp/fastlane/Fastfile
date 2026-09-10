@@ -81,6 +81,10 @@ platform :ios do
     build = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID).to_s
     submit = options[:submit]
     UI.message("App Store version #{version}, build #{build}, submit=#{submit}")
+    # Both are app-level and required before a submission is accepted; deliver
+    # sets neither. The privacy action publishes the answers as well.
+    Spaceship::ConnectAPI::App.find(APP_ID).update(attributes: { contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT" })
+    upload_app_privacy_details(api_key: api_key, app_identifier: APP_ID, json_path: "fastlane/app_privacy_details.json")
     upload_to_app_store(
       api_key:               api_key,
       app_version:           version,
