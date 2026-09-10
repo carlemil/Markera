@@ -189,11 +189,34 @@ Wait for it to complete. If it fails, show the error output and stop.
 
 ---
 
+## Step 5b — iOS (App Store)
+
+Only when `iosApp/` exists. Keep `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
+`iosApp/project.yml` equal to the Android versionName / versionCode, and copy the release
+notes to `iosApp/fastlane/metadata/sv/release_notes.txt`. Then, from a real terminal (the
+archive needs the Mac keychain unlocked):
+
+```
+ssh -t macmini bash source/Markera/scripts/mac-beta.sh     # archive + TestFlight
+```
+
+Once App Store Connect has processed the build (`sh scripts/mac.sh 'cd iosApp && fastlane latest'`
+shows the new number), push the listing and submit:
+
+```
+sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane release'
+```
+
+Retake `iosApp/fastlane/screenshots/sv/*.png` on the simulator first when the UI changed
+(same four screens as `store/screenshots/`).
+
+---
+
 ## Step 6 — Commit and tag the release
 
 ```
 git add composeApp/build.gradle.kts
-git add composeApp/src/androidMain/play/release-notes/
+git add composeApp/src/androidMain/play/release-notes/ iosApp/project.yml iosApp/fastlane/metadata/sv/release_notes.txt
 git commit -m "Bump version to <newVersionName> (build <newVersionCode>)"
 git tag v<newVersionName>
 ```

@@ -114,3 +114,24 @@ sets a UTF-8 locale (without it fastlane dies with `"Cr" on UTF-16` inside
 App ID if missing and signs manually at archive time only (`Local.xcconfig`
 stays automatic for simulator builds). The deployment target must stay equal to
 the ORT xcframework's `MinimumOSVersion` (see `project.yml`).
+
+## App Store listing and review
+
+`fastlane metadata` pushes the listing to the editable App Store version without a
+binary: `fastlane/metadata/` (Swedish texts, `primary_category.txt`, `copyright.txt`,
+`review_information/`, `app_rating.json` = the full age-rating questionnaire, every
+attribute the API requires), `fastlane/screenshots/sv/` (iPhone 6.9" = 1320×2868 from
+the iPhone 17 Pro Max simulator; the device is inferred from the size, `overwrite_screenshots`
+replaces the set). The version string follows `MARKETING_VERSION` in `project.yml`.
+`fastlane release` does the same, attaches the newest processed TestFlight build and
+submits for review (export compliance: no non-exempt encryption). Both run fine over
+`scripts/mac.sh` with the API key alone, but need a UTF-8 locale:
+
+```sh
+sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane metadata'
+sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane release'
+```
+
+Not reachable through the API and done once in the App Store Connect UI: the App
+Privacy questionnaire (account name/user id, photos, user content; all linked to the
+user, none used for tracking).

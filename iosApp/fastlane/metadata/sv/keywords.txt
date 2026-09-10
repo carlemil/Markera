@@ -1,0 +1,1 @@
+precision,skytte,tavla,poäng,träffar,pistol,skjutbana,markering,serie,statistik,sportskytte

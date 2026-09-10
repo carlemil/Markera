@@ -72,4 +72,66 @@ platform :ios do
       changelog:                         File.read("metadata/sv/release_notes.txt").strip,
     )
   end
+
+  # deliver reads Deliverfile + metadata/ + screenshots/ (device inferred from
+  # the image size). The App Store version string follows project.yml.
+  private_lane :push_listing do |options|
+    api_key = asc_key
+    version = `grep MARKETING_VERSION ../project.yml`[/[\d.]+/]
+    build = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID).to_s
+    submit = options[:submit]
+    UI.message("App Store version #{version}, build #{build}, submit=#{submit}")
+    upload_to_app_store(
+      api_key:               api_key,
+      app_version:           version,
+      build_number:          build,
+      skip_binary_upload:    true,
+      overwrite_screenshots: true,
+      submit_for_review:     submit,
+      automatic_release:     false,
+      submission_information: {
+        add_id_info_uses_idfa:            false,
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false,
+      },
+    )
+    dedupe_screenshots
+  end
+
+  # deliver uploads the screenshot set, re-reads it before ASC has indexed the
+  # new assets, reports every file "missing", and re-uploads — so the set lands
+  # doubled (seen on FieldShootingTimer and on Markera 1.5.0). Clean up after.
+  desc "Delete duplicate screenshots (same file name twice in a set) on the editable version."
+  lane :dedupe_screenshots do
+    asc_key
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    version = app.get_edit_app_store_version(platform: "IOS")
+    UI.user_error!("No editable App Store version") unless version
+    deleted = 0
+    version.get_app_store_version_localizations.each do |loc|
+      loc.get_app_screenshot_sets.each do |set|
+        seen = {}
+        set.app_screenshots.each do |shot|
+          if seen[shot.file_name]
+            shot.delete!
+            deleted += 1
+          else
+            seen[shot.file_name] = true
+          end
+        end
+        UI.message("#{loc.locale} #{set.screenshot_display_type}: #{set.app_screenshots.size - deleted} kept")
+      end
+    end
+    UI.success("Removed #{deleted} duplicate screenshot(s)")
+  end
+
+  desc "Push App Store metadata + screenshots to the editable version (no submit)."
+  lane :metadata do
+    push_listing(submit: false)
+  end
+
+  desc "Metadata + screenshots, attach the newest TestFlight build and submit for review."
+  lane :release do
+    push_listing(submit: true)
+  end
 end
