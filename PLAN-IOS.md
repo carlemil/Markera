@@ -235,7 +235,7 @@ hardware or user credentials.
 - Xcode on the Mac: sign into the Apple ID once (Settings → Accounts) for device/TestFlight signing; create `iosApp/Config/Local.xcconfig` with `DEVELOPMENT_TEAM = BSZST7M33J` (simulator work needs neither).
 - Server: `APPLE_BUNDLE_ID=se.kjellstrand.markera` in the Mac's `server/.env`, then `docker compose up -d --build`.
 - App Store Connect: app record + API key — done 2026-09-10 (key shared with FieldShootingTimer, `iosApp/fastlane/.env` on the Mac).
-- Phone checks still pending for A1–A8 (phone absent during the port): scan, help dialog, snackbar, export.
+- Phone checks for A1–A8 done 2026-09-10 on the OnePlus (debug build of c7f7f2e): scan (3000² capture, OCR, ORT), Home help dialog, "Kunde inte spara" snackbar (airplane mode), export zip (11 entries, BOM CSVs, share sheet).
 - Approving this plan also approves: brew-installing idb on the Mac (C2) and regenerating the local `best.onnx` with fp32 I/O (A1, original kept as `best.fp16.onnx`).
 
 ## Verification (end to end)
