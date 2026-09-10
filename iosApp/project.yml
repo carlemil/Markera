@@ -4,7 +4,11 @@ name: iosApp
 options:
   bundleIdPrefix: se.kjellstrand
   deploymentTarget:
-    iOS: "16.0"
+    # Must equal the ORT xcframework's MinimumOSVersion: Xcode embeds the static
+    # package as a codeless framework whose stub is built for this target, and
+    # App Store processing rejects a stub newer than the framework's plist
+    # (ITMS-90208).
+    iOS: "15.1"
   createIntermediateGroups: true
 packages:
   # ORT Objective-C bindings; main carries the 1.24.2 binaries (the newest tag
@@ -32,6 +36,9 @@ targets:
       path: iosApp/Info.plist
       properties:
         CFBundleDisplayName: Markera
+        # xcodegen writes 1.0 / 1 unless told to follow the build settings.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
           UIColorName: LaunchBackground
         CADisableMinimumFrameDurationOnPhone: true   # Compose aborts at start without it

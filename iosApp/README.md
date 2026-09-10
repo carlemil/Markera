@@ -104,8 +104,13 @@ with `metadata/sv/release_notes.txt` as the changelog). It needs
 `.env` are gitignored) and the app record on App Store Connect:
 
 ```sh
-cd ~/source/Markera/iosApp && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 fastlane beta
+ssh -t macmini bash source/Markera/scripts/mac-beta.sh   # from a real terminal, not scripts/mac.sh
 ```
 
-The locale matters over non-interactive ssh: without it fastlane's xcodebuild
-output parsing dies with `"Cr" on UTF-16` inside `build_app`.
+The script unlocks the login keychain (prompts for the Mac password; codesign
+needs it unlocked in the same session, which a non-interactive ssh cannot do),
+sets a UTF-8 locale (without it fastlane dies with `"Cr" on UTF-16` inside
+`build_app`) and runs `fastlane beta`. The lane enables Sign in with Apple on the
+App ID if missing and signs manually at archive time only (`Local.xcconfig`
+stays automatic for simulator builds). The deployment target must stay equal to
+the ORT xcframework's `MinimumOSVersion` (see `project.yml`).
