@@ -75,6 +75,7 @@ import kotlin.math.sqrt
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -337,12 +338,7 @@ private fun FilterRow(
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(
-                DatePreset.ALL to Res.string.stats_date_all,
-                DatePreset.WEEK to Res.string.stats_date_week,
-                DatePreset.MONTH to Res.string.stats_date_month,
-                DatePreset.YEAR to Res.string.stats_date_year,
-            ).forEach { (value, label) ->
+            val presetChip = @Composable { value: DatePreset, label: StringResource ->
                 FilterChip(
                     selected = preset == value,
                     onClick = { onPreset(value) },
@@ -351,6 +347,8 @@ private fun FilterRow(
                     border = null,
                 )
             }
+            presetChip(DatePreset.ALL, Res.string.stats_date_all)
+            // "Välj…" right after "Alla", so the custom range is one tap away on every width.
             FilterChip(
                 selected = preset == DatePreset.CUSTOM,
                 onClick = onPickDates,
@@ -370,6 +368,9 @@ private fun FilterRow(
                 colors = chipColors,
                 border = null,
             )
+            presetChip(DatePreset.WEEK, Res.string.stats_date_week)
+            presetChip(DatePreset.MONTH, Res.string.stats_date_month)
+            presetChip(DatePreset.YEAR, Res.string.stats_date_year)
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
