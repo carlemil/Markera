@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.pointerInput
@@ -72,7 +73,7 @@ private const val DAY_MS = 24L * 60 * 60 * 1000
 /**
  * A scatterplot of [lines] over time with a recessive grid, first/last date on the
  * x axis and [format]ted ticks on the y axis. Each series of marks gets its
- * least-squares trend line and a dashed mean. Tap near a point to read it off
+ * least-squares trend line, a dashed mean and a ±1 SD band. Tap near a point to read it off
  * ([pointText] words it); the legend only appears with two or more lines.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -134,12 +135,20 @@ fun TrendChart(
             drawText(first, topLeft = Offset(left, bottom + 4.dp.toPx()))
             drawText(last, topLeft = Offset(right - last.size.width, bottom + 4.dp.toPx()))
 
-            // Trend (solid) and mean (dashed) under the marks, one pair per series of marks.
+            // Per series of marks, under them: a ±1 SD band, the mean (dashed) and the trend (solid).
             val dashes = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))
             for (line in lines) {
                 val fit = line.points.fit() ?: continue
                 val faded = line.colour.copy(alpha = 0.7f)
                 val meanY = y(fit.mean)
+                // Clamped to the plot: the axis spans the points, and a band can poke past them.
+                val bandTop = y(fit.mean + fit.sd).coerceIn(top, bottom)
+                val bandBottom = y(fit.mean - fit.sd).coerceIn(top, bottom)
+                drawRect(
+                    line.colour.copy(alpha = 0.12f),
+                    topLeft = Offset(left, bandTop),
+                    size = Size(right - left, bandBottom - bandTop),
+                )
                 drawLine(faded, Offset(left, meanY), Offset(right, meanY), MEAN_LINE.toPx(), pathEffect = dashes)
                 val x0 = line.points.first().at
                 val x1 = line.points.last().at

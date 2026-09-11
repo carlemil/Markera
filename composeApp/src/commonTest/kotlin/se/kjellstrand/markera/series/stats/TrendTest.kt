@@ -55,6 +55,8 @@ class TrendTest {
         ).plotSeries(StatsFilter()).trend(Metric.SCORE, Bucket.DAY, TimeZone.UTC)
         val fit = points.fit()!!
         assertEquals(42.0, fit.mean, 1e-9)
+        // Deviations -2, 3, -1 → sqrt(14 / 3)
+        assertEquals(kotlin.math.sqrt(14.0 / 3), fit.sd, 1e-9)
         // Slope from the three-point least squares: (41 - 40) / 2 per day.
         assertEquals(0.5, fit.slope * 24 * 60 * 60 * 1000, 1e-9)
         assertEquals(41.5, fit.at(points[0].at), 1e-9)

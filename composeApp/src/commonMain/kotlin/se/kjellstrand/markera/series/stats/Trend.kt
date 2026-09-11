@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series.stats
 
+import kotlin.math.sqrt
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -62,8 +63,11 @@ fun List<PlottedSeries>.trendByCaliber(
         .sortedBy { it.key.ordinal }
         .associate { (caliber, group) -> caliber to group.trend(metric, bucket, zone) }
 
-/** A straight line through the points: value = [slope] * (ms since [origin]) + [intercept]. */
-data class TrendFit(val origin: Instant, val slope: Double, val intercept: Double, val mean: Double) {
+/**
+ * A straight line through the points: value = [slope] * (ms since [origin]) + [intercept];
+ * [mean] and [sd] (population) of the values, for the band around the mean line.
+ */
+data class TrendFit(val origin: Instant, val slope: Double, val intercept: Double, val mean: Double, val sd: Double) {
     fun at(t: Instant): Double = slope * (t.toEpochMilliseconds() - origin.toEpochMilliseconds()) + intercept
 }
 
@@ -81,7 +85,8 @@ fun List<TrendPoint>.fit(): TrendFit? {
     val sxx = xs.sumOf { (it - xMean) * (it - xMean) }
     if (sxx == 0.0) return null
     val slope = xs.indices.sumOf { (xs[it] - xMean) * (ys[it] - yMean) } / sxx
-    return TrendFit(origin, slope, yMean - slope * xMean, yMean)
+    val sd = sqrt(ys.sumOf { (it - yMean) * (it - yMean) } / ys.size)
+    return TrendFit(origin, slope, yMean - slope * xMean, yMean, sd)
 }
 
 private fun bucketStart(at: Instant, bucket: Bucket, zone: TimeZone): Instant {

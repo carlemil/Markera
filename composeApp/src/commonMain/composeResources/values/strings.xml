@@ -94,7 +94,7 @@
     <string name="stats_short_mean_pairwise">Mellan träffar</string>
     <string name="stats_short_group_size">Grupp</string>
     <string name="stats_short_mean_radius">Radie</string>
-    <string name="stats_short_radial_sd">SD</string>
+    <string name="stats_short_radial_sd">Spridning (SD)</string>
     <string name="stats_short_mean_score">Poäng</string>
     <string name="stats_trend_series_count">%1$d serier</string>
     <string name="stats_help_trend">Trend</string>
