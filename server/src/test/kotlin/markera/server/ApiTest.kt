@@ -340,6 +340,28 @@ class ApiTest {
     }
 
     @Test
+    fun aDeletedHoleIsKeptForTrainingButNeverReadBack() {
+        val dbFile = File.createTempFile("markera-deleted-holes", ".db").also { it.delete(); it.deleteOnExit() }
+        val live = Hole(1.0, 2.0, 9, true, 31.2, 9, true, 1.0, 2.0)
+        val gone = Hole(5.0, 6.0, 7, false, 80.0, 7, false, 5.0, 6.0)
+        Db(dbFile.path).use { db ->
+            val user = db.upsertUser("dev", "me", null)
+            val id = db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", listOf(live, gone))
+            // The app removes a hole by sending it back flagged deleted.
+            db.replaceSeries(id, SeriesRequest("2026-09-06T12:34:56Z", "9mm", listOf(live, gone.copy(deleted = true))))
+            assertEquals(listOf(live), db.getSeries(id)?.holes)
+            // A later wholesale replace (which no longer carries the hole) must not drop the stored row.
+            db.replaceSeries(id, SeriesRequest("2026-09-06T12:34:56Z", "22lr", listOf(live)))
+            assertEquals(listOf(live), db.getSeries(id)?.holes)
+        }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().executeQuery("SELECT ring FROM holes WHERE deleted = 1").use { rs ->
+                assertTrue(rs.next()); assertEquals(7, rs.getInt(1)); assertTrue(!rs.next())
+            }
+        }
+    }
+
+    @Test
     fun putNeedsToBeTheOwner() = apiTest { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(me.token)

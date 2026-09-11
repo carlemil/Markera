@@ -103,6 +103,8 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     // A plain State (not `by`), so the drag gesture — which is not recomposed —
     // reads and writes the current list.
     val holes = remember(series.id) { mutableStateOf(series.holes) }
+    // Holes the user removed: saved flagged `deleted` so the backend keeps them for training.
+    var removed by remember(series.id) { mutableStateOf(listOf<HoleDto>()) }
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
     // A score only ever comes from a position, so without geometry the holes
     // can't be edited at all.
@@ -254,7 +256,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                     SeriesRequest(
                                         series.timestamp,
                                         series.caliber,
-                                        holes.value,
+                                        holes.value + removed,
                                         series.geometry,
                                     ),
                                 )
@@ -320,6 +322,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
             onDismiss = { pendingDeleteIndex = null },
             onConfirm = {
                 pendingDeleteIndex = null
+                removed = removed + holes.value[index].copy(deleted = true)
                 holes.value = holes.value.filterIndexed { j, _ -> j != index }
             },
         )

@@ -36,6 +36,11 @@ data class HoleDto(
     /** Where the detector put the hole; null for a hand-placed or typed one. */
     val detectedX: Double? = null,
     val detectedY: Double? = null,
+    /**
+     * Removed by the user. Sent once so the backend keeps the detection as
+     * training data; the server never returns it and the cache never holds it.
+     */
+    val deleted: Boolean = false,
 )
 
 /**

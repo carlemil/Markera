@@ -98,15 +98,17 @@ class SeriesRepository(
 
     suspend fun update(id: Long, req: SeriesRequest) {
         api.updateSeries(id, req)
+        // Deleted holes go up for training and never come back down.
+        val kept = req.holes.filterNot { it.deleted }
         withContext(Dispatchers.Default) {
             val cached = _series.value.firstOrNull { it.id == id }
             insert(
                 cached?.copy(
                     timestamp = req.timestamp,
                     caliber = req.caliber,
-                    holes = req.holes,
+                    holes = kept,
                     geometry = req.geometry,
-                ) ?: SeriesDto(id, req.timestamp, req.caliber, req.holes, geometry = req.geometry),
+                ) ?: SeriesDto(id, req.timestamp, req.caliber, kept, geometry = req.geometry),
             )
             reload()
         }

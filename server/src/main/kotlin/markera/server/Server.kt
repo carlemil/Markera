@@ -88,6 +88,8 @@ data class Hole(
     /** Where the detector put the hole; [x]/[y] differing from it means the user dragged the marker. */
     val detectedX: Double? = null,
     val detectedY: Double? = null,
+    /** Removed by the user: stored for training, hidden from every read (the app never sees it again). */
+    val deleted: Boolean = false,
 )
 
 /**

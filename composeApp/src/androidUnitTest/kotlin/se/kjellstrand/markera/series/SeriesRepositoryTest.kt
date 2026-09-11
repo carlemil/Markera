@@ -9,6 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -211,5 +212,17 @@ class SeriesRepositoryTest {
         assertEquals(7L, id)
         assertEquals(listOf(7L), repo.series.value.map { it.id })
         assertEquals(1, recorded.size)
+    }
+
+    @Test
+    fun updateSendsDeletedHolesButKeepsThemOutOfTheCache() = runBlocking {
+        val repo = repo { respond("", HttpStatusCode.NoContent) }
+        val live = HoleDto(1.0, 2.0, 9, false, 31.2)
+        val gone = HoleDto(5.0, 6.0, 7, false, 80.0, detectedRing = 7, detectedInnerTen = false, deleted = true)
+
+        repo.update(3, SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(live, gone)))
+
+        assertTrue(""""deleted":true""" in (recorded.single().body as TextContent).text)
+        assertEquals(listOf(live), repo.series.value.single().holes)
     }
 }

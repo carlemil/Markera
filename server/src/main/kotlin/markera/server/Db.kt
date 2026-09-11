@@ -113,6 +113,10 @@ class Db(dbPath: String) : AutoCloseable {
                     "UPDATE holes SET detected_x = x, detected_y = y WHERE detected_x IS NULL AND detected_ring IS NOT NULL"
                 )
             }
+            // Databases created before holes were soft-deleted (kept as training data, hidden from every read).
+            if ("deleted" !in holeColumns && "detected_ring" in holeColumns) {
+                st.executeUpdate("ALTER TABLE holes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+            }
         }
     }
 
@@ -173,7 +177,10 @@ class Db(dbPath: String) : AutoCloseable {
         return seriesId
     }
 
-    /** Replaces a saved series wholesale: the app and the admin page both edit scores and marker positions. */
+    /**
+     * Replaces a saved series wholesale: the app and the admin page both edit scores and marker positions.
+     * Holes flagged [Hole.deleted] are stored but never read back, so earlier ones stay put (training data).
+     */
     @Synchronized
     fun replaceSeries(seriesId: Long, req: SeriesRequest) {
         conn.prepareStatement(
@@ -186,15 +193,15 @@ class Db(dbPath: String) : AutoCloseable {
             it.setLong(10, seriesId)
             it.executeUpdate()
         }
-        execute("DELETE FROM holes WHERE series_id = ?", seriesId)
+        execute("DELETE FROM holes WHERE series_id = ? AND deleted = 0", seriesId)
         insertHoles(seriesId, req.holes)
     }
 
     private fun insertHoles(seriesId: Long, holes: List<Hole>) {
         conn.prepareStatement(
             """INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten,
-                                 detected_x, detected_y)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+                                 detected_x, detected_y, deleted)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         ).use { st ->
             for (h in holes) {
                 st.setLong(1, seriesId)
@@ -207,6 +214,7 @@ class Db(dbPath: String) : AutoCloseable {
                 st.setObject(8, h.detectedInnerTen?.let { if (it) 1 else 0 })
                 st.setObject(9, h.detectedX)
                 st.setObject(10, h.detectedY)
+                st.setInt(11, if (h.deleted) 1 else 0)
                 st.addBatch()
             }
             st.executeBatch()
@@ -337,7 +345,7 @@ class Db(dbPath: String) : AutoCloseable {
         val holes = mutableListOf<Hole>()
         conn.prepareStatement(
             """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten, detected_x, detected_y
-               FROM holes WHERE series_id = ? ORDER BY id"""
+               FROM holes WHERE series_id = ? AND deleted = 0 ORDER BY id"""
         ).use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
@@ -396,7 +404,8 @@ class Db(dbPath: String) : AutoCloseable {
                detected_ring INTEGER,
                detected_inner_ten INTEGER,
                detected_x REAL,
-               detected_y REAL"""
+               detected_y REAL,
+               deleted INTEGER NOT NULL DEFAULT 0"""
     }
 }
 
