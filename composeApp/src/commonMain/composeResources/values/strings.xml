@@ -88,7 +88,14 @@
     <string name="stats_bucket_day">Dag</string>
     <string name="stats_bucket_week">Vecka</string>
     <string name="stats_bucket_month">Månad</string>
-    <string name="stats_split_caliber">Dela per kaliber</string>
+    <string name="stats_split_caliber">Per kaliber</string>
+    <!-- Trend chips: short forms of the measurement rows -->
+    <string name="stats_short_mean_distance">Till centrum</string>
+    <string name="stats_short_mean_pairwise">Mellan träffar</string>
+    <string name="stats_short_group_size">Grupp</string>
+    <string name="stats_short_mean_radius">Radie</string>
+    <string name="stats_short_radial_sd">SD</string>
+    <string name="stats_short_mean_score">Poäng</string>
     <string name="stats_trend_series_count">%1$d serier</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Fliken Trend ritar valfritt mått som en kurva över tid. Välj mått med knapparna, och om varje serie ska bli en punkt eller om serierna ska slås ihop per dag, vecka eller månad (då räknas måttet över alla serier i perioden). Dela per kaliber ger en kurva per kaliber. Filtren ovanför gäller båda flikarna. Tryck på en punkt för att läsa av den.</string>

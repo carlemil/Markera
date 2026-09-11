@@ -446,13 +446,14 @@ private fun TrendTab(
     }
 }
 
+/** Chip label: the short form of the measurement row's name. */
 private fun Metric.label() = when (this) {
-    Metric.MEAN_DISTANCE -> Res.string.stats_mean_distance
-    Metric.MEAN_PAIRWISE -> Res.string.stats_mean_pairwise
-    Metric.GROUP_SIZE -> Res.string.stats_group_size
-    Metric.MEAN_RADIUS -> Res.string.stats_mean_radius
-    Metric.RADIAL_SD -> Res.string.stats_radial_sd
-    Metric.SCORE -> Res.string.stats_mean_score
+    Metric.MEAN_DISTANCE -> Res.string.stats_short_mean_distance
+    Metric.MEAN_PAIRWISE -> Res.string.stats_short_mean_pairwise
+    Metric.GROUP_SIZE -> Res.string.stats_short_group_size
+    Metric.MEAN_RADIUS -> Res.string.stats_short_mean_radius
+    Metric.RADIAL_SD -> Res.string.stats_short_radial_sd
+    Metric.SCORE -> Res.string.stats_short_mean_score
 }
 
 /**
