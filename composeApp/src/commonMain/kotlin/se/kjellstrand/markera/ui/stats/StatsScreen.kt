@@ -149,8 +149,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     var preset by remember { mutableStateOf(DatePreset.ALL) }
     // Custom window as the picker hands it over: UTC start-of-day millis.
     var customRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
-    // null = "Alla": no hole-count filter, which is the default.
-    var hits by remember { mutableStateOf<Int?>(null) }
     var pickingDates by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
     // 0 = the target with the hit cloud, 1 = the measurements charted over time.
@@ -167,12 +165,12 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
         loading = false
     }
 
-    val filter = remember(caliber, preset, customRange, hits) {
+    val filter = remember(caliber, preset, customRange) {
         val range = customRange.takeIf { preset == DatePreset.CUSTOM }
         val from = range?.let { Instant.fromEpochMilliseconds(it.first) }
         val to = range?.let { Instant.fromEpochMilliseconds(it.second + DAY_MS - 1) }
         val (presetFrom, presetTo) = preset.range(Clock.System.now())
-        StatsFilter(caliber = caliber, from = from ?: presetFrom, to = to ?: presetTo, hits = hits)
+        StatsFilter(caliber = caliber, from = from ?: presetFrom, to = to ?: presetTo)
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
@@ -224,8 +222,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                         customRange = customRange,
                         onPreset = { preset = it },
                         onPickDates = { pickingDates = true },
-                        hits = hits,
-                        onHits = { hits = it?.coerceIn(1, 20) },
                     )
                     if (stats == null) {
                         Text(
@@ -313,8 +309,6 @@ private fun FilterRow(
     customRange: Pair<Long, Long>?,
     onPreset: (DatePreset) -> Unit,
     onPickDates: () -> Unit,
-    hits: Int?,
-    onHits: (Int?) -> Unit,
 ) {
     val chipColors = statsChipColors()
     // One child of the caller's 16 dp column, so only the filter rows sit tight.
@@ -371,23 +365,6 @@ private fun FilterRow(
             presetChip(DatePreset.WEEK, Res.string.stats_date_week)
             presetChip(DatePreset.MONTH, Res.string.stats_date_month)
             presetChip(DatePreset.YEAR, Res.string.stats_date_year)
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = hits == null,
-                onClick = { onHits(null) },
-                label = { Text(stringResource(Res.string.stats_caliber_all)) },
-                colors = chipColors,
-                border = null,
-            )
-            // The usual five-shot series is the only count worth a chip.
-            FilterChip(
-                selected = hits == 5,
-                onClick = { onHits(5) },
-                label = { Text(stringResource(Res.string.stats_hits_label, 5)) },
-                colors = chipColors,
-                border = null,
-            )
         }
     }
 }

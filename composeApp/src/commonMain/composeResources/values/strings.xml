@@ -68,7 +68,6 @@
     <string name="stats_date_range">%1$s – %2$s</string>
     <string name="stats_date_ok">Klar</string>
     <string name="stats_date_cancel">Avbryt</string>
-    <string name="stats_hits_label">%1$d träffar</string>
     <string name="stats_series">Serier</string>
     <string name="stats_hits">Träffar</string>
     <string name="stats_mean_distance">Medelavstånd till centrum</string>
@@ -107,7 +106,7 @@
     <string name="help_home_history">Historik</string>
     <string name="help_home_history_body">Alla sparade serier med bild, kaliber och poäng.</string>
     <string name="help_home_stats">Statistik</string>
-    <string name="help_home_stats_body">Träffbild och mått över tid, filtrerat på kaliber, datum och antal träffar.</string>
+    <string name="help_home_stats_body">Träffbild och mått över tid, filtrerat på kaliber och datum.</string>
     <string name="help_home_account">Konto</string>
     <string name="help_home_account_body">Logga in med Google för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto.</string>
 
@@ -148,7 +147,7 @@
 
     <!-- Statistik: hjälpdialogen -->
     <string name="stats_help">Om måtten</string>
-    <string name="stats_help_series">Antal serier som filtret (kaliber, datum och antal träffar) släpper igenom. Bara serier med sparad träffbild kan ritas ut och räknas med.</string>
+    <string name="stats_help_series">Antal serier som filtret (kaliber och datum) släpper igenom. Bara serier med sparad träffbild kan ritas ut och räknas med.</string>
     <string name="stats_help_hits">Totalt antal träffar i de serierna.</string>
     <string name="stats_help_mean_distance">Avståndet från tavlans centrum till varje träff, i millimeter, snittat över alla träffar.</string>
     <string name="stats_help_mean_pairwise">Avståndet mellan alla par av träffar inom en serie, snittat — och sedan snittat över serierna. Serier med bara en träff hoppas över.</string>
