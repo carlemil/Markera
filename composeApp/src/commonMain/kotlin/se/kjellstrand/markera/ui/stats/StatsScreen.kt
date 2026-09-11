@@ -156,7 +156,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     var tab by remember { mutableIntStateOf(0) }
     var metric by remember { mutableStateOf(Metric.SCORE) }
     var bucket by remember { mutableStateOf(Bucket.SERIES) }
-    var splitByCaliber by remember { mutableStateOf(false) }
+    var splitByCaliber by remember { mutableStateOf(true) }
 
     // The cache holds every series already; opening only asks for the delta.
     LaunchedEffect(auth, reload) {
