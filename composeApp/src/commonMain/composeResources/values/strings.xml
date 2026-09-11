@@ -86,6 +86,18 @@
     <string name="stats_impact_value">%1$d mm, %2$d mm</string>
     <!-- Compose resources do not unescape %%; a single % is the literal here. -->
     <string name="stats_percent">%1$d %</string>
+    <string name="stats_tab_target">Tavla</string>
+    <string name="stats_tab_trend">Trend</string>
+    <string name="stats_bucket_series">Per serie</string>
+    <string name="stats_bucket_day">Per dag</string>
+    <string name="stats_bucket_week">Per vecka</string>
+    <string name="stats_bucket_month">Per månad</string>
+    <string name="stats_split_caliber">Dela per kaliber</string>
+    <string name="stats_impact_x">Träffläge i sidled</string>
+    <string name="stats_impact_y">Träffläge i höjd</string>
+    <string name="stats_trend_series_count">%1$d serier</string>
+    <string name="stats_help_trend">Trend</string>
+    <string name="stats_help_trend_body">Fliken Trend ritar valfritt mått som en kurva över tid. Välj mått med knapparna, och om varje serie ska bli en punkt eller om serierna ska slås ihop per dag, vecka eller månad (då räknas måttet över alla serier i perioden). Dela per kaliber ger en kurva per kaliber. Filtren ovanför gäller båda flikarna. Tryck på en punkt för att läsa av den.</string>
 
     <!-- Hjälp: delas av alla skärmars (?)-dialog -->
     <string name="help">Hjälp</string>

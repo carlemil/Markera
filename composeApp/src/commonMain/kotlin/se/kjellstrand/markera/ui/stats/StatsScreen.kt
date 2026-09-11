@@ -38,6 +38,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
@@ -81,12 +83,16 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.utcDay
+import se.kjellstrand.markera.series.stats.Bucket
 import se.kjellstrand.markera.series.stats.DatePreset
+import se.kjellstrand.markera.series.stats.Metric
 import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.SeriesStatistics
 import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.statistics
+import se.kjellstrand.markera.series.stats.trend
+import se.kjellstrand.markera.series.stats.trendByCaliber
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
@@ -146,6 +152,11 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     var hits by remember { mutableStateOf<Int?>(null) }
     var pickingDates by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
+    // 0 = the target with the hit cloud, 1 = the measurements charted over time.
+    var tab by remember { mutableIntStateOf(0) }
+    var metric by remember { mutableStateOf(Metric.SCORE) }
+    var bucket by remember { mutableStateOf(Bucket.SERIES) }
+    var splitByCaliber by remember { mutableStateOf(false) }
 
     // The cache holds every series already; opening only asks for the delta.
     LaunchedEffect(auth, reload) {
@@ -176,6 +187,11 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 onBack = onBack,
                 actions = { HelpAction(onClick = { showingHelp = true }) },
             )
+            TabRow(selectedTabIndex = tab) {
+                listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend).forEachIndexed { i, label ->
+                    Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label)) })
+                }
+            }
             when {
                 auth == null -> Centered { Text(stringResource(Res.string.stats_signed_out)) }
 
@@ -216,11 +232,24 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    } else {
+                    } else if (tab == 0) {
                         TargetCanvas(plotted, stats)
                         AgeLegend(plotted)
                         MarkerLegend()
                         MeasurementRows(stats)
+                    } else {
+                        TrendTab(
+                            plotted = plotted,
+                            calibers = series.calibersWithGeometry(),
+                            metric = metric,
+                            onMetric = { metric = it },
+                            bucket = bucket,
+                            onBucket = { bucket = it },
+                            // One caliber filtered in leaves nothing to split.
+                            splitOffered = caliber == null && series.calibersWithGeometry().size >= 2,
+                            split = splitByCaliber,
+                            onSplit = { splitByCaliber = it },
+                        )
                     }
                 }
             }
@@ -254,6 +283,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 Res.string.stats_mean_score to Res.string.stats_help_mean_score,
                 Res.string.stats_tens_share to Res.string.stats_help_tens_share,
                 Res.string.stats_help_colours to Res.string.stats_help_colours_body,
+                Res.string.stats_help_trend to Res.string.stats_help_trend_body,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -360,6 +390,97 @@ private fun FilterRow(
             )
         }
     }
+}
+
+/** The Trend tab: which row, how the x axis buckets series, one line or one per caliber. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TrendTab(
+    plotted: List<PlottedSeries>,
+    /** Every caliber on any plottable series: a caliber's colour is its slot here, whatever the filter keeps. */
+    calibers: List<Caliber>,
+    metric: Metric,
+    onMetric: (Metric) -> Unit,
+    bucket: Bucket,
+    onBucket: (Bucket) -> Unit,
+    splitOffered: Boolean,
+    split: Boolean,
+    onSplit: (Boolean) -> Unit,
+) {
+    val chipColors = statsChipColors()
+    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Metric.entries.forEach {
+                FilterChip(
+                    selected = metric == it,
+                    onClick = { onMetric(it) },
+                    label = { Text(stringResource(it.label())) },
+                    colors = chipColors,
+                    border = null,
+                )
+            }
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                Bucket.SERIES to Res.string.stats_bucket_series,
+                Bucket.DAY to Res.string.stats_bucket_day,
+                Bucket.WEEK to Res.string.stats_bucket_week,
+                Bucket.MONTH to Res.string.stats_bucket_month,
+            ).forEach { (value, label) ->
+                FilterChip(
+                    selected = bucket == value,
+                    onClick = { onBucket(value) },
+                    label = { Text(stringResource(label)) },
+                    colors = chipColors,
+                    border = null,
+                )
+            }
+            if (splitOffered) {
+                FilterChip(
+                    selected = split,
+                    onClick = { onSplit(!split) },
+                    label = { Text(stringResource(Res.string.stats_split_caliber)) },
+                    colors = chipColors,
+                    border = null,
+                )
+            }
+        }
+    }
+    val lines = remember(plotted, calibers, metric, bucket, split, splitOffered) {
+        if (split && splitOffered) {
+            plotted.trendByCaliber(metric, bucket).map { (caliber, points) ->
+                TrendLine(caliber.label, TREND_COLOURS[calibers.indexOf(caliber).mod(TREND_COLOURS.size)], points)
+            }
+        } else {
+            listOf(TrendLine("", TREND_COLOURS[0], plotted.trend(metric, bucket)))
+        }
+    }
+    val mm = stringResource(Res.string.stats_mm, 0).removePrefix("0")
+    val percent = stringResource(Res.string.stats_percent, 0).removePrefix("0")
+    val format: (Double) -> String = when (metric) {
+        Metric.SCORE -> { v -> ((v * 10).roundToInt() / 10.0).toString() }
+        Metric.TENS_SHARE -> { v -> "${v.roundToInt()}$percent" }
+        else -> { v -> "${v.roundToInt()}$mm" }
+    }
+    val seriesCount = stringResource(Res.string.stats_trend_series_count, 0).removePrefix("0 ")
+    TrendChart(lines, format) { line, point ->
+        // A bucket starts at midnight, so only a per-series point carries a time of day.
+        val stamp = localStamp(point.at.toString()).let { if (bucket == Bucket.SERIES) it else it.take(10) }
+        val count = if (point.seriesCount > 1) " (${point.seriesCount} $seriesCount)" else ""
+        "${line.label} $stamp: ${format(point.value)}$count".trim()
+    }
+}
+
+private fun Metric.label() = when (this) {
+    Metric.MEAN_DISTANCE -> Res.string.stats_mean_distance
+    Metric.MEAN_PAIRWISE -> Res.string.stats_mean_pairwise
+    Metric.GROUP_SIZE -> Res.string.stats_group_size
+    Metric.MEAN_RADIUS -> Res.string.stats_mean_radius
+    Metric.RADIAL_SD -> Res.string.stats_radial_sd
+    Metric.IMPACT_X -> Res.string.stats_impact_x
+    Metric.IMPACT_Y -> Res.string.stats_impact_y
+    Metric.SCORE -> Res.string.stats_mean_score
+    Metric.TENS_SHARE -> Res.string.stats_tens_share
 }
 
 /**
