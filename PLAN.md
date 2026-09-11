@@ -193,6 +193,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 71 | Dragging a hole on the photo (scan + Serie page) holds it about 1 cm above the finger, so the finger does not cover the spot being placed (requested 2026-09-08) | done (2026-09-08; one change in `PhotoGestures.kt`; phone-checked: a 400 px swipe left the hole ~1 cm above the finger) |
 | 72 | Serie page: the Spara button sits right below the photo and stays greyed out until a hole was changed (requested 2026-09-08) | done (2026-09-08; the button was already disabled while unchanged, only moved) |
 | 73 | iOS version of the app (requested 2026-09-09): full parity on the simulator, shared Compose UI, bundle id `se.kjellstrand.markera`, competition wizard stays Android-only. Design + per-task status in `PLAN-IOS.md` | done 2026-09-10 on the simulator (C0–D1 in `PLAN-IOS.md`; commits 5b0a230…c4129b3); 1.5.0 (6) on TestFlight 2026-09-10; the device camera path is untested (no iPhone) |
+| 74 | Deleting a hole on the Serie screen keeps it in the backend for training: the PUT sends it flagged `deleted: true`, the server stores it (`holes.deleted`, migrated in place), never reads it back and leaves it alone on a later wholesale replace; the app cache filters it out of its own update (requested 2026-09-11) | done 2026-09-11 (d6ed647; server deployed to the Mac mini; scan-screen long-press still just drops the hole — picker 0 is the false-positive signal there) |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)
@@ -202,7 +203,8 @@ GET  /health                       -> 200 {"status":"ok"}
 POST /auth/google {idToken}        -> 200 {token, userId}
 POST /auth/apple  {idToken}        -> 200 {token, userId}
 POST /auth/dev    {subject}        -> 200 {token, userId}   (DEV_AUTH=true only)
-POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x?,y?,ring,innerTen,distanceMm?,detectedRing?,detectedInnerTen?}]}
+POST /series      Bearer, {timestamp (ISO-8601), caliber, holes:[{x?,y?,ring,innerTen,distanceMm?,detectedRing?,detectedInnerTen?,deleted?}]}
+                                   (a deleted:true hole is stored for training and never returned)
                                    -> 201 {id}
 GET  /series      Bearer, ?limit=N&before=<id>  -> 200 [{id, timestamp, caliber, holes:[...], hasImage, imageWidth, imageHeight}] newest first
 DELETE /series/{id}  Bearer          -> 204 (owner only; holes + image removed)
