@@ -144,8 +144,6 @@ class SeriesStatsTest {
         assertEquals(2.0, stats.impactYMm, 1e-9)
         // ring 10 or X: A's centred X and B's centred 10 → 2 of 5
         assertEquals(0.4, stats.tensShare, 1e-9)
-        assertEquals(2L to 27, stats.best!!.let { it.first.id to it.second })
-        assertEquals(1L to 19, stats.worst!!.let { it.first.id to it.second })
     }
 
     /** A 10 mm square, offset [dx] mm to the right: mean point at (dx+5, 5). */
@@ -213,16 +211,6 @@ class SeriesStatsTest {
         val evenStats = listOf(even).plotSeries(StatsFilter(hits = 4)).statistics()!!
         assertEquals(20.0, evenStats.medianXMm, 1e-9)
         assertEquals(-20.0, evenStats.medianYMm, 1e-9)
-    }
-
-    @Test
-    fun `equal totals hand best and worst to the earliest series`() {
-        val holes = fiveHoles(10, 9, 9, 8, 8)
-        val early = series(id = 1, timestamp = "2026-09-01T10:00:00Z", holes = holes)
-        val late = series(id = 2, timestamp = "2026-09-02T10:00:00Z", holes = holes)
-        val stats = listOf(late, early).plotSeries(StatsFilter(hits = 5)).statistics()!!
-        assertEquals(1L, stats.best!!.first.id)
-        assertEquals(1L, stats.worst!!.first.id)
     }
 
     @Test

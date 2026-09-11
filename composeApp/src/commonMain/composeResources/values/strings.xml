@@ -82,13 +82,10 @@
     <string name="stats_legend_median">Median</string>
     <string name="stats_mean_score">Medelpoäng</string>
     <string name="stats_tens_share">Andel tior</string>
-    <string name="stats_best">Bästa serie</string>
-    <string name="stats_worst">Sämsta serie</string>
     <string name="stats_mm">%1$d mm</string>
     <string name="stats_impact_value">%1$d mm, %2$d mm</string>
     <!-- Compose resources do not unescape %%; a single % is the literal here. -->
     <string name="stats_percent">%1$d %</string>
-    <string name="stats_series_value">%1$d · %2$s</string>
 
     <!-- Hjälp: delas av alla skärmars (?)-dialog -->
     <string name="help">Hjälp</string>
@@ -155,8 +152,6 @@
     <string name="stats_help_impact_median">Medianen av alla träffars x och y var för sig — mindre känslig för enstaka utliggare än medelpunkten. Ritas som ett × på tavlan.</string>
     <string name="stats_help_mean_score">Medelvärdet av seriernas totalpoäng.</string>
     <string name="stats_help_tens_share">Andelen träffar som är tia eller innertia.</string>
-    <string name="stats_help_extremes">Bästa och sämsta serie</string>
-    <string name="stats_help_extremes_body">Serien med högst respektive lägst totalpoäng, med datum. Vid lika poäng visas den äldsta.</string>
     <string name="stats_help_colours">Färgskalan</string>
     <string name="stats_help_colours_body">Träffarna färgas efter när serien sköts: skalan under tavlan går från den äldsta serien till vänster till den nyaste till höger.</string>
 

@@ -83,7 +83,7 @@ fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
     }
 }
 
-/** All distances in mm; [best]/[worst] are the series and its total, earliest on a tie. */
+/** All distances in mm. */
 data class SeriesStatistics(
     val seriesCount: Int,
     val hitCount: Int,
@@ -98,8 +98,6 @@ data class SeriesStatistics(
     val medianXMm: Double,
     val medianYMm: Double,
     val tensShare: Double,
-    val best: Pair<SeriesDto, Int>?,
-    val worst: Pair<SeriesDto, Int>?,
 )
 
 /**
@@ -134,8 +132,6 @@ fun List<PlottedSeries>.statistics(): SeriesStatistics? {
             hits.count { it.ring == 10 || it.innerTen }.toDouble() / hits.size
         },
         // Sorted oldest first and max/minByOrNull keep the first extreme, so ties go to the earliest.
-        best = maxByOrNull { it.series.total() }?.let { it.series to it.series.total() },
-        worst = minByOrNull { it.series.total() }?.let { it.series to it.series.total() },
     )
 }
 

@@ -253,7 +253,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 Res.string.stats_impact_median to Res.string.stats_help_impact_median,
                 Res.string.stats_mean_score to Res.string.stats_help_mean_score,
                 Res.string.stats_tens_share to Res.string.stats_help_tens_share,
-                Res.string.stats_help_extremes to Res.string.stats_help_extremes_body,
                 Res.string.stats_help_colours to Res.string.stats_help_colours_body,
             ),
             onDismiss = { showingHelp = false },
@@ -632,18 +631,6 @@ private fun MeasurementRows(stats: SeriesStatistics) {
             stringResource(Res.string.stats_tens_share),
             stringResource(Res.string.stats_percent, (stats.tensShare * 100).roundToInt()),
         )
-        stats.best?.let { (series, total) ->
-            Measurement(
-                stringResource(Res.string.stats_best),
-                stringResource(Res.string.stats_series_value, total, localStamp(series.timestamp)),
-            )
-        }
-        stats.worst?.let { (series, total) ->
-            Measurement(
-                stringResource(Res.string.stats_worst),
-                stringResource(Res.string.stats_series_value, total, localStamp(series.timestamp)),
-            )
-        }
     }
 }
 
