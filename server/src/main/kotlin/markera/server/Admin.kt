@@ -73,7 +73,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
     get("/admin/series/{id}") {
         if (unauthorized(password)) return@get
         val seriesId = pathId()
-        val series = db.getSeries(seriesId) ?: return@get notFound("Unknown series")
+        // Deleted holes ride along greyed out: they are training data, not part of the series' score.
+        val series = db.getSeries(seriesId, includeDeleted = true) ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId)
         val holes = series.holes.mapIndexed(::holeRow).joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
@@ -94,7 +95,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "Series ${series.id}",
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
                     "<p>${time(series.timestamp)} &middot; ${caliberSelect(series.caliber)} &middot; " +
-                    """total <span id="total">${series.holes.sumOf { it.ring }}</span></p>""" +
+                    """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></p>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
@@ -164,8 +165,12 @@ private fun markers(series: Series): String {
     return series.holes.mapIndexed { i, h ->
         val x = h.x ?: return@mapIndexed ""
         val y = h.y ?: return@mapIndexed ""
-        val color = if (h.detectedRing == null) "#ffb74d" else "#9ccc65"
-        """<div class="hit" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
+        val color = when {
+            h.deleted -> DELETED_COLOR
+            h.detectedRing == null -> "#ffb74d"
+            else -> "#9ccc65"
+        }
+        """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
             """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
     }.joinToString("")
 }
@@ -188,11 +193,19 @@ private fun geometrySvg(series: Series): String {
         """M${round2(g.centreX)} ${round2(g.centreY - arm)}V${round2(g.centreY + arm)}"/></svg>"""
 }
 
-/** One editable hole row. Cell order is fixed — the script addresses x/y/detected/mm/kind by index. */
+/**
+ * One editable hole row. Cell order is fixed — the script addresses x/y/detected/mm/kind by index. A
+ * deleted hole is a greyed, read-only row: it is shown for the record, never edited or re-saved.
+ */
 private fun holeRow(i: Int, h: Hole) =
-    """<tr data-i="$i"><td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
-        """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td><td>${manualSelect(h)}</td>""" +
-        """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td><td><button class="del">Delete</button></td></tr>"""
+    """<tr data-i="$i"${if (h.deleted) """ class="gone"""" else ""}><td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
+        """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td>""" +
+        """<td>${if (h.deleted) score(h.ring, h.innerTen) else manualSelect(h)}</td>""" +
+        """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td>""" +
+        """<td>${if (h.deleted) "" else """<button class="del">Delete</button>"""}</td></tr>"""
+
+/** The marker and row colour of a hole the user deleted in the app. */
+private const val DELETED_COLOR = "#8a6fb3"
 
 /** The confirmed score differs from the detected one, i.e. the manual column overrides the detected cell. */
 private fun overridden(h: Hole) =
@@ -229,6 +242,7 @@ private fun blob(series: Series) = stateJson.encodeToString(series).replace("</"
 
 /** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
 private fun kind(h: Hole): String {
+    if (h.deleted) return "deleted"
     val score = when {
         h.detectedRing == null -> if (h.x == null) "typed" else "manual"
         h.ring != h.detectedRing || h.innerTen != (h.detectedInnerTen == true) ->
@@ -301,6 +315,8 @@ font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;curso
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
+.gone{color:#8a6fb3;font-style:italic}
+.hit.gone{border-style:dashed;cursor:default}
 select,button{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
 .note{color:#a8b39a}
@@ -319,7 +335,7 @@ const placeable = !!(shot && S.imageWidth && S.imageHeight);
 const sc = (ring, x) => x ? 'X' : String(ring);
 const num = v => v == null ? '' : String(Math.round(v));
 const total = () => document.getElementById('total').textContent =
-    S.holes.reduce((t, h) => t + (h ? h.ring : 0), 0);
+    S.holes.reduce((t, h) => t + (h && !h.deleted ? h.ring : 0), 0);
 const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
 
 // The un-projection from scoreHits (HitScoring.kt): offset from the digit-row centre, rotated by -rotation,
@@ -405,7 +421,7 @@ if (placeable) {
   };
   shot.addEventListener('pointerdown', e => {
     const m = e.target.closest('.hit');
-    if (!m) return;
+    if (!m || m.classList.contains('gone')) return;
     e.preventDefault();
     m.setPointerCapture(e.pointerId);
     drag = m;
@@ -439,8 +455,10 @@ document.getElementById('save').onclick = () => {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
                           geometry: S.geometry,
-                          // Deleted rows are null; a positionless hole nobody gave a score is an "Add hole" left behind.
-                          holes: S.holes.filter(h => h && !(h.x == null && h.detectedRing == null && h.ring === 0))})
+                          // Deleted rows are null; a positionless hole nobody gave a score is an "Add hole" left behind;
+                          // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
+                          holes: S.holes.filter(h => h && !h.deleted &&
+                                                     !(h.x == null && h.detectedRing == null && h.ring === 0))})
   }).then(r => r.status === 204 ? location.reload()
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);

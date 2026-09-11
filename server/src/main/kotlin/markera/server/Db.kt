@@ -246,13 +246,14 @@ class Db(dbPath: String) : AutoCloseable {
         return users
     }
 
+    /** [includeDeleted] brings the soft-deleted holes along, flagged — the admin page shows them greyed. */
     @Synchronized
-    fun getSeries(seriesId: Long): Series? {
+    fun getSeries(seriesId: Long, includeDeleted: Boolean = false): Series? {
         conn.prepareStatement("$SERIES_SELECT WHERE id = ? AND deleted_at IS NULL").use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
                 if (!rs.next()) return null
-                return seriesRow(rs).copy(holes = holesOf(seriesId))
+                return seriesRow(rs).copy(holes = holesOf(seriesId, includeDeleted))
             }
         }
     }
@@ -341,11 +342,12 @@ class Db(dbPath: String) : AutoCloseable {
     private fun execute(sql: String, id: Long) =
         conn.prepareStatement(sql).use { it.setLong(1, id); it.executeUpdate() }
 
-    private fun holesOf(seriesId: Long): List<Hole> {
+    private fun holesOf(seriesId: Long, includeDeleted: Boolean = false): List<Hole> {
         val holes = mutableListOf<Hole>()
         conn.prepareStatement(
-            """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten, detected_x, detected_y
-               FROM holes WHERE series_id = ? AND deleted = 0 ORDER BY id"""
+            """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten, detected_x, detected_y,
+                      deleted
+               FROM holes WHERE series_id = ? ${if (includeDeleted) "" else "AND deleted = 0 "}ORDER BY id"""
         ).use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
@@ -353,6 +355,7 @@ class Db(dbPath: String) : AutoCloseable {
                     holes += Hole(
                         rs.doubleOrNull(1), rs.doubleOrNull(2), rs.getInt(3), rs.getInt(4) != 0, rs.doubleOrNull(5),
                         rs.intOrNull(6), rs.intOrNull(7)?.let { it != 0 }, rs.doubleOrNull(8), rs.doubleOrNull(9),
+                        deleted = rs.getInt(10) != 0,
                     )
                 }
             }

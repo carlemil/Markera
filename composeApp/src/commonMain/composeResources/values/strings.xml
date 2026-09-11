@@ -85,10 +85,10 @@
     <string name="stats_impact_value">%1$d mm, %2$d mm</string>
     <string name="stats_tab_target">Tavla</string>
     <string name="stats_tab_trend">Trend</string>
-    <string name="stats_bucket_series">Per serie</string>
-    <string name="stats_bucket_day">Per dag</string>
-    <string name="stats_bucket_week">Per vecka</string>
-    <string name="stats_bucket_month">Per månad</string>
+    <string name="stats_bucket_series">Serie</string>
+    <string name="stats_bucket_day">Dag</string>
+    <string name="stats_bucket_week">Vecka</string>
+    <string name="stats_bucket_month">Månad</string>
     <string name="stats_split_caliber">Dela per kaliber</string>
     <string name="stats_trend_series_count">%1$d serier</string>
     <string name="stats_help_trend">Trend</string>

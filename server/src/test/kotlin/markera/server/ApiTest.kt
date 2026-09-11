@@ -362,6 +362,27 @@ class ApiTest {
     }
 
     @Test
+    fun adminSeriesPageShowsDeletedHolesGreyedAndOutsideTheTotal() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val live = Hole(1.0, 2.0, 9, false, 31.2, 9, false, 1.0, 2.0)
+        val gone = Hole(5.0, 6.0, 7, false, 80.0, 7, false, 5.0, 6.0)
+        val id = client.createSeries(me.token, series().copy(holes = listOf(live, gone)))
+        client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series().copy(holes = listOf(live, gone.copy(deleted = true))))
+        }
+
+        val page = client.admin("/admin/series/$id").bodyAsText()
+        assertTrue("""<tr data-i="1" class="gone">""" in page, page)
+        assertTrue("<td>deleted</td>" in page)
+        assertTrue("""total <span id="total">9</span>""" in page)
+        // The editor state carries the flag, so the script keeps it out of the next PUT.
+        assertTrue(""""deleted":true""" in page)
+        // The app's own read still never sees it.
+        assertEquals(listOf(live), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes)
+    }
+
+    @Test
     fun putNeedsToBeTheOwner() = apiTest { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(me.token)
