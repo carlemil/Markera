@@ -97,12 +97,11 @@ data class SeriesStatistics(
     val impactYMm: Double,
     val medianXMm: Double,
     val medianYMm: Double,
-    val tensShare: Double,
 )
 
 /**
  * Group measurements over the plotted selection, or null when it is empty.
- * Per-hit means (distance, impact, tens share) run over every hit; the
+ * Per-hit means (distance, impact) run over every hit; the
  * per-series means (pairwise spread, group size, mean radius, score) average the
  * series, and a one-hole series has no pair so it sits out those three.
  * [SeriesStatistics.meanRadiusMm] and [SeriesStatistics.radialSdMm] measure the
@@ -128,10 +127,6 @@ fun List<PlottedSeries>.statistics(): SeriesStatistics? {
         impactYMm = impactY,
         medianXMm = hits.map { it.xMm }.median(),
         medianYMm = hits.map { it.yMm }.median(),
-        tensShare = if (hits.isEmpty()) 0.0 else {
-            hits.count { it.ring == 10 || it.innerTen }.toDouble() / hits.size
-        },
-        // Sorted oldest first and max/minByOrNull keep the first extreme, so ties go to the earliest.
     )
 }
 

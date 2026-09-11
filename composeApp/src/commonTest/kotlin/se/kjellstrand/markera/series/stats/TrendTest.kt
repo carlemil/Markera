@@ -41,8 +41,23 @@ class TrendTest {
         assertEquals(listOf(45.0, 45.0), perCaliber.getValue(Caliber.MM9).map { it.value })
         assertEquals(listOf(35.0), perCaliber.getValue(Caliber.LR22).map { it.value })
 
-        // Per series: one point each, oldest first, tens share as a percentage.
-        val each = all.trend(Metric.TENS_SHARE, Bucket.SERIES)
-        assertEquals(listOf(100.0, 0.0, 0.0, 0.0), each.map { it.value })
+        // Per series: one point each, oldest first.
+        val each = all.trend(Metric.SCORE, Bucket.SERIES)
+        assertEquals(listOf(50.0, 40.0, 35.0, 45.0), each.map { it.value })
+    }
+
+    @Test
+    fun fitIsTheLeastSquaresLineAndTheMean() {
+        val points = listOf(
+            series(1, "2026-09-01T00:00:00Z", "9mm", 8, 8, 8, 8, 8), // 40
+            series(2, "2026-09-02T00:00:00Z", "9mm", 9, 9, 9, 9, 9), // 45
+            series(3, "2026-09-03T00:00:00Z", "9mm", 8, 8, 8, 8, 9), // 41
+        ).plotSeries(StatsFilter()).trend(Metric.SCORE, Bucket.DAY, TimeZone.UTC)
+        val fit = points.fit()!!
+        assertEquals(42.0, fit.mean, 1e-9)
+        // Slope from the three-point least squares: (41 - 40) / 2 per day.
+        assertEquals(0.5, fit.slope * 24 * 60 * 60 * 1000, 1e-9)
+        assertEquals(41.5, fit.at(points[0].at), 1e-9)
+        assertEquals(null, points.take(1).fit())
     }
 }

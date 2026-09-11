@@ -24,8 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -41,8 +40,9 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import se.kjellstrand.markera.series.stats.TrendPoint
+import se.kjellstrand.markera.series.stats.fit
 
-/** One line on the chart: a caliber (or the whole selection) over time. */
+/** One series of marks on the chart: a caliber (or the whole selection) over time. */
 data class TrendLine(val label: String, val colour: Color, val points: List<TrendPoint>)
 
 /**
@@ -64,13 +64,15 @@ val TREND_COLOURS = listOf(
 private val CHART_HEIGHT = 220.dp
 private val Y_GUTTER = 52.dp
 private val X_GUTTER = 20.dp
-private val LINE = 2.dp
-private val MARK = 4.dp
+private val MARK = 5.dp
+private val FIT_LINE = 2.dp
+private val MEAN_LINE = 1.dp
 private const val DAY_MS = 24L * 60 * 60 * 1000
 
 /**
- * A line chart of [lines] over time with a recessive grid, first/last date on the
- * x axis and [format]ted ticks on the y axis. Tap near a point to read it off
+ * A scatterplot of [lines] over time with a recessive grid, first/last date on the
+ * x axis and [format]ted ticks on the y axis. Each series of marks gets its
+ * least-squares trend line and a dashed mean. Tap near a point to read it off
  * ([pointText] words it); the legend only appears with two or more lines.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -132,17 +134,25 @@ fun TrendChart(
             drawText(first, topLeft = Offset(left, bottom + 4.dp.toPx()))
             drawText(last, topLeft = Offset(right - last.size.width, bottom + 4.dp.toPx()))
 
-            val positions = mutableListOf<Triple<Int, Int, Offset>>()
-            lines.forEachIndexed { li, line ->
-                val path = Path()
-                line.points.forEachIndexed { pi, p ->
-                    val at = Offset(x(p.at.toEpochMilliseconds()), y(p.value))
-                    positions += Triple(li, pi, at)
-                    if (pi == 0) path.moveTo(at.x, at.y) else path.lineTo(at.x, at.y)
-                }
-                drawPath(path, line.colour, style = Stroke(LINE.toPx()))
+            // Trend (solid) and mean (dashed) under the marks, one pair per series of marks.
+            val dashes = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))
+            for (line in lines) {
+                val fit = line.points.fit() ?: continue
+                val faded = line.colour.copy(alpha = 0.7f)
+                val meanY = y(fit.mean)
+                drawLine(faded, Offset(left, meanY), Offset(right, meanY), MEAN_LINE.toPx(), pathEffect = dashes)
+                val x0 = line.points.first().at
+                val x1 = line.points.last().at
+                drawLine(
+                    faded,
+                    Offset(x(x0.toEpochMilliseconds()), y(fit.at(x0))),
+                    Offset(x(x1.toEpochMilliseconds()), y(fit.at(x1))),
+                    FIT_LINE.toPx(),
+                )
             }
-            // Marks after every line, so a mark is never crossed by another line.
+            val positions = lines.flatMapIndexed { li, line ->
+                line.points.mapIndexed { pi, p -> Triple(li, pi, Offset(x(p.at.toEpochMilliseconds()), y(p.value))) }
+            }
             for ((li, pi, at) in positions) {
                 val hit = selected == li to pi
                 // A surface ring so overlapping marks from two lines stay apart.

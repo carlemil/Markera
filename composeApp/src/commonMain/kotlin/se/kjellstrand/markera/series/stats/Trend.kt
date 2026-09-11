@@ -18,20 +18,17 @@ import se.kjellstrand.markera.series.Caliber
 
 /** One chartable row of the Statistik measurements. */
 enum class Metric {
-    MEAN_DISTANCE, MEAN_PAIRWISE, GROUP_SIZE, MEAN_RADIUS, RADIAL_SD, IMPACT_X, IMPACT_Y, SCORE, TENS_SHARE,
+    MEAN_DISTANCE, MEAN_PAIRWISE, GROUP_SIZE, MEAN_RADIUS, RADIAL_SD, SCORE,
 }
 
-/** The row's number; tens share as a percentage so it charts like the others. */
+/** The row's number. */
 fun SeriesStatistics.value(metric: Metric): Double = when (metric) {
     Metric.MEAN_DISTANCE -> meanDistanceMm
     Metric.MEAN_PAIRWISE -> meanPairwiseMm
     Metric.GROUP_SIZE -> meanGroupSizeMm
     Metric.MEAN_RADIUS -> meanRadiusMm
     Metric.RADIAL_SD -> radialSdMm
-    Metric.IMPACT_X -> impactXMm
-    Metric.IMPACT_Y -> impactYMm
     Metric.SCORE -> meanScore
-    Metric.TENS_SHARE -> tensShare * 100
 }
 
 /** How the x axis groups series: one point each, or one per calendar day/week/month. */
@@ -64,6 +61,28 @@ fun List<PlottedSeries>.trendByCaliber(
         .entries
         .sortedBy { it.key.ordinal }
         .associate { (caliber, group) -> caliber to group.trend(metric, bucket, zone) }
+
+/** A straight line through the points: value = [slope] * (ms since [origin]) + [intercept]. */
+data class TrendFit(val origin: Instant, val slope: Double, val intercept: Double, val mean: Double) {
+    fun at(t: Instant): Double = slope * (t.toEpochMilliseconds() - origin.toEpochMilliseconds()) + intercept
+}
+
+/**
+ * Least-squares line over time plus the plain mean; null with fewer than two
+ * distinct times (nothing to fit a slope to).
+ */
+fun List<TrendPoint>.fit(): TrendFit? {
+    if (size < 2) return null
+    val origin = first().at
+    val xs = map { (it.at.toEpochMilliseconds() - origin.toEpochMilliseconds()).toDouble() }
+    val ys = map { it.value }
+    val xMean = xs.average()
+    val yMean = ys.average()
+    val sxx = xs.sumOf { (it - xMean) * (it - xMean) }
+    if (sxx == 0.0) return null
+    val slope = xs.indices.sumOf { (xs[it] - xMean) * (ys[it] - yMean) } / sxx
+    return TrendFit(origin, slope, yMean - slope * xMean, yMean)
+}
 
 private fun bucketStart(at: Instant, bucket: Bucket, zone: TimeZone): Instant {
     if (bucket == Bucket.SERIES) return at

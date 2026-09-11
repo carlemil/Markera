@@ -142,8 +142,6 @@ class SeriesStatsTest {
         // x: 0+30+0+0+0 = 30; y: 0+0+40+0-30 = 10
         assertEquals(6.0, stats.impactXMm, 1e-9)
         assertEquals(2.0, stats.impactYMm, 1e-9)
-        // ring 10 or X: A's centred X and B's centred 10 → 2 of 5
-        assertEquals(0.4, stats.tensShare, 1e-9)
     }
 
     /** A 10 mm square, offset [dx] mm to the right: mean point at (dx+5, 5). */

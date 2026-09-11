@@ -281,7 +281,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 Res.string.stats_impact to Res.string.stats_help_impact,
                 Res.string.stats_impact_median to Res.string.stats_help_impact_median,
                 Res.string.stats_mean_score to Res.string.stats_help_mean_score,
-                Res.string.stats_tens_share to Res.string.stats_help_tens_share,
                 Res.string.stats_help_colours to Res.string.stats_help_colours_body,
                 Res.string.stats_help_trend to Res.string.stats_help_trend_body,
             ),
@@ -456,10 +455,8 @@ private fun TrendTab(
         }
     }
     val mm = stringResource(Res.string.stats_mm, 0).removePrefix("0")
-    val percent = stringResource(Res.string.stats_percent, 0).removePrefix("0")
     val format: (Double) -> String = when (metric) {
         Metric.SCORE -> { v -> ((v * 10).roundToInt() / 10.0).toString() }
-        Metric.TENS_SHARE -> { v -> "${v.roundToInt()}$percent" }
         else -> { v -> "${v.roundToInt()}$mm" }
     }
     val seriesCount = stringResource(Res.string.stats_trend_series_count, 0).removePrefix("0 ")
@@ -477,10 +474,7 @@ private fun Metric.label() = when (this) {
     Metric.GROUP_SIZE -> Res.string.stats_group_size
     Metric.MEAN_RADIUS -> Res.string.stats_mean_radius
     Metric.RADIAL_SD -> Res.string.stats_radial_sd
-    Metric.IMPACT_X -> Res.string.stats_impact_x
-    Metric.IMPACT_Y -> Res.string.stats_impact_y
     Metric.SCORE -> Res.string.stats_mean_score
-    Metric.TENS_SHARE -> Res.string.stats_tens_share
 }
 
 /**
@@ -748,10 +742,6 @@ private fun MeasurementRows(stats: SeriesStatistics) {
             ),
         )
         Measurement(stringResource(Res.string.stats_mean_score), ((stats.meanScore * 10).roundToInt() / 10.0).toString())
-        Measurement(
-            stringResource(Res.string.stats_tens_share),
-            stringResource(Res.string.stats_percent, (stats.tensShare * 100).roundToInt()),
-        )
     }
 }
 
