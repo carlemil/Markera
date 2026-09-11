@@ -233,7 +233,8 @@ class Db(dbPath: String) : AutoCloseable {
         conn.prepareStatement(
             """SELECT u.id, u.provider, u.subject, u.name, u.created_at, COUNT(s.id)
                FROM users u LEFT JOIN series s ON s.user_id = u.id AND s.deleted_at IS NULL $filter
-               GROUP BY u.id ORDER BY u.id DESC"""
+               GROUP BY u.id
+               ORDER BY COUNT(s.id) > 0 DESC, u.name IS NULL, u.name COLLATE NOCASE, u.id DESC"""
         ).use { st ->
             st.executeQuery().use { rs ->
                 while (rs.next()) {

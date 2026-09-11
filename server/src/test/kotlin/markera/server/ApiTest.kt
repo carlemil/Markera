@@ -383,6 +383,22 @@ class ApiTest {
     }
 
     @Test
+    fun usersListThoseWithSeriesFirstThenByName() {
+        val dbFile = File.createTempFile("markera-users", ".db").also { it.delete(); it.deleteOnExit() }
+        Db(dbFile.path).use { db ->
+            val ada = db.upsertUser("dev", "a", "Ada")
+            val zed = db.upsertUser("dev", "z", "zed")
+            val nameless = db.upsertUser("dev", "n", null)
+            val bo = db.upsertUser("dev", "b", "Bo")
+            for (user in listOf(zed, nameless, bo)) {
+                db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", listOf(Hole(null, null, 5, false, null)))
+            }
+            // With series: Bo, zed (case-insensitive), then the nameless one; Ada last with none.
+            assertEquals(listOf(bo, zed, nameless, ada), db.listUsers().map { it.id })
+        }
+    }
+
+    @Test
     fun putNeedsToBeTheOwner() = apiTest { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(me.token)
