@@ -99,7 +99,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
-                    """<p>$add<button id="delete" data-user="$userId">Delete</button>""" +
+                    """<p>$add<button id="undo" disabled>Undo delete</button> """ +
+                    """<button id="delete" data-user="$userId">Delete</button>""" +
                     """<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
                     """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
@@ -334,7 +335,7 @@ const placeable = !!(shot && S.imageWidth && S.imageHeight);
 const sc = (ring, x) => x ? 'X' : String(ring);
 const num = v => v == null ? '' : String(Math.round(v));
 const total = () => document.getElementById('total').textContent =
-    S.holes.reduce((t, h) => t + (h && !h.deleted ? h.ring : 0), 0);
+    S.holes.reduce((t, h) => t + (h && !h.deleted && !h.removed ? h.ring : 0), 0);
 const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
 
 // The un-projection from scoreHits (HitScoring.kt): offset from the digit-row centre, rotated by -rotation,
@@ -404,15 +405,25 @@ tbl.addEventListener('change', e => {
   save();
 });
 
-tbl.addEventListener('click', e => {
-  if (!e.target.classList.contains('del')) return;
-  const tr = e.target.closest('tr'), m = mark(tr.dataset.i);
-  S.holes[tr.dataset.i] = null;
-  tr.remove();
-  if (m) m.remove();
+// Deleting hides the row and marker and flags the hole; Undo unhides in reverse order. The stack
+// lives in this page only — a reload starts over with nothing to undo.
+const undone = [], undo = document.getElementById('undo');
+const setRemoved = (i, removed) => {
+  const h = S.holes[i], tr = tb.querySelector('tr[data-i="' + i + '"]'), m = mark(i);
+  h.removed = removed;
+  tr.hidden = removed;
+  if (m) m.hidden = removed;
+  undo.disabled = undone.length === 0;
   total();
   save();
+};
+tbl.addEventListener('click', e => {
+  if (!e.target.classList.contains('del')) return;
+  const i = e.target.closest('tr').dataset.i;
+  undone.push(i);
+  setRemoved(i, true);
 });
+undo.onclick = () => { if (undone.length) setRemoved(undone.pop(), false); };
 
 if (placeable) {
   let drag = null;
@@ -459,9 +470,9 @@ function save() {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
                           geometry: S.geometry,
-                          // Deleted rows are null; a positionless hole nobody gave a score is an "Add hole" left behind;
+                          // Removed rows are flagged (Undo brings them back); a positionless hole nobody gave a score is an "Add hole" left behind;
                           // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
-                          holes: S.holes.filter(h => h && !h.deleted &&
+                          holes: S.holes.filter(h => h && !h.deleted && !h.removed &&
                                                      !(h.x == null && h.detectedRing == null && h.ring === 0))})
   }).then(r => r.status === 204 ? msg.textContent = 'saved'
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),

@@ -702,6 +702,7 @@ class ApiTest {
         // No Save button: the script PUTs after every edit.
         assertTrue("""id="save"""" !in page, page)
         assertTrue("function save()" in page, page)
+        assertTrue("""<button id="undo" disabled>Undo delete</button>""" in page, page)
         assertTrue("""<button class="del">Delete</button>""" in page, page)
         assertTrue("""<div class="hit" data-i="0"""" in page, page)
         // The photo has a frame size, so nothing warns about placing markers and holes are added by
