@@ -99,8 +99,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
-                    """<p>$add<button id="save">Save</button> """ +
-                    """<button id="delete" data-user="$userId">Delete</button>""" +
+                    """<p>$add<button id="delete" data-user="$userId">Delete</button>""" +
                     """<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
                     """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
@@ -390,6 +389,7 @@ function addHole(x, y) {
     shot.appendChild(m);
   }
   refresh(i);
+  save();
 }
 
 tbl.addEventListener('change', e => {
@@ -401,6 +401,7 @@ tbl.addEventListener('change', e => {
   h.innerTen = v === 'X';
   h.ring = h.innerTen ? 10 : Number(v);
   refresh(i);
+  save();
 });
 
 tbl.addEventListener('click', e => {
@@ -410,6 +411,7 @@ tbl.addEventListener('click', e => {
   tr.remove();
   if (m) m.remove();
   total();
+  save();
 });
 
 if (placeable) {
@@ -434,7 +436,7 @@ if (placeable) {
     h.distanceMm = distanceMm(h);   // null without geometry: nothing left to measure against
     refresh(i);
   });
-  shot.addEventListener('pointerup', () => drag = null);
+  shot.addEventListener('pointerup', () => { if (drag) save(); drag = null; });
   // A click that is not on a marker drops a new hole there; a drag ends on its own marker, so it is skipped.
   shot.addEventListener('click', e => {
     if (e.target.closest('.hit')) return;
@@ -446,7 +448,9 @@ if (placeable) {
 const add = document.getElementById('add');
 if (add) add.onclick = () => addHole(null, null);
 
-document.getElementById('save').onclick = () => {
+// Every edit saves at once — there is no Save button. The state stays local, so no reload afterwards.
+document.getElementById('caliber').onchange = () => save();
+function save() {
   const msg = document.getElementById('msg');
   msg.textContent = 'saving...';
   fetch(location.pathname, {
@@ -459,10 +463,10 @@ document.getElementById('save').onclick = () => {
                           // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
                           holes: S.holes.filter(h => h && !h.deleted &&
                                                      !(h.x == null && h.detectedRing == null && h.ring === 0))})
-  }).then(r => r.status === 204 ? location.reload()
+  }).then(r => r.status === 204 ? msg.textContent = 'saved'
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
-};
+}
 
 const del = document.getElementById('delete');
 del.onclick = () => {

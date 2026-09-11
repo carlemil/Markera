@@ -699,7 +699,9 @@ class ApiTest {
         assertTrue("""<option value="7" selected>7</option>""" in page, page)
         // One manual select per hole, plus the blank one in the row template.
         assertEquals(4, Regex("""<select class="manual">""").findAll(page).count(), page)
-        assertTrue("""<button id="save">Save</button>""" in page, page)
+        // No Save button: the script PUTs after every edit.
+        assertTrue("""id="save"""" !in page, page)
+        assertTrue("function save()" in page, page)
         assertTrue("""<button class="del">Delete</button>""" in page, page)
         assertTrue("""<div class="hit" data-i="0"""" in page, page)
         // The photo has a frame size, so nothing warns about placing markers and holes are added by
