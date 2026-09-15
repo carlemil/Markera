@@ -120,9 +120,11 @@ private val HIT_SCALE = listOf(
     Color(0xFFFFD600), // yellow
     Color(0xFFFF3D00), // orange-red
 )
-// White: the only colour nowhere near HIT_SCALE; the shapes tell the two apart.
-private val MEAN_MARK = Color.White
-private val MEDIAN_MARK = Color.White
+// The two hue gaps HIT_SCALE leaves open: magenta (violet↔orange-red) and green
+// (cyan↔yellow); the + / × shapes and drawMark's dark halo still tell them apart
+// for colour-blind readers.
+private val MEAN_MARK = Color(0xFFFF00C8)
+private val MEDIAN_MARK = Color(0xFF00C853)
 
 /** Marker geometry, shared by the target and the legend (see [drawMark]). */
 private val MARK_ARM = 5.dp
