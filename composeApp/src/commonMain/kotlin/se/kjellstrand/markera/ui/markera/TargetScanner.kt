@@ -70,6 +70,8 @@ import se.kjellstrand.markera.vision.height
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
 import se.kjellstrand.markera.vision.refine67ToEdge
+import se.kjellstrand.markera.vision.ringCandidates
+import se.kjellstrand.markera.vision.sameRing
 import se.kjellstrand.markera.vision.scoreHits
 import se.kjellstrand.markera.vision.width
 
@@ -105,6 +107,18 @@ class TargetScanController(
      */
     var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?) -> Unit)? = null
 
+    /**
+     * What "Ny ring" needs from the last scan, so a retry skips OCR and the
+     * grayscale conversion. Main-thread only. Null without a digit centre.
+     */
+    private class RingRetry(val snapshot: PlatformImage, val gray: ByteArray, val seed: FittedEllipse?) {
+        var candidates: List<FittedEllipse>? = null
+        var next = 0
+    }
+
+    // ponytail: holds the last frame + its grayscale until the next scan; drop on reset if memory bites.
+    private var ringRetry: RingRetry? = null
+
     fun close() {
         detector.close()
         digitDetector.close()
@@ -124,6 +138,7 @@ class TargetScanController(
     ): Boolean {
         // Claim the detector; reject re-entry until this pass finishes.
         if (!detecting.compareAndSet(false, true)) return false
+        ringRetry = null
         viewModel.startDetect()
         scope.launch {
             try {
@@ -205,6 +220,61 @@ class TargetScanController(
         return landed
     }
 
+    /**
+     * "Ny ring": re-fit only the 6/7 ring on the frozen frame and rescore every
+     * hole against it, cycling through [ringCandidates] (computed once per
+     * frame). The centre stays the digit centre. Calls [onNothing] when no
+     * candidate differs from the ring on screen. Ignored mid-scan or without a
+     * digit centre.
+     */
+    fun retryRing(
+        viewModel: MarkeraViewModel,
+        snapshot: PlatformImage?,
+        scope: CoroutineScope,
+        onNothing: () -> Unit,
+    ) {
+        val state = viewModel.uiState.value
+        if (snapshot == null || state.phase != ScanPhase.IDLE) return
+        val centre = state.centre?.takeIf { it.method != CentreMethod.NONE } ?: return
+        val retry = ringRetry?.takeIf { it.snapshot === snapshot } ?: return
+        if (!detecting.compareAndSet(false, true)) return
+        scope.launch {
+            try {
+                val candidates = retry.candidates ?: withContext(Dispatchers.Default) {
+                    val started = TimeSource.Monotonic.markNow()
+                    ringCandidates(retry.gray, snapshot.width, snapshot.height, centre, retry.seed)
+                        .also { println("$TAG: ring candidates ${it.size} in ${started.elapsedNow()}") }
+                }.also { retry.candidates = it }
+                // Read after the search: the user may have edited holes meanwhile.
+                val now = viewModel.uiState.value
+                val current = now.ring
+                val step = candidates.indices.firstOrNull { i ->
+                    current == null || !sameRing(candidates[(retry.next + i) % candidates.size], current)
+                }
+                if (step == null) {
+                    onNothing()
+                    return@launch
+                }
+                val pick = (retry.next + step) % candidates.size
+                retry.next = pick + 1
+                val ring = candidates[pick]
+                // Hole i keeps its manual flag and detector original; a hole
+                // that was never scored (first scan had no ring) is a fresh detection.
+                val scores = now.detections.mapIndexed { i, d ->
+                    val fresh = scoreHits(listOf(d), centre, ring).first()
+                    now.scores.getOrNull(i)?.let { fresh.copy(manual = it.manual, original = it.original) } ?: fresh
+                }
+                viewModel.onRingRetried(ring, scores)
+                onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot, geometryDto(centre, ring))
+            } catch (t: Throwable) {
+                // Same as a failed scan: log and leave the frame as it was.
+                println("$TAG: ring retry failed " + t.stackTraceToString())
+            } finally {
+                detecting.store(false)
+            }
+        }
+    }
+
     /** The user long-pressed hole [index]: drop it, detected or hand-placed. */
     fun removeHit(viewModel: MarkeraViewModel, snapshot: PlatformImage?, index: Int) =
         editHoles(viewModel, snapshot) { _, _, _ ->
@@ -245,10 +315,12 @@ class TargetScanController(
         println("$TAG: digit OCR ${ocrStarted.elapsedNow()}")
         val centre = estimateCentre(digits, snapshot.width, snapshot.height)
         val ring = if (centre.method != CentreMethod.NONE) {
-            withContext(Dispatchers.Default) {
-                fit67RingFromDigits(digits, centre)?.let { seed ->
-                    refine67ToEdge(snapshot.toGrayscale(), snapshot.width, snapshot.height, seed)
-                }
+            val (gray, seed) = withContext(Dispatchers.Default) {
+                snapshot.toGrayscale() to fit67RingFromDigits(digits, centre)
+            }
+            ringRetry = RingRetry(snapshot, gray, seed)
+            seed?.let {
+                withContext(Dispatchers.Default) { refine67ToEdge(gray, snapshot.width, snapshot.height, it) }
             }
         } else {
             null

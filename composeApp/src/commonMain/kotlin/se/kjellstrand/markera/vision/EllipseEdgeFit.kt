@@ -27,7 +27,7 @@ class EdgeFitResult(
 )
 
 /** Bilinear luminance sample, clamped to the image. */
-private fun sampleLum(gray: ByteArray, width: Int, height: Int, x: Double, y: Double): Double {
+internal fun sampleLum(gray: ByteArray, width: Int, height: Int, x: Double, y: Double): Double {
     val xi = x.coerceIn(0.0, (width - 1).toDouble())
     val yi = y.coerceIn(0.0, (height - 1).toDouble())
     val x0 = xi.toInt()
@@ -143,7 +143,7 @@ fun radialEdgePoints(
 }
 
 /** Radius of ellipse [e] from its centre at image-frame polar angle [theta]. */
-private fun ellipseRadiusAt(e: FittedEllipse, theta: Double): Double {
+internal fun ellipseRadiusAt(e: FittedEllipse, theta: Double): Double {
     val a = e.semiMajor.toDouble()
     val b = e.semiMinor.toDouble()
     val c = cos(theta - e.rotationRad.toDouble())

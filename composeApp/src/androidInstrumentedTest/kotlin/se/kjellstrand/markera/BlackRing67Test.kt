@@ -20,8 +20,11 @@ import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.fit67RingFromDigits
 import se.kjellstrand.markera.vision.refine67ToEdge
+import se.kjellstrand.markera.vision.ringCandidates
 import java.io.File
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.max
 
 private const val TAG = "BlackRing67Test"
@@ -71,24 +74,37 @@ class BlackRing67Test {
                 } else {
                     null
                 }; val tPred = lap()
-                val gray = pred?.let { toGray(bmp) }; val tGray = lap()
+                val gray = if (centre.method != CentreMethod.NONE) toGray(bmp) else null; val tGray = lap()
                 val ref = pred?.let { refine67ToEdge(gray!!, bmp.width, bmp.height, it) }; val tRefine = lap()
+                val top = gray?.let { ringCandidates(it, bmp.width, bmp.height, centre, pred).firstOrNull() }
+                val tCandidates = lap()
                 if (pred != null) predicted++
                 if (ref != null) refined++
 
-                annotate(bmp, digits, centre.x, centre.y, centre.method != CentreMethod.NONE, pred, ref); val tDraw = lap()
+                annotate(bmp, digits, centre.x, centre.y, centre.method != CentreMethod.NONE, pred, ref, top); val tDraw = lap()
                 File(outDir, "${name.substringBeforeLast('.')}.png").outputStream().use {
                     bmp.compress(Bitmap.CompressFormat.PNG, 95, it)
                 }; val tWrite = lap()
-                val total = tRead + tDecode + tOcr + tCentre + tPred + tGray + tRefine + tDraw + tWrite
+                val total = tRead + tDecode + tOcr + tCentre + tPred + tGray + tRefine + tCandidates + tDraw + tWrite
                 val dims = "${bmp.width}x${bmp.height}"
                 bmp.recycle()
                 Log.i(TAG, "$name: centre=${centre.method} digits=${digits.size} predicted=${pred != null} refined=${ref != null}")
+                if (top != null && ref != null) {
+                    Log.i(
+                        TAG,
+                        "$name CANDIDATE top vs refined: dc=${hypot(top.cx - ref.cx, top.cy - ref.cy)}px " +
+                            "dMajor=${100f * abs(top.semiMajor - ref.semiMajor) / ref.semiMajor}% " +
+                            "dMinor=${100f * abs(top.semiMinor - ref.semiMinor) / ref.semiMinor}% " +
+                            "candidates=${tCandidates}ms",
+                    )
+                } else {
+                    Log.i(TAG, "$name CANDIDATE top=$top refined=$ref candidates=${tCandidates}ms")
+                }
                 Log.i(
                     TAG,
                     "$name TIMING $dims total=${total}ms | " +
                         "read=$tRead decode=$tDecode ocr=$tOcr centre=$tCentre " +
-                        "pred=$tPred gray=$tGray refine=$tRefine draw=$tDraw write=$tWrite",
+                        "pred=$tPred gray=$tGray refine=$tRefine candidates=$tCandidates draw=$tDraw write=$tWrite",
                 )
             }
         } finally {
@@ -153,6 +169,7 @@ class BlackRing67Test {
         haveCentre: Boolean,
         predicted: FittedEllipse?,
         refined: FittedEllipse?,
+        topCandidate: FittedEllipse?,
     ) {
         val canvas = Canvas(bmp)
         val s = max(2f, max(bmp.width, bmp.height) / 500f)
@@ -173,6 +190,12 @@ class BlackRing67Test {
         refined?.let {
             stroke.color = 0xFF00E676.toInt()
             stroke.strokeWidth = s * 2.5f
+            drawEllipse(canvas, it, stroke)
+        }
+        // top "Ny ring" candidate (magenta)
+        topCandidate?.let {
+            stroke.color = 0xFFFF00FF.toInt()
+            stroke.strokeWidth = s * 1.5f
             drawEllipse(canvas, it, stroke)
         }
         // centre crosshair (red)
