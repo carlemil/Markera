@@ -29,8 +29,10 @@ For each captured frame the app:
 
 1. **Detects the bullet holes** — a YOLOv8 ONNX model.
 2. **Finds the centre** — OCRs the ring digits and intersects the 6–9 digit rows.
-3. **Locates the 6/7 ring** — seeds a circle from the digits and snaps it to the
-   black→white rim, giving the perspective-tilted ellipse (scale + perspective).
+3. **Locates the 6/7 ring** — four probe disks, started where the digits predict
+   the boundary, settle on the black→white rim and an ellipse goes through them,
+   giving the perspective-tilted ellipse (scale + perspective). If that ellipse is
+   implausible, a circle seeded from the digits is snapped to the rim instead.
 4. **Scores each hole** — undoes the perspective with the ellipse, measures the
    distance from the centre in mm against the target spec, and assigns a ring
    with edge gauging. The top hits pre-fill the five score pickers, each hole is
@@ -107,7 +109,7 @@ landed on the true 6/7 ring; we need ~95%. **Status — not used as a standalone
 detector, but its radial edge-sampling and robust ellipse fit are reused** for
 the rim-snap step of the method below.
 
-### Black 6/7 ring: digits locate it, the rim shapes it — works, in use
+### Black 6/7 ring: digits locate it, the rim shapes it — works, now the fallback
 
 The rings are concentric, equally-spaced circles; under perspective the 6/7
 boundary projects to a tilted ellipse. The 6–9 digit boxes give the centre
@@ -126,7 +128,25 @@ broke at high camera tilt: the free `q`-sweep pushed an inner digit ~2× too far
 out, and a 5-DOF conic fit on a few, often one-sided digit points degenerated
 into slivers and drifted off-centre, amplifying misreads. Fixing `q` from the
 spec and taking the **shape from the rim** (digits only for centre + radius
-seed) is stable across tilt. **Status — in use.**
+seed) is stable across tilt. **Status — the fallback** for the probe disks
+below: on real scans the rim snap landed on the rim in only ~3 of 37 photos.
+
+### Black 6/7 ring: probe disks on the rim — works, in use
+
+From the digit centre, four start points go left/right along the horizontal
+digit row and up/down along the vertical one, each at the 6/7 distance that
+side's own digits predict (so a tilted target's near side starts further out).
+A 50 px disk on each start counts dark pixels (Otsu). A disk centred on the rim
+is very slightly more light than dark, because the black disk curves away. Each
+disk steps out or in by the offset the ratio implies, until it stops moving
+(travel capped at one ring width), and an ellipse goes exactly through the four
+final centres.
+
+**Why it works:** it only needs the local rim at four points the digits already
+pin down, so interior pasters, other printed rings and the paper edge don't
+compete. In the first on-phone run, every probe landed on the rim in 40 of 42
+scans. **Status — in use**, with the rim snap above as the fallback when the
+probe ellipse is implausible.
 
 ### Automatic scoring from the geometry — works, in use
 

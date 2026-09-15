@@ -20,6 +20,7 @@ import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.RingProbe
 import se.kjellstrand.markera.vision.RingProbeResult
 import se.kjellstrand.markera.vision.estimateCentre
+import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.fit67RingByProbes
 import se.kjellstrand.markera.vision.fit67RingFromDigits
 import se.kjellstrand.markera.vision.refine67ToEdge
@@ -146,6 +147,7 @@ class BlackRing67Test {
 
         var withCentre = 0
         var withEllipse = 0
+        val pathCounts = sortedMapOf<String, Int>()
         val detector = DigitDetector()
         try {
             for ((name, read) in images) {
@@ -154,11 +156,13 @@ class BlackRing67Test {
                 val digits = runBlocking { detector.detect(bmp) }
                 val centre = estimateCentre(digits, bmp.width, bmp.height)
                 val haveCentre = centre.method != CentreMethod.NONE
-                val result = if (haveCentre) {
-                    fit67RingByProbes(toGray(bmp), bmp.width, bmp.height, digits, centre, PROBE_DIAMETER_PX)
-                } else {
-                    null
+                val gray = if (haveCentre) toGray(bmp) else null
+                val result = gray?.let {
+                    fit67RingByProbes(it, bmp.width, bmp.height, digits, centre, PROBE_DIAMETER_PX)
                 }
+                // The scan's choice (probes if plausible, else refine), logged beside the probes.
+                val ringPath = gray?.let { fit67Ring(it, bmp.width, bmp.height, digits, centre) }?.path?.name ?: "NONE"
+                pathCounts[ringPath] = (pathCounts[ringPath] ?: 0) + 1
                 if (haveCentre) withCentre++
                 if (result?.ellipse != null) withEllipse++
 
@@ -183,7 +187,7 @@ class BlackRing67Test {
                 fun List<RingProbe>.fmt(f: (RingProbe) -> Any) = joinToString(",", "[", "]") { f(it).toString() }
                 Log.i(
                     TAG,
-                    "$id ${bmp.width}x${bmp.height}: centre=${centre.method} digits=${digits.size} " +
+                    "$id ${bmp.width}x${bmp.height}: centre=${centre.method} ring=$ringPath digits=${digits.size} " +
                         "start=${probes.fmt { "%.0f".format(Locale.US, hypot(it.startX - centre.x, it.startY - centre.y)) }} " +
                         "dark=${probes.fmt { "%.3f".format(Locale.US, it.darkFraction) }} " +
                         "iter=${probes.fmt { it.iterations }} " +
@@ -195,7 +199,7 @@ class BlackRing67Test {
         } finally {
             detector.close()
         }
-        Log.i(TAG, "probeRings summary: images=${images.size} withCentre=$withCentre withEllipse=$withEllipse")
+        Log.i(TAG, "probeRings summary: images=${images.size} withCentre=$withCentre withEllipse=$withEllipse ringPaths=$pathCounts")
         assertTrue("no overlays written", (outDir.listFiles()?.size ?: 0) > 0)
     }
 

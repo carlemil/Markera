@@ -65,11 +65,11 @@ import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.vision.centerSquare
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.filterByConfidence
+import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.fit67RingFromDigits
 import se.kjellstrand.markera.vision.height
 import se.kjellstrand.markera.vision.mapToImageSpace
 import se.kjellstrand.markera.vision.nonMaxSuppression
-import se.kjellstrand.markera.vision.refine67ToEdge
 import se.kjellstrand.markera.vision.ringCandidates
 import se.kjellstrand.markera.vision.sameRing
 import se.kjellstrand.markera.vision.scoreHits
@@ -325,9 +325,12 @@ class TargetScanController(
                 snapshot.toGrayscale() to fit67RingFromDigits(digits, centre)
             }
             ringRetry = RingRetry(snapshot, gray, seed)
-            seed?.let {
-                withContext(Dispatchers.Default) { refine67ToEdge(gray, snapshot.width, snapshot.height, it) }
+            val ringStarted = TimeSource.Monotonic.markNow()
+            val fit = withContext(Dispatchers.Default) {
+                fit67Ring(gray, snapshot.width, snapshot.height, digits, centre)
             }
+            println("$TAG: ring ${fit?.path ?: "none"} ${ringStarted.elapsedNow()}")
+            fit?.ellipse
         } else {
             null
         }

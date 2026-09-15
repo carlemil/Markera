@@ -7,6 +7,7 @@ import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -26,9 +27,47 @@ data class RingProbe(
 /** The four probes in left, right, top, bottom order, and the ellipse through their final centres. */
 data class RingProbeResult(val probes: List<RingProbe>, val ellipse: FittedEllipse?)
 
+/** Which method produced [RingFit.ellipse]. */
+enum class RingPath { PROBES, REFINE }
+
+data class RingFit(val ellipse: FittedEllipse, val path: RingPath)
+
 /**
- * Experimental 6/7 fit (not on the live scan path): four probe disks settle on
- * the black->white rim and an ellipse is drawn exactly through them.
+ * The scan's 6/7 ring: the probe-disk ellipse ([fit67RingByProbes]) when it is
+ * plausible, else the digit seed ([fit67RingFromDigits]) snapped to the rim by
+ * [refine67ToEdge]; null when neither has anything.
+ *
+ * Plausible: every on-image probe's dark share within 0.15 of 0.5, at most one
+ * probe off-image, the ellipse centre within 0.25 x semiMajor of the digit
+ * centre, not a sliver (minor/major >= 0.3), and semiMajor 0.5..1.7 x the seed
+ * radius when there is a seed.
+ */
+fun fit67Ring(
+    gray: ByteArray,
+    width: Int,
+    height: Int,
+    digits: List<DigitDetection>,
+    centre: CentreEstimate,
+): RingFit? {
+    if (centre.method == CentreMethod.NONE) return null
+    val seed = fit67RingFromDigits(digits, centre)
+    val probes = fit67RingByProbes(gray, width, height, digits, centre)
+    val e = probes?.ellipse
+    if (e != null) {
+        val fractions = probes.probes.map { it.darkFraction }
+        val plausible = fractions.count { it.isNaN() } <= 1 &&
+            fractions.all { it.isNaN() || abs(it - 0.5f) <= 0.15f } &&
+            hypot(e.cx - centre.x, e.cy - centre.y) <= 0.25f * e.semiMajor &&
+            e.semiMinor / e.semiMajor >= 0.3f &&
+            (seed == null || e.semiMajor in 0.5f * seed.semiMajor..1.7f * seed.semiMajor)
+        if (plausible) return RingFit(e, RingPath.PROBES)
+    }
+    return seed?.let { RingFit(refine67ToEdge(gray, width, height, it), RingPath.REFINE) }
+}
+
+/**
+ * Four probe disks settle on the black->white 6/7 rim and an ellipse is drawn
+ * exactly through them. The scan reaches it through [fit67Ring].
  *
  * Starts: left/right along the horizontal digit row, top/bottom along the
  * vertical one, from the digit [centre]. Each side's distance comes from its
@@ -42,7 +81,8 @@ data class RingProbeResult(val probes: List<RingProbe>, val ellipse: FittedEllip
  * turned into an edge offset with the straight-edge model
  * `f(t) = (pi - acos t + t*sqrt(1-t^2))/pi` and the probe steps outward by
  * `rho*(t_measured - t_target)`, until a step is under 0.5 px. Travel is capped
- * at half the side's ring width so a probe can't run on to a printed ring line.
+ * at one ring width (a start from misplaced OCR boxes can be half a ring short)
+ * so a probe can't run on past the next printed ring line.
  *
  * Null when there is no centre or no start distance.
  */
@@ -87,7 +127,7 @@ fun fit67RingByProbes(
         val ux = dirs[i][0]
         val uy = dirs[i][1]
         val start = sides[i]!![0]
-        val cap = sides[i]!![1] / 2
+        val cap = sides[i]!![1]
         var s = start
         var iterations = 0
         while (iterations < maxIterations) {

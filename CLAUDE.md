@@ -113,9 +113,12 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
 2. **Centre** — `DigitDetector` (ML Kit OCR on Android, Vision `VNRecognizeTextRequest`
    on iOS) reads ring digits; `estimateCentre`
    intersects the lines fit through the 6–9 digit rows.
-3. **6/7 ring** — `fit67RingFromDigits` seeds a circle from the digit centre + a robust
-   median radius, then `refine67ToEdge` snaps it to the black→white rim (a two-pass
-   radial edge scan). This `FittedEllipse` supplies scale + perspective.
+3. **6/7 ring** — `fit67Ring` (`RingProbe.kt`): four 50 px probe disks start on the
+   digit-predicted boundary along the two digit rows and step until their dark share
+   matches a disk centred on the rim; an ellipse goes exactly through them. If that
+   ellipse is implausible it falls back to `fit67RingFromDigits` (circle seed from the
+   digit centre + a robust median radius) → `refine67ToEdge` (two-pass radial edge
+   scan). This `FittedEllipse` supplies scale + perspective.
 4. **Score** — `scoreHits` un-projects each hole via the ellipse, converts px→mm against
    the fixed target spec (black 6/7 edge = 100 mm, rings every 25 mm, inner-X ≤ 12.5 mm),
    and assigns a ring with edge gauging. Results pre-fill the editable pickers.
