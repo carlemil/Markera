@@ -37,11 +37,17 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.time.TimeSource
@@ -600,6 +606,7 @@ private fun ScanningOverlay(
 @Composable
 private fun ViewfinderGuide(modifier: Modifier = Modifier) {
     val guideColor = Color(0xCCFFFFFF)
+    val textMeasurer = rememberTextMeasurer()
     Canvas(modifier = modifier) {
         val centre = Offset(size.width / 2f, size.height / 2f)
         val radius = 0.35f * min(size.width, size.height)
@@ -610,6 +617,21 @@ private fun ViewfinderGuide(modifier: Modifier = Modifier) {
             center = centre,
             style = Stroke(width = stroke),
         )
+        // Digits as printed: mid-band of the 25 mm rings either side of the 100 mm 6/7 edge.
+        val style = TextStyle(
+            color = guideColor,
+            fontSize = max(0.16f * radius, 12.sp.toPx()).toSp(),
+            fontWeight = FontWeight.Bold,
+            shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
+        )
+        for ((digit, factor) in listOf("7" to 0.875f, "6" to 1.125f)) {
+            val layout = textMeasurer.measure(digit, style)
+            val half = Offset(layout.size.width / 2f, layout.size.height / 2f)
+            val d = factor * radius
+            for (dir in listOf(Offset(-d, 0f), Offset(d, 0f), Offset(0f, -d), Offset(0f, d))) {
+                drawText(layout, topLeft = centre + dir - half)
+            }
+        }
         val arm = 16.dp.toPx()
         drawLine(
             color = guideColor,
