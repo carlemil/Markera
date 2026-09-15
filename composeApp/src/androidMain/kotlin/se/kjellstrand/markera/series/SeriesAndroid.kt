@@ -19,6 +19,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         val userId = longPreferencesKey("user_id")
         val provider = stringPreferencesKey("provider")
         val caliber = stringPreferencesKey("caliber")
+        val historyFilter = stringPreferencesKey("history_filter")
     }
 
     override suspend fun readCaliber(): Caliber =
@@ -26,6 +27,12 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeCaliber(caliber: Caliber) {
         dataStore.edit { it[Keys.caliber] = caliber.label }
+    }
+
+    override suspend fun readHistoryFilter(): String? = dataStore.data.first()[Keys.historyFilter]
+
+    override suspend fun writeHistoryFilter(value: String) {
+        dataStore.edit { it[Keys.historyFilter] = value }
     }
 
     override suspend fun read(): BackendAuth? {

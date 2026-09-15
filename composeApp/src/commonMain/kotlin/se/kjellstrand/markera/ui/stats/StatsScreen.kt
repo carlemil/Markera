@@ -94,6 +94,7 @@ import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.statistics
 import se.kjellstrand.markera.series.stats.trend
 import se.kjellstrand.markera.series.stats.trendByCaliber
+import se.kjellstrand.markera.series.stats.window
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
@@ -131,8 +132,6 @@ private val MARK_ARM = 5.dp
 private val MARK_HALO = 2.dp
 private val MARK_STROKE = 1.dp
 
-private const val DAY_MS = 24L * 60 * 60 * 1000
-
 /**
  * All saved series with geometry, filtered and drawn on one target: every hit
  * un-projected to target millimetres, coloured old → new, with the group
@@ -168,11 +167,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     }
 
     val filter = remember(caliber, preset, customRange) {
-        val range = customRange.takeIf { preset == DatePreset.CUSTOM }
-        val from = range?.let { Instant.fromEpochMilliseconds(it.first) }
-        val to = range?.let { Instant.fromEpochMilliseconds(it.second + DAY_MS - 1) }
-        val (presetFrom, presetTo) = preset.range(Clock.System.now())
-        StatsFilter(caliber = caliber, from = from ?: presetFrom, to = to ?: presetTo)
+        val (from, to) = preset.window(customRange, Clock.System.now())
+        StatsFilter(caliber = caliber, from = from, to = to)
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
@@ -463,7 +459,7 @@ private fun Metric.label() = when (this) {
  * borderless surface-variant pill — the stock outline made every chip look selected.
  */
 @Composable
-private fun statsChipColors() = FilterChipDefaults.filterChipColors(
+internal fun statsChipColors() = FilterChipDefaults.filterChipColors(
     containerColor = MaterialTheme.colorScheme.surfaceVariant,
     labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
     selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -472,7 +468,7 @@ private fun statsChipColors() = FilterChipDefaults.filterChipColors(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Unit) {
+internal fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Unit) {
     val state = rememberDateRangePickerState()
     DatePickerDialog(
         onDismissRequest = onDismiss,

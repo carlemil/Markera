@@ -5,6 +5,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -27,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,27 +53,36 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.scoreLine
+import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
+import se.kjellstrand.markera.series.utcDay
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
+import se.kjellstrand.markera.ui.stats.DateRangeDialog
+import se.kjellstrand.markera.ui.stats.statsChipColors
 
 /** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
 private const val THUMB_MAX_DIM = 256
 
 /** The cached series, newest first; opening asks the backend for a delta. */
+@OptIn(ExperimentalTime::class)
 @Composable
 fun SeriesHistoryScreen(
     services: SeriesServices,
@@ -86,6 +98,10 @@ fun SeriesHistoryScreen(
     var pending by remember { mutableStateOf<SeriesDto?>(null) }
     var exporting by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
+    var filter by remember { mutableStateOf(HistoryFilter()) }
+    // Guards against writing the still-default filter back before the saved one loaded.
+    var filterLoaded by remember { mutableStateOf(false) }
+    var pickingDates by remember { mutableStateOf(false) }
     // Thumbnails are small and few; one map for the screen beats a real image
     // loader (no Coil in this app).
     val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
@@ -99,6 +115,18 @@ fun SeriesHistoryScreen(
         error = services.repository.refresh()?.let { it.message ?: it.toString() }
         loading = false
     }
+
+    LaunchedEffect(Unit) {
+        filter = decodeHistoryFilter(services.store.readHistoryFilter())
+        filterLoaded = true
+    }
+
+    fun onFilter(new: HistoryFilter) {
+        filter = new
+        if (filterLoaded) scope.launch { services.store.writeHistoryFilter(new.encode()) }
+    }
+
+    val shown = remember(series, filter) { series.filteredBy(filter, Clock.System.now()) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -118,7 +146,7 @@ fun SeriesHistoryScreen(
                         )
                     } else {
                         IconButton(
-                            enabled = auth != null && series.isNotEmpty(),
+                            enabled = auth != null && shown.isNotEmpty(),
                             onClick = {
                                 exporting = true
                                 scope.launch {
@@ -127,6 +155,7 @@ fun SeriesHistoryScreen(
                                             exportSeriesZip(
                                                 services.repository,
                                                 services.cacheDir,
+                                                shown,
                                             ).toString(),
                                         )
                                     } catch (_: Throwable) {
@@ -164,24 +193,53 @@ fun SeriesHistoryScreen(
 
                 series.isEmpty() -> Centered { Text(stringResource(Res.string.history_empty)) }
 
-                else -> LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(series, key = { it.id }) { item ->
-                        SeriesCard(
-                            series = item,
-                            services = services,
-                            thumbnails = thumbnails,
-                            onClick = { onOpen(item) },
-                            onLongPress = { pending = item },
-                        )
+                else -> Column(modifier = Modifier.fillMaxSize()) {
+                    HistoryFilterRow(
+                        calibers = series.calibersPresent(),
+                        filter = filter,
+                        onFilter = ::onFilter,
+                        onPickDates = { pickingDates = true },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                    if (shown.isEmpty()) {
+                        Centered {
+                            Text(
+                                stringResource(Res.string.history_filter_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(shown, key = { it.id }) { item ->
+                                SeriesCard(
+                                    series = item,
+                                    services = services,
+                                    thumbnails = thumbnails,
+                                    onClick = { onOpen(item) },
+                                    onLongPress = { pending = item },
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (pickingDates) {
+        DateRangeDialog(
+            onDismiss = { pickingDates = false },
+            onPicked = { start, end ->
+                onFilter(filter.copy(customRange = start to end, preset = DatePreset.CUSTOM))
+                pickingDates = false
+            },
+        )
     }
 
     if (showingHelp) {
@@ -267,6 +325,82 @@ internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Composable
 private fun Centered(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+}
+
+/**
+ * The caliber (multi-select) and date (Statistik's single-select) chip rows.
+ * A caliber the user picked earlier still gets a chip even once it drops out of
+ * [calibers] (a filter no longer matched by any cached series), so it stays
+ * deselectable.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HistoryFilterRow(
+    calibers: List<Caliber>,
+    filter: HistoryFilter,
+    onFilter: (HistoryFilter) -> Unit,
+    onPickDates: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val chipColors = statsChipColors()
+    val offered = (calibers + filter.calibers).distinct().sortedBy { it.ordinal }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = filter.calibers.isEmpty(),
+                onClick = { onFilter(filter.copy(calibers = emptySet())) },
+                label = { Text(stringResource(Res.string.stats_caliber_all)) },
+                colors = chipColors,
+                border = null,
+            )
+            offered.forEach { c ->
+                FilterChip(
+                    selected = c in filter.calibers,
+                    onClick = {
+                        val next = if (c in filter.calibers) filter.calibers - c else filter.calibers + c
+                        onFilter(filter.copy(calibers = next))
+                    },
+                    label = { Text(if (c == Caliber.NONE) "–" else c.label) },
+                    colors = chipColors,
+                    border = null,
+                )
+            }
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val presetChip = @Composable { value: DatePreset, label: StringResource ->
+                FilterChip(
+                    selected = filter.preset == value,
+                    onClick = { onFilter(filter.copy(preset = value)) },
+                    label = { Text(stringResource(label)) },
+                    colors = chipColors,
+                    border = null,
+                )
+            }
+            presetChip(DatePreset.ALL, Res.string.stats_date_all)
+            FilterChip(
+                selected = filter.preset == DatePreset.CUSTOM,
+                onClick = onPickDates,
+                label = {
+                    Text(
+                        if (filter.preset == DatePreset.CUSTOM && filter.customRange != null) {
+                            stringResource(
+                                Res.string.stats_date_range,
+                                utcDay(filter.customRange.first),
+                                utcDay(filter.customRange.second),
+                            )
+                        } else {
+                            stringResource(Res.string.stats_date_custom)
+                        },
+                    )
+                },
+                colors = chipColors,
+                border = null,
+            )
+            presetChip(DatePreset.WEEK, Res.string.stats_date_week)
+            presetChip(DatePreset.MONTH, Res.string.stats_date_month)
+            presetChip(DatePreset.YEAR, Res.string.stats_date_year)
+        }
+    }
 }
 
 @Composable

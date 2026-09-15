@@ -73,20 +73,24 @@ fun holesCsv(series: List<SeriesDto>): String = buildString {
 private fun csvBytes(csv: String): ByteArray = "\uFEFF$csv".encodeToByteArray()
 
 /**
- * Everything the app has, as one zip in `cacheDir/export`: `series.csv`,
- * `holes.csv` and `images/<id>.jpg` for every series whose frame the cache can
- * hand over (an image that neither cache nor server gives is skipped silently).
- * Only the newest export is kept — the older ones go before it is written.
+ * Everything [series] has (every saved series by default), as one zip in
+ * `cacheDir/export`: `series.csv`, `holes.csv` and `images/<id>.jpg` for every
+ * series whose frame the cache can hand over (an image that neither cache nor
+ * server gives is skipped silently). Only the newest export is kept — the
+ * older ones go before it is written.
  *
  * `Dispatchers.Default`, not IO: kotlinx-io blocks, but common code has no IO.
  */
-suspend fun exportSeriesZip(repository: SeriesRepository, cacheDir: Path): Path =
+suspend fun exportSeriesZip(
+    repository: SeriesRepository,
+    cacheDir: Path,
+    series: List<SeriesDto> = repository.series.value,
+): Path =
     withContext(Dispatchers.Default) {
         val dir = Path(cacheDir, "export")
         SystemFileSystem.createDirectories(dir)
         SystemFileSystem.list(dir).forEach { SystemFileSystem.delete(it, mustExist = false) }
         val path = Path(dir, "markera-export-${exportStamp()}.zip")
-        val series = repository.series.value
         SystemFileSystem.sink(path).buffered().use { sink ->
             val zip = ZipWriter(sink)
             zip.entry("series.csv", csvBytes(seriesCsv(series)))

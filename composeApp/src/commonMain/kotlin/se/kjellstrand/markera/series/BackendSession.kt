@@ -16,6 +16,10 @@ interface BackendTokenStore {
     /** The chosen caliber shares this store but survives [clear] (sign-out). */
     suspend fun readCaliber(): Caliber = Caliber.NONE
     suspend fun writeCaliber(caliber: Caliber) {}
+
+    /** The Historik screen's encoded [se.kjellstrand.markera.ui.history.HistoryFilter]; also survives [clear]. */
+    suspend fun readHistoryFilter(): String? = null
+    suspend fun writeHistoryFilter(value: String) {}
 }
 
 /** In-memory store for tests. */

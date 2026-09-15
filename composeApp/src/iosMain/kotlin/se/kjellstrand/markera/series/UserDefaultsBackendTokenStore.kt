@@ -12,6 +12,7 @@ class UserDefaultsBackendTokenStore(
         const val USER_ID = "markera.backend.userId"
         const val PROVIDER = "markera.backend.provider"
         const val CALIBER = "markera.backend.caliber"
+        const val HISTORY_FILTER = "markera.backend.historyFilter"
     }
 
     override suspend fun readCaliber(): Caliber =
@@ -19,6 +20,11 @@ class UserDefaultsBackendTokenStore(
 
     override suspend fun writeCaliber(caliber: Caliber) =
         defaults.setObject(caliber.label, Keys.CALIBER)
+
+    override suspend fun readHistoryFilter(): String? = defaults.stringForKey(Keys.HISTORY_FILTER)
+
+    override suspend fun writeHistoryFilter(value: String) =
+        defaults.setObject(value, Keys.HISTORY_FILTER)
 
     override suspend fun read(): BackendAuth? {
         return BackendAuth(

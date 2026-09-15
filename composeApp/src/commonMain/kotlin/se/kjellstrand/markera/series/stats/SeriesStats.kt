@@ -34,6 +34,23 @@ enum class DatePreset(private val days: Int?) {
         days?.let { (now - it.days) to null } ?: (null to null)
 }
 
+private const val DAY_MS = 24L * 60 * 60 * 1000
+
+/**
+ * The `from..to` window for this preset, shared by Statistik and Historik so the two
+ * screens can't drift: [customRange] (the date picker's UTC start-of-day millis pair)
+ * only applies when this preset is [DatePreset.CUSTOM], and its end day runs through
+ * its last millisecond.
+ */
+@OptIn(ExperimentalTime::class)
+fun DatePreset.window(customRange: Pair<Long, Long>?, now: Instant): Pair<Instant?, Instant?> {
+    val range = customRange.takeIf { this == DatePreset.CUSTOM }
+    val from = range?.let { Instant.fromEpochMilliseconds(it.first) }
+    val to = range?.let { Instant.fromEpochMilliseconds(it.second + DAY_MS - 1) }
+    val (presetFrom, presetTo) = range(now)
+    return (from ?: presetFrom) to (to ?: presetTo)
+}
+
 @OptIn(ExperimentalTime::class)
 data class StatsFilter(
     /** null = every caliber. */
