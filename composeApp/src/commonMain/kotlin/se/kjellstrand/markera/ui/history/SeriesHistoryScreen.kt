@@ -124,10 +124,12 @@ fun SeriesHistoryScreen(
     fun onFilter(new: HistoryFilter) {
         filter = new
         if (filterLoaded) scope.launch { services.store.writeHistoryFilter(new.encode()) }
-        // A changed filter re-anchors the list on whatever item was first visible;
-        // pull it back to the newest series instead.
-        scope.launch { listState.scrollToItem(0) }
     }
+
+    // A changed filter re-anchors the keyed list on whatever item was first visible;
+    // pull it back to the newest series. Runs after the recomposition that swapped the
+    // list in: scrolling from onFilter hit the old list, and the key anchor won.
+    LaunchedEffect(filter) { listState.scrollToItem(0) }
 
     val shown = remember(series, filter) { series.filteredBy(filter, Clock.System.now()) }
 
