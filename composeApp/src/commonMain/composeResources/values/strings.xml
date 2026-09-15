@@ -5,8 +5,6 @@
     <string name="markera_detect">Detektera</string>
     <string name="markera_resume_live">Spara</string>
     <string name="markera_reset">Återställ</string>
-    <string name="markera_retry_ring">Ny ring</string>
-    <string name="markera_retry_ring_none">Hittade ingen annan ring</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
     <string name="markera_total_label">Summa</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
@@ -129,7 +127,7 @@
     <string name="help_scan_scan">Scanna</string>
     <string name="help_scan_scan_body">Fyll rutan med tavlan och tryck på Detektera. Markera hittar träffarna, ringarna och centrum och räknar poängen.</string>
     <string name="help_scan_edit">Justera träffar</string>
-    <string name="help_scan_edit_body">Tryck på en missad träff i bilden för att lägga till den. Dra en träff för att flytta den. Håll inne en träff för att ta bort den — du får bekräfta först. Nyp för att zooma. Sitter den gröna ringen fel trycker du på Ny ring, så letas 6/7-ringen upp på nytt i samma foto.</string>
+    <string name="help_scan_edit_body">Tryck på en missad träff i bilden för att lägga till den. Dra en träff för att flytta den. Håll inne en träff för att ta bort den — du får bekräfta först. Nyp för att zooma.</string>
     <string name="help_scan_score">Poäng</string>
     <string name="help_scan_score_body">Poängen räknas från träffens läge på tavlan. Sitter träffen rätt men poängen blev lite fel trycker du på poängrutan och väljer rätt poäng — träffen ligger kvar där den är. Flyttar du träffen räknas poängen om från det nya läget.</string>
     <string name="help_scan_caliber">Kaliber</string>

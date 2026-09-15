@@ -95,19 +95,15 @@ class RingProbeTest {
     fun `fit67Ring takes the probe ellipse when it sits on the rim`() {
         val fit = assertNotNull(fit67Ring(gray, w, h, digitsOff(listOf(-30.0, 30.0, 30.0, -30.0)), centre))
         println("fit67Ring = $fit")
-        assertEquals(RingPath.PROBES, fit.path)
-        assertTrue(abs(fit.ellipse.semiMajor - a) / a <= 0.01, "semiMajor ${fit.ellipse.semiMajor}")
+        assertTrue(abs(fit.semiMajor - a) / a <= 0.01, "semiMajor ${fit.semiMajor}")
     }
 
     @Test
-    fun `fit67Ring falls back to the refined digit seed when the probes find no rim`() {
+    fun `fit67Ring gives no ring when the probes find no rim`() {
         val digits = digitsOff(listOf(0.0, 0.0, 0.0, 0.0))
         // Uniform frame: every probe disk reads 0 dark, so the probe ellipse is implausible.
         val blank = ByteArray(w * h) { 220.toByte() }
-        val fit = assertNotNull(fit67Ring(blank, w, h, digits, centre))
-        assertEquals(RingPath.REFINE, fit.path)
-        // Uniform frame has no Otsu threshold, so refine67ToEdge hands the seed back.
-        assertEquals(fit67RingFromDigits(digits, centre), fit.ellipse)
+        assertEquals(null, fit67Ring(blank, w, h, digits, centre))
         // Too few digits for a seed (one side only, the others can't be mirrored): nothing.
         assertEquals(null, fit67Ring(blank, w, h, digits.take(4), centre))
         assertEquals(null, fit67Ring(gray, w, h, digits, CentreEstimate(0f, 0f, CentreMethod.NONE)))

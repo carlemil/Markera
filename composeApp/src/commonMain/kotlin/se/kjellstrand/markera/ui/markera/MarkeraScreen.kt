@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -56,9 +55,7 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
-import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.history.DeleteHoleDialog
-import se.kjellstrand.markera.vision.CentreMethod
 
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
@@ -84,11 +81,6 @@ fun MarkeraScreen(
     var showingHelp by remember { mutableStateOf(false) }
     // Long press only asks; the dialog's confirm is what removes the hole.
     var pendingDeleteIndex by remember { mutableStateOf<Int?>(null) }
-    val toast = LocalToast.current
-    val noOtherRing = stringResource(Res.string.markera_retry_ring_none)
-    val onRetryRing: () -> Unit = {
-        scanController.retryRing(viewModel, snapshotVm.snapshot, coroutineScope) { toast(noOtherRing) }
-    }
     val onSetScore: (Int, Int) -> Unit = { index, pick ->
         scanController.setScore(viewModel, snapshotVm.snapshot, index, pick)
     }
@@ -165,7 +157,6 @@ fun MarkeraScreen(
                         onScan = onDetectClick,
                         onResume = onResumeLive,
                         onReset = onReset,
-                        onRetryRing = onRetryRing,
                         onSetScore = onSetScore,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
@@ -178,7 +169,6 @@ fun MarkeraScreen(
                             onScan = onDetectClick,
                             onResume = onResumeLive,
                             onReset = onReset,
-                            onRetryRing = onRetryRing,
                             onSetScore = onSetScore,
                             landscape = true,
                             modifier = Modifier.fillMaxHeight().weight(1f),
@@ -297,7 +287,6 @@ private fun BottomArea(
     onScan: () -> Unit,
     onResume: () -> Unit,
     onReset: () -> Unit,
-    onRetryRing: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false,
@@ -320,7 +309,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onResume, onReset, onRetryRing, onSetScore, landscape)
+            else -> ResultsContent(uiState, onResume, onReset, onSetScore, landscape)
         }
     }
 }
@@ -351,7 +340,6 @@ private fun ResultsContent(
     uiState: MarkeraUiState,
     onResume: () -> Unit,
     onReset: () -> Unit,
-    onRetryRing: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
     landscape: Boolean,
 ) {
@@ -374,14 +362,6 @@ private fun ResultsContent(
                 letteredCount = uiState.scores.size,
                 editableCount = uiState.scores.size,
             )
-        }
-        // The centre is the digit centre; only the ring can be retried.
-        if (uiState.centre != null && uiState.centre.method != CentreMethod.NONE) {
-            OutlinedButton(onClick = onRetryRing) {
-                Icon(Icons.Default.Autorenew, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(Res.string.markera_retry_ring))
-            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(onClick = onReset) {

@@ -10,11 +10,14 @@ import kotlin.math.sqrt
  * and stays identical on iOS.
  *
  * The scale reference is the black 6/7 boundary (= ring-7 outer edge),
- * which is [TARGET_BLACK_RING_RADIUS_MM] (defined in TargetCalibration.kt);
+ * which is [TARGET_BLACK_RING_RADIUS_MM];
  * the detected 6/7 ellipse gives both that radius in pixels and the
  * perspective (a tilted circle). The centre always comes from the digit
  * rows ([CentreEstimate]), never the ellipse centre.
  */
+
+/** Black 7-ring outer radius in mm — used to convert pixels to mm. */
+const val TARGET_BLACK_RING_RADIUS_MM: Double = 100.0
 
 /** A hit whose scoring edge is within this radius counts as an inner-X. */
 const val INNER_TEN_RADIUS_MM: Double = 12.5
@@ -44,7 +47,7 @@ data class HitScore(
     val original: HitScore? = null,
     /**
      * [ring]/[isInnerTen] were set by tapping the score box, not derived from
-     * where the hole sits ([distanceMm] still is). Survives "Ny ring"; a drag
+     * where the hole sits ([distanceMm] still is). A drag
      * clears it, since then the position is the truth again.
      */
     val typed: Boolean = false,

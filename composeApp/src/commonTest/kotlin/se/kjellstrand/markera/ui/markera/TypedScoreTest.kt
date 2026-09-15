@@ -42,23 +42,6 @@ class TypedScoreTest {
     }
 
     @Test
-    fun aTypedScoreSurvivesNyRingRescoring() {
-        val typed = eight.withTypedScore(SCORE_PICKER_INNER_TEN)
-        // The new ring puts the same spot in ring 7, 70 mm out.
-        val fresh = HitScore(20f, 0f, 0f, 70.0, 7, false)
-
-        val rescored = fresh.rescoredFrom(typed)
-
-        assertEquals(10, rescored.ring)
-        assertTrue(rescored.isInnerTen)
-        assertTrue(rescored.typed)
-        assertEquals(70.0, rescored.distanceMm)
-        assertEquals(eight, rescored.original)
-        // An untyped hole just takes the new ring's score.
-        assertEquals(fresh, fresh.rescoredFrom(eight))
-    }
-
-    @Test
     fun aTypedScoreSurvivesRemovingAnotherHole() {
         val vm = scanned()
         vm.setScore(0, vm.uiState.value.scores[0].withTypedScore(6))

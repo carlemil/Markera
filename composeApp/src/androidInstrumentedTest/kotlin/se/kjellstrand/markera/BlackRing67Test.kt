@@ -22,104 +22,22 @@ import se.kjellstrand.markera.vision.RingProbeResult
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.fit67RingByProbes
-import se.kjellstrand.markera.vision.fit67RingFromDigits
-import se.kjellstrand.markera.vision.refine67ToEdge
-import se.kjellstrand.markera.vision.ringCandidates
 import java.io.File
 import java.util.Locale
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 
 private const val TAG = "BlackRing67Test"
-private const val DEVICE_DIR = "/data/local/tmp/ring-eval"
 private const val PROBE_DEVICE_DIR = "/data/local/tmp/ring-probe"
 private const val PROBE_DIAMETER_PX = 50
 
 /**
- * Real on-device 6/7-ring pipeline: ML Kit digits -> estimateCentre ->
- * fit67RingFromDigits (predict the boundary from the labelled digits) ->
- * refine67ToEdge (snap to the black/white edge). Writes one full-resolution
- * annotated overlay per image to filesDir/ring-overlays for the host to pull
- * and judge.
+ * On-device 6/7-ring probe fit ([fit67RingByProbes]) over real photos; writes
+ * annotated overlays for the host to pull and judge.
  */
 @RunWith(AndroidJUnit4::class)
 class BlackRing67Test {
-
-    @Test
-    fun detectRingsFromDigits() {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val names = String(shellReadBytes("$DEVICE_DIR/index.txt"))
-            .trim().lines().filter { it.isNotBlank() }
-        assertTrue("index.txt empty — push $DEVICE_DIR", names.isNotEmpty())
-        Log.i(TAG, "processing ${names.size} images")
-
-        val outDir = File(instrumentation.targetContext.filesDir, "ring-overlays")
-        outDir.deleteRecursively()
-        outDir.mkdirs()
-
-        var predicted = 0
-        var refined = 0
-        val detector = DigitDetector()
-        try {
-            for (name in names) {
-                var t = System.nanoTime()
-                fun lap(): Long {
-                    val now = System.nanoTime()
-                    val ms = (now - t) / 1_000_000
-                    t = now
-                    return ms
-                }
-
-                val bytes = shellReadBytes("$DEVICE_DIR/$name"); val tRead = lap()
-                val bmp = decodeMutable(bytes); val tDecode = lap()
-                val digits = runBlocking { detector.detect(bmp) }; val tOcr = lap()
-                val centre = estimateCentre(digits, bmp.width, bmp.height); val tCentre = lap()
-                val pred = if (centre.method != CentreMethod.NONE) {
-                    fit67RingFromDigits(digits, centre)
-                } else {
-                    null
-                }; val tPred = lap()
-                val gray = if (centre.method != CentreMethod.NONE) toGray(bmp) else null; val tGray = lap()
-                val ref = pred?.let { refine67ToEdge(gray!!, bmp.width, bmp.height, it) }; val tRefine = lap()
-                val top = gray?.let { ringCandidates(it, bmp.width, bmp.height, centre, pred).firstOrNull() }
-                val tCandidates = lap()
-                if (pred != null) predicted++
-                if (ref != null) refined++
-
-                annotate(bmp, digits, centre.x, centre.y, centre.method != CentreMethod.NONE, pred, ref, top); val tDraw = lap()
-                File(outDir, "${name.substringBeforeLast('.')}.png").outputStream().use {
-                    bmp.compress(Bitmap.CompressFormat.PNG, 95, it)
-                }; val tWrite = lap()
-                val total = tRead + tDecode + tOcr + tCentre + tPred + tGray + tRefine + tCandidates + tDraw + tWrite
-                val dims = "${bmp.width}x${bmp.height}"
-                bmp.recycle()
-                Log.i(TAG, "$name: centre=${centre.method} digits=${digits.size} predicted=${pred != null} refined=${ref != null}")
-                if (top != null && ref != null) {
-                    Log.i(
-                        TAG,
-                        "$name CANDIDATE top vs refined: dc=${hypot(top.cx - ref.cx, top.cy - ref.cy)}px " +
-                            "dMajor=${100f * abs(top.semiMajor - ref.semiMajor) / ref.semiMajor}% " +
-                            "dMinor=${100f * abs(top.semiMinor - ref.semiMinor) / ref.semiMinor}% " +
-                            "candidates=${tCandidates}ms",
-                    )
-                } else {
-                    Log.i(TAG, "$name CANDIDATE top=$top refined=$ref candidates=${tCandidates}ms")
-                }
-                Log.i(
-                    TAG,
-                    "$name TIMING $dims total=${total}ms | " +
-                        "read=$tRead decode=$tDecode ocr=$tOcr centre=$tCentre " +
-                        "pred=$tPred gray=$tGray refine=$tRefine candidates=$tCandidates draw=$tDraw write=$tWrite",
-                )
-            }
-        } finally {
-            detector.close()
-        }
-        Log.i(TAG, "predicted $predicted/${names.size}, refined $refined/${names.size}")
-        assertTrue("no overlays written", (outDir.listFiles()?.size ?: 0) > 0)
-    }
 
     /**
      * Probe-disk 6/7 fit ([fit67RingByProbes]) over the app's cached series
@@ -160,8 +78,8 @@ class BlackRing67Test {
                 val result = gray?.let {
                     fit67RingByProbes(it, bmp.width, bmp.height, digits, centre, PROBE_DIAMETER_PX)
                 }
-                // The scan's choice (probes if plausible, else refine), logged beside the probes.
-                val ringPath = gray?.let { fit67Ring(it, bmp.width, bmp.height, digits, centre) }?.path?.name ?: "NONE"
+                // The scan's choice (the probe ellipse if plausible, else no ring), logged beside the probes.
+                val ringPath = if (gray?.let { fit67Ring(it, bmp.width, bmp.height, digits, centre) } != null) "probes" else "none"
                 pathCounts[ringPath] = (pathCounts[ringPath] ?: 0) + 1
                 if (haveCentre) withCentre++
                 if (result?.ellipse != null) withEllipse++
@@ -313,52 +231,5 @@ class BlackRing67Test {
             paint,
         )
         canvas.restore()
-    }
-
-    private fun annotate(
-        bmp: Bitmap,
-        digits: List<se.kjellstrand.markera.vision.DigitDetection>,
-        cx: Float,
-        cy: Float,
-        haveCentre: Boolean,
-        predicted: FittedEllipse?,
-        refined: FittedEllipse?,
-        topCandidate: FittedEllipse?,
-    ) {
-        val canvas = Canvas(bmp)
-        val s = max(2f, max(bmp.width, bmp.height) / 500f)
-        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-
-        // digit boxes (blue) used as evidence
-        stroke.color = 0xFF00B0FF.toInt()
-        stroke.strokeWidth = s
-        digits.forEach { if (it.value in 6..9) canvas.drawRect(it.left, it.top, it.right, it.bottom, stroke) }
-
-        // predicted 6/7 ellipse from digits (faint yellow)
-        predicted?.let {
-            stroke.color = 0xFFFFC400.toInt()
-            stroke.strokeWidth = s * 1.5f
-            drawEllipse(canvas, it, stroke)
-        }
-        // refined to edge (green)
-        refined?.let {
-            stroke.color = 0xFF00E676.toInt()
-            stroke.strokeWidth = s * 2.5f
-            drawEllipse(canvas, it, stroke)
-        }
-        // top "Ny ring" candidate (magenta)
-        topCandidate?.let {
-            stroke.color = 0xFFFF00FF.toInt()
-            stroke.strokeWidth = s * 1.5f
-            drawEllipse(canvas, it, stroke)
-        }
-        // centre crosshair (red)
-        if (haveCentre) {
-            stroke.color = 0xFFFF1744.toInt()
-            stroke.strokeWidth = s * 2f
-            val arm = s * 12f
-            canvas.drawLine(cx - arm, cy, cx + arm, cy, stroke)
-            canvas.drawLine(cx, cy - arm, cx, cy + arm, stroke)
-        }
     }
 }

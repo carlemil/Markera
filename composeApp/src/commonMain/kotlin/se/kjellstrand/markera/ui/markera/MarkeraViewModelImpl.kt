@@ -82,10 +82,6 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         return state.scores.indexOfFirst { it === hit }
     }
 
-    override fun onRingRetried(ring: FittedEllipse, scores: List<HitScore>) {
-        _uiState.update { it.copy(ring = ring).withHoles(it.detections, scores) }
-    }
-
     override fun setScore(index: Int, hit: HitScore) {
         _uiState.update {
             if (index !in it.scores.indices) return@update it

@@ -8,8 +8,8 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Reuse the *real* pure-Kotlin vision pipeline (post-processing, calibration,
-// ellipse fit, hit scoring, …) straight from commonMain so this evaluation
+// Reuse the *real* pure-Kotlin vision pipeline (post-processing, ring probes,
+// hit scoring, …) straight from commonMain so this evaluation
 // harness exercises the same code the app runs. The expect/actual files
 // (HoleDetector: onnxruntime-android, DigitDetector/PlatformImage: ML Kit)
 // cannot compile in a plain JVM module, so we exclude them; a desktop ONNX

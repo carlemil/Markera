@@ -38,9 +38,10 @@ ANDROID_SERIAL=<serial> ./gradlew :composeApp:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=se.kjellstrand.markera.BlackRing67Test
 ```
 
-Some instrumented tests (`BlackRing67Test`, `CentreMosaicTest`) read images from the
-device at `/data/local/tmp/ring-eval/` (with an `index.txt`) and write annotated
-overlays to the app's `filesDir`, pulled back via `run-as`.
+Some instrumented tests read images from the device (with an `index.txt`) and write
+annotated overlays to the app's `filesDir`, pulled back via `run-as`:
+`BlackRing67Test.probeRings` reads `/data/local/tmp/ring-probe/` plus the app's cached
+series images, `CentreMosaicTest` reads `/data/local/tmp/centre-eval/`.
 
 The `:eval` module is a JVM tool that evaluates the hole-detection ONNX model against
 dataset images (the `/eval` project skill drives it):
@@ -115,19 +116,17 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    intersects the lines fit through the 6–9 digit rows.
 3. **6/7 ring** — `fit67Ring` (`RingProbe.kt`): four 50 px probe disks start on the
    digit-predicted boundary along the two digit rows and step until their dark share
-   matches a disk centred on the rim; an ellipse goes exactly through them. If that
-   ellipse is implausible it falls back to `fit67RingFromDigits` (circle seed from the
-   digit centre + a robust median radius) → `refine67ToEdge` (two-pass radial edge
-   scan). This `FittedEllipse` supplies scale + perspective.
+   matches a disk centred on the rim; an ellipse goes exactly through them. No
+   fallback: an implausible ellipse (checks include a size check against the
+   `fit67RingFromDigits` median-radius seed) means no ring, so no scores — the user
+   rescans or places holes by hand. This `FittedEllipse` supplies scale + perspective.
 4. **Score** — `scoreHits` un-projects each hole via the ellipse, converts px→mm against
    the fixed target spec (black 6/7 edge = 100 mm, rings every 25 mm, inner-X ≤ 12.5 mm),
    and assigns a ring with edge gauging. Results pre-fill the editable pickers.
 
 **Invariant:** the centre is *always* the digit-row intersection, never the ellipse
-centre — the ellipse only provides scale/shape. Several `vision/` files
-(`TargetCalibration`, `BlackRingCalibration`, `RansacEllipseFit`, dark-blob/`EllipseFit`
-moment fit) are earlier approaches kept for reference but **not on the live path**; the
-README's "Approaches" section says which is which.
+centre — the ellipse only provides scale/shape. The README's "Approaches" section
+records the earlier ring methods (their code was removed).
 
 `vision/` is pure-Kotlin `commonMain` (JVM-unit-tested: `HitScoringTest`,
 `CentreEstimatorTest`, `DetectionPostProcessTest`). Platform edges are `expect`/`actual`:

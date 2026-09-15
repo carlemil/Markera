@@ -27,20 +27,14 @@ data class RingProbe(
 /** The four probes in left, right, top, bottom order, and the ellipse through their final centres. */
 data class RingProbeResult(val probes: List<RingProbe>, val ellipse: FittedEllipse?)
 
-/** Which method produced [RingFit.ellipse]. */
-enum class RingPath { PROBES, REFINE }
-
-data class RingFit(val ellipse: FittedEllipse, val path: RingPath)
-
 /**
  * The scan's 6/7 ring: the probe-disk ellipse ([fit67RingByProbes]) when it is
- * plausible, else the digit seed ([fit67RingFromDigits]) snapped to the rim by
- * [refine67ToEdge]; null when neither has anything.
+ * plausible, else null (no ring, so no scores; there is no fallback).
  *
  * Plausible: every on-image probe's dark share within 0.15 of 0.5, at most one
  * probe off-image, the ellipse centre within 0.25 x semiMajor of the digit
- * centre, not a sliver (minor/major >= 0.3), and semiMajor 0.5..1.7 x the seed
- * radius when there is a seed.
+ * centre, not a sliver (minor/major >= 0.3), and semiMajor 0.5..1.7 x the
+ * [fit67RingFromDigits] radius when there is one.
  */
 fun fit67Ring(
     gray: ByteArray,
@@ -48,21 +42,55 @@ fun fit67Ring(
     height: Int,
     digits: List<DigitDetection>,
     centre: CentreEstimate,
-): RingFit? {
+): FittedEllipse? {
     if (centre.method == CentreMethod.NONE) return null
+    val probes = fit67RingByProbes(gray, width, height, digits, centre) ?: return null
+    val e = probes.ellipse ?: return null
     val seed = fit67RingFromDigits(digits, centre)
-    val probes = fit67RingByProbes(gray, width, height, digits, centre)
-    val e = probes?.ellipse
-    if (e != null) {
-        val fractions = probes.probes.map { it.darkFraction }
-        val plausible = fractions.count { it.isNaN() } <= 1 &&
-            fractions.all { it.isNaN() || abs(it - 0.5f) <= 0.15f } &&
-            hypot(e.cx - centre.x, e.cy - centre.y) <= 0.25f * e.semiMajor &&
-            e.semiMinor / e.semiMajor >= 0.3f &&
-            (seed == null || e.semiMajor in 0.5f * seed.semiMajor..1.7f * seed.semiMajor)
-        if (plausible) return RingFit(e, RingPath.PROBES)
+    val fractions = probes.probes.map { it.darkFraction }
+    val plausible = fractions.count { it.isNaN() } <= 1 &&
+        fractions.all { it.isNaN() || abs(it - 0.5f) <= 0.15f } &&
+        hypot(e.cx - centre.x, e.cy - centre.y) <= 0.25f * e.semiMajor &&
+        e.semiMinor / e.semiMajor >= 0.3f &&
+        (seed == null || e.semiMajor in 0.5f * seed.semiMajor..1.7f * seed.semiMajor)
+    return e.takeIf { plausible }
+}
+
+/**
+ * A 6/7 circle from the recognised ring digits, at the digit [centre] (never
+ * an ellipse centre). [fit67Ring] uses its radius as the size check and
+ * [fit67RingByProbes] as the start distance when no digit row gives one.
+ *
+ * Radius: each digit of value v sits at `rho_v = R67 - (v - 6.5)*w`, so scaling
+ * its distance from the centre by `R67/rho_v = 1 / (1 - (v-6.5)*q)` with the
+ * spec-fixed ring-width fraction `q = w/R67 = 0.25` maps it to ~the 6/7 radius;
+ * the **median** of those is a robust R67 estimate (OCR misreads get amplified
+ * to wildly different radii, so the median ignores them).
+ */
+fun fit67RingFromDigits(
+    digits: List<DigitDetection>,
+    centre: CentreEstimate,
+    minConf: Float = 0.3f,
+): FittedEllipse? {
+    if (centre.method == CentreMethod.NONE) return null
+    val usable = digits.filter { it.value in 6..9 && it.conf >= minConf }
+    if (usable.size < 5) return null
+    val cx = centre.x.toDouble()
+    val cy = centre.y.toDouble()
+
+    // Ring-width fraction from the known target spec: w / R67 (25 mm / 100 mm).
+    val q = (RING_RADII_MM[1] - RING_RADII_MM[0]) / TARGET_BLACK_RING_RADIUS_MM
+    val radii = ArrayList<Double>(usable.size)
+    for (d in usable) {
+        val denom = 1.0 - (d.value - 6.5) * q
+        if (denom <= 0.05) continue
+        radii.add(hypot(d.cx - cx, d.cy - cy) * (1.0 / denom))
     }
-    return seed?.let { RingFit(refine67ToEdge(gray, width, height, it), RingPath.REFINE) }
+    if (radii.size < 5) return null
+    radii.sort()
+    val r0 = radii[radii.size / 2] // median 6/7 radius, robust to misreads
+    if (r0 <= 1.0) return null
+    return FittedEllipse(cx.toFloat(), cy.toFloat(), r0.toFloat(), r0.toFloat(), 0f)
 }
 
 /**

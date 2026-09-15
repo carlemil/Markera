@@ -31,8 +31,8 @@ For each captured frame the app:
 2. **Finds the centre** — OCRs the ring digits and intersects the 6–9 digit rows.
 3. **Locates the 6/7 ring** — four probe disks, started where the digits predict
    the boundary, settle on the black→white rim and an ellipse goes through them,
-   giving the perspective-tilted ellipse (scale + perspective). If that ellipse is
-   implausible, a circle seeded from the digits is snapped to the rim instead.
+   giving the perspective-tilted ellipse (scale + perspective). There is no
+   fallback: if that ellipse is implausible the scan shows no ring and no scores.
 4. **Scores each hole** — undoes the perspective with the ellipse, measures the
    distance from the centre in mm against the target spec, and assigns a ring
    with edge gauging. The top hits pre-fill the five score pickers, each hole is
@@ -93,7 +93,7 @@ shape).
 bloat or dent the blob pulled it off, and it sometimes locked onto a small
 cluster of dark pasters. An "expected size ≈ viewfinder circle" prior removed the
 worst false positives but didn't fix the region-vs-edge mismatch. **Status — not
-used** (superseded by the rim-edge fit).
+used;** the code was removed after the probe disks replaced it (2026-09-15).
 
 ### Black 6/7 ring: fit to the edge with RANSAC — not used standalone (machinery reused)
 
@@ -105,11 +105,11 @@ printed numbers and the paper edge *outside* the black — and produced garbage;
 anchoring the search to a profile-estimated rim radius fixed that. The RANSAC
 version is precise on well-framed targets and robust to interior pasters, but it
 can fit the *wrong concentric ring*, and cut-off targets fail. Only ~30% of fits
-landed on the true 6/7 ring; we need ~95%. **Status — not used as a standalone
-detector, but its radial edge-sampling and robust ellipse fit are reused** for
-the rim-snap step of the method below.
+landed on the true 6/7 ring; we need ~95%. **Status — not used;** its radial
+edge-sampling and robust ellipse fit served the rim snap below, and the code was
+removed after the probe disks replaced it (2026-09-15).
 
-### Black 6/7 ring: digits locate it, the rim shapes it — works, now the fallback
+### Black 6/7 ring: digits locate it, the rim shapes it — not used
 
 The rings are concentric, equally-spaced circles; under perspective the 6/7
 boundary projects to a tilted ellipse. The 6–9 digit boxes give the centre
@@ -128,8 +128,10 @@ broke at high camera tilt: the free `q`-sweep pushed an inner digit ~2× too far
 out, and a 5-DOF conic fit on a few, often one-sided digit points degenerated
 into slivers and drifted off-centre, amplifying misreads. Fixing `q` from the
 spec and taking the **shape from the rim** (digits only for centre + radius
-seed) is stable across tilt. **Status — the fallback** for the probe disks
-below: on real scans the rim snap landed on the rim in only ~3 of 37 photos.
+seed) is stable across tilt. **Status — not used:** on real scans the rim snap
+landed on the rim in only ~3 of 37 photos. It was the probe disks' fallback
+until the code was removed after they replaced it (2026-09-15); the digit
+radius seed (`fit67RingFromDigits`) survives as the probes' size check.
 
 ### Black 6/7 ring: probe disks on the rim — works, in use
 
@@ -145,8 +147,8 @@ final centres.
 **Why it works:** it only needs the local rim at four points the digits already
 pin down, so interior pasters, other printed rings and the paper edge don't
 compete. In the first on-phone run, every probe landed on the rim in 40 of 42
-scans. **Status — in use**, with the rim snap above as the fallback when the
-probe ellipse is implausible.
+scans. **Status — in use**, with no fallback: an implausible probe ellipse means
+no ring.
 
 ### Automatic scoring from the geometry — works, in use
 

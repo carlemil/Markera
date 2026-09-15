@@ -44,12 +44,6 @@ interface MarkeraViewModel {
      */
     fun moveHit(index: Int, detection: Detection, hit: HitScore): Int
 
-    /**
-     * "Ny ring": the 6/7 [ring] was re-fitted on the same frame and every hole
-     * rescored against it ([scores] in the current hole order).
-     */
-    fun onRingRetried(ring: FittedEllipse, scores: List<HitScore>)
-
     /** The user typed hole [index]'s score: replace it with [hit], the hole stays put. */
     fun setScore(index: Int, hit: HitScore)
 
