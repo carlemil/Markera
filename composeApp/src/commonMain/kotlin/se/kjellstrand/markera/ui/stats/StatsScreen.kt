@@ -1,7 +1,6 @@
 package se.kjellstrand.markera.ui.stats
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +36,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -54,8 +53,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Brush
@@ -171,6 +170,10 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
+    // Tavla-only: which series (by index into `plotted`, oldest..newest) the target and
+    // measurements are narrowed to. Resets to the full range whenever `plotted` itself
+    // changes (a new filter, or a data refresh), same as the age colours it rides on.
+    var selection by remember(plotted) { mutableStateOf(0..plotted.lastIndex.coerceAtLeast(0)) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -227,10 +230,14 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else if (tab == 0) {
-                        TargetCanvas(plotted, stats)
-                        AgeLegend(plotted)
+                        val segment = remember(plotted, selection) {
+                            plotted.subList(selection.first, selection.last + 1)
+                        }
+                        val segmentStats = remember(segment) { segment.statistics() }
+                        TargetCanvas(segment, segmentStats)
+                        AgeLegend(plotted, selection) { selection = it }
                         MarkerLegend()
-                        MeasurementRows(stats)
+                        segmentStats?.let { MeasurementRows(it) }
                     } else {
                         TrendTab(
                             plotted = plotted,
@@ -679,32 +686,68 @@ private fun MarkerLegend() {
     }
 }
 
-/** Which end of the colour scale is which date. */
+/**
+ * The age colour scale, doubling as a two-knob range slider (one series or fewer:
+ * nothing to segment, so it's just the plain dotted bar). Dragging the knobs narrows
+ * [selection] — an index range into [plotted], oldest first — which the target and
+ * measurements above follow; hit colours always come from the full-range age, so a
+ * hit's colour still matches its dot's position on the bar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AgeLegend(plotted: List<PlottedSeries>) {
+private fun AgeLegend(plotted: List<PlottedSeries>, selection: IntRange, onSelection: (IntRange) -> Unit) {
     if (plotted.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(Brush.horizontalGradient(HIT_SCALE)),
-        )
+        if (plotted.size > 1) {
+            RangeSlider(
+                value = selection.first.toFloat()..selection.last.toFloat(),
+                onValueChange = { range ->
+                    // Snap to series positions: series count is small, so a plain
+                    // round-to-nearest is enough even where steps == 0 (n == 2).
+                    onSelection(range.start.roundToInt()..range.endInclusive.roundToInt())
+                },
+                valueRange = 0f..plotted.lastIndex.toFloat(),
+                steps = (plotted.size - 2).coerceAtLeast(0),
+                track = { AgeTrack(plotted) },
+            )
+        } else {
+            AgeTrack(plotted)
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                localStamp(plotted.first().series.timestamp),
+                localStamp(plotted[selection.first].series.timestamp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                localStamp(plotted.last().series.timestamp),
+                localStamp(plotted[selection.last].series.timestamp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/**
+ * The gradient bar itself, with a small dot at each series' own position — the same
+ * [PlottedSeries.age] fraction that colours its hits, so a dot always sits under the
+ * colour its hits are drawn in. Used both standalone (one series) and as the
+ * [RangeSlider]'s custom track, whose slot is already inset to the thumbs' travel
+ * width, so `fillMaxWidth()` here lines the dots up exactly under where the knobs snap.
+ */
+@Composable
+private fun AgeTrack(plotted: List<PlottedSeries>) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {
+        drawRoundRect(brush = Brush.horizontalGradient(HIT_SCALE), cornerRadius = CornerRadius(4.dp.toPx()))
+        val dotRadius = 2.dp.toPx()
+        val ringWidth = 0.75.dp.toPx()
+        plotted.forEach { s ->
+            val at = Offset(size.width * s.age, size.height / 2f)
+            drawCircle(BLACK, radius = dotRadius, center = at)
+            drawCircle(LINE_ON_BLACK, radius = dotRadius, center = at, style = Stroke(width = ringWidth))
         }
     }
 }
