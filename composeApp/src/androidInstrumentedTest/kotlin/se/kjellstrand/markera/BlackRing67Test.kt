@@ -122,8 +122,8 @@ class BlackRing67Test {
 
     /**
      * Probe-disk 6/7 fit ([fit67RingByProbes]) over the app's cached series
-     * images (`cacheDir/series/<id>.jpg`) plus any `*.jpg` pushed to
-     * [PROBE_DEVICE_DIR] (same name in both: the cache copy wins). Writes
+     * images (`cacheDir/series/<id>.jpg`) plus the `*.jpg` listed in
+     * [PROBE_DEVICE_DIR]/index.txt (same name in both: the cache copy wins). Writes
      * `filesDir/ring-probe/<id>.png` (full overlay) and `<id>-zoom.png` (the
      * four probe neighbourhoods at 2x).
      */
@@ -132,7 +132,7 @@ class BlackRing67Test {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val cached = File(context.cacheDir, "series").listFiles { f -> f.name.endsWith(".jpg") }
             .orEmpty().associate { it.name to { it.readBytes() } }
-        val pushed = String(shellReadBytes("ls $PROBE_DEVICE_DIR"))
+        val pushed = String(shellReadBytes("cat $PROBE_DEVICE_DIR/index.txt"))
             .lines().map { it.trim() }.filter { it.endsWith(".jpg") }
             .associateWith { name -> { shellReadBytes("$PROBE_DEVICE_DIR/$name") } }
         val images = (pushed + cached).toList()
