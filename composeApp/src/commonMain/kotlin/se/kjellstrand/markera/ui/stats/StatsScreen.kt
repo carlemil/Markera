@@ -111,19 +111,17 @@ private val BLACK = Color(0xFF15151A)
 private val LINE_ON_BLACK = Color(0xFFEDEDED)
 private val LINE_ON_PAPER = Color(0xFF6B6455)
 /**
- * Oldest → newest hit colours, also the legend's gradient bar. Saturated the whole
- * way so every stop stands out against both the cream paper and the black centre.
+ * Oldest → newest hit colours, also the legend's gradient bar: one continuous
+ * blue → yellow gradient, its two far-apart ends keeping early and late series
+ * easy to tell apart. The black outline on each hit keeps the pale yellow end
+ * visible against the cream paper.
  */
 private val HIT_SCALE = listOf(
-    Color(0xFF7C4DFF), // violet
-    Color(0xFF00B0FF), // blue
-    Color(0xFF00E5CC), // cyan
-    Color(0xFFFFD600), // yellow
-    Color(0xFFFF3D00), // orange-red
+    Color(0xFF304FFE), // blue
+    Color(0xFFFFEA00), // yellow
 )
-// The two hue gaps HIT_SCALE leaves open: magenta (violet↔orange-red) and green
-// (cyan↔yellow); the + / × shapes and drawMark's dark halo still tell them apart
-// for colour-blind readers.
+// Magenta and green sit far from both the blue and the yellow end; the + / ×
+// shapes and drawMark's dark halo still tell them apart for colour-blind readers.
 private val MEAN_MARK = Color(0xFFFF00C8)
 private val MEDIAN_MARK = Color(0xFF00C853)
 
