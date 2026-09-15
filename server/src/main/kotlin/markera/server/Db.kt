@@ -247,14 +247,17 @@ class Db(dbPath: String) : AutoCloseable {
         return users
     }
 
-    /** [includeDeleted] brings the soft-deleted holes along, flagged — the admin page shows them greyed. */
+    /**
+     * [includeDeleted] (the admin page) also finds a soft-deleted series, as a full row flagged [Series.deleted],
+     * and brings the soft-deleted holes along, flagged — the page shows both greyed.
+     */
     @Synchronized
     fun getSeries(seriesId: Long, includeDeleted: Boolean = false): Series? {
-        conn.prepareStatement("$SERIES_SELECT WHERE id = ? AND deleted_at IS NULL").use { st ->
+        conn.prepareStatement("$SERIES_SELECT WHERE id = ?${liveOnly(includeDeleted)}").use { st ->
             st.setLong(1, seriesId)
             st.executeQuery().use { rs ->
                 if (!rs.next()) return null
-                return seriesRow(rs).copy(holes = holesOf(seriesId, includeDeleted))
+                return seriesRow(rs, tombstone = false).copy(holes = holesOf(seriesId, includeDeleted))
             }
         }
     }
@@ -276,8 +279,8 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     @Synchronized
-    fun seriesOwner(seriesId: Long): Long? {
-        conn.prepareStatement("SELECT user_id FROM series WHERE id = ? AND deleted_at IS NULL").use {
+    fun seriesOwner(seriesId: Long, includeDeleted: Boolean = false): Long? {
+        conn.prepareStatement("SELECT user_id FROM series WHERE id = ?${liveOnly(includeDeleted)}").use {
             it.setLong(1, seriesId)
             it.executeQuery().use { rs -> return if (rs.next()) rs.getLong(1) else null }
         }
@@ -285,18 +288,24 @@ class Db(dbPath: String) : AutoCloseable {
 
     /**
      * Newest id first — the order the `id < before` cursor pages in; the app sorts by timestamp itself.
-     * [beforeId] is the last id of the previous page.
+     * [beforeId] is the last id of the previous page. [includeDeleted] (the admin page) lists soft-deleted series
+     * too, as full rows flagged [Series.deleted].
      */
     @Synchronized
-    fun listSeries(userId: Long, limit: Int = Int.MAX_VALUE, beforeId: Long? = null): List<Series> {
+    fun listSeries(
+        userId: Long,
+        limit: Int = Int.MAX_VALUE,
+        beforeId: Long? = null,
+        includeDeleted: Boolean = false,
+    ): List<Series> {
         val series = mutableListOf<Series>()
         val before = if (beforeId == null) "" else " AND id < $beforeId" // a Long, never client text
         conn.prepareStatement(
-            "$SERIES_SELECT WHERE user_id = ? AND deleted_at IS NULL$before ORDER BY id DESC LIMIT ?"
+            "$SERIES_SELECT WHERE user_id = ?${liveOnly(includeDeleted)}$before ORDER BY id DESC LIMIT ?"
         ).use { st ->
             st.setLong(1, userId)
             st.setInt(2, limit)
-            st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs) }
+            st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs, tombstone = false) }
         }
         return series.map { it.copy(holes = holesOf(it.id)) }
     }
@@ -318,12 +327,22 @@ class Db(dbPath: String) : AutoCloseable {
         return series.map { if (it.deleted) it else it.copy(holes = holesOf(it.id)) }
     }
 
-    /** Soft delete: the row stays as a tombstone for the delta, but its holes are dropped with the image. */
+    /**
+     * Soft delete: hidden from every user read and a tombstone in the delta, but the row, its holes and its image
+     * stay (the admin page can restore it); only [deleteAccount] removes them.
+     */
     @Synchronized
     fun deleteSeries(seriesId: Long) {
-        execute("DELETE FROM holes WHERE series_id = ?", seriesId)
         execute("UPDATE series SET deleted_at = $NOW, updated_at = $NOW WHERE id = ?", seriesId)
     }
+
+    /** Undoes [deleteSeries] (the admin page). The new `updated_at` puts it back in the delta as a live series. */
+    @Synchronized
+    fun restoreSeries(seriesId: Long) {
+        execute("UPDATE series SET deleted_at = NULL, updated_at = $NOW WHERE id = ? AND deleted_at IS NOT NULL", seriesId)
+    }
+
+    private fun liveOnly(includeDeleted: Boolean) = if (includeDeleted) "" else " AND deleted_at IS NULL"
 
     /** Drops the user, their sessions and every series; returns the deleted series ids so the caller can drop images. */
     @Synchronized
@@ -373,10 +392,14 @@ class Db(dbPath: String) : AutoCloseable {
             "SELECT id, timestamp, caliber, image_width, image_height, ${GEOMETRY_COLUMNS.joinToString(", ")}, " +
                 "updated_at, deleted_at FROM series"
 
-        /** A soft-deleted row is a tombstone: only the id and when it went, so the client can drop it. */
-        fun seriesRow(rs: ResultSet): Series {
+        /**
+         * A soft-deleted row is a [tombstone]: only the id and when it went, so the client can drop it. Otherwise
+         * it is the full row flagged deleted; nothing writes to a deleted series, so its `updatedAt` is when it went.
+         */
+        fun seriesRow(rs: ResultSet, tombstone: Boolean = true): Series {
             val updatedAt = rs.getString(13)
-            if (rs.getString(14) != null) {
+            val deleted = rs.getString(14) != null
+            if (deleted && tombstone) {
                 return Series(rs.getLong(1), "", "", emptyList(), updatedAt = updatedAt, deleted = true)
             }
             return Series(
@@ -388,6 +411,7 @@ class Db(dbPath: String) : AutoCloseable {
                 imageHeight = rs.intOrNull(5),
                 geometry = geometryRow(rs),
                 updatedAt = updatedAt,
+                deleted = deleted,
             )
         }
 

@@ -214,8 +214,8 @@ fun Application.markeraModule(config: Config, db: Db) {
 
         delete("/series/{id}") {
             val seriesId = ownedSeries(db) ?: return@delete
+            // Soft: the holes and the image stay on the server until the account is deleted.
             db.deleteSeries(seriesId)
-            imageFile(images, seriesId).delete()
             call.respond(HttpStatusCode.NoContent)
         }
 

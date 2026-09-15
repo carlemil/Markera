@@ -12,6 +12,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -48,7 +49,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
     get("/admin/users/{id}") {
         if (unauthorized(password)) return@get
         val user = db.getUser(pathId()) ?: return@get notFound("Unknown user")
-        val rows = db.listSeries(user.id).joinToString("") { s ->
+        // Soft-deleted series ride along greyed, so they can be opened and restored.
+        val rows = db.listSeries(user.id, includeDeleted = true).joinToString("") { s ->
             row(
                 """<a href="/admin/series/${s.id}">${s.id}</a>""",
                 time(s.timestamp),
@@ -57,14 +59,16 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 s.holes.sumOf { it.ring },
                 s.holes.count { kind(it).isNotEmpty() },
                 if (imageFile(images, s.id).isFile) "&#10003;" else "",
+                if (s.deleted) time(s.updatedAt) else "",
                 href = "/admin/series/${s.id}",
+                gone = s.deleted,
             )
         }
         respondHtml(
             page(
                 user.name ?: "${user.provider} / ${user.subject}",
                 """<a href="/admin">&larr; users</a>""" +
-                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image"), rows),
+                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image", "deleted"), rows),
             )
         )
     }
@@ -74,9 +78,10 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password)) return@get
         val seriesId = pathId()
         // Deleted holes ride along greyed out: they are training data, not part of the series' score.
+        // A soft-deleted series opens too, but read-only: no editor script, just Restore.
         val series = db.getSeries(seriesId, includeDeleted = true) ?: return@get notFound("Unknown series")
-        val userId = db.seriesOwner(seriesId)
-        val holes = series.holes.mapIndexed(::holeRow).joinToString("")
+        val userId = db.seriesOwner(seriesId, includeDeleted = true)
+        val holes = series.holes.mapIndexed { i, h -> holeRow(i, h, readOnly = h.deleted || series.deleted) }.joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
         val photo = if (!hasImage) "" else {
             """<div class="shot"><img src="/admin/series/$seriesId/image">${geometrySvg(series)}${markers(series)}</div>"""
@@ -86,27 +91,33 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         // "Add hole" row next to a placed one just left an empty typed row behind.
         val placeable = hasImage && series.imageWidth != null && series.imageHeight != null
         val add = if (placeable) "" else """<button id="add">Add hole</button> """
-        val note = if (placeable) "" else {
+        val note = if (placeable || series.deleted) "" else {
             """<p class="note">No photo with a stored frame size, so markers cannot be placed &mdash; """ +
                 """"Add hole" adds one without a position.</p>"""
+        }
+        val caliber = if (series.deleted) esc(series.caliber) else caliberSelect(series.caliber)
+        val actions = if (series.deleted) """<button id="restore">Restore</button>""" else {
+            """$add<button id="undo" disabled>Undo delete</button> <button id="delete" data-user="$userId">Delete</button>"""
+        }
+        val script = if (series.deleted) "<script>$RESTORE_JS</script>" else {
+            """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
+                """<script type="application/json" id="series">${blob(series.copy(hasImage = hasImage))}""" +
+                "</script>" +
+                "<script>$EDITOR_JS</script>"
         }
         respondHtml(
             page(
                 "Series ${series.id}",
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
-                    "<p>${time(series.timestamp)} &middot; ${caliberSelect(series.caliber)} &middot; " +
+                    (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
+                    "<p>${time(series.timestamp)} &middot; $caliber &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></p>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
-                    """<p>$add<button id="undo" disabled>Undo delete</button> """ +
-                    """<button id="delete" data-user="$userId">Delete</button>""" +
-                    """<span id="msg"></span></p></div><div>""" +
+                    """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
-                    """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
-                    """<script type="application/json" id="series">${blob(series.copy(hasImage = hasImage))}""" +
-                    "</script>" +
-                    "<script>$EDITOR_JS</script>",
+                    script,
             )
         )
     }
@@ -128,7 +139,15 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val seriesId = pathId()
         if (db.seriesOwner(seriesId) == null) return@delete notFound("Unknown series")
         db.deleteSeries(seriesId)
-        imageFile(images, seriesId).delete()
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // Undoes a soft delete (the app's or the admin page's); the holes and image were kept, so they come back too.
+    post("/admin/series/{id}/restore") {
+        if (unauthorized(password)) return@post
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
+        db.restoreSeries(seriesId)
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -195,14 +214,15 @@ private fun geometrySvg(series: Series): String {
 
 /**
  * One editable hole row. Cell order is fixed — the script addresses x/y/detected/mm/kind by index. A
- * deleted hole is a greyed, read-only row: it is shown for the record, never edited or re-saved.
+ * [readOnly] row (a deleted hole, or any hole of a deleted series) is greyed: shown for the record, never edited
+ * or re-saved.
  */
-private fun holeRow(i: Int, h: Hole) =
-    """<tr data-i="$i"${if (h.deleted) """ class="gone"""" else ""}><td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
+private fun holeRow(i: Int, h: Hole, readOnly: Boolean = h.deleted) =
+    """<tr data-i="$i"${if (readOnly) """ class="gone"""" else ""}><td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
         """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td>""" +
-        """<td>${if (h.deleted) score(h.ring, h.innerTen) else manualSelect(h)}</td>""" +
+        """<td>${if (readOnly) score(h.ring, h.innerTen) else manualSelect(h)}</td>""" +
         """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td>""" +
-        """<td>${if (h.deleted) "" else """<button class="del">Delete</button>"""}</td></tr>"""
+        """<td>${if (readOnly) "" else """<button class="del">Delete</button>"""}</td></tr>"""
 
 /** The marker and row colour of a hole the user deleted in the app. */
 private const val DELETED_COLOR = "#8a6fb3"
@@ -270,8 +290,12 @@ private fun esc(value: String) = value
  * Cells are already-escaped HTML or numbers; every string taken from the database goes through [esc] first.
  * [href] (built from ids only) makes the whole row clickable — the id cell keeps its link for the no-JS case.
  */
-private fun row(vararg cells: Any?, href: String? = null) =
-    cells.joinToString("", "<tr${href?.let { """ onclick="location.href='$it'"""" }.orEmpty()}>", "</tr>") {
+private fun row(vararg cells: Any?, href: String? = null, gone: Boolean = false) =
+    cells.joinToString(
+        "",
+        "<tr${if (gone) """ class="gone"""" else ""}${href?.let { """ onclick="location.href='$it'"""" }.orEmpty()}>",
+        "</tr>",
+    ) {
         "<td>${if (it is Double) num(it) else it ?: ""}</td>"
     }
 
@@ -486,6 +510,18 @@ del.onclick = () => {
   msg.textContent = 'deleting...';
   fetch(location.pathname, {method: 'DELETE', credentials: 'include'})
     .then(r => r.status === 204 ? location.href = '/admin/users/' + del.dataset.user
+                                : r.text().then(t => msg.textContent = r.status + ' ' + t),
+          e => msg.textContent = e);
+};
+"""
+
+/** A deleted series' page has no editor, only this: restore, then reload into the live editor. */
+private const val RESTORE_JS = """
+document.getElementById('restore').onclick = () => {
+  const msg = document.getElementById('msg');
+  msg.textContent = 'restoring...';
+  fetch(location.pathname + '/restore', {method: 'POST', credentials: 'include'})
+    .then(r => r.status === 204 ? location.reload()
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
 };

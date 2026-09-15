@@ -23,6 +23,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import java.io.File
 import java.sql.DriverManager
+import java.sql.Statement
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -34,6 +35,11 @@ import kotlin.test.assertTrue
 class ApiTest {
 
     private lateinit var imagesDir: File
+    private lateinit var dbFile: File
+
+    /** Straight at the test's SQLite file, for what no route shows (or can do). */
+    private fun <T> sql(block: (Statement) -> T): T =
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { c -> c.createStatement().use(block) }
 
     private companion object {
         const val ADMIN_PW = "pw"
@@ -46,7 +52,7 @@ class ApiTest {
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
-            val dbFile = File.createTempFile("markera-test", ".db").also { it.delete(); it.deleteOnExit() }
+            dbFile = File.createTempFile("markera-test", ".db").also { it.delete(); it.deleteOnExit() }
             imagesDir = File(dbFile.path + "-images").also { it.deleteOnExit() }
             application {
                 markeraModule(
@@ -461,8 +467,9 @@ class ApiTest {
 
         val response = client.delete("/admin/series/$doomed") { basicAuth("admin", ADMIN_PW) }
         assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
-        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/series/$doomed").status)
-        assertTrue(!imagesDir.resolve("$doomed.jpg").isFile)
+        // Soft-deleted: the admin page still opens it, now offering Restore.
+        assertTrue("""<button id="restore">""" in client.admin("/admin/series/$doomed").bodyAsText())
+        assertTrue(imagesDir.resolve("$doomed.jpg").isFile)
         assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
     }
 
@@ -804,7 +811,7 @@ class ApiTest {
     }
 
     @Test
-    fun deleteSeriesRemovesItAndItsImage() = apiTest { client ->
+    fun deleteSeriesHidesItButKeepsItsHolesAndImage() = apiTest { client ->
         val me = client.devAuth("me")
         val kept = client.createSeries(me.token)
         val doomed = client.createSeries(me.token)
@@ -818,7 +825,10 @@ class ApiTest {
 
         assertEquals(HttpStatusCode.NoContent, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
         assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
-        assertTrue(!imagesDir.resolve("$doomed.jpg").isFile)
+        assertEquals(HttpStatusCode.NotFound, client.get("/series/$doomed/image") { bearerAuth(me.token) }.status)
+        // Soft: the owner cannot reach them any more, but the image and holes stay on the server.
+        assertTrue(imagesDir.resolve("$doomed.jpg").isFile)
+        assertEquals(2, sql { st -> st.executeQuery("SELECT COUNT(*) FROM holes WHERE series_id = $doomed").use { it.next(); it.getInt(1) } })
     }
 
     @Test
@@ -827,6 +837,10 @@ class ApiTest {
         val other = client.devAuth("other")
         val mine = client.createSeries(me.token)
         client.putImage(me.token, mine, ByteArray(16))
+        // A soft-deleted series still has its holes and image; the account deletion takes those too.
+        val softDeleted = client.createSeries(me.token)
+        client.putImage(me.token, softDeleted, ByteArray(16))
+        assertEquals(HttpStatusCode.NoContent, client.delete("/series/$softDeleted") { bearerAuth(me.token) }.status)
         val theirs = client.createSeries(other.token)
         client.putImage(other.token, theirs, ByteArray(16))
 
@@ -835,6 +849,14 @@ class ApiTest {
 
         assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth(me.token) }.status)
         assertTrue(!imagesDir.resolve("$mine.jpg").isFile)
+        assertTrue(!imagesDir.resolve("$softDeleted.jpg").isFile)
+        val left = sql { st ->
+            st.executeQuery(
+                "SELECT (SELECT COUNT(*) FROM holes WHERE series_id IN ($mine, $softDeleted))" +
+                    " + (SELECT COUNT(*) FROM series WHERE id IN ($mine, $softDeleted))"
+            ).use { it.next(); it.getInt(1) }
+        }
+        assertEquals(0, left)
         val users = client.admin("/admin").bodyAsText()
         assertTrue("/admin/users/${me.userId}" !in users, users)
         assertTrue("/admin/users/${other.userId}" in users, users)
@@ -892,9 +914,84 @@ class ApiTest {
             bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series())
         }.status)
         assertEquals(HttpStatusCode.NotFound, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
-        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/series/$doomed").status)
-        // ...and the admin user page counts only the live one.
-        assertTrue("""<a href="/admin/series/$doomed">""" !in client.admin("/admin/users/${me.userId}").bodyAsText())
+        // ...and so do the admin writes; the admin pages show it (adminShowsAndRestoresDeletedSeries).
+        assertEquals(HttpStatusCode.NotFound, client.put("/admin/series/$doomed") {
+            basicAuth("admin", ADMIN_PW); contentType(ContentType.Application.Json); setBody(series())
+        }.status)
+        // The users list counts only the live one.
+        assertTrue("<td>1</td>" in client.admin("/admin").bodyAsText())
+    }
+
+    @Test
+    fun adminShowsAndRestoresDeletedSeries() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val kept = client.createSeries(me.token)
+        val doomed = client.createSeries(me.token)
+        client.putImage(me.token, doomed, ByteArray(16), query = "?width=100&height=200")
+        assertEquals(HttpStatusCode.NoContent, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
+        // Deleted before deletes kept anything: no holes, no image.
+        val old = client.createSeries(me.token)
+        assertEquals(HttpStatusCode.NoContent, client.delete("/series/$old") { bearerAuth(me.token) }.status)
+        sql { it.executeUpdate("DELETE FROM holes WHERE series_id = $old") }
+
+        // The user page lists them beside the live one, greyed and marked, holes still counted.
+        val userPage = client.admin("/admin/users/${me.userId}").bodyAsText()
+        assertTrue("""<tr class="gone" onclick="location.href='/admin/series/$doomed'">""" in userPage, userPage)
+        assertTrue("""<tr class="gone" onclick="location.href='/admin/series/$old'">""" in userPage, userPage)
+        assertTrue("""<tr onclick="location.href='/admin/series/$kept'">""" in userPage, userPage)
+        assertTrue("<th>deleted</th>" in userPage, userPage)
+        // Kept and deleted both show 2 holes / 19 points; the emptied old one shows none.
+        assertEquals(2, userPage.split("<td>9mm</td><td>2</td><td>19</td>").size - 1, userPage)
+        assertTrue("<td>9mm</td><td>0</td><td>0</td>" in userPage, userPage)
+
+        // Its page opens read-only: a deleted notice, the kept holes and photo, Restore, no Delete and no editor.
+        val page = client.admin("/admin/series/$doomed")
+        assertEquals(HttpStatusCode.OK, page.status)
+        val body = page.bodyAsText()
+        assertTrue("""<p class="gone">Deleted """ in body, body)
+        assertTrue("""<button id="restore">Restore</button>""" in body, body)
+        assertTrue("""id="delete"""" !in body && "method: 'PUT'" !in body && """id="caliber"""" !in body, body)
+        assertTrue("""<tr data-i="0" class="gone"><td>1</td><td>2</td><td></td><td>9</td>""" in body, body)
+        assertTrue("""<tr data-i="1" class="gone">""" in body, body)
+        assertTrue("""class="manual"""" !in body && """class="del"""" !in body, body)
+        assertTrue("""<img src="/admin/series/$doomed/image">""" in body, body)
+        assertEquals(HttpStatusCode.OK, client.admin("/admin/series/$doomed/image").status)
+        // The old, emptied one still renders.
+        val oldPage = client.admin("/admin/series/$old")
+        assertEquals(HttpStatusCode.OK, oldPage.status)
+        assertTrue("""<button id="restore">Restore</button>""" in oldPage.bodyAsText())
+
+        // Restoring needs the admin login, and an unknown id is a 404.
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/admin/series/$doomed/restore").status)
+        assertEquals(
+            HttpStatusCode.Unauthorized,
+            client.post("/admin/series/$doomed/restore") { basicAuth("admin", "nope") }.status,
+        )
+        assertEquals(HttpStatusCode.NotFound, client.post("/admin/series/999/restore") { basicAuth("admin", ADMIN_PW) }.status)
+        assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
+
+        val tombstone = client.get("/series?since=") { bearerAuth(me.token) }.body<List<Series>>().single { it.id == doomed }
+        assertTrue(tombstone.deleted)
+        tick()
+        val restored = client.post("/admin/series/$doomed/restore") { basicAuth("admin", ADMIN_PW) }
+        assertEquals(HttpStatusCode.NoContent, restored.status, restored.bodyAsText())
+
+        assertTrue(tombstone.holes.isEmpty())
+        // Back in the owner's list with its holes and image, and in the delta since the tombstone as a live row.
+        val listed = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>()
+        assertEquals(listOf(doomed, kept), listed.map { it.id })
+        assertEquals(series().holes, listed[0].holes)
+        assertEquals(true, listed[0].hasImage)
+        assertEquals(HttpStatusCode.OK, client.get("/series/$doomed/image") { bearerAuth(me.token) }.status)
+        val delta = client.get("/series?since=${tombstone.updatedAt}") { bearerAuth(me.token) }.body<List<Series>>()
+        val live = delta.single { it.id == doomed }
+        assertEquals(false, live.deleted)
+        assertEquals("9mm", live.caliber)
+        assertEquals(series().holes, live.holes)
+        assertTrue(live.updatedAt > tombstone.updatedAt)
+        // The admin pages show it live again.
+        assertTrue("""<button id="delete" data-user="${me.userId}">""" in client.admin("/admin/series/$doomed").bodyAsText())
+        assertTrue("""<tr onclick="location.href='/admin/series/$doomed'">""" in client.admin("/admin/users/${me.userId}").bodyAsText())
     }
 
     @Test

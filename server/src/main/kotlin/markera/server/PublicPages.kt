@@ -44,7 +44,8 @@ Kontot raderas omedelbart.</p>
 <p>Det som raderas: kontot, alla sparade serier med sina träffar, alla uppladdade tavelfoton och alla
 inloggningar (sessioner). Raderingen sker direkt och är permanent – servern behåller ingenting efteråt.</p>
 <p>Vill du bara ta bort en enskild serie utan att radera kontot: öppna serien under <strong>Historik</strong>
-och tryck på <strong>Radera</strong>. Serien och dess tavelfoto tas bort direkt.</p>
+och tryck på <strong>Radera</strong>. Serien försvinner då ur appen, men servern behåller serien, dess träffar och
+tavelfoto tills kontot raderas.</p>
 $svFallback
 <h2>Delete account – Markera</h2>
 <p>In the app: open Markera, on the Home screen (Hem) tap <strong>Radera konto</strong> and confirm. This
@@ -52,7 +53,8 @@ deletes the account immediately.</p>
 <p>What is deleted: the account, every saved series with its holes, every uploaded target photo, and all
 sessions. Deletion is immediate and permanent — the server keeps nothing afterwards.</p>
 <p>To delete a single series without deleting the account: open it under <strong>Historik</strong> and tap
-<strong>Radera</strong>. The series and its target photo are removed at once.</p>
+<strong>Radera</strong>. The series disappears from the app, but the server keeps the series, its holes and its
+target photo until the account is deleted.</p>
 $enFallback""",
     )
 }
@@ -74,7 +76,7 @@ fun privacyPage(contactEmail: String?): String {
         "Integritetspolicy – Markera / Privacy policy – Markera",
         """<h1>Integritetspolicy – Markera</h1>
 <p>Personuppgiftsansvarig är appens utvecklare, Carl-Emil Kjellstrand, Sverige. Kontakt: $svContact.</p>
-<p>Gäller från: 2026-09-08.</p>
+<p>Gäller från: 2026-09-15.</p>
 <h2 style="font-size:16px">Vad som lagras</h2>
 <p>Ingenting lagras på servern om du använder appen utan att logga in. Loggar du in med Google lagras:</p>
 <ul>
@@ -93,10 +95,11 @@ sparar en serie.</p>
 <p>Ingen analys, ingen reklam, inga spårnings-SDK:er, ingen försäljning eller delning av uppgifter med
 tredje part. Googles inloggningstjänst används enbart för att verifiera vem du är.</p>
 <p>Uppgifterna ligger på utvecklarens egen server i Sverige och överförs över HTTPS. De sparas tills du
-raderar dem.</p>
+raderar kontot.</p>
 <h2 style="font-size:16px">Radering och dina rättigheter</h2>
 <p>Radera kontot i appen (Hem → <strong>Radera konto</strong>) eller så som beskrivs på
-<a href="/delete-account">sidan om kontoradering</a>. Enskilda serier raderas i appens Historik.</p>
+<a href="/delete-account">sidan om kontoradering</a>. En serie som raderas i appens Historik försvinner ur appen, men
+servern behåller den, med träffar och foto, tills kontot raderas.</p>
 <p>Enligt GDPR har du rätt till tillgång, rättelse, radering och dataportabilitet. Appens Historik har en
 export (<strong>Exportera</strong>) som lämnar ut alla dina serier som CSV plus bilderna. Klagomål kan
 lämnas till Integritetsskyddsmyndigheten (IMY) i Sverige.</p>
@@ -104,7 +107,7 @@ lämnas till Integritetsskyddsmyndigheten (IMY) i Sverige.</p>
 
 <h2>Privacy policy – Markera</h2>
 <p>The controller is the app's developer, Carl-Emil Kjellstrand, Sweden. Contact: $enContact.</p>
-<p>Effective date: 2026-09-08.</p>
+<p>Effective date: 2026-09-15.</p>
 <h2 style="font-size:16px">What is stored</h2>
 <p>Nothing is stored on the server if you use the app without signing in. When you sign in with Google,
 the following is stored:</p>
@@ -124,11 +127,11 @@ ML Kit) run locally. Camera frames are not sent anywhere unless you save a serie
 <p>No analytics, no advertising, no tracking SDKs, no sale or sharing of data with third parties. Google's
 sign-in service is used only to verify who you are.</p>
 <p>The data lives on the developer's own server in Sweden and is transferred over HTTPS. It is kept until
-you delete it.</p>
+you delete the account.</p>
 <h2 style="font-size:16px">Deletion and your rights</h2>
 <p>Delete the account in the app (Home → <strong>Radera konto</strong>) or as described on the
-<a href="/delete-account">account deletion page</a>. Individual series can be deleted in the app's
-Historik.</p>
+<a href="/delete-account">account deletion page</a>. A series deleted in the app's Historik disappears
+from the app, but the server keeps it, with its holes and photo, until the account is deleted.</p>
 <p>Under the GDPR you have the right of access, correction, deletion and portability. The app's Historik
 has an export (<strong>Exportera</strong>) that hands over all your series as CSV plus the images.
 Complaints can be filed with Integritetsskyddsmyndigheten (IMY) in Sweden.</p>
