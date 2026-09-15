@@ -90,6 +90,10 @@
     <string name="stats_bucket_week">Vecka</string>
     <string name="stats_bucket_month">Månad</string>
     <string name="stats_split_caliber">Per kaliber</string>
+    <string name="stats_group_caliber">Kaliber</string>
+    <string name="stats_group_date">Datum</string>
+    <string name="stats_group_metric">Mått</string>
+    <string name="stats_group_bucket">Gruppering</string>
     <!-- Trend chips: short forms of the measurement rows -->
     <string name="stats_short_mean_distance">Till centrum</string>
     <string name="stats_short_mean_pairwise">Mellan träffar</string>

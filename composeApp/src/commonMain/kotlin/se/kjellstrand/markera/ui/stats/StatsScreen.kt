@@ -36,6 +36,7 @@ import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -308,7 +309,8 @@ private fun FilterRow(
 ) {
     val chipColors = statsChipColors()
     // One child of the caller's 16 dp column, so only the filter rows sit tight.
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionDivider(stringResource(Res.string.stats_group_caliber))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = caliber == null,
@@ -327,6 +329,7 @@ private fun FilterRow(
                 )
             }
         }
+        SectionDivider(stringResource(Res.string.stats_group_date))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val presetChip = @Composable { value: DatePreset, label: StringResource ->
                 FilterChip(
@@ -381,7 +384,8 @@ private fun TrendTab(
     onSplit: (Boolean) -> Unit,
 ) {
     val chipColors = statsChipColors()
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionDivider(stringResource(Res.string.stats_group_metric))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Metric.entries.forEach {
                 FilterChip(
@@ -393,6 +397,7 @@ private fun TrendTab(
                 )
             }
         }
+        SectionDivider(stringResource(Res.string.stats_group_bucket))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
                 Bucket.SERIES to Res.string.stats_bucket_series,
@@ -450,6 +455,21 @@ private fun Metric.label() = when (this) {
     Metric.MEAN_RADIUS -> Res.string.stats_short_mean_radius
     Metric.RADIAL_SD -> Res.string.stats_short_radial_sd
     Metric.SCORE -> Res.string.stats_short_mean_score
+}
+
+/** A titled rule above a chip group: `——— Kaliber ———`. */
+@Composable
+private fun SectionDivider(title: String) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        HorizontalDivider(modifier = Modifier.weight(1f))
+        Text(
+            title,
+            modifier = Modifier.padding(horizontal = 8.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f))
+    }
 }
 
 /**
