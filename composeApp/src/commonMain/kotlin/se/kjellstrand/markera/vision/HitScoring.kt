@@ -42,6 +42,12 @@ data class HitScore(
      * training signal. Null while the hole still sits where it was found.
      */
     val original: HitScore? = null,
+    /**
+     * [ring]/[isInnerTen] were set by tapping the score box, not derived from
+     * where the hole sits ([distanceMm] still is). Survives "Ny ring"; a drag
+     * clears it, since then the position is the truth again.
+     */
+    val typed: Boolean = false,
 )
 
 /**

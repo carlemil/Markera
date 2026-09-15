@@ -3,6 +3,39 @@ package se.kjellstrand.markera.ui.markera
 import kotlin.math.min
 import kotlin.math.sqrt
 import se.kjellstrand.markera.vision.Detection
+import se.kjellstrand.markera.vision.HitScore
+
+/**
+ * This hole with its score set by hand to picker index [pick] (0..10, or
+ * [SCORE_PICKER_INNER_TEN]); it stays where it is. A detected hole keeps the
+ * detector's score in [HitScore.original]; a hand-placed one has none.
+ */
+fun HitScore.withTypedScore(pick: Int): HitScore = copy(
+    ring = if (pick == SCORE_PICKER_INNER_TEN) 10 else pick,
+    isInnerTen = pick == SCORE_PICKER_INNER_TEN,
+    typed = true,
+    original = if (manual) null else (original ?: this),
+)
+
+/**
+ * This fresh score for a dragged hole, carrying over what [old] was: a drag
+ * means the position is the truth, so a typed score is dropped, while the
+ * detector's original is kept.
+ */
+fun HitScore.movedFrom(old: HitScore): HitScore =
+    copy(manual = old.manual, original = if (old.manual) null else (old.original ?: old))
+
+/**
+ * This hole rescored against a new ring ("Ny ring"), carrying over [old]'s
+ * manual flag and detector original — and its score, when the user typed it.
+ */
+fun HitScore.rescoredFrom(old: HitScore): HitScore = copy(
+    ring = if (old.typed) old.ring else ring,
+    isInnerTen = if (old.typed) old.isInnerTen else isInnerTen,
+    manual = old.manual,
+    original = old.original,
+    typed = old.typed,
+)
 
 /** Side of a hand-placed hole box when the detector found nothing to size it from. */
 const val MANUAL_HOLE_FALLBACK_PX = 20f

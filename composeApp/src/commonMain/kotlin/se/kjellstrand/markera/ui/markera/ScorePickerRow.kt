@@ -46,8 +46,8 @@ fun holeLetter(index: Int): String = ('a' + index).toString()
 
 /**
  * One hole's score: a highlighted box showing only the current value. With an
- * [onValueChange] tapping it opens the dialpad; without one (the scan screen,
- * where a score may only come from where the hole sits) it just displays.
+ * [onValueChange] tapping it opens the dialpad; without one (an empty slot on
+ * the scan screen, or the landscape column) it just displays.
  * [letter] is the small key tying the box to its marker on the photo.
  */
 @Composable
@@ -100,8 +100,8 @@ private fun ScoreBox(
 }
 
 /**
- * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. Only the
- * competition wizard types scores — everywhere else a score follows the hole.
+ * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. The
+ * competition wizard types any slot; the scan screen only a slot with a hole.
  */
 @Composable
 private fun ScoreDialpadDialog(
@@ -146,6 +146,8 @@ fun ScorePickerHorizontalRow(
     onValueChange: ((index: Int, value: Int) -> Unit)? = null,
     /** How many leading boxes carry a key letter — i.e. how many holes there are. */
     letteredCount: Int = 0,
+    /** How many leading boxes [onValueChange] applies to; the rest just display. */
+    editableCount: Int = values.size,
 ) {
     Row(
         modifier = modifier,
@@ -154,7 +156,7 @@ fun ScorePickerHorizontalRow(
         values.forEachIndexed { i, v ->
             ScoreBox(
                 value = v,
-                onValueChange = onValueChange?.let { f -> { v2: Int -> f(i, v2) } },
+                onValueChange = onValueChange?.takeIf { i < editableCount }?.let { f -> { v2: Int -> f(i, v2) } },
                 letter = if (i < letteredCount) holeLetter(i) else null,
             )
         }

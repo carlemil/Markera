@@ -86,6 +86,13 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         _uiState.update { it.copy(ring = ring).withHoles(it.detections, scores) }
     }
 
+    override fun setScore(index: Int, hit: HitScore) {
+        _uiState.update {
+            if (index !in it.scores.indices) return@update it
+            it.withHoles(it.detections, it.scores.toMutableList().apply { this[index] = hit })
+        }
+    }
+
     override fun removeHit(index: Int) {
         _uiState.update { state ->
             if (index !in state.scores.indices || index !in state.detections.indices) {
@@ -122,8 +129,8 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
 
 /**
  * Publish holes and scores in score order — the order a fresh detection comes in
- * — and refill the pickers from them, since a score now only ever comes from
- * where its hole sits. Hole `i` stays picker slot `i` (what `withPicks` saves
+ * — and refill the pickers from them, since a score only ever comes from its
+ * hole (its position, or a score typed onto it). Hole `i` stays picker slot `i` (what `withPicks` saves
  * by). Detections without scores (no geometry) are left as the model found them.
  */
 private fun MarkeraUiState.withHoles(

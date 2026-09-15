@@ -207,18 +207,24 @@ class TargetScanController(
             val old = state.scores.getOrNull(index) ?: return@editHoles false
             val moved = state.detections.getOrNull(index)?.movedTo(x, y) ?: return@editHoles false
             val hit = scoreHits(listOf(moved), centre, ring).firstOrNull() ?: return@editHoles false
-            landed = viewModel.moveHit(
-                index,
-                moved,
-                hit.copy(
-                    manual = old.manual,
-                    original = if (old.manual) null else (old.original ?: old),
-                ),
-            )
+            landed = viewModel.moveHit(index, moved, hit.movedFrom(old))
             landed >= 0
         }
         return landed
     }
+
+    /**
+     * The user tapped hole [index]'s score box and picked [pick] (picker index):
+     * the hole keeps its place and takes that score, the detector's own staying
+     * in [se.kjellstrand.markera.vision.HitScore.original].
+     */
+    fun setScore(viewModel: MarkeraViewModel, snapshot: PlatformImage?, index: Int, pick: Int) =
+        editHoles(viewModel, snapshot) { state, _, _ ->
+            val old = state.scores.getOrNull(index) ?: return@editHoles false
+            if (state.topScores.getOrNull(index) == pick) return@editHoles false
+            viewModel.setScore(index, old.withTypedScore(pick))
+            true
+        }
 
     /**
      * "Ny ring": re-fit only the 6/7 ring on the frozen frame and rescore every
@@ -258,11 +264,11 @@ class TargetScanController(
                 val pick = (retry.next + step) % candidates.size
                 retry.next = pick + 1
                 val ring = candidates[pick]
-                // Hole i keeps its manual flag and detector original; a hole
-                // that was never scored (first scan had no ring) is a fresh detection.
+                // Hole i keeps its manual flag, detector original and typed score;
+                // a hole that was never scored (first scan had no ring) is a fresh detection.
                 val scores = now.detections.mapIndexed { i, d ->
                     val fresh = scoreHits(listOf(d), centre, ring).first()
-                    now.scores.getOrNull(i)?.let { fresh.copy(manual = it.manual, original = it.original) } ?: fresh
+                    now.scores.getOrNull(i)?.let { fresh.rescoredFrom(it) } ?: fresh
                 }
                 viewModel.onRingRetried(ring, scores)
                 onSeriesDetected?.invoke(viewModel.uiState.value.scores, snapshot, geometryDto(centre, ring))

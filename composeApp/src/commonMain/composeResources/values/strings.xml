@@ -131,7 +131,7 @@
     <string name="help_scan_edit">Justera träffar</string>
     <string name="help_scan_edit_body">Tryck på en missad träff i bilden för att lägga till den. Dra en träff för att flytta den. Håll inne en träff för att ta bort den — du får bekräfta först. Nyp för att zooma. Sitter den gröna ringen fel trycker du på Ny ring, så letas 6/7-ringen upp på nytt i samma foto.</string>
     <string name="help_scan_score">Poäng</string>
-    <string name="help_scan_score_body">Poängen räknas från träffens läge på tavlan och går inte att skriva in. Blev något fel: flytta, lägg till eller ta bort träffen i bilden, så räknas poängen om.</string>
+    <string name="help_scan_score_body">Poängen räknas från träffens läge på tavlan. Sitter träffen rätt men poängen blev lite fel trycker du på poängrutan och väljer rätt poäng — träffen ligger kvar där den är. Flyttar du träffen räknas poängen om från det nya läget.</string>
     <string name="help_scan_caliber">Kaliber</string>
     <string name="help_scan_caliber_body">Brickan bredvid poängen visar vilken kaliber serien sparas med. Tryck på den för att byta — har du ingen vald frågar appen när du sparar. Kalibern visas i historiken och går att filtrera på i statistiken.</string>
     <string name="help_scan_save">Spara</string>

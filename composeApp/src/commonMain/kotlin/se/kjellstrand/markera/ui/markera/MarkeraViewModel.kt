@@ -50,6 +50,9 @@ interface MarkeraViewModel {
      */
     fun onRingRetried(ring: FittedEllipse, scores: List<HitScore>)
 
+    /** The user typed hole [index]'s score: replace it with [hit], the hole stays put. */
+    fun setScore(index: Int, hit: HitScore)
+
     /** The user long-pressed a hole: drop hole [index] and its score. */
     fun removeHit(index: Int)
 

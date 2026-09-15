@@ -89,6 +89,9 @@ fun MarkeraScreen(
     val onRetryRing: () -> Unit = {
         scanController.retryRing(viewModel, snapshotVm.snapshot, coroutineScope) { toast(noOtherRing) }
     }
+    val onSetScore: (Int, Int) -> Unit = { index, pick ->
+        scanController.setScore(viewModel, snapshotVm.snapshot, index, pick)
+    }
     val onDetectClick: () -> Unit = {
         scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
     }
@@ -163,6 +166,7 @@ fun MarkeraScreen(
                         onResume = onResumeLive,
                         onReset = onReset,
                         onRetryRing = onRetryRing,
+                        onSetScore = onSetScore,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                 } else {
@@ -175,6 +179,7 @@ fun MarkeraScreen(
                             onResume = onResumeLive,
                             onReset = onReset,
                             onRetryRing = onRetryRing,
+                            onSetScore = onSetScore,
                             landscape = true,
                             modifier = Modifier.fillMaxHeight().weight(1f),
                         )
@@ -293,6 +298,7 @@ private fun BottomArea(
     onResume: () -> Unit,
     onReset: () -> Unit,
     onRetryRing: () -> Unit,
+    onSetScore: (index: Int, pick: Int) -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false,
 ) {
@@ -314,7 +320,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onResume, onReset, onRetryRing, landscape)
+            else -> ResultsContent(uiState, onResume, onReset, onRetryRing, onSetScore, landscape)
         }
     }
 }
@@ -346,6 +352,7 @@ private fun ResultsContent(
     onResume: () -> Unit,
     onReset: () -> Unit,
     onRetryRing: () -> Unit,
+    onSetScore: (index: Int, pick: Int) -> Unit,
     landscape: Boolean,
 ) {
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
@@ -360,10 +367,12 @@ private fun ResultsContent(
                 letteredCount = uiState.scores.size,
             )
         } else {
-            // Read-only: a score only ever follows the hole it belongs to.
+            // A box with a hole takes a typed score (the hole stays put); empty slots just display.
             ScorePickerHorizontalRow(
                 values = uiState.topScores,
+                onValueChange = onSetScore,
                 letteredCount = uiState.scores.size,
+                editableCount = uiState.scores.size,
             )
         }
         // The centre is the digit centre; only the ring can be retried.
