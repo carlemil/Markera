@@ -193,6 +193,7 @@
     <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Ta bort träff</string>
     <string name="detail_caliber">Kaliber:</string>
+    <string name="detail_tag">Tagg:</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>

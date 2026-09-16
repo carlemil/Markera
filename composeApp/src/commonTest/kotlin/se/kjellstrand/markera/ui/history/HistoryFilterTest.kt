@@ -12,8 +12,12 @@ import se.kjellstrand.markera.series.stats.DatePreset
 @OptIn(ExperimentalTime::class)
 class HistoryFilterTest {
 
-    private fun series(id: Long, caliber: String = "9mm", timestamp: String = "2026-09-01T10:00:00Z") =
-        SeriesDto(id = id, timestamp = timestamp, caliber = caliber, holes = emptyList())
+    private fun series(
+        id: Long,
+        caliber: String = "9mm",
+        timestamp: String = "2026-09-01T10:00:00Z",
+        tag: String? = null,
+    ) = SeriesDto(id = id, timestamp = timestamp, caliber = caliber, holes = emptyList(), tag = tag)
 
     private val now = Instant.parse("2026-09-15T10:00:00Z")
 
@@ -93,6 +97,63 @@ class HistoryFilterTest {
             customRange = 123L to 456L,
         )
         assertEquals(filter, decodeHistoryFilter(filter.encode()))
+    }
+
+    @Test
+    fun `a selected tag keeps only that tag and drops untagged series`() {
+        val training = series(1, tag = "träning")
+        val competition = series(2, tag = "tävling")
+        val untagged = series(3)
+        val kept = listOf(training, competition, untagged)
+            .filteredBy(HistoryFilter(tags = setOf("träning")), now)
+        assertEquals(listOf(1L), kept.map { it.id })
+    }
+
+    @Test
+    fun `an empty tag set passes everything including untagged series`() {
+        val tagged = series(1, tag = "träning")
+        val untagged = series(2)
+        val kept = listOf(tagged, untagged).filteredBy(HistoryFilter(), now)
+        assertEquals(listOf(1L, 2L), kept.map { it.id })
+    }
+
+    @Test
+    fun `tag and caliber combine with and`() {
+        val both = series(1, caliber = "9mm", tag = "träning")
+        val wrongCaliber = series(2, caliber = "45", tag = "träning")
+        val wrongTag = series(3, caliber = "9mm", tag = "tävling")
+        val filter = HistoryFilter(calibers = setOf(Caliber.MM9), tags = setOf("träning"))
+        val kept = listOf(both, wrongCaliber, wrongTag).filteredBy(filter, now)
+        assertEquals(listOf(1L), kept.map { it.id })
+    }
+
+    @Test
+    fun `tagsPresent is the distinct tags, sorted, untagged series aside`() {
+        val list = listOf(series(1, tag = "tävling"), series(2), series(3, tag = "träning"), series(4, tag = "tävling"))
+        assertEquals(listOf("träning", "tävling"), list.tagsPresent())
+        assertEquals(emptyList(), listOf(series(1)).tagsPresent())
+    }
+
+    @Test
+    fun `encode and decode round trip tags, separators included`() {
+        // Free text: a tag may hold the ; , = % this encoding separates on.
+        val filter = HistoryFilter(tags = setOf("träning", "a;b", "c,d", "e=f", "100%"))
+        assertEquals(filter, decodeHistoryFilter(filter.encode()))
+    }
+
+    @Test
+    fun `a filter string from before tags existed still decodes`() {
+        // Exactly what the previous build wrote: no `tags` field at all.
+        val old = "calibers=9mm,22lr;preset=CUSTOM;range=123-456"
+        assertEquals(
+            HistoryFilter(
+                calibers = setOf(Caliber.MM9, Caliber.LR22),
+                preset = DatePreset.CUSTOM,
+                customRange = 123L to 456L,
+                tags = emptySet(),
+            ),
+            decodeHistoryFilter(old),
+        )
     }
 
     @Test

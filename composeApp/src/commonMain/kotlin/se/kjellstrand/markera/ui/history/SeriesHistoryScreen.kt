@@ -211,6 +211,7 @@ fun SeriesHistoryScreen(
                 else -> Column(modifier = Modifier.fillMaxSize()) {
                     HistoryFilterRow(
                         calibers = series.calibersPresent(),
+                        tags = series.tagsPresent(),
                         filter = filter,
                         onFilter = ::onFilter,
                         onPickDates = { pickingDates = true },
@@ -360,15 +361,16 @@ private fun Centered(content: @Composable () -> Unit) {
 }
 
 /**
- * The caliber (multi-select) and date (Statistik's single-select) chip rows.
- * A caliber the user picked earlier still gets a chip even once it drops out of
- * [calibers] (a filter no longer matched by any cached series), so it stays
+ * The caliber and tag (multi-select) and date (Statistik's single-select) chip rows.
+ * A caliber or tag the user picked earlier still gets a chip even once it drops out
+ * of [calibers]/[tags] (a filter no longer matched by any cached series), so it stays
  * deselectable.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HistoryFilterRow(
     calibers: List<Caliber>,
+    tags: List<String>,
     filter: HistoryFilter,
     onFilter: (HistoryFilter) -> Unit,
     onPickDates: () -> Unit,
@@ -396,6 +398,31 @@ private fun HistoryFilterRow(
                     colors = chipColors,
                     border = null,
                 )
+            }
+        }
+        // No tag anywhere in the series (and none selected) means no row at all.
+        val offeredTags = (tags + filter.tags).distinct().sorted()
+        if (offeredTags.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = filter.tags.isEmpty(),
+                    onClick = { onFilter(filter.copy(tags = emptySet())) },
+                    label = { Text(stringResource(Res.string.stats_caliber_all)) },
+                    colors = chipColors,
+                    border = null,
+                )
+                offeredTags.forEach { tag ->
+                    FilterChip(
+                        selected = tag in filter.tags,
+                        onClick = {
+                            val next = if (tag in filter.tags) filter.tags - tag else filter.tags + tag
+                            onFilter(filter.copy(tags = next))
+                        },
+                        label = { Text(tag) },
+                        colors = chipColors,
+                        border = null,
+                    )
+                }
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

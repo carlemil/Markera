@@ -33,7 +33,7 @@ fun seriesCsv(series: List<SeriesDto>): String = buildString {
         row(
             "id", "timestamp", "caliber", "total", "imageWidth", "imageHeight",
             "centreX", "centreY", "ringCx", "ringCy",
-            "ringSemiMajor", "ringSemiMinor", "ringRotationRad", "image",
+            "ringSemiMajor", "ringSemiMinor", "ringRotationRad", "image", "tag",
         ),
     )
     series.forEach { s ->
@@ -44,6 +44,7 @@ fun seriesCsv(series: List<SeriesDto>): String = buildString {
                 g?.centreX, g?.centreY, g?.ringCx, g?.ringCy,
                 g?.ringSemiMajor, g?.ringSemiMinor, g?.ringRotationRad,
                 if (s.hasImage) "images/${s.id}.jpg" else "",
+                s.tag,
             ),
         )
     }

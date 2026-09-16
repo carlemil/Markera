@@ -50,6 +50,7 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.DEFAULT_TAGS
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
@@ -62,6 +63,7 @@ import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.kindText
 import se.kjellstrand.markera.series.moveHole
 import se.kjellstrand.markera.series.nearestHoleIndex
+import se.kjellstrand.markera.series.normalizeTag
 import se.kjellstrand.markera.series.pickInnerTen
 import se.kjellstrand.markera.series.pickRing
 import se.kjellstrand.markera.series.ring
@@ -70,6 +72,7 @@ import se.kjellstrand.markera.ui.CaliberDialog
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
+import se.kjellstrand.markera.ui.TagDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
@@ -116,6 +119,10 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     // so it can't commit the pending hole edits behind the user's back.
     var caliber by remember(series.id) { mutableStateOf(Caliber.fromLabel(series.caliber)) }
     var pickingCaliber by remember(series.id) { mutableStateOf(false) }
+    // Same deal for the tag: local until "Spara", and deliberately not routed
+    // through SeriesRecorder — that one owns the *pending scan*, not this series.
+    var tag by remember(series.id) { mutableStateOf(series.tag) }
+    var pickingTag by remember(series.id) { mutableStateOf(false) }
     // A score only ever comes from a position, so without geometry the holes
     // can't be edited at all.
     val geometry = series.geometry
@@ -260,7 +267,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     icon = Icons.Default.Save,
                     // The server rejects an empty hole list, so don't offer it.
                     enabled = !saving && holes.value.isNotEmpty() &&
-                        (holes.value != series.holes || caliber.label != series.caliber),
+                        (holes.value != series.holes || caliber.label != series.caliber || tag != series.tag),
                     onClick = {
                         saving = true
                         scope.launch {
@@ -272,9 +279,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                         caliber.label,
                                         holes.value + removed,
                                         series.geometry,
-                                        // A PUT replaces the whole series: without this an
-                                        // edit here would clear the tag server-side.
-                                        series.tag,
+                                        // A PUT replaces the whole series, so the tag rides
+                                        // along — the edited one when it was changed here.
+                                        tag,
                                     ),
                                 )
                                 toast(savedText)
@@ -308,6 +315,22 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             )
                             Text(
                                 text = if (caliber == Caliber.NONE) "–" else caliber.label,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        // Same again for the tag; also saved by "Spara".
+                        Row(
+                            modifier = Modifier.clickable { pickingTag = true },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.detail_tag),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = tag ?: "–",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -369,6 +392,20 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 pickingCaliber = false
             },
             onDismiss = { pickingCaliber = false },
+        )
+    }
+
+    if (pickingTag) {
+        TagDialog(
+            selected = tag,
+            // The same offer as the scan screen: the defaults plus every tag in use.
+            known = (DEFAULT_TAGS + cached.mapNotNull { it.tag }).distinct(),
+            onSelect = {
+                // Typed text arrives raw; normalize so "  " is untagged, not a blank tag.
+                tag = normalizeTag(it)
+                pickingTag = false
+            },
+            onDismiss = { pickingTag = false },
         )
     }
 

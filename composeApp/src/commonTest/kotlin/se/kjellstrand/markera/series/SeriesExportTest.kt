@@ -29,15 +29,16 @@ class SeriesExportTest {
         imageWidth = 3000,
         imageHeight = 3000,
         geometry = geometry,
+        tag = "träning",
     )
 
     @Test
     fun seriesCsvHasHeaderAndOneRowPerSeries() {
         assertEquals(
             "id;timestamp;caliber;total;imageWidth;imageHeight;centreX;centreY;" +
-                "ringCx;ringCy;ringSemiMajor;ringSemiMinor;ringRotationRad;image\r\n" +
+                "ringCx;ringCy;ringSemiMajor;ringSemiMinor;ringRotationRad;image;tag\r\n" +
                 "7;2026-09-06T10:00:00Z;9mm;18;3000;3000;100.5;200.0;" +
-                "101.0;201.0;300.0;290.0;0.25;images/7.jpg\r\n",
+                "101.0;201.0;300.0;290.0;0.25;images/7.jpg;träning\r\n",
             seriesCsv(listOf(series)),
         )
     }
@@ -56,15 +57,15 @@ class SeriesExportTest {
     @Test
     fun geometrylessSeriesWithoutImageLeavesThoseCellsEmpty() {
         val bare = SeriesDto(id = 1, timestamp = "t", caliber = "-", holes = emptyList())
-        // 14 columns: the 10 after `total` are all empty here.
-        assertEquals("1;t;-;0" + ";".repeat(10), seriesCsv(listOf(bare)).lines()[1])
+        // 15 columns: the 11 after `total` (tag included) are all empty here.
+        assertEquals("1;t;-;0" + ";".repeat(11), seriesCsv(listOf(bare)).lines()[1])
     }
 
     @Test
     fun aSeparatorOrQuoteInACellIsQuoted() {
         val odd = SeriesDto(id = 2, timestamp = "a;b", caliber = "x\"y", holes = emptyList())
         assertEquals(
-            """2;"a;b";"x""y";0""" + ";".repeat(10),
+            """2;"a;b";"x""y";0""" + ";".repeat(11),
             seriesCsv(listOf(odd)).lines()[1],
         )
     }
