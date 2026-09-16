@@ -60,9 +60,10 @@ import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.detectedLabel
 import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.kindText
-import se.kjellstrand.markera.series.manualLabel
 import se.kjellstrand.markera.series.moveHole
 import se.kjellstrand.markera.series.nearestHoleIndex
+import se.kjellstrand.markera.series.pickInnerTen
+import se.kjellstrand.markera.series.pickRing
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.CaliberDialog
@@ -73,6 +74,8 @@ import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
+import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
+import se.kjellstrand.markera.ui.markera.ScoreBox
 import se.kjellstrand.markera.ui.markera.holeLetter
 import se.kjellstrand.markera.ui.markera.photoGestures
 import se.kjellstrand.markera.ui.markera.rememberZoomPan
@@ -319,6 +322,20 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             hole = hole,
                             letter = holeLetter(i),
                             onDelete = { pendingDeleteIndex = i },
+                            // Same gate as the photo editing above: no geometry,
+                            // no editing. "Spara" sends the whole list, so the
+                            // pick only has to land in the local state.
+                            onScoreChange = geometry?.let {
+                                { pick: Int ->
+                                    holes.value = holes.value.mapIndexed { j, h ->
+                                        if (j == i) {
+                                            h.copy(ring = pickRing(pick), innerTen = pickInnerTen(pick))
+                                        } else {
+                                            h
+                                        }
+                                    }
+                                }
+                            },
                         )
                     }
                 }
@@ -379,13 +396,25 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     }
 }
 
+/**
+ * One hole: its letter + what the detector said, the editable score, the
+ * distance and how the hole came about. [onScoreChange] gets a picker index
+ * (see `pickRing`); null leaves the score box inert.
+ */
 @Composable
-private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
+private fun HoleRow(
+    hole: HoleDto,
+    letter: String,
+    onDelete: () -> Unit,
+    onScoreChange: ((Int) -> Unit)?,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        // 12, not 16: the score box is 4 dp wider than the text cell it
+        // replaced, and the kind column ("detekterad") must not wrap.
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // The key letter back to the marker on the photo shares a cell with the
@@ -412,14 +441,15 @@ private fun HoleRow(hole: HoleDto, letter: String, onDelete: () -> Unit) {
                 modifier = Modifier.align(Alignment.CenterEnd),
             )
         }
-        // Manual: the score the hole got where the user put it.
-        Text(
-            text = hole.manualLabel() ?: stringResource(Res.string.detail_no_score),
-            style = MaterialTheme.typography.titleLarge,
-            color = MANUAL_COLOR,
-            modifier = Modifier
-                .width(40.dp)
-                .padding(vertical = 6.dp),
+        // The hole's current score, and the same tap-to-dialpad box as the scan
+        // screen. It always shows a value (not the old "—" placeholder), so
+        // correcting an untouched detection is a tap on the score itself.
+        // Whose value it is stays readable from the row: the detected cell to
+        // the left is struck through once they differ, and the kind column
+        // spells it out ("8 → 9", "manuell", "inmatad").
+        ScoreBox(
+            value = if (hole.innerTen) SCORE_PICKER_INNER_TEN else hole.ring,
+            onValueChange = onScoreChange,
         )
         Text(
             // Whole millimetres only — no decimals anywhere in this UI.

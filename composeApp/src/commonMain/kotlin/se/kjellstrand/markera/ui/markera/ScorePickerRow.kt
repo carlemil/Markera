@@ -49,9 +49,10 @@ fun holeLetter(index: Int): String = ('a' + index).toString()
  * [onValueChange] tapping it opens the dialpad; without one (an empty slot on
  * the scan screen, or the landscape column) it just displays.
  * [letter] is the small key tying the box to its marker on the photo.
+ * Also the series detail screen's score cell, so the two edit the same way.
  */
 @Composable
-private fun ScoreBox(
+internal fun ScoreBox(
     value: Int,
     onValueChange: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
