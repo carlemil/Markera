@@ -214,7 +214,7 @@ Calibers: `22lr, 32, 38, 357, 45, 44, 9mm, 10mm` plus `-` (none, default).
 | 92 | Statistik Tavla date bar (user request 2026-09-16): gradient ends in red instead of yellow, the range knobs become shorter/stubbier/rounder, and the start/end date labels move above the line | done 2026-09-16 — gate 187 green, iOS links, phone-checked 2026-09-16; user's choice: the whole age scale ends in red, so the hit dots match |
 | 93 | Historik: group the list by day with a divider per day, days collapsible, list starts collapsed showing only the days with activity (user request 2026-09-16) | done 2026-09-16 — gate 190 green (3 new grouping tests), iOS links, phone-checked 2026-09-16 (collapsed on open, day folds out) |
 | 94 | Statistik: move Kaliber and Datum back below the tabs — 91 looked bad on the phone (user 2026-09-16); the state stays hoisted in StatsScreen, so the two tabs keep sharing the same filter | done 2026-09-16 — gate 187 green, iOS links, phone-checked 2026-09-16 |
-| 95 | Historik day header: "1 serier" should read "1 serie" (seen on the phone 2026-09-16) | done 2026-09-16 — gate green, iOS links |
+| 95 | Historik day header: "1 serier" should read "1 serie" (seen on the phone 2026-09-16) | done 2026-09-16 — gate green, iOS links, phone-checked 2026-09-16 (two one-series days read "1 serie") |
 | 9 | HTTPS for the backend (queued 2026-09-06 as "if the backend ever leaves the LAN") | done 2026-09-07 — `https://markera.duckdns.org` via the Mac mini's host Caddy (block appended over ssh, backup `Caddyfile.bak-20260907`); container bound to 127.0.0.1:8090; app default URL switched, cleartext config removed |
 
 ## API (server)
