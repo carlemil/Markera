@@ -20,6 +20,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         val provider = stringPreferencesKey("provider")
         val caliber = stringPreferencesKey("caliber")
         val historyFilter = stringPreferencesKey("history_filter")
+        val openDays = stringPreferencesKey("history_open_days")
         val tag = stringPreferencesKey("tag")
     }
 
@@ -41,6 +42,12 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeHistoryFilter(value: String) {
         dataStore.edit { it[Keys.historyFilter] = value }
+    }
+
+    override suspend fun readOpenDays(): String? = dataStore.data.first()[Keys.openDays]
+
+    override suspend fun writeOpenDays(value: String) {
+        dataStore.edit { it[Keys.openDays] = value }
     }
 
     override suspend fun read(): BackendAuth? {

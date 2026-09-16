@@ -157,6 +157,26 @@ class HistoryFilterTest {
     }
 
     @Test
+    fun `open days round trip`() {
+        val list = listOf(series(1, timestamp = "2026-09-15T10:00:00Z"), series(2))
+        val open = setOf("2026-09-15", "2026-09-01")
+        assertEquals(open, decodeOpenDays(encodeOpenDays(open, list, TimeZone.UTC)))
+    }
+
+    @Test
+    fun `nothing stored means every day collapsed`() {
+        assertEquals(emptySet(), decodeOpenDays(null))
+        assertEquals(emptySet(), decodeOpenDays(""))
+    }
+
+    @Test
+    fun `encoding drops a day with no series left`() {
+        val list = listOf(series(1, timestamp = "2026-09-15T10:00:00Z"))
+        val encoded = encodeOpenDays(setOf("2026-09-15", "2026-08-01"), list, TimeZone.UTC)
+        assertEquals(setOf("2026-09-15"), decodeOpenDays(encoded))
+    }
+
+    @Test
     fun `garbage and null decode to the default filter`() {
         assertEquals(HistoryFilter(), decodeHistoryFilter(null))
         assertEquals(HistoryFilter(), decodeHistoryFilter("not a valid filter at all"))

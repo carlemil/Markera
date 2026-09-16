@@ -21,6 +21,10 @@ interface BackendTokenStore {
     suspend fun readHistoryFilter(): String? = null
     suspend fun writeHistoryFilter(value: String) {}
 
+    /** The Historik day groups the user left unfolded, [encodeOpenDays][se.kjellstrand.markera.ui.history.encodeOpenDays]-encoded; also survives [clear]. */
+    suspend fun readOpenDays(): String? = null
+    suspend fun writeOpenDays(value: String) {}
+
     /** The last tag chosen, so a whole session costs no extra taps; also survives [clear]. */
     suspend fun readTag(): String? = null
     suspend fun writeTag(value: String?) {}

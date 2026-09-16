@@ -107,6 +107,9 @@ fun SeriesHistoryScreen(
     var filter by remember { mutableStateOf(HistoryFilter()) }
     // Guards against writing the still-default filter back before the saved one loaded.
     var filterLoaded by remember { mutableStateOf(false) }
+    // Which days are unfolded, and the same guard against wiping the stored set.
+    var expanded by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    var expandedLoaded by remember { mutableStateOf(false) }
     var pickingDates by remember { mutableStateOf(false) }
     // Thumbnails are small and few; one map for the screen beats a real image
     // loader (no Coil in this app).
@@ -125,11 +128,20 @@ fun SeriesHistoryScreen(
     LaunchedEffect(Unit) {
         filter = decodeHistoryFilter(services.store.readHistoryFilter())
         filterLoaded = true
+        expanded = decodeOpenDays(services.store.readOpenDays())
+        expandedLoaded = true
     }
 
     fun onFilter(new: HistoryFilter) {
         filter = new
         if (filterLoaded) scope.launch { services.store.writeHistoryFilter(new.encode()) }
+    }
+
+    fun onToggleDay(day: String) {
+        val next = if (day in expanded) expanded - day else expanded + day
+        expanded = next
+        // Against the unfiltered list: a day the filter hides is still worth keeping.
+        if (expandedLoaded) scope.launch { services.store.writeOpenDays(encodeOpenDays(next, series)) }
     }
 
     // A changed filter re-anchors the keyed list on whatever item was first visible;
@@ -139,9 +151,6 @@ fun SeriesHistoryScreen(
 
     val shown = remember(series, filter) { series.filteredBy(filter, Clock.System.now()) }
     val days = remember(shown) { shown.groupedByDay() }
-    // Which days are unfolded — view state only, and keyed on the filter so a changed
-    // filter drops day keys that are no longer in the list (back to all-collapsed).
-    var expanded by rememberSaveable(filter) { mutableStateOf(emptySet<String>()) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -237,13 +246,7 @@ fun SeriesHistoryScreen(
                                     DayHeader(
                                         group = day,
                                         expanded = day.day in expanded,
-                                        onToggle = {
-                                            expanded = if (day.day in expanded) {
-                                                expanded - day.day
-                                            } else {
-                                                expanded + day.day
-                                            }
-                                        },
+                                        onToggle = { onToggleDay(day.day) },
                                     )
                                 }
                                 if (day.day in expanded) {

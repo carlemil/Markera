@@ -13,6 +13,7 @@ class UserDefaultsBackendTokenStore(
         const val PROVIDER = "markera.backend.provider"
         const val CALIBER = "markera.backend.caliber"
         const val HISTORY_FILTER = "markera.backend.historyFilter"
+        const val OPEN_DAYS = "markera.backend.historyOpenDays"
         const val TAG = "markera.backend.tag"
     }
 
@@ -31,6 +32,11 @@ class UserDefaultsBackendTokenStore(
 
     override suspend fun writeHistoryFilter(value: String) =
         defaults.setObject(value, Keys.HISTORY_FILTER)
+
+    override suspend fun readOpenDays(): String? = defaults.stringForKey(Keys.OPEN_DAYS)
+
+    override suspend fun writeOpenDays(value: String) =
+        defaults.setObject(value, Keys.OPEN_DAYS)
 
     override suspend fun read(): BackendAuth? {
         return BackendAuth(

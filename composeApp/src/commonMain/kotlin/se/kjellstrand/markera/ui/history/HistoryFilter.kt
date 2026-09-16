@@ -49,6 +49,30 @@ fun List<SeriesDto>.groupedByDay(zone: TimeZone = TimeZone.currentSystemDefault(
         .map { (day, series) -> DayGroup(day, series) }
         .sortedByDescending { it.day }
 
+/**
+ * The unfolded day groups, as `yyyy-MM-dd;yyyy-MM-dd;...`. A [DayGroup.day] key is
+ * [localStamp]'s date half — digits and dashes, or the raw timestamp's first 10
+ * characters when it wouldn't parse — so `;` can't occur in one and needs no
+ * escaping, unlike a free-text tag.
+ *
+ * Only the *open* days are stored: a day nobody has touched (a new one included)
+ * is then collapsed by default. Days with no series left are dropped here so the
+ * set can't grow forever — prune against the unfiltered list, or a day the current
+ * filter hides would be forgotten.
+ */
+fun encodeOpenDays(
+    days: Set<String>,
+    series: List<SeriesDto>,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+): String {
+    val present = series.groupedByDay(zone).mapTo(mutableSetOf()) { it.day }
+    return days.filter { it in present }.sorted().joinToString(";")
+}
+
+/** Never throws: null (nothing stored yet) or empty text means every day collapsed. */
+fun decodeOpenDays(text: String?): Set<String> =
+    text?.split(";")?.filterTo(mutableSetOf()) { it.isNotEmpty() } ?: emptySet()
+
 /** Every caliber on any series, [Caliber.NONE] included, ordinal order. */
 fun List<SeriesDto>.calibersPresent(): List<Caliber> =
     map { Caliber.fromLabel(it.caliber) }.distinct().sortedBy { it.ordinal }
