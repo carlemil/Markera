@@ -44,6 +44,7 @@
     <string name="history_empty">Inga sparade serier än</string>
     <string name="history_filter_empty">Inga serier matchar filtret.</string>
     <string name="history_day_summary">%1$d serier · %2$d poäng</string>
+    <string name="history_day_summary_one">1 serie · %1$d poäng</string>
     <string name="history_retry">Försök igen</string>
     <string name="history_delete_title">Radera serien?</string>
     <string name="history_delete_message">%1$s · %2$d poäng</string>

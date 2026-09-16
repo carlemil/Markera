@@ -461,12 +461,13 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
                 .weight(1f)
                 .padding(horizontal = 8.dp),
         )
+        val points = group.series.sumOf { it.total() }
         Text(
-            text = stringResource(
-                Res.string.history_day_summary,
-                group.series.size,
-                group.series.sumOf { it.total() },
-            ),
+            text = if (group.series.size == 1) {
+                stringResource(Res.string.history_day_summary_one, points)
+            } else {
+                stringResource(Res.string.history_day_summary, group.series.size, points)
+            },
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
