@@ -85,6 +85,31 @@ class SeriesStatsTest {
     }
 
     @Test
+    fun `an empty tag set keeps every series, tagged or not`() {
+        val tagged = seriesA.copy(tag = "Träning")
+        val plotted = listOf(tagged, seriesB).plotSeries(StatsFilter())
+        assertEquals(listOf(1L, 2L), plotted.map { it.series.id })
+    }
+
+    @Test
+    fun `naming tags keeps those and drops both other tags and untagged series`() {
+        val wanted = seriesA.copy(tag = "Träning")
+        val other = series(id = 3, holes = seriesA.holes).copy(tag = "Tävling")
+        val plotted = listOf(wanted, other, seriesB).plotSeries(StatsFilter(tags = setOf("Träning")))
+        assertEquals(listOf(1L), plotted.map { it.series.id })
+    }
+
+    @Test
+    fun `the tag filter narrows the caliber filter rather than replacing it`() {
+        val nine = seriesA.copy(tag = "Träning")
+        val rimfire = series(id = 3, caliber = "22lr", holes = seriesA.holes).copy(tag = "Träning")
+        val all = listOf(nine, rimfire)
+        assertEquals(listOf(1L, 3L), all.plotSeries(StatsFilter(tags = setOf("Träning"))).map { it.series.id })
+        val both = all.plotSeries(StatsFilter(caliber = Caliber.MM9, tags = setOf("Träning")))
+        assertEquals(listOf(1L), both.map { it.series.id })
+    }
+
+    @Test
     fun `date window is inclusive at both ends`() {
         val filter = StatsFilter(
             from = Instant.parse("2026-09-01T10:00:00Z"),

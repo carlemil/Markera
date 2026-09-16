@@ -153,6 +153,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     var reload by remember { mutableIntStateOf(0) }
 
     var caliber by remember { mutableStateOf<Caliber?>(null) }
+    // Multi-select like Historik's tag chips; empty = no tag filtering at all.
+    var tags by remember { mutableStateOf(emptySet<String>()) }
     var preset by remember { mutableStateOf(DatePreset.ALL) }
     // Custom window as the picker hands it over: UTC start-of-day millis.
     var customRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
@@ -172,9 +174,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
         loading = false
     }
 
-    val filter = remember(caliber, preset, customRange) {
+    val filter = remember(caliber, tags, preset, customRange) {
         val (from, to) = preset.window(customRange, Clock.System.now())
-        StatsFilter(caliber = caliber, from = from, to = to)
+        StatsFilter(caliber = caliber, from = from, to = to, tags = tags)
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
@@ -227,6 +229,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                         calibers = series.calibersWithGeometry(),
                         caliber = caliber,
                         onCaliber = { caliber = it },
+                        tags = series.tagsWithGeometry(),
+                        selectedTags = tags,
+                        onTags = { tags = it },
                         preset = preset,
                         customRange = customRange,
                         onPreset = { preset = it },
@@ -312,12 +317,19 @@ private fun List<SeriesDto>.calibersWithGeometry(): List<Caliber> =
         .distinct()
         .sortedBy { it.ordinal }
 
+/** The same for tags, alphabetical; an untagged series contributes none. */
+private fun List<SeriesDto>.tagsWithGeometry(): List<String> =
+    filter { it.geometry != null }.mapNotNull { it.tag }.distinct().sorted()
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalTime::class)
 @Composable
 private fun FilterRow(
     calibers: List<Caliber>,
     caliber: Caliber?,
     onCaliber: (Caliber?) -> Unit,
+    tags: List<String>,
+    selectedTags: Set<String>,
+    onTags: (Set<String>) -> Unit,
     preset: DatePreset,
     customRange: Pair<Long, Long>?,
     onPreset: (DatePreset) -> Unit,
@@ -343,6 +355,33 @@ private fun FilterRow(
                     colors = chipColors,
                     border = null,
                 )
+            }
+        }
+        // No tag on any plottable series (and none selected) means no section at all.
+        // A tag picked before a refresh dropped its last series still gets a chip, so
+        // the filter stays deselectable.
+        val offeredTags = (tags + selectedTags).distinct().sorted()
+        if (offeredTags.isNotEmpty()) {
+            SectionDivider(stringResource(Res.string.stats_group_tag))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = selectedTags.isEmpty(),
+                    onClick = { onTags(emptySet()) },
+                    label = { Text(stringResource(Res.string.stats_caliber_all)) },
+                    colors = chipColors,
+                    border = null,
+                )
+                offeredTags.forEach { tag ->
+                    FilterChip(
+                        selected = tag in selectedTags,
+                        onClick = {
+                            onTags(if (tag in selectedTags) selectedTags - tag else selectedTags + tag)
+                        },
+                        label = { Text(tag) },
+                        colors = chipColors,
+                        border = null,
+                    )
+                }
             }
         }
         SectionDivider(stringResource(Res.string.stats_group_date))
