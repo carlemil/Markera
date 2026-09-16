@@ -646,6 +646,18 @@ private fun ViewfinderGuide(modifier: Modifier = Modifier) {
             center = centre,
             style = Stroke(width = stroke),
         )
+        // The 7/8, 8/9 and 9/10 lines inside the black, as fractions of the
+        // 100 mm 6/7 radius — the same set the frozen frame's DetectionOverlay
+        // draws, and fainter for the same reason: the 6/7 circle is what you
+        // frame against, these only say where the shot landed.
+        for (f in listOf(0.75f, 0.5f, 0.25f)) {
+            drawCircle(
+                color = guideColor.copy(alpha = 0.45f),
+                radius = f * radius,
+                center = centre,
+                style = Stroke(width = stroke * 0.6f),
+            )
+        }
         // Digits as printed: mid-band of the 25 mm rings either side of the 100 mm 6/7 edge.
         val style = TextStyle(
             color = guideColor,
@@ -653,7 +665,7 @@ private fun ViewfinderGuide(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
         )
-        for ((digit, factor) in listOf("7" to 0.875f, "6" to 1.125f)) {
+        for ((digit, factor) in listOf("9" to 0.375f, "8" to 0.625f, "7" to 0.875f, "6" to 1.125f)) {
             val layout = textMeasurer.measure(digit, style)
             val half = Offset(layout.size.width / 2f, layout.size.height / 2f)
             val d = factor * radius
