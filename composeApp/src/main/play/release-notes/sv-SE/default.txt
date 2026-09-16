@@ -1,3 +1,7 @@
-Nytt i 1.6.0:
-• Ny app-ikon: en tavla med ringar, siffror och en femskottsserie
-• Skanningen behåller högst fem träffar, så en serie aldrig får extra hål
+Nytt i 1.7.0:
+• Säkrare ringdetektering — 6/7-ringen hittas rätt betydligt oftare
+• Sökaren visar 6 och 7 kring hjälpringen när du fotograferar
+• Tryck på en poängruta för att skriva in poängen direkt
+• Historik grupperas per dag och kan fällas ihop, med filter för kaliber och datum
+• Statistik: flikarna Tavla och Trend, med trendlinjer och spridning över tid
+• Ny app-ikon, och en serie behåller högst fem träffar

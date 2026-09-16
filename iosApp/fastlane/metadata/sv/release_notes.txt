@@ -1,3 +1,6 @@
-Första iOS-versionen: fotografera eller välj en tavla, få serien poängsatt automatiskt, spara den med kaliber och se historik och statistik.
-• Ny app-ikon: en tavla med ringar, siffror och en femskottsserie
-• Skanningen behåller högst fem träffar, så en serie aldrig får extra hål
+Första versionen av Markera för iPhone: fotografera en tavla, få serien poängsatt automatiskt, spara den med kaliber och följ historik och statistik.
+• Säkrare ringdetektering — 6/7-ringen hittas rätt betydligt oftare
+• Sökaren visar 6 och 7 kring hjälpringen när du fotograferar
+• Tryck på en poängruta för att skriva in poängen direkt
+• Historik grupperas per dag, med filter för kaliber och datum
+• Statistik: flikarna Tavla och Trend, med trendlinjer och spridning över tid
