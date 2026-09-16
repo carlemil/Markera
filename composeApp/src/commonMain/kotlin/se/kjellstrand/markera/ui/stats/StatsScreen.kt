@@ -83,7 +83,9 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.HIT_DOT_ALPHA
 import se.kjellstrand.markera.series.SeriesDto
+import se.kjellstrand.markera.series.hitDotRadiusMm
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.utcDay
@@ -614,11 +616,18 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
         }
 
         plotted.forEach { series ->
-            val colour = hitColour(series.age)
+            val colour = hitColour(series.age).copy(alpha = HIT_DOT_ALPHA)
+            // scale is px/mm here, so the caliber's mm radius converts directly.
+            val dotRadius = Caliber.fromLabel(series.series.caliber).hitDotRadiusMm() * scale
             series.hits.forEach { hit ->
                 val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
-                drawCircle(colour, radius = 2.5f * scale, center = at)
-                drawCircle(BLACK, radius = 2.5f * scale, center = at, style = Stroke(width = 1f))
+                drawCircle(colour, radius = dotRadius, center = at)
+                drawCircle(
+                    BLACK.copy(alpha = HIT_DOT_ALPHA),
+                    radius = dotRadius,
+                    center = at,
+                    style = Stroke(width = 1f),
+                )
             }
         }
 

@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.geometryDto
@@ -421,6 +423,10 @@ fun TargetScanner(
                 centre = uiState.centre,
                 ring = uiState.ring,
                 scores = uiState.scores,
+                // The caliber the scan will be saved under; no recorder (a
+                // preview) just means the calibration size.
+                caliber = LocalSeriesRecorder.current?.caliber?.collectAsState()?.value
+                    ?: Caliber.NONE,
                 showDebug = showDebug,
                 imageWidth = uiState.imageWidth,
                 imageHeight = uiState.imageHeight,

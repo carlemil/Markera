@@ -16,12 +16,16 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.HIT_DOT_ALPHA
+import se.kjellstrand.markera.series.hitDotRadiusMm
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.TargetLine
 import kotlin.math.PI
 import kotlin.math.max
@@ -52,6 +56,8 @@ fun DetectionOverlay(
      * step. Defaults to the score's own index ("a", "b", …).
      */
     letters: List<String> = emptyList(),
+    /** Sizes the hole dots; [Caliber.NONE] draws them at the calibration size. */
+    caliber: Caliber = Caliber.NONE,
     showDebug: Boolean = false,
     boxColor: Color = Color(0xFF00E676),
     digitColor: Color = Color(0xFF00B0FF),
@@ -93,7 +99,16 @@ fun DetectionOverlay(
         // hole itself is already visible in the photo. The dots come from the
         // scores when there are any, since only those know which holes the user
         // placed by hand (drawn orange); unscored frames fall back to the boxes.
-        val dotRadius = max(3f, strokeWidthPx * 1.1f)
+        // Dots are sized after the bullet. `scale` is only the image→canvas fit
+        // factor, so the millimetres have to come from the fitted 6/7 ellipse,
+        // whose semiMajor is TARGET_BLACK_RING_RADIUS_MM by definition. No ring,
+        // no mm scale: then keep the fixed dot.
+        val dotRadius = if (ring != null) {
+            val imagePxPerMm = ring.semiMajor / TARGET_BLACK_RING_RADIUS_MM
+            max(2f, (caliber.hitDotRadiusMm() * imagePxPerMm).toFloat() * scale)
+        } else {
+            max(3f, strokeWidthPx * 1.1f)
+        }
         if (showDebug) {
             detections.forEach { d ->
                 drawRect(
@@ -106,7 +121,7 @@ fun DetectionOverlay(
         } else if (scores.isNotEmpty()) {
             scores.forEach { hit ->
                 drawCircle(
-                    color = if (hit.manual) manualColor else holeColor,
+                    color = (if (hit.manual) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
                     radius = dotRadius,
                     center = Offset(hit.centerXpx * scale + offsetX, hit.centerYpx * scale + offsetY),
                 )
@@ -115,7 +130,11 @@ fun DetectionOverlay(
             detections.forEach { d ->
                 val hx = (d.left + d.right) / 2f * scale + offsetX
                 val hy = (d.top + d.bottom) / 2f * scale + offsetY
-                drawCircle(holeColor, radius = dotRadius, center = Offset(hx, hy))
+                drawCircle(
+                    holeColor.copy(alpha = HIT_DOT_ALPHA),
+                    radius = dotRadius,
+                    center = Offset(hx, hy),
+                )
             }
         }
 

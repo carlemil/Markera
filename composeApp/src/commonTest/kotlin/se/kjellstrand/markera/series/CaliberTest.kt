@@ -2,6 +2,7 @@ package se.kjellstrand.markera.series
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class CaliberTest {
 
@@ -38,6 +39,27 @@ class CaliberTest {
             ),
             Caliber.entries.map { it.label },
         )
+    }
+
+    /** Caliber 32 is the size the user calibrated the dots against, by eye. */
+    @Test
+    fun caliber32DrawsAtTheCalibrationSize() {
+        assertEquals(HIT_DOT_RADIUS_32_MM, Caliber.C32.hitDotRadiusMm())
+        assertEquals(Caliber.C32.hitDotRadiusMm(), Caliber.NONE.hitDotRadiusMm())
+    }
+
+    @Test
+    fun dotRadiusFollowsBulletDiameter() {
+        assertTrue(Caliber.HMR17.hitDotRadiusMm() < Caliber.C32.hitDotRadiusMm())
+        assertTrue(Caliber.C32.hitDotRadiusMm() < Caliber.C45.hitDotRadiusMm())
+    }
+
+    @Test
+    fun everyCaliberHasAPositiveDiameter() {
+        Caliber.entries.forEach {
+            assertTrue(it.diameterMm > 0f, "${it.label} has diameter ${it.diameterMm}")
+            assertTrue(it.hitDotRadiusMm() > 0f, "${it.label} would draw no dot")
+        }
     }
 
     @Test

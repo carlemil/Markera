@@ -242,6 +242,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             ring = series.geometry?.ring(),
                             scores = marked.map { it.first },
                             letters = marked.map { it.second },
+                            // The editable state, so correcting the caliber
+                            // resizes the dots right away.
+                            caliber = caliber,
                             holeColor = DETECTED_COLOR,
                             scoreColor = DETECTED_COLOR,
                             manualColor = MANUAL_COLOR,

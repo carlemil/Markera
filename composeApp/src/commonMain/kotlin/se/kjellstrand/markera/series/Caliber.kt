@@ -11,38 +11,42 @@ package se.kjellstrand.markera.series
  * Constant names: an identifier cannot start with a digit, so a trailing letter
  * group is hoisted to the front (`22lr` → [LR22], `9mm` → [MM9]) and an all-digit
  * label gets a `C` prefix (`32` → [C32], `6.5x55` → [C65X55]); `.` and `-` drop out.
+ *
+ * [diameterMm] is the nominal bullet diameter, used only to size the hit dots the
+ * app draws — the backend knows nothing about it.
  */
-enum class Caliber(val label: String) {
-    NONE("-"),
+enum class Caliber(val label: String, val diameterMm: Float) {
+    /** An unknown caliber is drawn at the calibration size, i.e. exactly like [C32]. */
+    NONE("-", 7.92f),
 
     // Kantantända.
-    LR22("22lr"),
-    WMR22("22wmr"),
-    HMR17("17hmr"),
+    LR22("22lr", 5.66f),
+    WMR22("22wmr", 5.70f),
+    HMR17("17hmr", 4.37f),
 
     // Pistol / revolver.
-    C32("32"),
-    C380("380"),
-    MM9("9mm"),
-    C38("38"),
-    C357("357"),
-    C40("40"),
-    MM10("10mm"),
-    C44("44"),
-    C45("45"),
+    C32("32", 7.92f),
+    C380("380", 9.02f),
+    MM9("9mm", 9.02f),
+    C38("38", 9.07f),
+    C357("357", 9.07f),
+    C40("40", 10.16f),
+    MM10("10mm", 10.16f),
+    C44("44", 10.90f),
+    C45("45", 11.45f),
 
     // Gevär / rifle.
-    C223("223"),
-    C243("243"),
-    C65X55("6.5x55"),
-    CM65("6.5cm"),
-    C270("270"),
-    C308("308"),
-    C3006("30-06"),
-    C762X39("7.62x39"),
-    C8X57("8x57"),
-    C93X62("9.3x62"),
-    WM300("300wm");
+    C223("223", 5.69f),
+    C243("243", 6.17f),
+    C65X55("6.5x55", 6.71f),
+    CM65("6.5cm", 6.71f),
+    C270("270", 7.04f),
+    C308("308", 7.82f),
+    C3006("30-06", 7.82f),
+    C762X39("7.62x39", 7.90f),
+    C8X57("8x57", 8.20f),
+    C93X62("9.3x62", 9.30f),
+    WM300("300wm", 7.82f);
 
     companion object {
         /** Unknown labels degrade to [NONE] rather than throwing. */
@@ -50,3 +54,21 @@ enum class Caliber(val label: String) {
             entries.firstOrNull { it.label == label } ?: NONE
     }
 }
+
+/**
+ * The hit-dot radius the user calibrated by eye, against a caliber 32 target.
+ * A calibration knob, not the physical hole size: every other caliber scales off
+ * it by bullet diameter.
+ */
+const val HIT_DOT_RADIUS_32_MM = 2.5f
+
+/** Hit dots are drawn translucent so overlapping groups still read as a cloud. */
+const val HIT_DOT_ALPHA = 0.30f
+
+/**
+ * Dot radius in target millimetres for this caliber. The ratio is taken first so
+ * caliber 32 lands on exactly [HIT_DOT_RADIUS_32_MM] instead of a Float rounding
+ * of it.
+ */
+fun Caliber.hitDotRadiusMm(): Float =
+    HIT_DOT_RADIUS_32_MM * (diameterMm / Caliber.C32.diameterMm)
