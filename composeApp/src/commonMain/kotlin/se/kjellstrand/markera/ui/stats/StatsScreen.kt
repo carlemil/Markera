@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -68,6 +70,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -112,16 +115,16 @@ private val LINE_ON_BLACK = Color(0xFFEDEDED)
 private val LINE_ON_PAPER = Color(0xFF6B6455)
 /**
  * Oldest → newest hit colours, also the legend's gradient bar: one continuous
- * blue → yellow gradient, its two far-apart ends keeping early and late series
- * easy to tell apart. The black outline on each hit keeps the pale yellow end
- * visible against the cream paper.
+ * blue → red gradient, its two far-apart ends keeping early and late series
+ * easy to tell apart. The black outline on each hit keeps both ends crisp
+ * against the cream paper.
  */
 private val HIT_SCALE = listOf(
     Color(0xFF304FFE), // blue
-    Color(0xFFFFEA00), // yellow
+    Color(0xFFFF1A1A), // red
 )
-// Magenta and green sit far from both the blue and the yellow end; the + / ×
-// shapes and drawMark's dark halo still tell them apart for colour-blind readers.
+// Green sits far from both ends, magenta off to the pink side of the red one; the
+// + / × shapes and drawMark's dark halo still tell them apart for colour-blind readers.
 private val MEAN_MARK = Color(0xFFFF00C8)
 private val MEDIAN_MARK = Color(0xFF00C853)
 
@@ -129,6 +132,9 @@ private val MEDIAN_MARK = Color(0xFF00C853)
 private val MARK_ARM = 5.dp
 private val MARK_HALO = 2.dp
 private val MARK_STROKE = 1.dp
+
+/** The age slider's grab handles: a round knob, squat over the 8 dp bar. */
+private val KNOB = DpSize(20.dp, 20.dp)
 
 /**
  * All saved series with geometry, filtered and drawn on one target: every hit
@@ -705,21 +711,6 @@ private fun MarkerLegend() {
 private fun AgeLegend(plotted: List<PlottedSeries>, selection: IntRange, onSelection: (IntRange) -> Unit) {
     if (plotted.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (plotted.size > 1) {
-            RangeSlider(
-                value = selection.first.toFloat()..selection.last.toFloat(),
-                onValueChange = { range ->
-                    // Snap to series positions: series count is small, so a plain
-                    // round-to-nearest is enough even where steps == 0 (n == 2).
-                    onSelection(range.start.roundToInt()..range.endInclusive.roundToInt())
-                },
-                valueRange = 0f..plotted.lastIndex.toFloat(),
-                steps = (plotted.size - 2).coerceAtLeast(0),
-                track = { AgeTrack(plotted) },
-            )
-        } else {
-            AgeTrack(plotted)
-        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -735,6 +726,30 @@ private fun AgeLegend(plotted: List<PlottedSeries>, selection: IntRange, onSelec
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (plotted.size > 1) {
+            val startSource = remember { MutableInteractionSource() }
+            val endSource = remember { MutableInteractionSource() }
+            RangeSlider(
+                value = selection.first.toFloat()..selection.last.toFloat(),
+                onValueChange = { range ->
+                    // Snap to series positions: series count is small, so a plain
+                    // round-to-nearest is enough even where steps == 0 (n == 2).
+                    onSelection(range.start.roundToInt()..range.endInclusive.roundToInt())
+                },
+                valueRange = 0f..plotted.lastIndex.toFloat(),
+                steps = (plotted.size - 2).coerceAtLeast(0),
+                startInteractionSource = startSource,
+                endInteractionSource = endSource,
+                // The stock thumb is a tall pill; a round knob the width of the bar's
+                // own height reads as a grab handle without towering over it. Dragging
+                // is the slider's own gesture, so the touch area doesn't shrink with it.
+                startThumb = { SliderDefaults.Thumb(startSource, thumbSize = KNOB) },
+                endThumb = { SliderDefaults.Thumb(endSource, thumbSize = KNOB) },
+                track = { AgeTrack(plotted) },
+            )
+        } else {
+            AgeTrack(plotted)
+        }
     }
 }
 
@@ -743,7 +758,8 @@ private fun AgeLegend(plotted: List<PlottedSeries>, selection: IntRange, onSelec
  * [PlottedSeries.age] fraction that colours its hits, so a dot always sits under the
  * colour its hits are drawn in. Used both standalone (one series) and as the
  * [RangeSlider]'s custom track, whose slot is already inset to the thumbs' travel
- * width, so `fillMaxWidth()` here lines the dots up exactly under where the knobs snap.
+ * width — whatever [KNOB] the thumbs are — so `fillMaxWidth()` here lines the dots
+ * up exactly under where the knobs snap.
  */
 @Composable
 private fun AgeTrack(plotted: List<PlottedSeries>) {
