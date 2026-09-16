@@ -77,6 +77,7 @@ class SeriesRepository(
                     caliber = req.caliber,
                     holes = req.holes,
                     geometry = req.geometry,
+                    tag = req.tag,
                 ),
             )
             reload()
@@ -108,7 +109,8 @@ class SeriesRepository(
                     caliber = req.caliber,
                     holes = kept,
                     geometry = req.geometry,
-                ) ?: SeriesDto(id, req.timestamp, req.caliber, kept, geometry = req.geometry),
+                    tag = req.tag,
+                ) ?: SeriesDto(id, req.timestamp, req.caliber, kept, geometry = req.geometry, tag = req.tag),
             )
             reload()
         }

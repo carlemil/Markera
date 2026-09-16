@@ -87,7 +87,26 @@ data class SeriesRequest(
     val caliber: String,
     val holes: List<HoleDto>,
     val geometry: GeometryDto? = null,
+    /** Free-text label, see [normalizeTag]. Defaulted, so an older server still gets a valid body. */
+    val tag: String? = null,
 )
+
+/**
+ * The two tags offered first in the picker. Free text like every other tag —
+ * these are *stored* values, not UI labels, so they live beside the wire format
+ * rather than in `strings.xml` (the same reason [Caliber.label] is Swedish).
+ */
+val DEFAULT_TAGS = listOf("träning", "tävling")
+
+/** The server rejects a longer tag with a 400, so nothing longer may be entered. */
+const val MAX_TAG_LENGTH = 32
+
+/**
+ * A tag as the server stores it: trimmed, capped, and blank collapsed to null.
+ * Untagged has exactly one representation on the wire — never `""`.
+ */
+fun normalizeTag(raw: String?): String? =
+    raw?.trim()?.take(MAX_TAG_LENGTH)?.takeIf { it.isNotEmpty() }
 
 @Serializable
 data class SeriesDto(
@@ -110,6 +129,8 @@ data class SeriesDto(
     val updatedAt: String? = null,
     /** A tombstone from the delta: the series is gone, only [id] and [updatedAt] are filled in. */
     val deleted: Boolean = false,
+    /** Free-text label the user tagged the series with, see [normalizeTag]. Null = untagged. */
+    val tag: String? = null,
 )
 
 @Serializable

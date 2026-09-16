@@ -30,6 +30,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -61,6 +62,8 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.AppServices
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.DEFAULT_TAGS
+import se.kjellstrand.markera.series.MAX_TAG_LENGTH
 import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
@@ -125,6 +128,8 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
             session = seriesServices.session,
             readCaliber = seriesServices.store::readCaliber,
             writeCaliber = seriesServices.store::writeCaliber,
+            readTag = seriesServices.store::readTag,
+            writeTag = seriesServices.store::writeTag,
             encodeJpeg = ::encodeSeriesJpeg,
             scope = scope,
         ).also { scanController.onSeriesDetected = it::onSeriesDetected }
@@ -222,6 +227,76 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
             onDismiss = recorder::dismissCaliberDialog,
         )
     }
+
+    val tagDialogOpen by recorder.tagDialogOpen.collectAsState()
+    if (tagDialogOpen) {
+        val tag by recorder.tag.collectAsState()
+        val cached by seriesServices.repository.series.collectAsState()
+        TagDialog(
+            selected = tag,
+            // Every tag already in use, so one typed once is one tap forever after.
+            known = (DEFAULT_TAGS + cached.mapNotNull { it.tag }).distinct(),
+            onSelect = recorder::selectTag,
+            onDismiss = recorder::dismissTagDialog,
+        )
+    }
+}
+
+/**
+ * The free-text tag for the next series: the tags already in use as rows, plus a
+ * field for a new one. Its own composable rather than a [CaliberDialog] variant —
+ * a fixed enum needs no text input.
+ */
+@Composable
+internal fun TagDialog(
+    selected: String?,
+    known: List<String>,
+    /** Null clears the tag. */
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var typed by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.series_tag_title)) },
+        confirmButton = {
+            TextButton(enabled = typed.isNotBlank(), onClick = { onSelect(typed) }) {
+                Text(stringResource(Res.string.series_tag_use))
+            }
+        },
+        text = {
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    // The leading null is the "clear it" row: untagged has exactly one
+                    // representation, and it is null all the way to the server.
+                    (listOf(null) + known).forEach { tag ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(tag) }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = tag == selected, onClick = { onSelect(tag) })
+                            Text(
+                                tag ?: stringResource(Res.string.series_tag_none),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = typed,
+                        // Capped here: a longer tag is a 400 from the server.
+                        onValueChange = { if (it.length <= MAX_TAG_LENGTH) typed = it },
+                        label = { Text(stringResource(Res.string.series_tag_new)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
+            }
+        },
+    )
 }
 
 /** Tags the scanned series; shown automatically while the caliber is "-". */

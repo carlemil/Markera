@@ -20,6 +20,10 @@ interface BackendTokenStore {
     /** The Historik screen's encoded [se.kjellstrand.markera.ui.history.HistoryFilter]; also survives [clear]. */
     suspend fun readHistoryFilter(): String? = null
     suspend fun writeHistoryFilter(value: String) {}
+
+    /** The last tag chosen, so a whole session costs no extra taps; also survives [clear]. */
+    suspend fun readTag(): String? = null
+    suspend fun writeTag(value: String?) {}
 }
 
 /** In-memory store for tests. */

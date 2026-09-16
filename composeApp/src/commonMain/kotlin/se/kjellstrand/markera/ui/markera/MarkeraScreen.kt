@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.stringResource
@@ -393,8 +395,8 @@ fun PrimaryActionButton(
 }
 
 /**
- * The scored total, with the caliber chip beside it at the same height. Both
- * screens show their results through this, so the chip needs no other home.
+ * The scored total, with the caliber and tag chips beside it at the same height.
+ * Both screens show their results through this, so the chips need no other home.
  */
 @Composable
 fun TotalBadge(total: Int) {
@@ -403,7 +405,10 @@ fun TotalBadge(total: Int) {
         modifier = Modifier.height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (recorder != null) CaliberChip(recorder, Modifier.fillMaxHeight())
+        if (recorder != null) {
+            CaliberChip(recorder, Modifier.fillMaxHeight())
+            TagChip(recorder, Modifier.fillMaxHeight())
+        }
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,
             shape = RoundedCornerShape(16.dp),
@@ -446,6 +451,31 @@ private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier)
                 text = caliber.label,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/** The tag the next series is saved with; tap to change it. Untagged shows the word. */
+@Composable
+private fun TagChip(recorder: SeriesRecorder, modifier: Modifier = Modifier) {
+    val tag by recorder.tag.collectAsState()
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.clickable { recorder.openTagDialog() },
+    ) {
+        Box(
+            // Capped: a 32-character tag must not push the total off the row.
+            modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = 20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = tag ?: stringResource(Res.string.series_tag_chip_empty),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

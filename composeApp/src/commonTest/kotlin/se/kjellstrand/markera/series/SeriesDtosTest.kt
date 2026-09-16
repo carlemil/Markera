@@ -21,6 +21,16 @@ class SeriesDtosTest {
     }
 
     @Test
+    fun normalizeTagTrimsCapsAndCollapsesBlankToNull() {
+        assertEquals("träning", normalizeTag("  träning  "))
+        assertNull(normalizeTag(null))
+        assertNull(normalizeTag(""))
+        assertNull(normalizeTag("   "))
+        // Longer than the server accepts (400), so it is cut before it can be sent.
+        assertEquals("a".repeat(MAX_TAG_LENGTH), normalizeTag("a".repeat(MAX_TAG_LENGTH + 5)))
+    }
+
+    @Test
     fun seriesRequestMapsScoresAndCaliberLabel() {
         val hit = HitScore(
             centerXpx = 12f,

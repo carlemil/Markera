@@ -14,6 +14,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,7 @@ class SeriesRecorderTest {
 
     private val recorded = mutableListOf<HttpRequestData>()
     private val written = mutableListOf<Caliber>()
+    private val writtenTags = mutableListOf<String?>()
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private val scores = listOf(
@@ -52,6 +54,7 @@ class SeriesRecorderTest {
     private fun recorder(
         signedIn: Boolean = true,
         stored: Caliber = Caliber.NONE,
+        storedTag: String? = null,
         status: HttpStatusCode = HttpStatusCode.Created,
         imageStatus: HttpStatusCode = HttpStatusCode.NoContent,
         // The pre-image tests below count series requests only; their default
@@ -87,9 +90,14 @@ class SeriesRecorderTest {
                 session = session,
                 readCaliber = { stored },
                 writeCaliber = { written += it },
+                readTag = { storedTag },
+                writeTag = { writtenTags += it },
                 encodeJpeg = encodeJpeg,
                 scope = scope,
-            ).also { it.caliber.first { c -> c == stored } }
+            ).also {
+                it.caliber.first { c -> c == stored }
+                it.tag.first { t -> t == storedTag }
+            }
         }
     }
 
@@ -328,6 +336,58 @@ class SeriesRecorderTest {
                 """"ringSemiMajor":5.0,"ringSemiMinor":6.0,"ringRotationRad":0.5}""" in sentBody,
             sentBody,
         )
+    }
+
+    @Test
+    fun theChosenTagRidesAlongWithTheSeriesAndIsRemembered() {
+        val recorder = recorder(stored = Caliber.LR22)
+
+        recorder.selectTag("  träning  ")
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals("träning", recorder.tag.value)
+        assertTrue(""""tag":"träning"""" in sentBody, sentBody)
+        runBlocking { withTimeout(5_000) { while (writtenTags.isEmpty()) delay(10) } }
+        assertEquals(listOf<String?>("träning"), writtenTags)
+    }
+
+    @Test
+    fun theStoredTagIsWhatTheNextSeriesGets() {
+        val recorder = recorder(stored = Caliber.LR22, storedTag = "tävling")
+
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertTrue(""""tag":"tävling"""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun aClearedTagIsSentAsNoTagAtAllRatherThanAnEmptyOne() {
+        val recorder = recorder(stored = Caliber.LR22, storedTag = "träning")
+
+        // Blank is how the picker's "Ingen tagg" row and a whitespace entry both arrive.
+        recorder.selectTag("   ")
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertNull(recorder.tag.value)
+        assertFalse(""""tag":""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun aTagChosenOnTheFrozenFrameStillReachesTheSeries() {
+        val recorder = recorder(stored = Caliber.LR22, storedTag = "träning")
+
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.selectTag("tävling")
+        recorder.commit(noPicks)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertTrue(""""tag":"tävling"""" in sentBody, sentBody)
     }
 
     @Test

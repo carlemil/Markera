@@ -35,6 +35,11 @@
     <!-- Series auto-save -->
     <string name="series_caliber_title">Välj kaliber</string>
     <string name="series_caliber_none">Ingen vald</string>
+    <string name="series_tag_title">Välj tagg</string>
+    <string name="series_tag_none">Ingen tagg</string>
+    <string name="series_tag_chip_empty">Tagg</string>
+    <string name="series_tag_new">Ny tagg</string>
+    <string name="series_tag_use">Använd</string>
     <string name="series_status_saved">Sparad</string>
     <string name="series_status_failed">Kunde inte spara</string>
 

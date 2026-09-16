@@ -20,6 +20,14 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         val provider = stringPreferencesKey("provider")
         val caliber = stringPreferencesKey("caliber")
         val historyFilter = stringPreferencesKey("history_filter")
+        val tag = stringPreferencesKey("tag")
+    }
+
+    // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
+    override suspend fun readTag(): String? = normalizeTag(dataStore.data.first()[Keys.tag])
+
+    override suspend fun writeTag(value: String?) {
+        dataStore.edit { it[Keys.tag] = value ?: "" }
     }
 
     override suspend fun readCaliber(): Caliber =

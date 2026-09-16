@@ -13,7 +13,13 @@ class UserDefaultsBackendTokenStore(
         const val PROVIDER = "markera.backend.provider"
         const val CALIBER = "markera.backend.caliber"
         const val HISTORY_FILTER = "markera.backend.historyFilter"
+        const val TAG = "markera.backend.tag"
     }
+
+    // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
+    override suspend fun readTag(): String? = normalizeTag(defaults.stringForKey(Keys.TAG))
+
+    override suspend fun writeTag(value: String?) = defaults.setObject(value ?: "", Keys.TAG)
 
     override suspend fun readCaliber(): Caliber =
         Caliber.fromLabel(defaults.stringForKey(Keys.CALIBER) ?: "")

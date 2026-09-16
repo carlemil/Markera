@@ -46,6 +46,8 @@ class SeriesRecorder(
     private val session: BackendSessionRepository,
     private val readCaliber: suspend () -> Caliber,
     private val writeCaliber: suspend (Caliber) -> Unit,
+    private val readTag: suspend () -> String?,
+    private val writeTag: suspend (String?) -> Unit,
     private val encodeJpeg: suspend (PlatformImage) -> EncodedImage,
     private val scope: CoroutineScope,
 ) {
@@ -57,6 +59,13 @@ class SeriesRecorder(
 
     private val _caliberDialogOpen = MutableStateFlow(false)
     val caliberDialogOpen: StateFlow<Boolean> = _caliberDialogOpen.asStateFlow()
+
+    /** The free-text tag the next series gets; null is untagged. Same shape as [caliber]. */
+    private val _tag = MutableStateFlow<String?>(null)
+    val tag: StateFlow<String?> = _tag.asStateFlow()
+
+    private val _tagDialogOpen = MutableStateFlow(false)
+    val tagDialogOpen: StateFlow<Boolean> = _tagDialogOpen.asStateFlow()
 
     /** The scanned series waiting for a caliber (or for its POST to finish). */
     private var pending: SeriesRequest? = null
@@ -71,6 +80,7 @@ class SeriesRecorder(
     init {
         // The stored value must not clobber a choice made before the read lands.
         scope.launch { _caliber.compareAndSet(Caliber.NONE, readCaliber()) }
+        scope.launch { _tag.compareAndSet(null, normalizeTag(readTag())) }
     }
 
     fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage, geometry: GeometryDto?) {
@@ -119,6 +129,26 @@ class SeriesRecorder(
         _caliberDialogOpen.value = false
     }
 
+    /**
+     * Chosen in the tag picker, typed or tapped. Normalised here — the one place
+     * a tag enters — so blank can never reach the wire as `""`. Unlike the
+     * caliber a tag never gates a save, so this only remembers it for the next one.
+     */
+    fun selectTag(raw: String?) {
+        val tag = normalizeTag(raw)
+        _tag.value = tag
+        _tagDialogOpen.value = false
+        scope.launch { writeTag(tag) }
+    }
+
+    fun openTagDialog() {
+        _tagDialogOpen.value = true
+    }
+
+    fun dismissTagDialog() {
+        _tagDialogOpen.value = false
+    }
+
     /** Rescan: forget the pending series and its status, saving nothing. */
     fun clear() {
         saveJob?.cancel()
@@ -140,7 +170,8 @@ class SeriesRecorder(
     private fun startSave(caliber: Caliber, persist: Boolean = false) {
         val request = pending
             ?.takeIf { caliber != Caliber.NONE && saveRequested }
-            ?.copy(caliber = caliber.label)
+            // The tag is read at save time, so retagging a frozen frame still counts.
+            ?.copy(caliber = caliber.label, tag = _tag.value)
         val image = pendingImage
         saveJob?.cancel()
         if (request != null) _status.value = SaveStatus.Saving

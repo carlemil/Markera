@@ -272,6 +272,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                         caliber.label,
                                         holes.value + removed,
                                         series.geometry,
+                                        // A PUT replaces the whole series: without this an
+                                        // edit here would clear the tag server-side.
+                                        series.tag,
                                     ),
                                 )
                                 toast(savedText)
