@@ -131,6 +131,8 @@ data class Series(
     val updatedAt: String = "",
     /** A tombstone from the delta: the series is gone, and only [id] and [updatedAt] are filled in. */
     val deleted: Boolean = false,
+    /** Free text the user filed the series under ("träning", "tävling", anything); null for untagged. */
+    val tag: String? = null,
 )
 
 @Serializable
@@ -139,7 +141,18 @@ data class SeriesRequest(
     val caliber: String,
     val holes: List<Hole>,
     val geometry: Geometry? = null,
+    // Defaulted, like every nullable above: an app build from before tags omits the field entirely.
+    val tag: String? = null,
 )
+
+/** Longer than any label worth filing under, and short enough that the column stays readable. */
+const val MAX_TAG_LENGTH = 32
+
+/**
+ * The stored form of [SeriesRequest.tag]: trimmed, and blank means untagged. "No tag" must have exactly one
+ * representation (null) or every filter on the other side has to know about `""` as well.
+ */
+internal fun SeriesRequest.normalisedTag(): String? = tag?.trim()?.ifEmpty { null }
 
 @Serializable
 data class IdTokenRequest(val idToken: String)
@@ -194,7 +207,7 @@ fun Application.markeraModule(config: Config, db: Db) {
             val userId = authenticate(db) ?: return@post
             val req = call.receive<SeriesRequest>()
             if (invalid(req)) return@post
-            val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry)
+            val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry, req.normalisedTag())
             call.respond(HttpStatusCode.Created, IdResponse(id))
         }
 
@@ -285,6 +298,8 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
         runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
         req.geometry?.let { it.ringSemiMajor <= 0 || it.ringSemiMinor <= 0 } == true ->
             "ring semi-axes must be positive"
+        // Free text, deliberately no vocabulary: only the length is the server's business.
+        (req.normalisedTag()?.length ?: 0) > MAX_TAG_LENGTH -> "tag must be at most $MAX_TAG_LENGTH characters"
         else -> return false
     }
     call.respond(HttpStatusCode.BadRequest, ErrorResponse(error))

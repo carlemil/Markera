@@ -552,6 +552,76 @@ class ApiTest {
     }
 
     @Test
+    fun tagRoundTripsAndAChangeReachesTheDelta() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token, series().copy(tag = "träning"))
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
+        assertEquals("träning", stored.tag)
+
+        tick()
+        assertEquals(HttpStatusCode.NoContent, client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series().copy(tag = "tävling"))
+        }.status)
+        // Retagging must move updated_at, or the user's other device never learns about it.
+        val delta = client.get("/series?since=${stored.updatedAt}") { bearerAuth(me.token) }.body<List<Series>>()
+        assertEquals(listOf("tävling"), delta.map { it.tag })
+        assertTrue(delta.single().updatedAt > stored.updatedAt)
+    }
+
+    @Test
+    fun aSeriesPostedWithoutATagIsUntagged() = apiTest { client ->
+        val me = client.devAuth("me")
+        // The shape an app build from before tags posts: no `tag` field at all.
+        val response = client.post("/series") {
+            bearerAuth(me.token)
+            setBody(
+                TextContent(
+                    """{"timestamp":"2026-09-06T12:34:56Z","caliber":"9mm","holes":[{"ring":5,"innerTen":false}]}""",
+                    ContentType.Application.Json,
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        assertEquals(null, client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().tag)
+    }
+
+    @Test
+    fun tagsAreTrimmedAndABlankOneIsNoTag() = apiTest { client ->
+        val me = client.devAuth("me")
+        val padded = client.createSeries(me.token, series().copy(tag = "  tävling  "))
+        val blank = client.createSeries(me.token, series().copy(tag = "   "))
+
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().associateBy { it.id }
+        assertEquals("tävling", stored[padded]?.tag)
+        assertEquals(null, stored[blank]?.tag)
+        // And not as an empty string in the database either: untagged has exactly one representation.
+        assertEquals(0, sql { st ->
+            st.executeQuery("SELECT COUNT(*) FROM series WHERE tag = ''").use { it.next(); it.getInt(1) }
+        })
+    }
+
+    @Test
+    fun anyTagIsAcceptedExceptAnOverLongOne() = apiTest { client ->
+        val me = client.devAuth("me")
+        // Free text, no server-side vocabulary: a tag nobody has ever sent before is just a tag.
+        client.createSeries(me.token, series().copy(tag = "banan 3, vinterserie"))
+        client.createSeries(me.token, series().copy(tag = "a".repeat(MAX_TAG_LENGTH)))
+
+        val tooLong = client.post("/series") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series().copy(tag = "a".repeat(MAX_TAG_LENGTH + 1)))
+        }
+        assertEquals(HttpStatusCode.BadRequest, tooLong.status)
+        assertTrue(tooLong.body<ErrorResponse>().error.isNotEmpty())
+
+        assertEquals(
+            listOf("a".repeat(MAX_TAG_LENGTH), "banan 3, vinterserie"),
+            client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.tag },
+        )
+    }
+
+    @Test
     fun adminDrawsTheGeometryWhenThereIsOne() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("me")
         val plain = client.createSeries(me.token)

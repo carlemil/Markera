@@ -63,6 +63,7 @@ class Db(dbPath: String) : AutoCloseable {
                      deleted_at TEXT,
                      image_width INTEGER,
                      image_height INTEGER,
+                     tag TEXT,
                      ${GEOMETRY_COLUMNS.joinToString(", ") { "$it REAL" }})"""
             )
             // Databases created before the image carried the frame size.
@@ -84,6 +85,8 @@ class Db(dbPath: String) : AutoCloseable {
                 st.executeUpdate("ALTER TABLE series ADD COLUMN deleted_at TEXT")
                 st.executeUpdate("UPDATE series SET updated_at = created_at")
             }
+            // Databases created before series carried a free-text tag; nullable, so existing rows need no backfill.
+            if ("tag" !in seriesColumns) st.executeUpdate("ALTER TABLE series ADD COLUMN tag TEXT")
             st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
@@ -159,17 +162,19 @@ class Db(dbPath: String) : AutoCloseable {
         caliber: String,
         holes: List<Hole>,
         geometry: Geometry? = null,
+        tag: String? = null,
     ): Long {
         val seriesId: Long
         conn.prepareStatement(
-            "INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at, " +
-                "${GEOMETRY_COLUMNS.joinToString(", ")}) VALUES (?, ?, ?, datetime('now'), $NOW, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at, tag, " +
+                "${GEOMETRY_COLUMNS.joinToString(", ")}) VALUES (?, ?, ?, datetime('now'), $NOW, ?, ?, ?, ?, ?, ?, ?, ?)",
             Statement.RETURN_GENERATED_KEYS
         ).use {
             it.setLong(1, userId)
             it.setString(2, timestamp)
             it.setString(3, caliber)
-            it.setGeometry(4, geometry)
+            it.setString(4, tag)
+            it.setGeometry(5, geometry)
             it.executeUpdate()
             it.generatedKeys.use { rs -> rs.next(); seriesId = rs.getLong(1) }
         }
@@ -184,13 +189,14 @@ class Db(dbPath: String) : AutoCloseable {
     @Synchronized
     fun replaceSeries(seriesId: Long, req: SeriesRequest) {
         conn.prepareStatement(
-            "UPDATE series SET timestamp = ?, caliber = ?, updated_at = $NOW, " +
+            "UPDATE series SET timestamp = ?, caliber = ?, tag = ?, updated_at = $NOW, " +
                 "${GEOMETRY_COLUMNS.joinToString(", ") { "$it = ?" }} WHERE id = ?"
         ).use {
             it.setString(1, req.timestamp)
             it.setString(2, req.caliber)
-            it.setGeometry(3, req.geometry)
-            it.setLong(10, seriesId)
+            it.setString(3, req.normalisedTag())
+            it.setGeometry(4, req.geometry)
+            it.setLong(11, seriesId)
             it.executeUpdate()
         }
         execute("DELETE FROM holes WHERE series_id = ? AND deleted = 0", seriesId)
@@ -390,7 +396,7 @@ class Db(dbPath: String) : AutoCloseable {
 
         val SERIES_SELECT =
             "SELECT id, timestamp, caliber, image_width, image_height, ${GEOMETRY_COLUMNS.joinToString(", ")}, " +
-                "updated_at, deleted_at FROM series"
+                "updated_at, deleted_at, tag FROM series"
 
         /**
          * A soft-deleted row is a [tombstone]: only the id and when it went, so the client can drop it. Otherwise
@@ -412,6 +418,7 @@ class Db(dbPath: String) : AutoCloseable {
                 geometry = geometryRow(rs),
                 updatedAt = updatedAt,
                 deleted = deleted,
+                tag = rs.getString(15),
             )
         }
 

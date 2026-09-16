@@ -61,6 +61,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 s.holes.count { kind(it).isNotEmpty() },
                 if (imageFile(images, s.id).isFile) "&#10003;" else "",
                 if (s.deleted) time(s.updatedAt) else "",
+                esc(s.tag.orEmpty()),
                 href = "/admin/series/${s.id}",
                 gone = s.deleted,
             )
@@ -73,7 +74,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 label,
                 """<a href="/admin">&larr; users</a>""" +
-                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image", "deleted"), rows) +
+                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image", "deleted", "tag"), rows) +
                     """<p><button id="delete-user">Delete user</button> <span id="msg"></span></p>""" +
                     """<script>const MSG = ${jsString(confirm)};$DELETE_USER_JS</script>""",
             )
@@ -514,6 +515,8 @@ function save() {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
                           geometry: S.geometry,
+                          // The editor cannot change the tag, but the PUT replaces the series, so it must carry it back.
+                          tag: S.tag,
                           // Removed rows are flagged (Undo brings them back); a positionless hole nobody gave a score is an "Add hole" left behind;
                           // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
                           holes: S.holes.filter(h => h && !h.deleted && !h.removed &&
