@@ -192,21 +192,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 onBack = onBack,
                 actions = { HelpAction(onClick = { showingHelp = true }) },
             )
-            // Kaliber and Datum feed both tabs, so they sit above the tabs and outside
-            // the scrolling content — but only once there is something to filter.
-            val hasContent = auth != null && !(series.isEmpty() && (error != null || loading))
-            if (hasContent) {
-                FilterRow(
-                    modifier = Modifier.padding(16.dp),
-                    calibers = series.calibersWithGeometry(),
-                    caliber = caliber,
-                    onCaliber = { caliber = it },
-                    preset = preset,
-                    customRange = customRange,
-                    onPreset = { preset = it },
-                    onPickDates = { pickingDates = true },
-                )
-            }
             TabRow(selectedTabIndex = tab) {
                 listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend).forEachIndexed { i, label ->
                     Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label)) })
@@ -235,6 +220,16 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    // Hoisted above the tabs in state, drawn below them: one row, both tabs.
+                    FilterRow(
+                        calibers = series.calibersWithGeometry(),
+                        caliber = caliber,
+                        onCaliber = { caliber = it },
+                        preset = preset,
+                        customRange = customRange,
+                        onPreset = { preset = it },
+                        onPickDates = { pickingDates = true },
+                    )
                     if (stats == null) {
                         Text(
                             stringResource(Res.string.stats_empty),
@@ -325,11 +320,10 @@ private fun FilterRow(
     customRange: Pair<Long, Long>?,
     onPreset: (DatePreset) -> Unit,
     onPickDates: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val chipColors = statsChipColors()
-    // The caller supplies the 16 dp inset; only the filter rows themselves sit tight.
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    // One child of the caller's 16 dp column, so only the filter rows sit tight.
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         SectionDivider(stringResource(Res.string.stats_group_caliber))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
