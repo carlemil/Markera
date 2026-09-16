@@ -51,9 +51,11 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.random.Random
 import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
@@ -452,12 +454,26 @@ fun TargetScanner(
  */
 val LocalSeriesRecorder = staticCompositionLocalOf<SeriesRecorder?> { null }
 
+/** One sweep lap, shared by the sweep animation and the blip reshuffle. */
+private const val SCAN_SWEEP_MS = 1300
+
+/**
+ * The five targets the sweep "discovers" in one lap: (angle°, radius fraction).
+ * One blip per 72° bucket, jittered inside it, so two never overlap; radii stay
+ * in 0.4..0.9 of the ring so they sit inside the ellipse, off the crosshair.
+ */
+internal fun scanBlips(random: Random): List<Pair<Float, Float>> =
+    List(5) { i ->
+        (i * 72f + 6f + random.nextFloat() * 60f) to (0.4f + random.nextFloat() * 0.5f)
+    }
+
 /**
  * Radar-sweep "working" animation shown over the frozen frame while hole
  * detection runs. The sweep orbits the detected [centre] and is sized to the
  * detected 6/7 [ring], so it scans exactly the target the geometry phase found;
  * with no centre/ring it falls back to the viewport centre and a fixed radius.
- * A green sweep line drags a fading trail; fixed blips flash as it passes.
+ * A green sweep line drags a fading trail; blips flash as it passes, moving to
+ * fresh spots once per lap.
  * Indeterminate — it loops until the [ScanPhase.HOLES] phase clears.
  */
 @Composable
@@ -473,16 +489,23 @@ private fun ScanningOverlay(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1300, easing = LinearEasing),
+            animation = tween(durationMillis = SCAN_SWEEP_MS, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "angle",
     )
     val green = Color(0xFF00E676)
-    // Fixed targets the sweep "discovers": (angle°, radius fraction).
-    val blips = remember {
-        listOf(35f to 0.8f, 110f to 0.55f, 200f to 0.9f, 255f to 0.4f, 320f to 0.68f)
+    // Fresh blips once per lap, counted from its own clock: deriving the lap
+    // from `angle` would read the animation in composition and recompose every
+    // frame, while the detector already has the CPU.
+    var lap by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(SCAN_SWEEP_MS.toLong())
+            lap++
+        }
     }
+    val blips = remember(lap) { scanBlips(Random) }
     Box(
         modifier = modifier.background(Color.Black.copy(alpha = 0.35f)),
         contentAlignment = Alignment.Center,
