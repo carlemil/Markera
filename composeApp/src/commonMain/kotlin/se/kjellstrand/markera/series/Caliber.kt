@@ -62,8 +62,12 @@ enum class Caliber(val label: String, val diameterMm: Float) {
  */
 const val HIT_DOT_RADIUS_32_MM = 2.5f
 
-/** Hit dots are drawn translucent so overlapping groups still read as a cloud. */
-const val HIT_DOT_ALPHA = 0.30f
+/**
+ * Hit dots keep a little translucency so overlapping shots still read as a cloud
+ * rather than one blob. A knob the user set by eye on the phone: 0.30 was too
+ * faint to read against the target, 0.80 keeps the overlap visible.
+ */
+const val HIT_DOT_ALPHA = 0.80f
 
 /**
  * Dot radius in target millimetres for this caliber. The ratio is taken first so
