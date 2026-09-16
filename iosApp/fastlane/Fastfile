@@ -28,6 +28,29 @@ platform :ios do
     UI.success("Latest TestFlight build: #{latest_testflight_build_number(api_key: asc_key, app_identifier: APP_ID)}")
   end
 
+  desc "Print every App Store version and its state (editable? in review? live?)."
+  lane :state do
+    asc_key
+    Spaceship::ConnectAPI::App.find(APP_ID).get_app_store_versions.each do |v|
+      UI.message("#{v.version_string}\t#{v.app_store_state}\t#{v.created_date}")
+    end
+  end
+
+  # Apple locks a submitted version's screenshots, so `metadata` fails with
+  # "Failed verification of all screenshots deleted" while a submission is in
+  # flight — even though spaceship counts WAITING_FOR_REVIEW as editable and
+  # `state` is the only way to see it. Cancel, push, then `release` again.
+  desc "Cancel the in-progress App Store review submission (the version becomes editable again)."
+  lane :pull_back do
+    asc_key
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    submission = app.get_in_progress_review_submission(platform: "IOS")
+    UI.user_error!("No review submission in progress") unless submission
+    submission.cancel_submission
+    UI.success("Cancelled review submission #{submission.id}")
+    state
+  end
+
   desc "Build a signed App Store archive and upload it to TestFlight."
   lane :beta do
     gen
