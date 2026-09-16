@@ -588,6 +588,35 @@ class ApiTest {
         }
     }
 
+    /**
+     * The labels are the wire values the app posts, so they are spelled out here: this list must equal
+     * `Caliber` in composeApp/src/commonMain/kotlin/se/kjellstrand/markera/series/Caliber.kt (CaliberTest
+     * guards the same list on that side). Existing labels are in the database — add, never rename.
+     */
+    @Test
+    fun everyKnownCaliberIsAccepted() = apiTest { client ->
+        val expected = listOf(
+            "-",
+            "22lr", "22wmr", "17hmr",
+            "32", "380", "9mm", "38", "357", "40", "10mm", "44", "45",
+            "223", "243", "6.5x55", "6.5cm", "270", "308", "30-06", "7.62x39", "8x57", "9.3x62", "300wm",
+        )
+        assertEquals(expected.toSet(), CALIBERS)
+        assertEquals(expected.size, CALIBERS.size, "duplicate label in CALIBERS")
+
+        val token = client.devAuth("me").token
+        for (caliber in expected) {
+            val response = client.post("/series") {
+                bearerAuth(token); contentType(ContentType.Application.Json); setBody(series(caliber = caliber))
+            }
+            assertEquals(HttpStatusCode.Created, response.status, "expected 201 for caliber '$caliber'")
+        }
+        assertEquals(
+            expected.toSet(),
+            client.get("/series") { bearerAuth(token) }.body<List<Series>>().map { it.caliber }.toSet(),
+        )
+    }
+
     @Test
     fun seriesNeedsAValidBearerToken() = apiTest { client ->
         assertEquals(HttpStatusCode.Unauthorized, client.get("/series").status)

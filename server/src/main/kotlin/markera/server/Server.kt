@@ -67,7 +67,15 @@ data class Config(
 // A ~3000² q90 target photo is ~2 MB; this is headroom for a bigger sensor.
 const val MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
-val CALIBERS = setOf("-", "22lr", "32", "38", "357", "45", "44", "9mm", "10mm")
+// Keep in sync with the `Caliber` enum in the app
+// (composeApp/src/commonMain/kotlin/se/kjellstrand/markera/series/Caliber.kt): these labels are the
+// wire values, and one missing here is a 400 on save. Stored in the database — add, never rename.
+val CALIBERS = setOf(
+    "-",
+    "22lr", "22wmr", "17hmr",
+    "32", "380", "9mm", "38", "357", "40", "10mm", "44", "45",
+    "223", "243", "6.5x55", "6.5cm", "270", "308", "30-06", "7.62x39", "8x57", "9.3x62", "300wm",
+)
 
 /**
  * One shot. [ring]/[innerTen] is what the user confirmed; [detectedRing]/[detectedInnerTen] what the
