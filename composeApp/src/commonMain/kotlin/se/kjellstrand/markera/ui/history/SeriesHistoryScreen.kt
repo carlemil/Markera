@@ -1,6 +1,8 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -30,6 +33,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,10 +49,12 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -132,6 +138,10 @@ fun SeriesHistoryScreen(
     LaunchedEffect(filter) { listState.scrollToItem(0) }
 
     val shown = remember(series, filter) { series.filteredBy(filter, Clock.System.now()) }
+    val days = remember(shown) { shown.groupedByDay() }
+    // Which days are unfolded — view state only, and keyed on the filter so a changed
+    // filter drops day keys that are no longer in the list (back to all-collapsed).
+    var expanded by rememberSaveable(filter) { mutableStateOf(emptySet<String>()) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -221,14 +231,31 @@ fun SeriesHistoryScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            items(shown, key = { it.id }) { item ->
-                                SeriesCard(
-                                    series = item,
-                                    services = services,
-                                    thumbnails = thumbnails,
-                                    onClick = { onOpen(item) },
-                                    onLongPress = { pending = item },
-                                )
+                            days.forEach { day ->
+                                item(key = day.day) {
+                                    DayHeader(
+                                        group = day,
+                                        expanded = day.day in expanded,
+                                        onToggle = {
+                                            expanded = if (day.day in expanded) {
+                                                expanded - day.day
+                                            } else {
+                                                expanded + day.day
+                                            }
+                                        },
+                                    )
+                                }
+                                if (day.day in expanded) {
+                                    items(day.series, key = { it.id }) { item ->
+                                        SeriesCard(
+                                            series = item,
+                                            services = services,
+                                            thumbnails = thumbnails,
+                                            onClick = { onOpen(item) },
+                                            onLongPress = { pending = item },
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -405,6 +432,44 @@ private fun HistoryFilterRow(
             presetChip(DatePreset.MONTH, Res.string.stats_date_month)
             presetChip(DatePreset.YEAR, Res.string.stats_date_year)
         }
+    }
+}
+
+/**
+ * A day's titled rule — `⌄ 2026-09-15 ——— 3 serier · 87 poäng` — in Statistik's
+ * `SectionDivider` idiom. The whole row folds the day's cards in and out.
+ */
+@Composable
+private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) {
+    val angle by animateFloatAsState(if (expanded) 180f else 0f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            modifier = Modifier.rotate(angle),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(group.day, style = MaterialTheme.typography.titleSmall)
+        HorizontalDivider(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+        )
+        Text(
+            text = stringResource(
+                Res.string.history_day_summary,
+                group.series.size,
+                group.series.sumOf { it.total() },
+            ),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

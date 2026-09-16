@@ -43,6 +43,7 @@
     <string name="history_signed_out">Logga in för att se historik</string>
     <string name="history_empty">Inga sparade serier än</string>
     <string name="history_filter_empty">Inga serier matchar filtret.</string>
+    <string name="history_day_summary">%1$d serier · %2$d poäng</string>
     <string name="history_retry">Försök igen</string>
     <string name="history_delete_title">Radera serien?</string>
     <string name="history_delete_message">%1$s · %2$d poäng</string>
@@ -140,7 +141,7 @@
     <!-- Hjälp: historiken -->
     <string name="help_history_title">Om historiken</string>
     <string name="help_history_list">Listan</string>
-    <string name="help_history_list_body">Varje rad är en sparad serie: bild, tid, kaliber, poäng och träffarna. Nyast först. Chipsen ovanför listan filtrerar på kaliber och datum, och valet kommer ihåg till nästa gång.</string>
+    <string name="help_history_list_body">Varje rad är en sparad serie: bild, tid, kaliber, poäng och träffarna. Serierna ligger samlade per dag, nyast först — tryck på en dagrubrik för att fälla ut dagens serier. Chipsen ovanför listan filtrerar på kaliber och datum, och valet kommer ihåg till nästa gång.</string>
     <string name="help_history_detail">Detaljer</string>
     <string name="help_history_detail_body">Tryck på en serie för att se den i stort, justera träffar eller ta bort den. Håll inne en rad för att radera den direkt.</string>
     <string name="help_history_export">Exportera</string>

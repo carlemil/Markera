@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.stats.DatePreset
@@ -60,6 +61,28 @@ class HistoryFilterTest {
     fun `calibersPresent includes none and sorts by ordinal`() {
         val list = listOf(series(1, caliber = "9mm"), series(2, caliber = "-"), series(3, caliber = "22lr"))
         assertEquals(listOf(Caliber.NONE, Caliber.LR22, Caliber.MM9), list.calibersPresent())
+    }
+
+    @Test
+    fun `series on the same local day land in one group`() {
+        val late = series(1, timestamp = "2026-09-15T22:00:00Z")
+        val early = series(2, timestamp = "2026-09-15T06:00:00Z")
+        val groups = listOf(late, early).groupedByDay(TimeZone.UTC)
+        assertEquals(listOf("2026-09-15"), groups.map { it.day })
+        assertEquals(listOf(1L, 2L), groups.single().series.map { it.id })
+    }
+
+    @Test
+    fun `days come newest first`() {
+        val old = series(1, timestamp = "2026-09-01T10:00:00Z")
+        val new = series(2, timestamp = "2026-09-15T10:00:00Z")
+        val groups = listOf(old, new).groupedByDay(TimeZone.UTC)
+        assertEquals(listOf("2026-09-15", "2026-09-01"), groups.map { it.day })
+    }
+
+    @Test
+    fun `an empty list gives no groups`() {
+        assertEquals(emptyList(), emptyList<SeriesDto>().groupedByDay(TimeZone.UTC))
     }
 
     @Test

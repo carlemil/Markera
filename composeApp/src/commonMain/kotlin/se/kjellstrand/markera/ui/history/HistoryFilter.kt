@@ -2,8 +2,10 @@ package se.kjellstrand.markera.ui.history
 
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
+import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.stats.window
 
@@ -30,6 +32,19 @@ fun List<SeriesDto>.filteredBy(filter: HistoryFilter, now: Instant): List<Series
         (from == null || at >= from) && (to == null || at <= to)
     }
 }
+
+/** One day's worth of series in the Historik list, in the order the list had them. */
+data class DayGroup(val day: String, val series: List<SeriesDto>)
+
+/**
+ * Buckets by local date (`yyyy-MM-dd`), newest day first. The key is [localStamp]'s
+ * date half, so an unparsable timestamp groups under its own raw text instead of
+ * vanishing.
+ */
+fun List<SeriesDto>.groupedByDay(zone: TimeZone = TimeZone.currentSystemDefault()): List<DayGroup> =
+    groupBy { localStamp(it.timestamp, zone).take(10) }
+        .map { (day, series) -> DayGroup(day, series) }
+        .sortedByDescending { it.day }
 
 /** Every caliber on any series, [Caliber.NONE] included, ordinal order. */
 fun List<SeriesDto>.calibersPresent(): List<Caliber> =
