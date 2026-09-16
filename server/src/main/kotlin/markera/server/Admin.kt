@@ -50,7 +50,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password)) return@get
         val user = db.getUser(pathId()) ?: return@get notFound("Unknown user")
         // Soft-deleted series ride along greyed, so they can be opened and restored.
-        val rows = db.listSeries(user.id, includeDeleted = true).joinToString("") { s ->
+        val series = db.listSeries(user.id, includeDeleted = true)
+        val rows = series.joinToString("") { s ->
             row(
                 """<a href="/admin/series/${s.id}">${s.id}</a>""",
                 time(s.timestamp),
@@ -64,11 +65,17 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 gone = s.deleted,
             )
         }
+        val label = user.name ?: "${user.provider} / ${user.subject}"
+        // The count is every row of the table, soft-deleted ones included: the delete takes those too.
+        val confirm = "Delete user $label and their ${series.size} series, with every hole and photo? " +
+            "This cannot be undone."
         respondHtml(
             page(
-                user.name ?: "${user.provider} / ${user.subject}",
+                label,
                 """<a href="/admin">&larr; users</a>""" +
-                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image", "deleted"), rows),
+                    table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image", "deleted"), rows) +
+                    """<p><button id="delete-user">Delete user</button> <span id="msg"></span></p>""" +
+                    """<script>const MSG = ${jsString(confirm)};$DELETE_USER_JS</script>""",
             )
         )
     }
@@ -148,6 +155,16 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val seriesId = pathId()
         if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
         db.restoreSeries(seriesId)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // The hard delete, the one the series delete above is not: the same path as `DELETE /account`, so the
+    // user, their sessions, every series (soft-deleted ones included), the holes and the JPEGs all go for good.
+    delete("/admin/users/{id}") {
+        if (unauthorized(password)) return@delete
+        val userId = pathId()
+        if (db.getUser(userId) == null) return@delete notFound("Unknown user")
+        db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -259,6 +276,9 @@ private val stateJson = Json { encodeDefaults = true }
 
 /** The page's starting state for the script. `</` is escaped so nothing in it can close the script tag. */
 private fun blob(series: Series) = stateJson.encodeToString(series).replace("</", "<\\/")
+
+/** A database string as a JS literal: JSON quotes it, and `</` cannot close the script tag it sits in. */
+private fun jsString(value: String) = stateJson.encodeToString(value).replace("</", "<\\/")
 
 /** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
 private fun kind(h: Hole): String {
@@ -510,6 +530,22 @@ del.onclick = () => {
   msg.textContent = 'deleting...';
   fetch(location.pathname, {method: 'DELETE', credentials: 'include'})
     .then(r => r.status === 204 ? location.href = '/admin/users/' + del.dataset.user
+                                : r.text().then(t => msg.textContent = r.status + ' ' + t),
+          e => msg.textContent = e);
+};
+"""
+
+/**
+ * The user page's one write. `MSG` is the are-you-sure text, server-rendered above this (a `const val`
+ * cannot interpolate); there is nothing to reload into afterwards, so it goes back to the list.
+ */
+private const val DELETE_USER_JS = """
+document.getElementById('delete-user').onclick = () => {
+  if (!confirm(MSG)) return;
+  const msg = document.getElementById('msg');
+  msg.textContent = 'deleting...';
+  fetch(location.pathname, {method: 'DELETE', credentials: 'include'})
+    .then(r => r.status === 204 ? location.href = '/admin'
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
 };

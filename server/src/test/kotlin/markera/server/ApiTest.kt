@@ -474,6 +474,50 @@ class ApiTest {
     }
 
     @Test
+    fun adminDeletesAUserOutright() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val other = client.devAuth("""quote"and'apostrophe""")
+        val mine = client.createSeries(me.token)
+        client.putImage(me.token, mine, ByteArray(16))
+        val theirs = client.createSeries(other.token)
+
+        val page = client.admin("/admin/users/${me.userId}").bodyAsText()
+        assertTrue("""<button id="delete-user">Delete user</button> <span id="msg"></span>""" in page, page)
+        // The confirmation names the user and their series count, and says it is final.
+        assertTrue("Delete user me and their 1 series" in page, page)
+        assertTrue("cannot be undone" in page, page)
+        // A name carrying a quote is JSON-encoded into the script, so it cannot end the string early.
+        val nasty = client.admin("/admin/users/${other.userId}").bodyAsText()
+        assertTrue("""quote\"and'apostrophe""" in nasty, nasty)
+
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/admin/users/${me.userId}").status)
+        assertEquals(
+            HttpStatusCode.Unauthorized,
+            client.delete("/admin/users/${me.userId}") { basicAuth("admin", "nope") }.status,
+        )
+        assertEquals(
+            HttpStatusCode.NotFound,
+            client.delete("/admin/users/999") { basicAuth("admin", ADMIN_PW) }.status,
+        )
+
+        val response = client.delete("/admin/users/${me.userId}") { basicAuth("admin", ADMIN_PW) }
+        assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
+
+        // Hard: the user, their session, their series and the JPEG are all gone, with nothing to restore.
+        val users = client.admin("/admin").bodyAsText()
+        assertTrue("/admin/users/${me.userId}" !in users, users)
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/users/${me.userId}").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth(me.token) }.status)
+        assertTrue(!imagesDir.resolve("$mine.jpg").isFile)
+        assertEquals(0, sql { st ->
+            st.executeQuery("SELECT COUNT(*) FROM series WHERE id = $mine").use { it.next(); it.getInt(1) }
+        })
+        // The other user is untouched.
+        assertTrue("/admin/users/${other.userId}" in users, users)
+        assertEquals(listOf(theirs), client.get("/series") { bearerAuth(other.token) }.body<List<Series>>().map { it.id })
+    }
+
+    @Test
     fun detectedPositionsAreStoredButNeverInferred() = apiTest { client ->
         val me = client.devAuth("me")
         // An old app build: detected ring, but no detectedX/Y at all.
