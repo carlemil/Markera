@@ -27,9 +27,18 @@ import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.TargetLine
+import se.kjellstrand.markera.vision.ringOutline
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
+
+/** Ring lines inside the black 6/7 edge: the 7/8, 8/9 and 9/10 boundaries (mm). */
+private val INNER_RING_RADII_MM = listOf(75.0, 50.0, 25.0)
+
+/** Printed ring digits inside the black, at the mid-band radius of their ring (mm). */
+private val INNER_RING_DIGITS = listOf("8" to 62.5, "9" to 37.5)
 
 /**
  * Draws the scoring result over the frozen frame, fit-centre letterboxed to
@@ -77,21 +86,53 @@ fun DetectionOverlay(
         val offsetX = (size.width - imageWidth * scale) / 2f
         val offsetY = (size.height - imageHeight * scale) / 2f
 
-        // 6/7 boundary ellipse: rotate the canvas about the ellipse centre and
-        // draw an axis-aligned oval, matching the fit's (semiMajor, semiMinor,
-        // rotationRad) parametrisation.
+        // 6/7 boundary ellipse: drawn at its own fitted centre — it is the fit,
+        // and its fit quality is what the user reads off the photo.
         if (ring != null) {
-            val ecx = ring.cx * scale + offsetX
-            val ecy = ring.cy * scale + offsetY
-            val a = ring.semiMajor * scale
-            val b = ring.semiMinor * scale
-            rotate(degrees = (ring.rotationRad * 180.0 / PI).toFloat(), pivot = Offset(ecx, ecy)) {
-                drawOval(
-                    color = ringColor,
-                    topLeft = Offset(ecx - a, ecy - b),
-                    size = Size(a * 2f, b * 2f),
-                    style = Stroke(width = strokeWidthPx + 2f),
+            drawTargetRing(ring, scale, offsetX, offsetY, ringColor, strokeWidthPx + 2f)
+        }
+
+        // The ring lines inside the black 6/7 edge (7/8, 8/9, 9/10). Each is the
+        // same ellipse scaled by radius/100 about the *digit-row* centre, which
+        // is what the scores are measured from — so they can look slightly
+        // off-concentric with the 6/7 ellipse when the two centres differ, and a
+        // visibly skewed 9-line is then a real signal that the fit is off.
+        // No 12.5mm inner-X circle: it lands exactly where the hits cluster and
+        // would clutter the middle of the photo under the markers.
+        if (ring != null && centre != null && centre.method != CentreMethod.NONE) {
+            val innerRingColor = ringColor.copy(alpha = 0.45f)
+            INNER_RING_RADII_MM.forEach { r ->
+                drawTargetRing(
+                    ringOutline(ring, centre, r), scale, offsetX, offsetY,
+                    innerRingColor, strokeWidthPx * 0.6f,
                 )
+            }
+            // Digits as printed on the target: mid-band of their own ring, on
+            // both axes — the same treatment as the live ViewfinderGuide's 6/7.
+            val digitSize = (28f * scale).coerceIn(44f, 128f) * 0.6f
+            INNER_RING_DIGITS.forEach { (digit, midMm) ->
+                val o = ringOutline(ring, centre, midMm)
+                val layout = textMeasurer.measure(
+                    digit,
+                    TextStyle(
+                        color = ringColor.copy(alpha = 0.85f),
+                        fontSize = digitSize.toSp(),
+                        fontWeight = FontWeight.Bold,
+                        shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
+                    ),
+                )
+                val half = Offset(layout.size.width / 2f, layout.size.height / 2f)
+                val oc = Offset(o.cx * scale + offsetX, o.cy * scale + offsetY)
+                val cosR = cos(o.rotationRad)
+                val sinR = sin(o.rotationRad)
+                val a = o.semiMajor * scale
+                val b = o.semiMinor * scale
+                listOf(
+                    Offset(a * cosR, a * sinR),
+                    Offset(-a * cosR, -a * sinR),
+                    Offset(-b * sinR, b * cosR),
+                    Offset(b * sinR, -b * cosR),
+                ).forEach { d -> drawText(layout, topLeft = oc + d - half) }
             }
         }
 
@@ -242,6 +283,33 @@ fun DetectionOverlay(
                 strokeWidth = strokeWidthPx + 2f,
             )
         }
+    }
+}
+
+/**
+ * Draws one target ellipse: rotate the canvas about its centre and draw an
+ * axis-aligned oval, matching the (semiMajor, semiMinor, rotationRad)
+ * parametrisation the fit and [ringOutline] both use.
+ */
+private fun DrawScope.drawTargetRing(
+    e: FittedEllipse,
+    scale: Float,
+    offsetX: Float,
+    offsetY: Float,
+    color: Color,
+    strokeWidth: Float,
+) {
+    val ecx = e.cx * scale + offsetX
+    val ecy = e.cy * scale + offsetY
+    val a = e.semiMajor * scale
+    val b = e.semiMinor * scale
+    rotate(degrees = (e.rotationRad * 180.0 / PI).toFloat(), pivot = Offset(ecx, ecy)) {
+        drawOval(
+            color = color,
+            topLeft = Offset(ecx - a, ecy - b),
+            size = Size(a * 2f, b * 2f),
+            style = Stroke(width = strokeWidth),
+        )
     }
 }
 

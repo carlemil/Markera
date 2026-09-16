@@ -76,6 +76,26 @@ fun targetOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllip
     return (xR * cosT - yC * sinT) * mmPerPx to (xR * sinT + yC * cosT) * mmPerPx
 }
 
+/**
+ * The image-space outline of a target circle of [radiusMm], for drawing over
+ * the photo. [targetOffsetMm] is affine about the digit-row [centre] (rotate,
+ * stretch the minor component, scale), so its inverse turns a circle in the
+ * target plane back into an ellipse with the 6/7 [ring]'s rotation and its
+ * semi-axes scaled by `radiusMm / TARGET_BLACK_RING_RADIUS_MM` — centred on
+ * [centre], never on the fitted ellipse's own centre, so what is drawn and
+ * what is scored can't disagree.
+ */
+fun ringOutline(ring: FittedEllipse, centre: CentreEstimate, radiusMm: Double): FittedEllipse {
+    val k = (radiusMm / TARGET_BLACK_RING_RADIUS_MM).toFloat()
+    return FittedEllipse(
+        cx = centre.x,
+        cy = centre.y,
+        semiMajor = ring.semiMajor * k,
+        semiMinor = ring.semiMinor * k,
+        rotationRad = ring.rotationRad,
+    )
+}
+
 /** Length of [targetOffsetMm] — the distance from the centre to the hole, in mm. */
 fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Double {
     val (ox, oy) = targetOffsetMm(x, y, centre, ring)

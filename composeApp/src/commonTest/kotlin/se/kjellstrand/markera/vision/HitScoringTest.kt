@@ -159,6 +159,32 @@ class HitScoringTest {
     }
 
     @Test
+    fun `every point of a drawn ring outline scores its own radius`() {
+        // Rotated, eccentric rim with the digit centre off the ellipse centre —
+        // an axis-aligned circle would pass even with the rotation dropped.
+        val e = FittedEllipse(cx = 300f, cy = 280f, semiMajor = 200f, semiMinor = 80f, rotationRad = (PI / 5.0).toFloat())
+        val c = centre(317f, 291f)
+        for (r in listOf(12.5, 25.0, 50.0, 75.0, 100.0)) {
+            val o = ringOutline(e, c, r)
+            assertEquals(e.rotationRad, o.rotationRad)
+            assertEquals(c.x, o.cx)
+            assertEquals(c.y, o.cy)
+            val cosR = cos(o.rotationRad.toDouble())
+            val sinR = sin(o.rotationRad.toDouble())
+            for (i in 0 until 16) {
+                // Parametric point of the oval the overlay draws: axis-aligned,
+                // then rotated about the outline centre.
+                val t = 2.0 * PI * i / 16.0
+                val px = o.semiMajor * cos(t)
+                val py = o.semiMinor * sin(t)
+                val x = o.cx + (px * cosR - py * sinR).toFloat()
+                val y = o.cy + (px * sinR + py * cosR).toFloat()
+                assertEquals(r, distanceMm(x, y, c, e), 1e-2)
+            }
+        }
+    }
+
+    @Test
     fun `targetOffsetMm keeps the photo direction of a tilted ellipse`() {
         // Same tilted rim: the major-axis endpoint is 100mm out along the photo
         // direction (cos θ, sin θ) — the un-projection is rotated back, not left
