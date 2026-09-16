@@ -299,7 +299,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
+                    // Caliber and tag are the two values edited from here, so they
+                    // read at titleLarge with room to breathe between the rows.
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
                         // Tap to correct a wrong caliber; saved by "Spara" above.
                         Row(
@@ -307,15 +309,15 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             verticalAlignment = Alignment.CenterVertically,
                             // The gap is layout, not a trailing space in the string:
                             // resource parsers trim that and the label would run into the value.
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
                                 text = stringResource(Res.string.detail_caliber),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                             )
                             Text(
                                 text = if (caliber == Caliber.NONE) "–" else caliber.label,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -323,15 +325,15 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                         Row(
                             modifier = Modifier.clickable { pickingTag = true },
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
                                 text = stringResource(Res.string.detail_tag),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                             )
                             Text(
                                 text = tag ?: "–",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
