@@ -157,7 +157,7 @@
     <string name="help_detail_holes">Träffarna</string>
     <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Ändringarna sparas först när du trycker Spara.</string>
     <string name="help_detail_delete">Radera</string>
-    <string name="help_detail_delete_body">Papperskorgen längst upp till höger tar bort hela serien från ditt konto.</string>
+    <string name="help_detail_delete_body">Papperskorgen längst upp till höger tar bort serien ur appen. Servern behåller serien, dess träffar och tavelfoto tills du raderar kontot.</string>
 
     <!-- Statistik: hjälpdialogen -->
     <string name="stats_help">Om måtten</string>
