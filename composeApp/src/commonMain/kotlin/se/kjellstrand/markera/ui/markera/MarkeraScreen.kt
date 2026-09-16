@@ -262,16 +262,19 @@ private fun MarkeraTopBar(
         )
         Spacer(Modifier.weight(1f))
         HelpAction(onClick = onHelp)
-        IconButton(onClick = onToggleDebug) {
-            Icon(
-                imageVector = Icons.Default.Tune,
-                contentDescription = stringResource(Res.string.markera_toggle_debug),
-                tint = if (showDebug) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
+        // Developer tool: no entry point in release builds (the overlay itself stays).
+        if (isDebugBuild) {
+            IconButton(onClick = onToggleDebug) {
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = stringResource(Res.string.markera_toggle_debug),
+                    tint = if (showDebug) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
         }
     }
 }
