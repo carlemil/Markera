@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.ui.history
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
@@ -63,6 +65,7 @@ import se.kjellstrand.markera.series.moveHole
 import se.kjellstrand.markera.series.nearestHoleIndex
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
+import se.kjellstrand.markera.ui.CaliberDialog
 import se.kjellstrand.markera.ui.HelpAction
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
@@ -106,6 +109,10 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     // Holes the user removed: saved flagged `deleted` so the backend keeps them for training.
     var removed by remember(series.id) { mutableStateOf(listOf<HoleDto>()) }
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
+    // Edited locally like the holes: the pick only reaches the server on "Spara",
+    // so it can't commit the pending hole edits behind the user's back.
+    var caliber by remember(series.id) { mutableStateOf(Caliber.fromLabel(series.caliber)) }
+    var pickingCaliber by remember(series.id) { mutableStateOf(false) }
     // A score only ever comes from a position, so without geometry the holes
     // can't be edited at all.
     val geometry = series.geometry
@@ -246,7 +253,8 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     text = stringResource(Res.string.detail_save),
                     icon = Icons.Default.Save,
                     // The server rejects an empty hole list, so don't offer it.
-                    enabled = !saving && holes.value.isNotEmpty() && holes.value != series.holes,
+                    enabled = !saving && holes.value.isNotEmpty() &&
+                        (holes.value != series.holes || caliber.label != series.caliber),
                     onClick = {
                         saving = true
                         scope.launch {
@@ -255,7 +263,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                     series.id,
                                     SeriesRequest(
                                         series.timestamp,
-                                        series.caliber,
+                                        caliber.label,
                                         holes.value + removed,
                                         series.geometry,
                                     ),
@@ -277,11 +285,24 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 ) {
                     Column {
                         Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            text = if (series.caliber == "-") "–" else series.caliber,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
+                        // Tap to correct a wrong caliber; saved by "Spara" above.
+                        Row(
+                            modifier = Modifier.clickable { pickingCaliber = true },
+                            verticalAlignment = Alignment.CenterVertically,
+                            // The gap is layout, not a trailing space in the string:
+                            // resource parsers trim that and the label would run into the value.
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.detail_caliber),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = if (caliber == Caliber.NONE) "–" else caliber.label,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                     Text(
                         text = holes.value.sumOf { it.ring }.toString(),
@@ -314,6 +335,17 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 Res.string.help_detail_delete to Res.string.help_detail_delete_body,
             ),
             onDismiss = { showingHelp = false },
+        )
+    }
+
+    if (pickingCaliber) {
+        CaliberDialog(
+            selected = caliber,
+            onSelect = {
+                caliber = it
+                pickingCaliber = false
+            },
+            onDismiss = { pickingCaliber = false },
         )
     }
 

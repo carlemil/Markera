@@ -187,6 +187,7 @@
     <string name="detail_kind_detected">detekterad</string>
     <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Ta bort träff</string>
+    <string name="detail_caliber">Kaliber:</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>

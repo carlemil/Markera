@@ -226,7 +226,7 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
 
 /** Tags the scanned series; shown automatically while the caliber is "-". */
 @Composable
-private fun CaliberDialog(
+internal fun CaliberDialog(
     selected: Caliber,
     onSelect: (Caliber) -> Unit,
     onDismiss: () -> Unit,
