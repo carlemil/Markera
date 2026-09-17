@@ -50,6 +50,18 @@ fun List<SeriesDto>.groupedByDay(zone: TimeZone = TimeZone.currentSystemDefault(
         .sortedByDescending { it.day }
 
 /**
+ * Each series' number within its local day, counted from the first one shot
+ * that day (`1`). Built from the *unfiltered* list on purpose: a caliber or tag
+ * filter must not renumber a series the user already knows as "serie 3".
+ * Ordered by the timestamp itself — ISO-8601 UTC sorts chronologically — so
+ * the caller's sort order doesn't matter.
+ */
+fun List<SeriesDto>.dayOrdinals(zone: TimeZone = TimeZone.currentSystemDefault()): Map<Long, Int> =
+    groupedByDay(zone).flatMap { group ->
+        group.series.sortedBy { it.timestamp }.mapIndexed { i, s -> s.id to i + 1 }
+    }.toMap()
+
+/**
  * The unfolded day groups, as `yyyy-MM-dd;yyyy-MM-dd;...`. A [DayGroup.day] key is
  * [localStamp]'s date half — digits and dashes, or the raw timestamp's first 10
  * characters when it wouldn't parse — so `;` can't occur in one and needs no

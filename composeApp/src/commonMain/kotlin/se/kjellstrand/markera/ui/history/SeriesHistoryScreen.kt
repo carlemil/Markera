@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,9 +57,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.time.Clock
@@ -74,6 +78,7 @@ import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.localStamp
+import se.kjellstrand.markera.series.localTime
 import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
@@ -152,6 +157,9 @@ fun SeriesHistoryScreen(
 
     val shown = remember(series, filter) { series.filteredBy(filter, Clock.System.now()) }
     val days = remember(shown) { shown.groupedByDay() }
+    // Numbered against every series, not `shown`: a filter must not renumber
+    // a series the user already knows as "serie 3".
+    val ordinals = remember(series) { series.dayOrdinals() }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -254,6 +262,7 @@ fun SeriesHistoryScreen(
                                     items(day.series, key = { it.id }) { item ->
                                         SeriesCard(
                                             series = item,
+                                            ordinal = ordinals[item.id] ?: 1,
                                             services = services,
                                             thumbnails = thumbnails,
                                             onClick = { onOpen(item) },
@@ -505,9 +514,58 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
     }
 }
 
+/**
+ * The card's three columns. Shared by both of its rows so the time sits over
+ * the caliber, the series number over the tag and the hits over the total; the
+ * third is widest because the hit list is the longest value on the card.
+ */
+private const val COLUMN_1 = 1f
+private const val COLUMN_2 = 1f
+private const val COLUMN_3 = 1.3f
+
+/** The hairline "|" between the columns. */
+@Composable
+private fun Separator() {
+    Text(
+        text = "|",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+    )
+}
+
+/** One labelled column of the card's bottom strip: small label over the value. */
+@Composable
+private fun LabelledValue(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    // Centred in the column, label over value, so the two rows read as a grid.
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
 @Composable
 private fun SeriesCard(
     series: SeriesDto,
+    /** Which series of its day this was, counted from the first one shot. */
+    ordinal: Int,
     services: SeriesServices,
     thumbnails: MutableMap<Long, ImageBitmap>,
     onClick: () -> Unit,
@@ -549,47 +607,58 @@ private fun SeriesCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                // Six labelled cells in two rows, on three shared columns: when
+                // it was shot and how it went above, what it was shot with below.
+                // The day itself is the group header above this card.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f, fill = false)) {
-                        Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
-                        // Caliber and tag share one line: the row's height comes
-                        // from the 72 dp thumbnail, so a third line would make
-                        // every tagged row taller than the untagged ones.
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = if (series.caliber == "-") "–" else series.caliber,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            series.tag?.takeIf { it.isNotBlank() }?.let { tag ->
-                                Text(
-                                    text = tag,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                    Text(
-                        text = series.total().toString(),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                    LabelledValue(
+                        label = stringResource(Res.string.history_time_label),
+                        value = localTime(series.timestamp),
+                        modifier = Modifier.weight(COLUMN_1),
+                    )
+                    Separator()
+                    LabelledValue(
+                        label = stringResource(Res.string.stats_bucket_series),
+                        value = ordinal.toString(),
+                        modifier = Modifier.weight(COLUMN_2),
+                    )
+                    Separator()
+                    // The widest column: an X plus five two-digit rings.
+                    LabelledValue(
+                        label = stringResource(Res.string.stats_hits),
+                        value = series.scoreLine(),
+                        modifier = Modifier.weight(COLUMN_3),
                     )
                 }
-                Text(
-                    text = series.scoreLine(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                // The same three weights and the same separators as the line
+                // above, so the two rows' columns sit on the same edges.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LabelledValue(
+                        label = stringResource(Res.string.stats_group_caliber),
+                        value = if (series.caliber == "-") "–" else series.caliber,
+                        modifier = Modifier.weight(COLUMN_1),
+                    )
+                    Separator()
+                    LabelledValue(
+                        label = stringResource(Res.string.stats_group_tag),
+                        value = series.tag?.takeIf { it.isNotBlank() } ?: "–",
+                        modifier = Modifier.weight(COLUMN_2),
+                    )
+                    Separator()
+                    LabelledValue(
+                        label = stringResource(Res.string.markera_total_label),
+                        value = series.total().toString(),
+                        valueColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(COLUMN_3),
+                    )
+                }
             }
         }
     }

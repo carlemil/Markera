@@ -21,6 +21,16 @@ class DatesTest {
     }
 
     @Test
+    fun `localTime is the time half in the given zone`() {
+        assertEquals("12:00", localTime("2026-09-01T10:00:00Z", TimeZone.of("Europe/Stockholm")))
+    }
+
+    @Test
+    fun `localTime hands back anything it cannot parse`() {
+        assertEquals("garbage", localTime("garbage"))
+    }
+
+    @Test
     fun `utcDay is the UTC date of the millis`() {
         assertEquals("1970-01-01", utcDay(0L))
     }

@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -86,8 +87,13 @@ fun MarkeraScreen(
     val onSetScore: (Int, Int) -> Unit = { index, pick ->
         scanController.setScore(viewModel, snapshotVm.snapshot, index, pick)
     }
+    // Off = photo + geometry only, no ONNX pass: the user taps the holes in
+    // themselves. Session-only, like the debug toggle.
+    var detectHoles by remember { mutableStateOf(true) }
     val onDetectClick: () -> Unit = {
-        scanController.startScan(frameSource, snapshotVm, viewModel, coroutineScope, errorInference)
+        scanController.startScan(
+            frameSource, snapshotVm, viewModel, coroutineScope, errorInference, detectHoles,
+        )
     }
     // Editing the frozen frame: tap adds the hole the detector missed (the reach
     // keeps a mis-tap next to a marked hole from doubling it), drag moves one,
@@ -160,6 +166,8 @@ fun MarkeraScreen(
                         onResume = onResumeLive,
                         onReset = onReset,
                         onSetScore = onSetScore,
+                        detectHoles = detectHoles,
+                        onToggleDetectHoles = { detectHoles = it },
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                 } else {
@@ -172,6 +180,8 @@ fun MarkeraScreen(
                             onResume = onResumeLive,
                             onReset = onReset,
                             onSetScore = onSetScore,
+                            detectHoles = detectHoles,
+                            onToggleDetectHoles = { detectHoles = it },
                             landscape = true,
                             modifier = Modifier.fillMaxHeight().weight(1f),
                         )
@@ -293,21 +303,33 @@ private fun BottomArea(
     onResume: () -> Unit,
     onReset: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
+    detectHoles: Boolean,
+    onToggleDetectHoles: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     landscape: Boolean = false,
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
         when {
-            processing -> Text(
-                text = stringResource(Res.string.markera_analyzing),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // The chips stay up while the detector runs: caliber and tag are
+            // read when the series is saved, so changing them mid-scan is safe.
+            processing -> Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                ScanChips()
+                Text(
+                    text = stringResource(Res.string.markera_analyzing),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             !isFrozen -> Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
+                ScanChips()
                 LiveHint()
+                DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
                 PrimaryActionButton(
                     text = stringResource(Res.string.markera_detect),
                     icon = Icons.Default.PhotoCamera,
@@ -316,6 +338,38 @@ private fun BottomArea(
             }
             else -> ResultsContent(uiState, onResume, onReset, onSetScore, landscape)
         }
+    }
+}
+
+/**
+ * Caliber + tag, the same chips the results row carries, so both can be set
+ * before a scan (and while one runs) instead of only after one.
+ */
+@Composable
+private fun ScanChips() {
+    val recorder = LocalSeriesRecorder.current ?: return
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CaliberChip(recorder, Modifier.fillMaxHeight())
+        TagChip(recorder, Modifier.fillMaxHeight())
+    }
+}
+
+/** Off: the scan stops after the geometry and the holes are placed by hand. */
+@Composable
+private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.markera_detect_holes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

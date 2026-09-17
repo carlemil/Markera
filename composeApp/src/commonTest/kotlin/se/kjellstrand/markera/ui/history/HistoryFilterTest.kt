@@ -77,6 +77,15 @@ class HistoryFilterTest {
     }
 
     @Test
+    fun `dayOrdinals numbers each day from its first series`() {
+        val late = series(1, timestamp = "2026-09-15T22:00:00Z")
+        val early = series(2, timestamp = "2026-09-15T06:00:00Z")
+        val otherDay = series(3, timestamp = "2026-09-16T08:00:00Z")
+        val ordinals = listOf(late, early, otherDay).dayOrdinals(TimeZone.UTC)
+        assertEquals(mapOf(2L to 1, 1L to 2, 3L to 1), ordinals)
+    }
+
+    @Test
     fun `days come newest first`() {
         val old = series(1, timestamp = "2026-09-01T10:00:00Z")
         val new = series(2, timestamp = "2026-09-15T10:00:00Z")

@@ -123,6 +123,10 @@ class TargetScanController(
      * Captures a frame, freezes it into [snapshotVm], and runs geometry + hole
      * detection, publishing into [viewModel]. Returns false when a scan is
      * already in flight.
+     *
+     * With [detectHoles] off the slow ONNX pass is skipped: the geometry still
+     * runs, so the frozen frame keeps its centre and 6/7 ring and the user
+     * places every hole by hand.
      */
     fun startScan(
         frameSource: FrameSource,
@@ -130,6 +134,7 @@ class TargetScanController(
         viewModel: MarkeraViewModel,
         scope: CoroutineScope,
         errorMessage: String,
+        detectHoles: Boolean = true,
     ): Boolean {
         // Claim the detector; reject re-entry until this pass finishes.
         if (!detecting.compareAndSet(false, true)) return false
@@ -150,7 +155,7 @@ class TargetScanController(
                 // frozen.
                 val snapshot = frame.centerSquare()
                 snapshotVm.set(snapshot)
-                runPipeline(snapshot, viewModel)
+                runPipeline(snapshot, viewModel, detectHoles)
             } catch (t: Throwable) {
                 println("$TAG: snapshot inference failed " + t.stackTraceToString())
                 viewModel.setError(errorMessage)
@@ -249,7 +254,11 @@ class TargetScanController(
         )
     }
 
-    private suspend fun runPipeline(snapshot: PlatformImage, viewModel: MarkeraViewModel) {
+    private suspend fun runPipeline(
+        snapshot: PlatformImage,
+        viewModel: MarkeraViewModel,
+        detectHoles: Boolean = true,
+    ) {
         // Phase 1 — geometry: digit OCR -> centre -> 6/7 ring. Runs
         // first and with no spinner (it's fast, and the spinner is
         // drawn from this geometry). Probe disks settle on the black->white
@@ -273,6 +282,15 @@ class TargetScanController(
         // Publish the geometry and switch the spinner on: it now orbits
         // the detected centre, sized to the ring, while the holes run.
         viewModel.onGeometryReady(digits, centre, ring, snapshot.width, snapshot.height)
+
+        // Detection off: stop after the geometry. Publishing empty holes is
+        // what returns the phase to IDLE, which is what makes the frozen frame
+        // editable — so hand-placed holes score against the ring just found.
+        if (!detectHoles) {
+            println("$TAG: holes skipped (detection off)")
+            viewModel.onHolesDetected(emptyList(), emptyList())
+            return
+        }
 
         // Phase 2 — holes: the slow ONNX pass, with the spinner up. The
         // raw frame goes straight to the model — only the input letterbox.

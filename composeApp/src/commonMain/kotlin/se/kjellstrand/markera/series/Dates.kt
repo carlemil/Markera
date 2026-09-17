@@ -21,6 +21,17 @@ fun localStamp(timestamp: String, zone: TimeZone = TimeZone.currentSystemDefault
     timestamp
 }
 
+/**
+ * `HH:mm` in [zone]; the raw string back if it isn't an ISO instant. For the
+ * history list, where the day is already the group header above the card.
+ */
+fun localTime(timestamp: String, zone: TimeZone = TimeZone.currentSystemDefault()): String = try {
+    val t = Instant.parse(timestamp).toLocalDateTime(zone)
+    "${t.hour.pad()}:${t.minute.pad()}"
+} catch (_: Exception) {
+    timestamp
+}
+
 /** `yyyy-MM-dd` of a UTC start-of-day millis, which is what the range picker returns. */
 fun utcDay(millis: Long): String =
     Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date.toString()
