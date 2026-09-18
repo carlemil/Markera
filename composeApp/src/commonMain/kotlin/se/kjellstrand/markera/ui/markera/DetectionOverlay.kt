@@ -29,16 +29,11 @@ import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.TargetLine
 import se.kjellstrand.markera.vision.ringOutline
 import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 
 /** Ring lines inside the black 6/7 edge: the 7/8, 8/9 and 9/10 boundaries (mm). */
 private val INNER_RING_RADII_MM = listOf(75.0, 50.0, 25.0)
-
-/** Printed ring digits inside the black, at the mid-band radius of their ring (mm). */
-private val INNER_RING_DIGITS = listOf("8" to 62.5, "9" to 37.5)
 
 /**
  * Draws the scoring result over the frozen frame, fit-centre letterboxed to
@@ -106,33 +101,6 @@ fun DetectionOverlay(
                     ringOutline(ring, centre, r), scale, offsetX, offsetY,
                     innerRingColor, strokeWidthPx * 0.6f,
                 )
-            }
-            // Digits as printed on the target: mid-band of their own ring, on
-            // both axes — the same treatment as the live ViewfinderGuide's 6/7.
-            val digitSize = (28f * scale).coerceIn(44f, 128f) * 0.6f
-            INNER_RING_DIGITS.forEach { (digit, midMm) ->
-                val o = ringOutline(ring, centre, midMm)
-                val layout = textMeasurer.measure(
-                    digit,
-                    TextStyle(
-                        color = ringColor.copy(alpha = 0.85f),
-                        fontSize = digitSize.toSp(),
-                        fontWeight = FontWeight.Bold,
-                        shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
-                    ),
-                )
-                val half = Offset(layout.size.width / 2f, layout.size.height / 2f)
-                val oc = Offset(o.cx * scale + offsetX, o.cy * scale + offsetY)
-                val cosR = cos(o.rotationRad)
-                val sinR = sin(o.rotationRad)
-                val a = o.semiMajor * scale
-                val b = o.semiMinor * scale
-                listOf(
-                    Offset(a * cosR, a * sinR),
-                    Offset(-a * cosR, -a * sinR),
-                    Offset(-b * sinR, b * cosR),
-                    Offset(b * sinR, -b * cosR),
-                ).forEach { d -> drawText(layout, topLeft = oc + d - half) }
             }
         }
 
