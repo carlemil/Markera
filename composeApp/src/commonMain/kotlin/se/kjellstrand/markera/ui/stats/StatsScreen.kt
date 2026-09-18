@@ -512,9 +512,9 @@ private fun Metric.label() = when (this) {
     Metric.SCORE -> Res.string.stats_short_mean_score
 }
 
-/** A titled rule above a chip group: `——— Kaliber ———`. */
+/** A titled rule above a chip group: `——— Kaliber ———`. Shared with Historik's filters. */
 @Composable
-private fun SectionDivider(title: String) {
+internal fun SectionDivider(title: String) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         HorizontalDivider(modifier = Modifier.weight(1f))
         Text(

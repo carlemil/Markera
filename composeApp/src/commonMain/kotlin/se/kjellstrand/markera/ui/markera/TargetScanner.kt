@@ -632,7 +632,7 @@ private fun ScanningOverlay(
             }
         }
         Text(
-            text = "SCANNING TARGET…",
+            text = stringResource(Res.string.markera_scanning),
             color = green,
             style = MaterialTheme.typography.titleMedium.copy(
                 // Strong black drop shadow so the text reads over the target.

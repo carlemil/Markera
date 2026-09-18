@@ -221,6 +221,9 @@ only ring + centre + hole markers + score labels. Tapping a missed hole on the f
 frame adds it: `TargetScanController.addManualHit` scores that point with the same
 geometry (`ManualHit.kt` holds the pure viewport→image and box-sizing maths) and it is
 drawn orange, `manual = true`, so it saves with no `detected*` values.
+Every UI string lives in `composeResources`: English is the default `values/strings.xml`,
+Swedish is `values-sv/` — add each new key to both (iOS: `CFBundleLocalizations` in
+`project.yml` + `sv.lproj/InfoPlist.strings`). Caliber labels stay untranslated (stored values).
 `topScores` are picker indices 0–10
 plus 11 = inner-X. Theme is a deliberate dark, green-accented scheme (no dynamic color).
 Overlay text is drawn with `TextMeasurer` (Skia on iOS, so the two platforms render alike);

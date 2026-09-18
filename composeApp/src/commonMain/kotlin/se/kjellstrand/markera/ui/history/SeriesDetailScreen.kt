@@ -50,7 +50,6 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
-import se.kjellstrand.markera.series.DEFAULT_TAGS
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRequest
@@ -400,8 +399,8 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     if (pickingTag) {
         TagDialog(
             selected = tag,
-            // The same offer as the scan screen: the defaults plus every tag in use.
-            known = (DEFAULT_TAGS + cached.mapNotNull { it.tag }).distinct(),
+            // The same offer as the scan screen: every tag in use.
+            known = cached.mapNotNull { it.tag }.distinct(),
             onSelect = {
                 // Typed text arrives raw; normalize so "  " is untagged, not a blank tag.
                 tag = normalizeTag(it)

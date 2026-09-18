@@ -44,8 +44,12 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true   # Compose aborts at start without it
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
-        NSCameraUsageDescription: Markera fotograferar måltavlan för att räkna träffarna.
-        NSPhotoLibraryUsageDescription: Markera kan räkna träffarna på ett sparat foto av måltavlan.
+        # English here; sv.lproj/InfoPlist.strings translates these two. The
+        # localizations list is what lets iOS hand the Compose resources Swedish.
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, sv]
+        NSCameraUsageDescription: Markera photographs the target to count the hits.
+        NSPhotoLibraryUsageDescription: Markera can count the hits on a saved photo of the target.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         MarkeraBackendUrl: $(MARKERA_BACKEND_URL)

@@ -54,9 +54,11 @@ class UserDefaultsBackendTokenStore(
     }
 
     override suspend fun clear() {
-        // Only the login — the caliber is a device preference, not part of it.
+        // The login plus what names this user's tags; the caliber is a device preference.
         defaults.removeObjectForKey(Keys.TOKEN)
         defaults.removeObjectForKey(Keys.USER_ID)
         defaults.removeObjectForKey(Keys.PROVIDER)
+        defaults.removeObjectForKey(Keys.TAG)
+        defaults.removeObjectForKey(Keys.HISTORY_FILTER)
     }
 }

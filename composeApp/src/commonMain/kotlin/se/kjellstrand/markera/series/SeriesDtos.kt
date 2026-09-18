@@ -91,13 +91,6 @@ data class SeriesRequest(
     val tag: String? = null,
 )
 
-/**
- * The two tags offered first in the picker. Free text like every other tag —
- * these are *stored* values, not UI labels, so they live beside the wire format
- * rather than in `strings.xml` (the same reason [Caliber.label] is Swedish).
- */
-val DEFAULT_TAGS = listOf("träning", "tävling")
-
 /** The server rejects a longer tag with a 400, so nothing longer may be entered. */
 const val MAX_TAG_LENGTH = 32
 

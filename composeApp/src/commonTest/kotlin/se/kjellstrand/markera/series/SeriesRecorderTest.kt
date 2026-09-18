@@ -34,6 +34,7 @@ class SeriesRecorderTest {
     private val written = mutableListOf<Caliber>()
     private val writtenTags = mutableListOf<String?>()
     private val scope = CoroutineScope(Dispatchers.Default)
+    private lateinit var session: BackendSessionRepository
 
     private val scores = listOf(
         HitScore(1f, 2f, 0f, 10.0, 10, true),
@@ -74,7 +75,7 @@ class SeriesRecorderTest {
             }
         }
         val api = SeriesApi(createWebshooterHttpClient(engine), "http://host:8090") { "tok" }
-        val session = BackendSessionRepository(
+        session = BackendSessionRepository(
             api,
             InMemoryBackendTokenStore(
                 if (signedIn) BackendAuth("tok", 1, "dev") else null,
@@ -376,6 +377,16 @@ class SeriesRecorderTest {
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
         assertNull(recorder.tag.value)
         assertFalse(""""tag":""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun signingOutForgetsTheTag() {
+        val recorder = recorder(stored = Caliber.LR22, storedTag = "träning")
+
+        runBlocking {
+            session.signOut()
+            withTimeout(5_000) { recorder.tag.first { it == null } }
+        }
     }
 
     @Test

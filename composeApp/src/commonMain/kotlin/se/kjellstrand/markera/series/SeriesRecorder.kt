@@ -81,6 +81,14 @@ class SeriesRecorder(
         // The stored value must not clobber a choice made before the read lands.
         scope.launch { _caliber.compareAndSet(Caliber.NONE, readCaliber()) }
         scope.launch { _tag.compareAndSet(null, normalizeTag(readTag())) }
+        // A tag is the user's own: signing out forgets it (the store drops its copy in clear()).
+        scope.launch {
+            var signedIn = false
+            session.auth.collect { auth ->
+                if (signedIn && auth == null) _tag.value = null
+                signedIn = auth != null
+            }
+        }
     }
 
     fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage, geometry: GeometryDto?) {

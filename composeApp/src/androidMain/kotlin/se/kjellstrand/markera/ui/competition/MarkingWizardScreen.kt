@@ -739,7 +739,7 @@ private fun FinishSummary(state: WizardUiState) {
                                 stringResource(Res.string.wizard_tied)
                             } else {
                                 listOfNotNull(
-                                    standing.lane?.let { "bana $it" },
+                                    standing.lane?.let { stringResource(Res.string.wizard_standing_lane, it) },
                                     standing.club,
                                 ).joinToString(" · ")
                             }

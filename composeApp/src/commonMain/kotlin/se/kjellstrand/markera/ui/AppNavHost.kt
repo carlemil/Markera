@@ -62,7 +62,6 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.AppServices
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
-import se.kjellstrand.markera.series.DEFAULT_TAGS
 import se.kjellstrand.markera.series.MAX_TAG_LENGTH
 import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesDto
@@ -235,7 +234,7 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
         TagDialog(
             selected = tag,
             // Every tag already in use, so one typed once is one tap forever after.
-            known = (DEFAULT_TAGS + cached.mapNotNull { it.tag }).distinct(),
+            known = cached.mapNotNull { it.tag }.distinct(),
             onSelect = recorder::selectTag,
             onDismiss = recorder::dismissTagDialog,
         )
@@ -256,6 +255,10 @@ internal fun TagDialog(
     onDismiss: () -> Unit,
 ) {
     var typed by remember { mutableStateOf("") }
+    // No tags of the user's own yet: suggest two, in the UI language — once picked they are just tags.
+    val offered = known.ifEmpty {
+        listOf(stringResource(Res.string.series_tag_suggest_practice), stringResource(Res.string.series_tag_suggest_competition))
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.series_tag_title)) },
@@ -269,7 +272,7 @@ internal fun TagDialog(
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     // The leading null is the "clear it" row: untagged has exactly one
                     // representation, and it is null all the way to the server.
-                    (listOf(null) + known).forEach { tag ->
+                    (listOf(null) + offered).forEach { tag ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

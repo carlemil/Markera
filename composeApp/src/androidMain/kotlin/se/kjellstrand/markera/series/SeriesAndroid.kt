@@ -69,11 +69,13 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
     }
 
     override suspend fun clear() {
-        // Only the login — the caliber is a device preference, not part of it.
+        // The login plus what names this user's tags; the caliber is a device preference.
         dataStore.edit { prefs ->
             prefs.remove(Keys.token)
             prefs.remove(Keys.userId)
             prefs.remove(Keys.provider)
+            prefs.remove(Keys.tag)
+            prefs.remove(Keys.historyFilter)
         }
     }
 }

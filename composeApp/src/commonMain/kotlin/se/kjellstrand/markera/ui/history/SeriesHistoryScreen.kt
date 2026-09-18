@@ -28,7 +28,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -88,6 +88,7 @@ import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.ui.stats.DateRangeDialog
+import se.kjellstrand.markera.ui.stats.SectionDivider
 import se.kjellstrand.markera.ui.stats.statsChipColors
 
 /** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
@@ -200,7 +201,7 @@ fun SeriesHistoryScreen(
                         ) {
                             // No explicit tint: the button greys the icon when disabled.
                             Icon(
-                                imageVector = Icons.Default.Share,
+                                imageVector = Icons.Default.Backup,
                                 contentDescription = stringResource(Res.string.history_export),
                             )
                         }
@@ -391,7 +392,11 @@ private fun HistoryFilterRow(
 ) {
     val chipColors = statsChipColors()
     val offered = (calibers + filter.calibers).distinct().sortedBy { it.ordinal }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Titled rules between the groups, as on Statistik — three chip rows in a
+    // column are otherwise one undifferentiated block. 4 dp, so each title sits
+    // with the chips it names.
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionDivider(stringResource(Res.string.stats_group_caliber))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = filter.calibers.isEmpty(),
@@ -416,6 +421,7 @@ private fun HistoryFilterRow(
         // No tag anywhere in the series (and none selected) means no row at all.
         val offeredTags = (tags + filter.tags).distinct().sorted()
         if (offeredTags.isNotEmpty()) {
+            SectionDivider(stringResource(Res.string.stats_group_tag))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = filter.tags.isEmpty(),
@@ -438,6 +444,7 @@ private fun HistoryFilterRow(
                 }
             }
         }
+        SectionDivider(stringResource(Res.string.stats_group_date))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val presetChip = @Composable { value: DatePreset, label: StringResource ->
                 FilterChip(

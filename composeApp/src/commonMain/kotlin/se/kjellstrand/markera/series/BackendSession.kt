@@ -17,7 +17,7 @@ interface BackendTokenStore {
     suspend fun readCaliber(): Caliber = Caliber.NONE
     suspend fun writeCaliber(caliber: Caliber) {}
 
-    /** The Historik screen's encoded [se.kjellstrand.markera.ui.history.HistoryFilter]; also survives [clear]. */
+    /** The Historik screen's encoded [se.kjellstrand.markera.ui.history.HistoryFilter]; [clear] drops it, it names the user's tags. */
     suspend fun readHistoryFilter(): String? = null
     suspend fun writeHistoryFilter(value: String) {}
 
@@ -25,7 +25,7 @@ interface BackendTokenStore {
     suspend fun readOpenDays(): String? = null
     suspend fun writeOpenDays(value: String) {}
 
-    /** The last tag chosen, so a whole session costs no extra taps; also survives [clear]. */
+    /** The last tag chosen, so a whole session costs no extra taps; per user, so [clear] drops it. */
     suspend fun readTag(): String? = null
     suspend fun writeTag(value: String?) {}
 }
