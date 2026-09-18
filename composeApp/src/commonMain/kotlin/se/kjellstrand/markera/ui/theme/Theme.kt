@@ -2,13 +2,14 @@ package se.kjellstrand.markera.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Markera is a camera-first app: a single deliberate dark, green-accented
-// scheme (no wallpaper-driven dynamic colour, no light variant) so the brand
-// and the live preview read consistently on every device.
-private val MarkeraColors = darkColorScheme(
+// Markera's own green-accented schemes, dark and light (chosen in Settings);
+// no wallpaper-driven dynamic colour, so the brand reads the same on every device.
+// The photo overlays keep their fixed colours in both: they sit on the target, not the theme.
+private val MarkeraDarkColors = darkColorScheme(
     primary = MarkeraGreen,
     onPrimary = Color.Black,
     primaryContainer = MarkeraGreenContainer,
@@ -25,10 +26,27 @@ private val MarkeraColors = darkColorScheme(
     onSurfaceVariant = MarkeraOnSurfaceVariant,
 )
 
+private val MarkeraLightColors = lightColorScheme(
+    primary = MarkeraGreenLight,
+    onPrimary = Color.White,
+    primaryContainer = MarkeraGreenLightContainer,
+    onPrimaryContainer = MarkeraGreenLightOnContainer,
+    secondary = MarkeraGreenLight,
+    onSecondary = Color.White,
+    secondaryContainer = MarkeraLightSurfaceVariant,
+    onSecondaryContainer = MarkeraLightOnSurface,
+    background = MarkeraLightBackground,
+    onBackground = MarkeraLightOnSurface,
+    surface = MarkeraLightSurface,
+    onSurface = MarkeraLightOnSurface,
+    surfaceVariant = MarkeraLightSurfaceVariant,
+    onSurfaceVariant = MarkeraLightOnSurfaceVariant,
+)
+
 @Composable
-fun MarkeraTheme(content: @Composable () -> Unit) {
+fun MarkeraTheme(dark: Boolean = true, content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = MarkeraColors,
+        colorScheme = if (dark) MarkeraDarkColors else MarkeraLightColors,
         typography = Typography,
         content = content,
     )

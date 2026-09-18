@@ -14,6 +14,13 @@
     <string name="markera_back">Back</string>
     <string name="markera_scanning">SCANNING TARGET…</string>
     <string name="score_pick_title">Score</string>
+    <string name="menu">Menu</string>
+    <string name="settings">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_system">Follow the system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
 
     <!-- Home -->
     <string name="home_free_marking">Mark</string>
@@ -148,7 +155,7 @@
     <string name="help_scan_save">Save</string>
     <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. Reset discards the scan without saving.</string>
     <string name="help_scan_debug">Troubleshooting</string>
-    <string name="help_scan_debug_body">The sliders icon at the top right shows the detector\’s raw boxes, digit rows and lines.</string>
+    <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines.</string>
 
     <!-- Help: history -->
     <string name="help_history_title">About the history</string>
@@ -157,7 +164,7 @@
     <string name="help_history_detail">Details</string>
     <string name="help_history_detail_body">Tap a series to see it large, adjust hits or remove it. Long-press a row to delete it right away.</string>
     <string name="help_history_export">Export</string>
-    <string name="help_history_export_body">The cloud icon packs the series the filter shows into a zip: series.csv and holes.csv (open in Excel) plus the saved photos.</string>
+    <string name="help_history_export_body">Export in the menu packs the series the filter shows into a zip: series.csv and holes.csv (open in Excel) plus the saved photos.</string>
     <string name="help_history_offline">Offline</string>
     <string name="help_history_offline_body">The list and the photos stay on the phone and are shown without a connection too.</string>
 
@@ -168,7 +175,7 @@
     <string name="help_detail_holes">The hits</string>
     <string name="help_detail_holes_body">The list shows the ring, the distance from the centre in millimetres and whether the hit was detected or added by hand. The bin in the row removes the hit after a confirmation. Changes are only saved when you tap Save.</string>
     <string name="help_detail_delete">Delete</string>
-    <string name="help_detail_delete_body">The bin at the top right removes the series from the app. The server keeps the series, its hits and the target photo until you delete the account.</string>
+    <string name="help_detail_delete_body">Delete in the menu removes the series from the app. The server keeps the series, its hits and the target photo until you delete the account.</string>
 
     <!-- Statistics: help dialog -->
     <string name="stats_help">About the measures</string>

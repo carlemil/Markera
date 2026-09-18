@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
@@ -41,6 +43,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,7 +81,13 @@ import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
+import se.kjellstrand.markera.ui.settings.AppSettings
+import se.kjellstrand.markera.ui.settings.LocalAppLocale
+import se.kjellstrand.markera.ui.settings.SettingsScreen
+import se.kjellstrand.markera.ui.settings.SystemBarsForTheme
+import se.kjellstrand.markera.ui.settings.ThemeMode
 import se.kjellstrand.markera.ui.stats.StatsScreen
+import se.kjellstrand.markera.ui.theme.MarkeraTheme
 
 /** Shows a short message; the host lives in [AppNavHost], above every screen. */
 val LocalToast = staticCompositionLocalOf<(String) -> Unit> { error("no toast host") }
@@ -88,6 +98,7 @@ sealed interface Screen {
     data object FreeMarking : Screen
     data object History : Screen
     data object Statistics : Screen
+    data object Settings : Screen
 
     /** One saved series, editable. Carries the DTO the history row already has. */
     data class SeriesDetail(val series: SeriesDto) : Screen
@@ -106,6 +117,37 @@ class CompetitionHost(
 )
 
 /**
+ * The app root both platforms call: loads the Settings choices, then applies the
+ * theme and the language around [AppNavHost]. A language change re-keys the whole
+ * tree (that is what makes the strings re-resolve), so the back stack is held
+ * here, above the key, and the user stays on the Settings screen.
+ */
+@Composable
+fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
+    val scope = rememberCoroutineScope()
+    val settings = remember { AppSettings(app.series.store, scope) }
+    val loaded by settings.loaded.collectAsState()
+    // A frame or two of nothing, rather than the wrong language and theme first.
+    if (!loaded) return
+    val theme by settings.theme.collectAsState()
+    val language by settings.language.collectAsState()
+    val dark = when (theme) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    val stack = remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
+    CompositionLocalProvider(LocalAppLocale provides language) {
+        key(language) {
+            MarkeraTheme(dark) {
+                SystemBarsForTheme(dark)
+                AppNavHost(app, competition, settings, stack)
+            }
+        }
+    }
+}
+
+/**
  * Navigation root. The frame source and the scan controller (the single ONNX
  * session) live here, above the back stack, so both the free-marking screen
  * and the competition wizard share them and nothing heavy is rebuilt per
@@ -113,7 +155,12 @@ class CompetitionHost(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
+fun AppNavHost(
+    app: AppServices,
+    competition: CompetitionHost?,
+    settings: AppSettings,
+    stackState: MutableState<List<Screen>>,
+) {
     val seriesServices = app.series
     val frameSource = rememberFrameSource()
     val scanController = rememberTargetScanController(app.modelPath)
@@ -155,7 +202,7 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
         }
     }
 
-    var stack by remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
+    var stack by stackState
     val current = stack.last()
     val push: (Screen) -> Unit = { stack = stack + it }
     val pop: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) }
@@ -169,9 +216,12 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
     }
     val backendAuth by seriesServices.session.auth.collectAsState()
 
+    val menuHost = remember { MenuHost() }
     CompositionLocalProvider(
         LocalSeriesRecorder provides recorder,
         LocalToast provides toast,
+        LocalMenuHost provides menuHost,
+        LocalOpenSettings provides { push(Screen.Settings) },
     ) {
     Box(Modifier.fillMaxSize()) {
     when (val screen = current) {
@@ -200,6 +250,8 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
 
         Screen.Statistics -> StatsScreen(services = seriesServices, onBack = pop)
 
+        Screen.Settings -> SettingsScreen(settings = settings, onBack = pop)
+
         is Screen.SeriesDetail -> SeriesDetailScreen(
             initial = screen.series,
             services = seriesServices,
@@ -214,6 +266,7 @@ fun AppNavHost(app: AppServices, competition: CompetitionHost? = null) {
             .align(Alignment.BottomCenter)
             .windowInsetsPadding(WindowInsets.safeDrawing),
     )
+    MenuOverlay(menuHost)
     }
     }
 
@@ -352,7 +405,7 @@ private fun HomeScreen(
 ) {
     var showingHelp by remember { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        // No top bar here, so the "?" floats in the corner the other screens put it in.
+        // No top bar here, so the menu floats in the top-left corner.
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
@@ -399,12 +452,17 @@ private fun HomeScreen(
                 Spacer(Modifier.height(16.dp))
                 AccountRow(backendAuth, seriesServices)
             }
-            HelpAction(
-                onClick = { showingHelp = true },
+            AppMenu(
+                items = listOf(
+                    MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) {
+                        showingHelp = true
+                    },
+                ),
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-                    .padding(8.dp),
+                    // + the menu's own 4 dp = 16 dp from the edges.
+                    .padding(12.dp),
             )
         }
     }

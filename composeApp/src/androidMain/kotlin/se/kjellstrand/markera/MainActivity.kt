@@ -13,9 +13,8 @@ import se.kjellstrand.markera.series.DataStoreBackendTokenStore
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.shareFile
-import se.kjellstrand.markera.ui.AppNavHost
+import se.kjellstrand.markera.ui.MarkeraApp
 import se.kjellstrand.markera.ui.competition.rememberCompetitionHost
-import se.kjellstrand.markera.ui.theme.MarkeraTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,9 +34,7 @@ class MainActivity : ComponentActivity() {
             shareFile = { shareFile(this@MainActivity, File(it)) },
         )
         setContent {
-            MarkeraTheme {
-                AppNavHost(app, rememberCompetitionHost())
-            }
+            MarkeraApp(app, rememberCompetitionHost())
         }
     }
 }

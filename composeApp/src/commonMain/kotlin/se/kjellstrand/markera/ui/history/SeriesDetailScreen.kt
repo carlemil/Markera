@@ -68,7 +68,9 @@ import se.kjellstrand.markera.series.pickRing
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.CaliberDialog
-import se.kjellstrand.markera.ui.HelpAction
+import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.MenuItem
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.TagDialog
@@ -157,14 +159,14 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 title = stringResource(Res.string.detail_title),
                 onBack = onBack,
                 actions = {
-                    HelpAction(onClick = { showingHelp = true })
-                    IconButton(onClick = { confirmDelete = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = stringResource(Res.string.history_delete_confirm),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    AppMenu(
+                        listOf(
+                            MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
+                            MenuItem(Icons.Default.Delete, stringResource(Res.string.history_delete_confirm)) {
+                                confirmDelete = true
+                            },
+                        ),
+                    )
                 },
             )
             Column(

@@ -28,6 +28,12 @@ interface BackendTokenStore {
     /** The last tag chosen, so a whole session costs no extra taps; per user, so [clear] drops it. */
     suspend fun readTag(): String? = null
     suspend fun writeTag(value: String?) {}
+
+    /** The Settings screen's theme ([se.kjellstrand.markera.ui.settings.ThemeMode] name) and language code; device preferences, survive [clear]. */
+    suspend fun readTheme(): String? = null
+    suspend fun writeTheme(value: String) {}
+    suspend fun readLanguage(): String? = null
+    suspend fun writeLanguage(value: String?) {}
 }
 
 /** In-memory store for tests. */

@@ -100,7 +100,10 @@ import se.kjellstrand.markera.series.stats.statistics
 import se.kjellstrand.markera.series.stats.trend
 import se.kjellstrand.markera.series.stats.trendByCaliber
 import se.kjellstrand.markera.series.stats.window
-import se.kjellstrand.markera.ui.HelpAction
+import androidx.compose.material.icons.Icons
+import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.MenuItem
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
@@ -194,7 +197,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
             CompetitionTopBar(
                 title = stringResource(Res.string.stats_title),
                 onBack = onBack,
-                actions = { HelpAction(onClick = { showingHelp = true }) },
+                actions = { AppMenu(listOf(MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true })) },
             )
             TabRow(selectedTabIndex = tab) {
                 listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend).forEachIndexed { i, label ->

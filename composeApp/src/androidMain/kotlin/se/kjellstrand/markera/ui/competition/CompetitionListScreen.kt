@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.MenuItem
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,18 +63,16 @@ fun CompetitionListScreen(
                 subtitle = services.sessionRepository.session.collectAsState().value?.userName,
                 onBack = onBack,
                 actions = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            services.sessionRepository.logout()
-                            onLoggedOut()
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = stringResource(Res.string.logout),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    AppMenu(
+                        listOf(
+                            MenuItem(Icons.AutoMirrored.Filled.Logout, stringResource(Res.string.logout)) {
+                                scope.launch {
+                                    services.sessionRepository.logout()
+                                    onLoggedOut()
+                                }
+                            },
+                        ),
+                    )
                 },
             )
             OutlinedTextField(

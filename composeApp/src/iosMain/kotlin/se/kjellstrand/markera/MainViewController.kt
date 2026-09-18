@@ -13,8 +13,7 @@ import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.UserDefaultsBackendTokenStore
 import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.series.db.MarkeraDb
-import se.kjellstrand.markera.ui.AppNavHost
-import se.kjellstrand.markera.ui.theme.MarkeraTheme
+import se.kjellstrand.markera.ui.MarkeraApp
 import se.kjellstrand.markera.vision.HoleModel
 
 /** Built once: it owns the DB, the token store and the bundled model file. */
@@ -42,6 +41,6 @@ private val app by lazy {
 fun MainViewController(holeModel: HoleModel?): UIViewController {
     se.kjellstrand.markera.vision.holeModel = holeModel
     return ComposeUIViewController {
-        MarkeraTheme { AppNavHost(app) }
+        MarkeraApp(app)
     }
 }

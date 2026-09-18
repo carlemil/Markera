@@ -83,7 +83,9 @@ import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.series.utcDay
-import se.kjellstrand.markera.ui.HelpAction
+import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.MenuItem
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
@@ -172,16 +174,20 @@ fun SeriesHistoryScreen(
                 title = stringResource(Res.string.history_title),
                 onBack = onBack,
                 actions = {
-                    HelpAction(onClick = { showingHelp = true })
                     if (exporting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp,
                         )
-                    } else {
-                        IconButton(
-                            enabled = auth != null && shown.isNotEmpty(),
-                            onClick = {
+                    }
+                    AppMenu(
+                        listOf(
+                            MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
+                            MenuItem(
+                                Icons.Default.Backup,
+                                stringResource(Res.string.history_export),
+                                enabled = !exporting && auth != null && shown.isNotEmpty(),
+                            ) {
                                 exporting = true
                                 scope.launch {
                                     try {
@@ -198,14 +204,8 @@ fun SeriesHistoryScreen(
                                     exporting = false
                                 }
                             },
-                        ) {
-                            // No explicit tint: the button greys the icon when disabled.
-                            Icon(
-                                imageVector = Icons.Default.Backup,
-                                contentDescription = stringResource(Res.string.history_export),
-                            )
-                        }
-                    }
+                        ),
+                    )
                 },
             )
             when {

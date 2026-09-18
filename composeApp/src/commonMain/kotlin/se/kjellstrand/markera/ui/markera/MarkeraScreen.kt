@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,7 +58,10 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.SeriesRecorder
-import se.kjellstrand.markera.ui.HelpAction
+import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.MenuItem
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Tune
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.history.DeleteHoleDialog
 
@@ -271,21 +276,20 @@ private fun MarkeraTopBar(
             color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.weight(1f))
-        HelpAction(onClick = onHelp)
-        // Developer tool: no entry point in release builds (the overlay itself stays).
-        if (isDebugBuild) {
-            IconButton(onClick = onToggleDebug) {
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = stringResource(Res.string.markera_toggle_debug),
-                    tint = if (showDebug) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
-        }
+        AppMenu(
+            listOfNotNull(
+                MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { onHelp() },
+                // Developer tool: no entry point in release builds (the overlay itself stays).
+                if (isDebugBuild) {
+                    MenuItem(
+                        if (showDebug) Icons.Default.Tune else Icons.Outlined.Tune,
+                        stringResource(Res.string.markera_toggle_debug),
+                    ) { onToggleDebug() }
+                } else {
+                    null
+                },
+            ),
+        )
     }
 }
 
@@ -452,39 +456,34 @@ fun PrimaryActionButton(
 }
 
 /**
- * The scored total, with the caliber and tag chips beside it at the same height.
- * Both screens show their results through this, so the chips need no other home.
+ * The scored total, as the last segment of one pill with the caliber and tag
+ * (each still tappable). Both screens show their results through this.
  */
 @Composable
 fun TotalBadge(total: Int) {
     val recorder = LocalSeriesRecorder.current
-    Row(
-        modifier = Modifier.height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(16.dp),
     ) {
-        if (recorder != null) {
-            CaliberChip(recorder, Modifier.fillMaxHeight())
-            TagChip(recorder, Modifier.fillMaxHeight())
-        }
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxHeight(),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+        Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            if (recorder != null) {
+                CaliberChip(recorder, Modifier.fillMaxHeight(), segment = true)
+                VerticalDivider()
+                TagChip(recorder, Modifier.fillMaxHeight(), segment = true)
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = stringResource(Res.string.markera_total_label),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
                 Text(
                     text = total.toString(),
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
                 )
             }
         }
@@ -493,15 +492,15 @@ fun TotalBadge(total: Int) {
 
 /** The caliber the next series is tagged with; tap to change it. */
 @Composable
-private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier) {
+private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier, segment: Boolean = false) {
     val caliber by recorder.caliber.collectAsState()
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(16.dp),
+        color = if (segment) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
+        shape = if (segment) RectangleShape else RoundedCornerShape(16.dp),
         modifier = modifier.clickable { recorder.openCaliberDialog() },
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 20.dp),
+            modifier = Modifier.padding(horizontal = if (segment) 14.dp else 20.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -515,16 +514,16 @@ private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier)
 
 /** The tag the next series is saved with; tap to change it. Untagged shows the word. */
 @Composable
-private fun TagChip(recorder: SeriesRecorder, modifier: Modifier = Modifier) {
+private fun TagChip(recorder: SeriesRecorder, modifier: Modifier = Modifier, segment: Boolean = false) {
     val tag by recorder.tag.collectAsState()
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(16.dp),
+        color = if (segment) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
+        shape = if (segment) RectangleShape else RoundedCornerShape(16.dp),
         modifier = modifier.clickable { recorder.openTagDialog() },
     ) {
         Box(
             // Capped: a 32-character tag must not push the total off the row.
-            modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = 20.dp),
+            modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = if (segment) 14.dp else 20.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(

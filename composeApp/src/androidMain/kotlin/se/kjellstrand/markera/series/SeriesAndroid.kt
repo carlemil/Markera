@@ -22,6 +22,8 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         val historyFilter = stringPreferencesKey("history_filter")
         val openDays = stringPreferencesKey("history_open_days")
         val tag = stringPreferencesKey("tag")
+        val theme = stringPreferencesKey("theme")
+        val language = stringPreferencesKey("language")
     }
 
     // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
@@ -29,6 +31,18 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeTag(value: String?) {
         dataStore.edit { it[Keys.tag] = value ?: "" }
+    }
+
+    override suspend fun readTheme(): String? = dataStore.data.first()[Keys.theme]
+
+    override suspend fun writeTheme(value: String) {
+        dataStore.edit { it[Keys.theme] = value }
+    }
+
+    override suspend fun readLanguage(): String? = dataStore.data.first()[Keys.language]?.ifEmpty { null }
+
+    override suspend fun writeLanguage(value: String?) {
+        dataStore.edit { it[Keys.language] = value ?: "" }
     }
 
     override suspend fun readCaliber(): Caliber =

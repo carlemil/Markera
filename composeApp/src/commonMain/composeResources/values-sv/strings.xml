@@ -14,6 +14,13 @@
     <string name="markera_back">Tillbaka</string>
     <string name="markera_scanning">SCANNAR TAVLAN…</string>
     <string name="score_pick_title">Poäng</string>
+    <string name="menu">Meny</string>
+    <string name="settings">Inställningar</string>
+    <string name="settings_language">Språk</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_system">Följ systemet</string>
+    <string name="settings_theme_light">Ljust</string>
+    <string name="settings_theme_dark">Mörkt</string>
 
     <!-- Home -->
     <string name="home_free_marking">Markera</string>
@@ -148,7 +155,7 @@
     <string name="help_scan_save">Spara</string>
     <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. Återställ slänger scanningen utan att spara.</string>
     <string name="help_scan_debug">Felsökning</string>
-    <string name="help_scan_debug_body">Reglage-ikonen längst upp till höger visar detektorns råa rutor, sifferrader och linjer.</string>
+    <string name="help_scan_debug_body">Visa detektionsdata i menyn visar detektorns råa rutor, sifferrader och linjer.</string>
 
     <!-- Hjälp: historiken -->
     <string name="help_history_title">Om historiken</string>
@@ -157,7 +164,7 @@
     <string name="help_history_detail">Detaljer</string>
     <string name="help_history_detail_body">Tryck på en serie för att se den i stort, justera träffar eller ta bort den. Håll inne en rad för att radera den direkt.</string>
     <string name="help_history_export">Exportera</string>
-    <string name="help_history_export_body">Moln-ikonen packar serierna filtret visar i en zip: series.csv och holes.csv (öppnas i Excel) samt de sparade bilderna.</string>
+    <string name="help_history_export_body">Exportera i menyn packar serierna filtret visar i en zip: series.csv och holes.csv (öppnas i Excel) samt de sparade bilderna.</string>
     <string name="help_history_offline">Utan nät</string>
     <string name="help_history_offline_body">Listan och bilderna finns kvar på telefonen och visas även utan uppkoppling.</string>
 
@@ -168,7 +175,7 @@
     <string name="help_detail_holes">Träffarna</string>
     <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Ändringarna sparas först när du trycker Spara.</string>
     <string name="help_detail_delete">Radera</string>
-    <string name="help_detail_delete_body">Papperskorgen längst upp till höger tar bort serien ur appen. Servern behåller serien, dess träffar och tavelfoto tills du raderar kontot.</string>
+    <string name="help_detail_delete_body">Radera i menyn tar bort serien ur appen. Servern behåller serien, dess träffar och tavelfoto tills du raderar kontot.</string>
 
     <!-- Statistik: hjälpdialogen -->
     <string name="stats_help">Om måtten</string>

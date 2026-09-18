@@ -15,12 +15,22 @@ class UserDefaultsBackendTokenStore(
         const val HISTORY_FILTER = "markera.backend.historyFilter"
         const val OPEN_DAYS = "markera.backend.historyOpenDays"
         const val TAG = "markera.backend.tag"
+        const val THEME = "markera.settings.theme"
+        const val LANGUAGE = "markera.settings.language"
     }
 
     // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
     override suspend fun readTag(): String? = normalizeTag(defaults.stringForKey(Keys.TAG))
 
     override suspend fun writeTag(value: String?) = defaults.setObject(value ?: "", Keys.TAG)
+
+    override suspend fun readTheme(): String? = defaults.stringForKey(Keys.THEME)
+
+    override suspend fun writeTheme(value: String) = defaults.setObject(value, Keys.THEME)
+
+    override suspend fun readLanguage(): String? = defaults.stringForKey(Keys.LANGUAGE)?.ifEmpty { null }
+
+    override suspend fun writeLanguage(value: String?) = defaults.setObject(value ?: "", Keys.LANGUAGE)
 
     override suspend fun readCaliber(): Caliber =
         Caliber.fromLabel(defaults.stringForKey(Keys.CALIBER) ?: "")
