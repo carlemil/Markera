@@ -130,8 +130,14 @@ platform :ios do
       },
     )
     # English is the primary language; only settable once the en-US
-    # localisation exists, hence after deliver. Idempotent.
-    Spaceship::ConnectAPI::App.find(APP_ID).update(attributes: { primaryLocale: "en-US" })
+    # localisation exists, hence after deliver. Idempotent. Apple also wants
+    # en-US screenshots on every version, so it is refused while a live version
+    # predates them (1.7.0); retried on each push until it takes.
+    begin
+      Spaceship::ConnectAPI::App.find(APP_ID).update(attributes: { primaryLocale: "en-US" })
+    rescue Spaceship::UnexpectedResponse => e
+      UI.important("Primary language not changed yet: #{e.message}")
+    end
     dedupe_screenshots
     # deliver only selects the build when submitting; attach it on a plain
     # metadata push too, so the editable version always carries the newest one.
