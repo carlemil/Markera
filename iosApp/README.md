@@ -99,7 +99,7 @@ iPhone to test on).
 ## TestFlight
 
 `iosApp/fastlane/` has a `beta` lane (xcodegen → signed App Store archive → TestFlight
-with `metadata/sv/release_notes.txt` as the changelog). It needs
+with `metadata/en-US/release_notes.txt` as the changelog). It needs
 `iosApp/fastlane/.env` (copy `.env.template`; the App Store Connect key `.p8` and
 `.env` are gitignored) and the app record on App Store Connect:
 
@@ -120,9 +120,10 @@ the ORT xcframework's `MinimumOSVersion` (see `project.yml`).
 ## App Store listing and review
 
 `fastlane metadata` pushes the listing to the editable App Store version without a
-binary: `fastlane/metadata/` (Swedish texts, `primary_category.txt`, `copyright.txt`,
+binary: `fastlane/metadata/` (texts per locale — `en-US` primary, `en-GB`, `sv`; the lane sets
+the primary language to en-US — plus `primary_category.txt`, `copyright.txt`,
 `review_information/`, `app_rating.json` = the full age-rating questionnaire, every
-attribute the API requires), `fastlane/screenshots/sv/` (iPhone 6.9" = 1320×2868 from
+attribute the API requires), `fastlane/screenshots/{en-US,sv}/` (en-GB falls back to en-US; iPhone 6.9" = 1320×2868 from
 the iPhone 17 Pro Max simulator; the device is inferred from the size, `overwrite_screenshots`
 replaces the set). The version string follows `MARKETING_VERSION` in `project.yml`.
 `fastlane release` does the same, attaches the newest processed TestFlight build and

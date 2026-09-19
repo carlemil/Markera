@@ -1,0 +1,6 @@
+The first version of Markera for iPhone: photograph a target, get the series scored automatically, save it with its caliber and follow your history and statistics.
+• More reliable ring detection — the 6/7 ring is found correctly much more often
+• The viewfinder shows 6 and 7 around the guide ring while you take the photo
+• Tap a score box to type in the score directly
+• History is grouped by day, with filters for caliber and date
+• Statistics: Target and Trend tabs, with trend lines and spread over time

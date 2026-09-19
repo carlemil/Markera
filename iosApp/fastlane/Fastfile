@@ -97,7 +97,7 @@ platform :ios do
     upload_to_testflight(
       api_key:                           api_key,
       skip_waiting_for_build_processing: true,
-      changelog:                         File.read("metadata/sv/release_notes.txt").strip,
+      changelog:                         File.read("metadata/en-US/release_notes.txt").strip,
     )
   end
 
@@ -127,6 +127,9 @@ platform :ios do
         content_rights_contains_third_party_content: false,
       },
     )
+    # English is the primary language; only settable once the en-US
+    # localisation exists, hence after deliver. Idempotent.
+    Spaceship::ConnectAPI::App.find(APP_ID).update(attributes: { primaryLocale: "en-US" })
     dedupe_screenshots
     # deliver only selects the build when submitting; attach it on a plain
     # metadata push too, so the editable version always carries the newest one.

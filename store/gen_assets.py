@@ -2,7 +2,8 @@
 
     python store/gen_assets.py
 
-Writes store/icon-512.png, store/feature-1024x500.png, the iOS
+Writes store/icon-512.png, store/feature-1024x500(-en).png (Swedish and
+English tagline; copy them into the sv-SE / en-US Play listings), the iOS
 AppIcon.appiconset/icon-1024.png, the adaptive-icon foreground bitmaps
 (mipmap-*/ic_launcher_foreground.webp — a bitmap because a VectorDrawable
 cannot draw the ring digits) and the legacy ic_launcher(.round).webp mipmaps
@@ -96,16 +97,17 @@ def main() -> None:
     IOS_ICON.mkdir(parents=True, exist_ok=True)
     target(1024).save(IOS_ICON / "icon-1024.png")
 
-    # Feature graphic 1024x500.
-    fg = Image.new("RGB", (1024, 500), BG)
+    # Feature graphic 1024x500, one per language (the tagline is baked in).
     icon = rounded(target(300), 300 * 0.22)
-    fg.paste(icon, (90, 100), icon)
-    d = ImageDraw.Draw(fg)
     title = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 110)
     sub = ImageFont.truetype(FONT, 40)
-    d.text((440, 150), "Markera", font=title, fill=CENTRE)
-    d.text((444, 290), "Räkna träffarna med kameran", font=sub, fill=TEXT)
-    fg.save(OUT / "feature-1024x500.png")
+    for suffix, tagline in (("", "Räkna träffarna med kameran"), ("-en", "Score your hits with the camera")):
+        fg = Image.new("RGB", (1024, 500), BG)
+        fg.paste(icon, (90, 100), icon)
+        d = ImageDraw.Draw(fg)
+        d.text((440, 150), "Markera", font=title, fill=CENTRE)
+        d.text((444, 290), tagline, font=sub, fill=TEXT)
+        fg.save(OUT / f"feature-1024x500{suffix}.png")
 
     for density, scale in DENSITIES:
         folder = RES / f"mipmap-{density}"
@@ -120,7 +122,7 @@ def main() -> None:
         base = target(px)
         rounded(base, px * 0.18).save(folder / "ic_launcher.webp", lossless=True)
         circle(base).save(folder / "ic_launcher_round.webp", lossless=True)
-    print("wrote", OUT / "icon-512.png", OUT / "feature-1024x500.png", IOS_ICON / "icon-1024.png", "and the mipmaps")
+    print("wrote", OUT / "icon-512.png", OUT / "feature-1024x500(-en).png", IOS_ICON / "icon-1024.png", "and the mipmaps")
 
 
 if __name__ == "__main__":

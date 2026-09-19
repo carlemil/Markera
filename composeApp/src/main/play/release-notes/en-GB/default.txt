@@ -1,0 +1,7 @@
+New in 1.7.0:
+• More reliable ring detection — the 6/7 ring is found correctly much more often
+• The viewfinder shows 6 and 7 around the guide ring while you take the photo
+• Tap a score box to type in the score directly
+• History is grouped by day and can be collapsed, with filters for calibre and date
+• Statistics: Target and Trend tabs, with trend lines and spread over time
+• New app icon, and a series keeps at most five hits
