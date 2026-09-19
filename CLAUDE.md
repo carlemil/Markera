@@ -224,8 +224,8 @@ only ring + centre + hole markers + score labels. Tapping a missed hole on the f
 frame adds it: `TargetScanController.addManualHit` scores that point with the same
 geometry (`ManualHit.kt` holds the pure viewport→image and box-sizing maths) and it is
 drawn orange, `manual = true`, so it saves with no `detected*` values.
-Every screen but Home uses the one `AppTopBar` (`ui/AppTopBar.kt`): menu button, then title, no
-back arrow — back is system back plus the menu's first row, "Tillbaka" (the only way back on iOS).
+Every screen but Home uses the one `AppTopBar` (`ui/AppTopBar.kt`): back button (left of the menu
+button, whenever the screen has a back), menu button, then title; back is that button plus system back.
 Top-bar actions go in the one `AppMenu` (FieldShootingTimer's speed dial; `ui/AppMenu.kt`,
 drawn by `MenuOverlay` at the nav root), which always ends with Settings (`ui/settings/`:
 language + light/dark theme, applied in `MarkeraApp`; a language change re-keys the tree).

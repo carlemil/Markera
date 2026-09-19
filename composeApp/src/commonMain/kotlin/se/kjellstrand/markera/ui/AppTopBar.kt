@@ -18,8 +18,8 @@ import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 
 /**
- * The one top bar: menu button, then title. There is no back arrow — back is
- * system back plus the menu's first row (the only way back on iOS).
+ * The one top bar: back button (when [onBack] is set), menu button, then title.
+ * Back is that button plus system back (the button is the only way back on iOS).
  */
 @Composable
 fun AppTopBar(
@@ -29,16 +29,21 @@ fun AppTopBar(
     subtitle: String? = null,
     menuItems: List<MenuItem> = emptyList(),
 ) {
-    val backItem = onBack?.let {
-        MenuItem(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.markera_back), onClick = it)
-    }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppMenu(listOfNotNull(backItem) + menuItems)
+        if (onBack != null) {
+            MenuButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                label = stringResource(Res.string.markera_back),
+                modifier = Modifier.padding(4.dp),
+                onClick = onBack,
+            )
+        }
+        AppMenu(menuItems)
         Column(modifier = Modifier.padding(start = 4.dp).weight(1f)) {
             Text(
                 text = title,

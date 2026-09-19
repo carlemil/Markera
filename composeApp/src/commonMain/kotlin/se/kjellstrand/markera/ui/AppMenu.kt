@@ -199,7 +199,7 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
 }
 
 @Composable
-private fun MenuButton(icon: ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun MenuButton(icon: ImageVector, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
