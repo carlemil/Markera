@@ -17,19 +17,18 @@ changes are checked on the phone (34282ee3), never on an emulator.
    `[A-Za-z0-9 .,/-]`). Done in 19c.
 3. **Competition wizard:** fix it now (19j is a normal-priority card, not parked).
 4. **Backend session expiry:** 90 days, sliding. Done in 19c.
-5. **iOS token in the Keychain:** unanswered, so the default holds: deferred until the iOS app
-   sees real use; 19b only leaves a note.
+5. **iOS token:** left as is on the user's instruction (2026-09-19), note only (19b).
 
 ## Suggested order
 
-19b → 19a → 19d → 19c → 19e → 19j → 19h → 19f → 19i → 19g
+19b → 19a → 19d → 19c → 19e → 19h → 19f → 19j → 19i → 19g
 
 Data loss and security first, then robustness, scoring and the wizard, then refactors; the
 pure file moves last so they do not conflict.
 
 ---
 
-## 19a: Series save pipeline, data-loss races (high)
+## 19a: Series save pipeline, data-loss races (high) — card #22
 
 1. **A slow save wipes the next scan.** When series N's save finishes, `SeriesRecorder.kt:190-193`
    sets `pending = null`; a series N+1 scanned during that POST is lost, and its `commit()` returns
@@ -61,7 +60,7 @@ Tests: `SeriesRecorderTest` (overlapping scans, chip during a save, 401); `Serie
 (corrupt cached row, refresh concurrent with a save). Phone: two quick scans on a throttled
 network both land in History exactly once, with images.
 
-## 19b: Android backup and model copy (high, small)
+## 19b: Android backup and model copy (high, small) — card #23
 
 1. **Backups include the model and tokens.** `AndroidManifest.xml:12` has `allowBackup="true"`;
    `backup_rules.xml` / `data_extraction_rules.xml` are untouched templates. The ~40 MB
@@ -75,7 +74,7 @@ network both land in History exactly once, with images.
 
 Check: `adb shell bmgr backupnow se.kjellstrand.markera` succeeds without `best.onnx`.
 
-## 19c: Server hardening (med-high, needs a redeploy)
+## 19c: Server hardening (med-high, needs a redeploy) — card #24
 
 1. **No hole validation or size cap** (`Server.kt:294-307`). Reject >50 holes, `ring` outside
    `0..10`, `innerTen` with `ring != 10`, out-of-range `detected*`, bodies over ~1 MB. Replace the
@@ -97,7 +96,7 @@ Check: `adb shell bmgr backupnow se.kjellstrand.markera` succeeds without `best.
 
 A server test per item; then `/health` and one save from the phone after the redeploy.
 
-## 19d: Scan pipeline and lifecycle robustness (med-high)
+## 19d: Scan pipeline and lifecycle robustness (med-high) — card #25
 
 1. `TargetScanner.kt:432` calls `frozen.toImageBitmap()` on every recomposition (~72 MB churn per
    drag event on iOS). Fix: `remember(frozen) { … }`.
@@ -123,7 +122,7 @@ A server test per item; then `/health` and one save from the phone after the red
 
 Phone: change language with a frozen scan, then Spara → saved; toggle dark mode during a scan → no crash.
 
-## 19e: One manual-hole scoring rule, sized by caliber (med)
+## 19e: One manual-hole scoring rule, sized by caliber (med) — card #26
 
 Today a scan-screen tap gets a median-size box, edge-gauged in `scoreHits` (`ManualHit.kt:70-72`,
 `HitScoring.kt:130-131`); Detail's `GeometryDto.scoreHoleAt` (`SeriesDtos.kt:235-243`) uses the
@@ -147,7 +146,7 @@ side, median fallback), `SeriesDtosTest` (same point → same score via both pat
 survives a drag; auto score is rescored). Phone: .22 hole just outside 9/10 scores 10; typed 7
 survives a drag; same in Detail.
 
-## 19f: Single source of truth, vision and eval (med)
+## 19f: Single source of truth, vision and eval (med) — card #27
 
 1. Eval keeps all detections, the app the top 5; thresholds 1536/0.35/0.45 are copied into
    `HoleDetectionMosaicTest.kt:31-34`. One common `postProcess(raws, inputSize, w, h)` in
@@ -175,7 +174,11 @@ survives a drag; same in Detail.
 
 Check: `/eval` mosaic for `-Dmosaic.seed=42` unchanged before/after.
 
-## 19g: Split oversized files, move shared UI (low-med, pure moves; do last)
+## 19g: Split oversized files, move shared UI (low-med, pure moves; do last) — card #28
+
+Start only after 19a, 19d, 19e and 19f are done **and** UI cards 6–18 (in verify on
+2026-09-19) are merged: they touch the same screens (`MarkeraScreen`, `SeriesHistoryScreen`,
+`StatsScreen`, `AppNavHost`).
 
 | File | What moves out |
 |---|---|
@@ -191,7 +194,7 @@ Also move `SectionHeader` and `DateRangeDialog` from `ui.stats` into `ui/`, and 
 `StatsScreen.FilterRow` / `SeriesHistoryScreen.HistoryFilterRow` into one `SeriesFilterChips`
 (one way to build the tag list instead of three).
 
-## 19h: i18n and user-facing errors (med)
+## 19h: i18n and user-facing errors (med) — card #29
 
 1. Raw exception text in the UI: `AppNavHost.kt:205,527` (incl. a cancelled sign-in),
    `SeriesHistoryScreen.kt:138`, `StatsScreen.kt:182`. Map to a few localised strings (offline,
@@ -203,7 +206,7 @@ Also move `SectionHeader` and `DateRangeDialog` from `ui.stats` into `ui/`, and 
 4. Locale override writes during composition (`AppLocale.android.kt:14-25`; iOS writes
    NSUserDefaults every recomposition): move into `SideEffect`.
 
-## 19i: Dead code, stale docs, build hygiene (low)
+## 19i: Dead code, stale docs, build hygiene (low) — card #30
 
 - **Delete:** `DynamicColor.kt` + actuals; `LocalAppLocale.current` reads;
   `ExampleInstrumentedTest.kt` + `espresso-core`; `CameraPreview`'s `onCameraReady` (rename file to
@@ -228,7 +231,7 @@ Also move `SectionHeader` and `DateRangeDialog` from `ui.stats` into `ui/`, and 
 - **Line endings:** `.gitattributes` (`* text=auto eol=lf`, `*.bat eol=crlf`) + one renormalise commit.
 - **Calibers:** after 19c the app enum is the only list; drop the "lockstep" notes.
 
-## 19j: Competition wizard fixes (med — "fix it now")
+## 19j: Competition wizard fixes (med — "fix it now") — card #31
 
 1. A save can write the previous lane's shots to a newly tapped lane and yank the user off it
    (`MarkingWizardViewModel.kt:274-313`): keep the save as a `Job`, cancel on navigation, apply the
