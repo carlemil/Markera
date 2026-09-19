@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
@@ -195,10 +196,13 @@ fun SeriesHistoryScreen(
                                             shown,
                                         ).toString(),
                                     )
+                                } catch (e: CancellationException) {
+                                    throw e
                                 } catch (_: Throwable) {
                                     toast(getString(Res.string.history_export_failed))
+                                } finally {
+                                    exporting = false
                                 }
-                                exporting = false
                             }
                         },
                     ),
@@ -320,6 +324,8 @@ fun SeriesHistoryScreen(
                     try {
                         services.repository.delete(target.id)
                         thumbnails.remove(target.id)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (_: Throwable) {
                         toast(getString(Res.string.history_delete_failed))
                     }

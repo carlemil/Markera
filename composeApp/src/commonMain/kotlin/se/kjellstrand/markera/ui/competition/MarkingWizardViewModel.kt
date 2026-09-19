@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.competition
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -296,6 +297,8 @@ class MarkingWizardViewModel(
                 }
                 delay(SAVED_DWELL_MS)
                 advanceAfterSave()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: WebshooterApiException) {
                 if (e.isDuplicateResult) {
                     // Someone else registered first: keep their result, show who.
@@ -434,6 +437,8 @@ class MarkingWizardViewModel(
                     }
                 }
                 updateResumeHint()
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 // Polling is best-effort.
             }

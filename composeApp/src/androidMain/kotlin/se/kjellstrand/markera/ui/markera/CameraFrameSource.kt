@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -46,6 +47,8 @@ private class CameraFrameSource(
 
     override suspend fun capture(): Bitmap? = try {
         takePicture()
+    } catch (e: CancellationException) {
+        throw e
     } catch (t: Throwable) {
         // Never break a scan over the still: PreviewView.getBitmap() returns a
         // fresh (low-resolution) copy of what is on screen.

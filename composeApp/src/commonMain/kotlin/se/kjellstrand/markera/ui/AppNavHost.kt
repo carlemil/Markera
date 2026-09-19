@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -131,7 +132,10 @@ class CompetitionHost(
  * The app root both platforms call: loads the Settings choices, then applies the
  * theme and the language around [AppNavHost]. A language change re-keys the whole
  * tree (that is what makes the strings re-resolve), so the back stack is held
- * here, above the key, and the user stays on the Settings screen.
+ * here, above the key, and the user stays on the Settings screen. So are the
+ * heavy objects — the frame source, the scan controller (the single ONNX
+ * session) and the series recorder — so a language change neither rebuilds
+ * them nor cancels an in-flight save or drops the pending series.
  */
 @Composable
 fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
@@ -148,37 +152,12 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
         ThemeMode.DARK -> true
     }
     val stack = remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
-    CompositionLocalProvider(LocalAppLocale provides language) {
-        key(language) {
-            MarkeraTheme(dark) {
-                SystemBarsForTheme(dark)
-                AppNavHost(app, competition, settings, stack)
-            }
-        }
-    }
-}
 
-/**
- * Navigation root. The frame source and the scan controller (the single ONNX
- * session) live here, above the back stack, so both the free-marking screen
- * and the competition wizard share them and nothing heavy is rebuilt per
- * screen switch.
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-fun AppNavHost(
-    app: AppServices,
-    competition: CompetitionHost?,
-    settings: AppSettings,
-    stackState: MutableState<List<Screen>>,
-) {
     val seriesServices = app.series
     val frameSource = rememberFrameSource()
     val scanController = rememberTargetScanController(app.modelPath)
-
     // Auto-save: every scan the shared controller completes is offered to the
     // recorder, whichever screen started it.
-    val scope = rememberCoroutineScope()
     val recorder = remember {
         SeriesRecorder(
             repository = seriesServices.repository,
@@ -192,6 +171,36 @@ fun AppNavHost(
         ).also { scanController.onSeriesDetected = it::onSeriesDetected }
     }
     DisposableEffect(recorder) { onDispose { recorder.dispose() } }
+
+    CompositionLocalProvider(LocalAppLocale provides language) {
+        key(language) {
+            MarkeraTheme(dark) {
+                SystemBarsForTheme(dark)
+                AppNavHost(app, competition, settings, stack, frameSource, scanController, recorder)
+            }
+        }
+    }
+}
+
+/**
+ * Navigation root. The frame source, the scan controller (the single ONNX
+ * session) and the recorder come from [MarkeraApp], above the language key and
+ * the back stack, so both the free-marking screen and the competition wizard
+ * share them and nothing heavy is rebuilt per screen switch or language change.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun AppNavHost(
+    app: AppServices,
+    competition: CompetitionHost?,
+    settings: AppSettings,
+    stackState: MutableState<List<Screen>>,
+    frameSource: FrameSource,
+    scanController: TargetScanController,
+    recorder: SeriesRecorder,
+) {
+    val seriesServices = app.series
+    val scope = rememberCoroutineScope()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val toast: (String) -> Unit = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
@@ -527,6 +536,8 @@ internal fun rememberBackendSignIn(services: SeriesServices): Pair<Boolean, () -
                 signIn()
                 // A different account must not inherit the last one's cache.
                 services.repository.refresh()
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 toast(t.message ?: t.toString())
             } finally {
@@ -559,6 +570,8 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                             seriesServices.api.deleteAccount()
                             seriesServices.session.signOut()
                             seriesServices.repository.clear()
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (_: Throwable) {
                             // Stay signed in; the account is still there.
                             toast(getString(Res.string.home_delete_account_failed))

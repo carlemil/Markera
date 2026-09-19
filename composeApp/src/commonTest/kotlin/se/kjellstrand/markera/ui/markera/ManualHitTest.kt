@@ -2,8 +2,10 @@ package se.kjellstrand.markera.ui.markera
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.HitScore
 
@@ -52,7 +54,7 @@ class ManualHitTest {
         val vm = MarkeraViewModelImpl()
         vm.onHolesDetected(List(5) { box(it * 100f, 0f, 10f) }, List(5) { hit(ring = 9) })
 
-        vm.addManualHit(box(900f, 900f, 10f), hit(ring = 10, manual = true))
+        assertFalse(vm.addManualHit(box(900f, 900f, 10f), hit(ring = 10, manual = true)))
 
         assertEquals(5, vm.uiState.value.scores.size)
         assertEquals(listOf(9, 9, 9, 9, 9), vm.uiState.value.topScores)
@@ -65,7 +67,7 @@ class ManualHitTest {
         assertEquals(listOf(9, 0, 0, 0, 0), vm.uiState.value.topScores)
 
         val added = box(50f, 50f, 10f)
-        vm.addManualHit(added, hit(ring = 10, inner = true, manual = true))
+        assertTrue(vm.addManualHit(added, hit(ring = 10, inner = true, manual = true)))
 
         assertEquals(2, vm.uiState.value.scores.size)
         // The inner X sorts ahead of the 9 — holes and pickers both.

@@ -25,7 +25,7 @@ actual class HoleDetector actual constructor(
     // Loading by path lets the native runtime read the model file directly,
     // keeping the ~40 MB model off the Java heap (readBytes() of the asset
     // peaked at 2-3x the model size and OOMed small heaps).
-    private val session: OrtSession = env.createSession(modelPath, buildSessionOptions())
+    private val session: OrtSession = buildSessionOptions().use { env.createSession(modelPath, it) }
     private val inputName: String = session.inputNames.first()
     private val inputShape: LongArray = longArrayOf(1L, 3L, inputSize.toLong(), inputSize.toLong())
 
