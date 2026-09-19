@@ -20,7 +20,7 @@ sealed interface SaveStatus {
     data object NeedsCaliber : SaveStatus
     data object Saving : SaveStatus
     data class Saved(val caliber: Caliber) : SaveStatus
-    data class Failed(val message: String) : SaveStatus
+    data class Failed(val error: Throwable) : SaveStatus
 }
 
 /**
@@ -195,7 +195,7 @@ class SeriesRecorder(
             } catch (e: CancellationException) {
                 throw e // clear()/dispose() cancelled us; the status is theirs to set.
             } catch (e: Exception) {
-                _status.value = SaveStatus.Failed(e.message ?: e.toString())
+                _status.value = SaveStatus.Failed(e)
                 return@launch
             }
             // The snapshot is a bonus: a failed encode or upload never

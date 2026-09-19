@@ -170,7 +170,7 @@ fun MarkeraScreen(
                         snapshotVm = snapshotVm,
                         uiState = uiState,
                         showDebug = showDebug,
-                        onError = { viewModel.setError(it.message) },
+                        onError = viewModel::setError,
                         editing = editing,
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
@@ -206,7 +206,7 @@ fun MarkeraScreen(
                             snapshotVm = snapshotVm,
                             uiState = uiState,
                             showDebug = showDebug,
-                            onError = { viewModel.setError(it.message) },
+                            onError = viewModel::setError,
                             editing = editing,
                             modifier = Modifier.fillMaxHeight().aspectRatio(1f),
                         )

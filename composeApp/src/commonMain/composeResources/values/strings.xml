@@ -48,7 +48,7 @@
     <string name="series_tag_suggest_practice">Practice</string>
     <string name="series_tag_suggest_competition">Competition</string>
     <string name="series_status_saved">Saved</string>
-    <string name="series_status_failed">Could not save</string>
+    <string name="series_status_failed">Could not save: %1$s</string>
 
     <!-- Series history -->
     <string name="history_title">History</string>
@@ -115,7 +115,9 @@
     <string name="stats_short_mean_radius">Radius</string>
     <string name="stats_short_radial_sd">Spread (SD)</string>
     <string name="stats_short_mean_score">Score</string>
-    <string name="stats_trend_series_count">%1$d series</string>
+    <string name="stats_trend_point">%1$s %2$s: %3$s</string>
+    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d series)</string>
+    <string name="decimal_mark">.</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">The Trend tab plots any measure as a curve over time. Pick the measure with the buttons, and whether each series becomes a point or the series are merged per day, week or month (the measure is then computed over all series in the period). Per caliber draws one curve per caliber. The filters above apply to both tabs. Tap a point to read it.</string>
 
@@ -217,6 +219,9 @@
     <string name="marking_title">Marking</string>
     <string name="marking_pick_group">Choose marking group</string>
     <string name="marking_active_patrol">Squad called right now: Squad %1$d</string>
+    <string name="marking_active_patrol_at">Squad called right now: Squad %1$d (%2$s)</string>
+    <string name="wizard_unknown_name">Unknown</string>
+    <string name="wizard_x_count">%1$d X</string>
     <string name="marking_no_active_patrol">No squad has been called for mobile registration yet — activate the squad in the roll-call view first, otherwise marking cannot be opened.</string>
     <string name="marking_lanes">lane %1$d–%2$d</string>
     <string name="marking_progress">%1$d of %2$d lanes fully marked</string>
@@ -263,6 +268,10 @@
     <string name="wizard_final_done">Every series is fully marked.</string>
     <string name="wizard_shots_unsupported">Series with %1$d shots are not supported yet.</string>
     <string name="error_network">Network error. Check the connection and try again.</string>
+    <string name="error_session_expired">Your session has expired. Sign in again.</string>
+    <string name="error_server">The server had a problem. Try again later.</string>
+    <string name="error_generic">Something went wrong. Try again.</string>
+    <string name="markera_error_camera">The camera could not start.</string>
     <string name="ios_pick_photo">Pick photo</string>
     <!-- Shared empty / loading / error states (StateMessage) -->
     <string name="state_error_title">Couldn't load</string>

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import se.kjellstrand.markera.BuildConfig
@@ -26,8 +27,12 @@ suspend fun signInWithProvider(context: Context, session: BackendSessionReposito
         .setFilterByAuthorizedAccounts(false)
         .setAutoSelectEnabled(false)
         .build()
-    val response = CredentialManager.create(context)
-        .getCredential(context, GetCredentialRequest(listOf(option)))
+    val response = try {
+        CredentialManager.create(context)
+            .getCredential(context, GetCredentialRequest(listOf(option)))
+    } catch (e: GetCredentialCancellationException) {
+        throw SignInCancelledException()
+    }
     val idToken = GoogleIdTokenCredential.createFrom(response.credential.data).idToken
     return session.signInGoogle(idToken)
 }

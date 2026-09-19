@@ -1,32 +1,30 @@
 package se.kjellstrand.markera.ui.settings
 
 import android.app.Activity
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import java.util.Locale
 
 actual object LocalAppLocale {
-    private var default: Locale? = null
+    // Object init = first use, before any override.
+    private val system: Locale = Locale.getDefault()
 
-    actual val current: String
-        @Composable get() = Locale.getDefault().toString()
+    private fun locale(value: String?) = value?.let(Locale::forLanguageTag) ?: system
+
+    actual fun apply(value: String?) = Locale.setDefault(locale(value))
 
     @Composable
     actual infix fun provides(value: String?): ProvidedValue<*> {
-        val configuration = LocalConfiguration.current
-        val system = default ?: Locale.getDefault().also { default = it }
-        val new = value?.let(Locale::forLanguageTag) ?: system
-        Locale.setDefault(new)
-        configuration.setLocale(new)
-        val resources = LocalContext.current.resources
-        @Suppress("DEPRECATION")
-        resources.updateConfiguration(configuration, resources.displayMetrics)
-        return LocalConfiguration.provides(configuration)
+        val base = LocalConfiguration.current
+        return LocalConfiguration provides remember(base, value) {
+            Configuration(base).apply { setLocale(locale(value)) }
+        }
     }
 }
 

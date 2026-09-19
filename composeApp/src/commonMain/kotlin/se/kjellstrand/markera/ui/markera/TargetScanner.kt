@@ -372,6 +372,7 @@ private val GRAB_RADIUS = 24.dp
  *
  * With [editing] set, a frozen frame that has been scored also pinch-zooms and
  * takes hole edits (see [HoleEditing]); the live preview never does.
+ * A camera failure is logged and reported to [onError] as a user-facing message.
  */
 @Composable
 fun TargetScanner(
@@ -379,7 +380,7 @@ fun TargetScanner(
     snapshotVm: MarkeraSnapshotViewModel,
     uiState: MarkeraUiState,
     showDebug: Boolean,
-    onError: (Throwable) -> Unit,
+    onError: (String) -> Unit,
     modifier: Modifier = Modifier,
     editing: HoleEditing? = null,
 ) {
@@ -418,8 +419,12 @@ fun TargetScanner(
         // The preview stays outside the zoom layer: it is a SurfaceView, which
         // ignores a graphicsLayer transform anyway, and it never zooms.
         if (frozen == null) {
+            val cameraError = stringResource(Res.string.markera_error_camera)
             frameSource.Preview(
-                onError = onError,
+                onError = {
+                    println("$TAG: camera failed $it")
+                    onError(cameraError)
+                },
                 modifier = Modifier.fillMaxSize(),
             )
             // Framing guide on the live viewfinder only — a centred circle

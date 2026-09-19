@@ -10,6 +10,7 @@ import platform.AuthenticationServices.ASAuthorizationAppleIDProvider
 import platform.AuthenticationServices.ASAuthorizationController
 import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
 import platform.AuthenticationServices.ASAuthorizationControllerPresentationContextProvidingProtocol
+import platform.AuthenticationServices.ASAuthorizationErrorCanceled
 import platform.AuthenticationServices.ASPresentationAnchor
 import platform.Foundation.NSBundle
 import platform.Foundation.NSError
@@ -85,7 +86,11 @@ private class AppleSignInDelegate(
         didCompleteWithError: NSError,
     ) {
         result.completeExceptionally(
-            IllegalStateException(didCompleteWithError.localizedDescription),
+            if (didCompleteWithError.code == ASAuthorizationErrorCanceled) {
+                SignInCancelledException()
+            } else {
+                IllegalStateException(didCompleteWithError.localizedDescription)
+            },
         )
     }
 

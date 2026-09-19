@@ -48,7 +48,7 @@
     <string name="series_tag_suggest_practice">Träning</string>
     <string name="series_tag_suggest_competition">Tävling</string>
     <string name="series_status_saved">Sparad</string>
-    <string name="series_status_failed">Kunde inte spara</string>
+    <string name="series_status_failed">Kunde inte spara: %1$s</string>
 
     <!-- Series history -->
     <string name="history_title">Historik</string>
@@ -115,7 +115,9 @@
     <string name="stats_short_mean_radius">Radie</string>
     <string name="stats_short_radial_sd">Spridning (SD)</string>
     <string name="stats_short_mean_score">Poäng</string>
-    <string name="stats_trend_series_count">%1$d serier</string>
+    <string name="stats_trend_point">%1$s %2$s: %3$s</string>
+    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d serier)</string>
+    <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Fliken Trend ritar valfritt mått som en kurva över tid. Välj mått med knapparna, och om varje serie ska bli en punkt eller om serierna ska slås ihop per dag, vecka eller månad (då räknas måttet över alla serier i perioden). Dela per kaliber ger en kurva per kaliber. Filtren ovanför gäller båda flikarna. Tryck på en punkt för att läsa av den.</string>
 
@@ -217,6 +219,9 @@
     <string name="marking_title">Markering</string>
     <string name="marking_pick_group">Välj markeringsgrupp</string>
     <string name="marking_active_patrol">Uppropat skjutlag just nu: Skjutlag %1$d</string>
+    <string name="marking_active_patrol_at">Uppropat skjutlag just nu: Skjutlag %1$d (%2$s)</string>
+    <string name="wizard_unknown_name">Okänd</string>
+    <string name="wizard_x_count">%1$d X</string>
     <string name="marking_no_active_patrol">Inget skjutlag är uppropat för mobilregistrering ännu — aktivera skjutlaget i uppropsvyn först, annars går markeringen inte att öppna.</string>
     <string name="marking_lanes">bana %1$d–%2$d</string>
     <string name="marking_progress">%1$d av %2$d banor färdigmarkerade</string>
@@ -263,6 +268,10 @@
     <string name="wizard_final_done">Alla serier är färdigmarkerade.</string>
     <string name="wizard_shots_unsupported">Serier med %1$d skott stöds inte ännu.</string>
     <string name="error_network">Nätverksfel. Kontrollera uppkopplingen och försök igen.</string>
+    <string name="error_session_expired">Inloggningen har gått ut. Logga in igen.</string>
+    <string name="error_server">Servern svarade med ett fel. Försök igen senare.</string>
+    <string name="error_generic">Något gick fel. Försök igen.</string>
+    <string name="markera_error_camera">Kameran kunde inte starta.</string>
     <string name="ios_pick_photo">Välj foto</string>
     <!-- Shared empty / loading / error states (StateMessage) -->
     <string name="state_error_title">Kunde inte hämta</string>

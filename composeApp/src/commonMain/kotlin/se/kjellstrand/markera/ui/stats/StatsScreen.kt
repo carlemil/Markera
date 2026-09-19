@@ -102,6 +102,7 @@ import androidx.compose.material.icons.Icons
 import se.kjellstrand.markera.ui.AppChip
 import se.kjellstrand.markera.ui.MenuItem
 import se.kjellstrand.markera.ui.StateMessage
+import se.kjellstrand.markera.ui.userMessage
 import se.kjellstrand.markera.ui.rememberBackendSignIn
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CloudOff
@@ -156,7 +157,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     val auth by services.session.auth.collectAsState()
     val series by services.repository.series.collectAsState()
     var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<StringResource?>(null) }
     var reload by remember { mutableIntStateOf(0) }
     val (signingIn, signIn) = rememberBackendSignIn(services)
 
@@ -178,7 +179,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
         loading = true
-        error = services.repository.refresh()?.let { it.message ?: it.toString() }
+        error = services.repository.refresh()?.userMessage()
         loading = false
     }
 
@@ -222,7 +223,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 error != null && series.isEmpty() -> StateMessage(
                     icon = Icons.Default.CloudOff,
                     title = stringResource(Res.string.state_error_title),
-                    hint = error,
+                    hint = error?.let { stringResource(it) },
                     actionLabel = stringResource(Res.string.retry),
                     onAction = { reload++ },
                 )
@@ -482,19 +483,27 @@ private fun TrendTab(
             listOf(TrendLine("", TREND_COLOURS[0], plotted.trend(metric, bucket)))
         }
     }
-    val mm = stringResource(Res.string.stats_mm, 0).removePrefix("0")
+    // The ticks are drawn in a Canvas, so the template is resolved here and filled there.
+    val mm = stringResource(Res.string.stats_mm)
+    val mark = stringResource(Res.string.decimal_mark)
     val format: (Double) -> String = when (metric) {
-        Metric.SCORE -> { v -> ((v * 10).roundToInt() / 10.0).toString() }
-        else -> { v -> "${v.roundToInt()}$mm" }
+        Metric.SCORE -> { v -> oneDecimal(v, mark) }
+        else -> { v -> mm.replace("%1\$d", v.roundToInt().toString()) }
     }
-    val seriesCount = stringResource(Res.string.stats_trend_series_count, 0).removePrefix("0 ")
     TrendChart(lines, format) { line, point ->
         // A bucket starts at midnight, so only a per-series point carries a time of day.
         val stamp = localStamp(point.at.toString()).let { if (bucket == Bucket.SERIES) it else it.take(10) }
-        val count = if (point.seriesCount > 1) " (${point.seriesCount} $seriesCount)" else ""
-        "${line.label} $stamp: ${format(point.value)}$count".trim()
+        val value = format(point.value)
+        if (point.seriesCount > 1) {
+            stringResource(Res.string.stats_trend_point_many, line.label, stamp, value, point.seriesCount)
+        } else {
+            stringResource(Res.string.stats_trend_point, line.label, stamp, value)
+        }.trim()
     }
 }
+
+/** [v] to one decimal, with the app language's decimal [mark]. */
+internal fun oneDecimal(v: Double, mark: String) = ((v * 10).roundToInt() / 10.0).toString().replace(".", mark)
 
 /** Chip label: the short form of the measurement row's name. */
 private fun Metric.label() = when (this) {
@@ -823,7 +832,10 @@ private fun MeasurementRows(stats: SeriesStatistics) {
                 stats.medianYMm.roundToInt(),
             ),
         )
-        Measurement(stringResource(Res.string.stats_mean_score), ((stats.meanScore * 10).roundToInt() / 10.0).toString())
+        Measurement(
+            stringResource(Res.string.stats_mean_score),
+            oneDecimal(stats.meanScore, stringResource(Res.string.decimal_mark)),
+        )
     }
 }
 

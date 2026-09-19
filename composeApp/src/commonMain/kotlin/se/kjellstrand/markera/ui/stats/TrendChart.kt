@@ -81,7 +81,7 @@ private const val DAY_MS = 24L * 60 * 60 * 1000
 fun TrendChart(
     lines: List<TrendLine>,
     format: (Double) -> String,
-    pointText: (TrendLine, TrendPoint) -> String,
+    pointText: @Composable (TrendLine, TrendPoint) -> String,
 ) {
     val textMeasurer = rememberTextMeasurer()
     val labelStyle = TextStyle(

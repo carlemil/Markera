@@ -300,7 +300,7 @@ class MarkingWizardViewModel(
                 if (e.isDuplicateResult) {
                     // Someone else registered first: keep their result, show who.
                     _uiState.update {
-                        it.copy(duplicateBy = e.error?.scoredByName ?: "?", step = confirm)
+                        it.copy(duplicateBy = e.error?.scoredByName.orEmpty(), step = confirm)
                     }
                     refreshStatus()
                 } else {

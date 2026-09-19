@@ -148,8 +148,18 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
         ThemeMode.DARK -> true
     }
     val stack = remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
-    CompositionLocalProvider(LocalAppLocale provides language) {
-        key(language) {
+    // The locale is process-wide and resources read it while composing: set it after a
+    // commit, then key the tree on the language actually applied.
+    var applied by remember { mutableStateOf<String?>(null) }
+    var localeReady by remember { mutableStateOf(false) }
+    LaunchedEffect(language) {
+        LocalAppLocale.apply(language)
+        applied = language
+        localeReady = true
+    }
+    if (!localeReady) return
+    CompositionLocalProvider(LocalAppLocale provides applied) {
+        key(applied) {
             MarkeraTheme(dark) {
                 SystemBarsForTheme(dark)
                 AppNavHost(app, competition, settings, stack)
@@ -199,13 +209,14 @@ fun AppNavHost(
     // The only save feedback, for both screens: one toast per outcome. Collected
     // (not read from the current value), so a recomposition never repeats it.
     val savedText = stringResource(Res.string.series_status_saved)
-    val failedText = stringResource(Res.string.series_status_failed)
     val signInText = stringResource(Res.string.home_sign_in)
     LaunchedEffect(recorder) {
         recorder.status.collect { status ->
             val message = when (status) {
                 is SaveStatus.Saved -> savedText
-                is SaveStatus.Failed -> "$failedText: ${status.message}"
+                is SaveStatus.Failed -> status.error.userMessage()
+                    ?.let { getString(Res.string.series_status_failed, getString(it)) }
+                    ?: return@collect
                 SaveStatus.SignedOut -> signInText
                 else -> return@collect
             }
@@ -528,7 +539,7 @@ internal fun rememberBackendSignIn(services: SeriesServices): Pair<Boolean, () -
                 // A different account must not inherit the last one's cache.
                 services.repository.refresh()
             } catch (t: Throwable) {
-                toast(t.message ?: t.toString())
+                t.userMessage()?.let { toast(getString(it)) }
             } finally {
                 busy = false
             }
