@@ -105,7 +105,9 @@ platform :ios do
   # the image size). The App Store version string follows project.yml.
   private_lane :push_listing do |options|
     api_key = asc_key
-    version = `grep MARKETING_VERSION ../project.yml`[/[\d.]+/]
+    # `metadata version:1.8.0` targets a version newer than project.yml (the
+    # live one is locked); /release later bumps project.yml to match.
+    version = options[:version] || `grep MARKETING_VERSION ../project.yml`[/[\d.]+/]
     build = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID).to_s
     submit = options[:submit]
     UI.message("App Store version #{version}, build #{build}, submit=#{submit}")
@@ -128,12 +130,20 @@ platform :ios do
       },
     )
     # English is the primary language; only settable once the en-US
-    # localisation exists, hence after deliver. Idempotent.
-    Spaceship::ConnectAPI::App.find(APP_ID).update(attributes: { primaryLocale: "en-US" })
+    # localisation exists, hence after deliver. Idempotent. Apple also wants
+    # en-US screenshots on every version, so it is refused while a live version
+    # predates them (1.7.0); retried on each push until it takes.
+    begin
+      Spaceship::ConnectAPI::App.find(APP_ID).update(attributes: { primaryLocale: "en-US" })
+    rescue Spaceship::UnexpectedResponse => e
+      UI.important("Primary language not changed yet: #{e.message}")
+    end
     dedupe_screenshots
     # deliver only selects the build when submitting; attach it on a plain
     # metadata push too, so the editable version always carries the newest one.
-    unless submit
+    if options[:version]
+      UI.important("No build for #{version} yet; /release attaches it")
+    elsif !submit
       app = Spaceship::ConnectAPI::App.find(APP_ID)
       candidate = app.get_builds(filter: { version: build }).find { |b| b.processing_state == "VALID" }
       if candidate
@@ -173,8 +183,8 @@ platform :ios do
   end
 
   desc "Push App Store metadata + screenshots to the editable version (no submit)."
-  lane :metadata do
-    push_listing(submit: false)
+  lane :metadata do |options|
+    push_listing(submit: false, version: options[:version])
   end
 
   desc "Metadata + screenshots, attach the newest TestFlight build and submit for review."

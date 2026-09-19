@@ -7,4 +7,4 @@
 set -eo pipefail
 export PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 cd "$(dirname "$0")/../iosApp"
-fastlane metadata
+fastlane metadata "$@"
