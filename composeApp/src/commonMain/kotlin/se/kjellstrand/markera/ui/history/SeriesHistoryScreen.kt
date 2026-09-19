@@ -79,7 +79,7 @@ import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.localTime
-import se.kjellstrand.markera.series.scoreLine
+import se.kjellstrand.markera.series.scorePicks
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.series.utcDay
@@ -89,6 +89,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.competition.CompetitionTopBar
+import se.kjellstrand.markera.ui.markera.ScoreMiniRow
 import se.kjellstrand.markera.ui.stats.DateRangeDialog
 import se.kjellstrand.markera.ui.stats.SectionDivider
 import se.kjellstrand.markera.ui.stats.statsChipColors
@@ -528,7 +529,7 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
  */
 private const val COLUMN_1 = 1f
 private const val COLUMN_2 = 1f
-private const val COLUMN_3 = 1.3f
+private const val COLUMN_3 = 1.8f
 
 /** The hairline "|" between the columns. */
 @Composable
@@ -540,13 +541,12 @@ private fun Separator() {
     )
 }
 
-/** One labelled column of the card's bottom strip: small label over the value. */
+/** One labelled column of the card's bottom strip: small label over the [content]. */
 @Composable
 private fun LabelledValue(
     label: String,
-    value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    content: @Composable () -> Unit,
 ) {
     // Centred in the column, label over value, so the two rows read as a grid.
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -556,16 +556,22 @@ private fun LabelledValue(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = valueColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
+        content()
     }
+}
+
+/** A [LabelledValue]'s value as text. */
+@Composable
+private fun ValueText(value: String, color: Color = MaterialTheme.colorScheme.onSurface) {
+    Text(
+        text = value,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -623,22 +629,25 @@ private fun SeriesCard(
                 ) {
                     LabelledValue(
                         label = stringResource(Res.string.history_time_label),
-                        value = localTime(series.timestamp),
                         modifier = Modifier.weight(COLUMN_1),
-                    )
+                    ) {
+                        ValueText(localTime(series.timestamp))
+                    }
                     Separator()
                     LabelledValue(
                         label = stringResource(Res.string.stats_bucket_series),
-                        value = ordinal.toString(),
                         modifier = Modifier.weight(COLUMN_2),
-                    )
+                    ) {
+                        ValueText(ordinal.toString())
+                    }
                     Separator()
                     // The widest column: an X plus five two-digit rings.
                     LabelledValue(
                         label = stringResource(Res.string.stats_hits),
-                        value = series.scoreLine(),
                         modifier = Modifier.weight(COLUMN_3),
-                    )
+                    ) {
+                        if (series.holes.isEmpty()) ValueText("–") else ScoreMiniRow(series.scorePicks())
+                    }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                 // The same three weights and the same separators as the line
@@ -649,22 +658,24 @@ private fun SeriesCard(
                 ) {
                     LabelledValue(
                         label = stringResource(Res.string.stats_group_caliber),
-                        value = if (series.caliber == "-") "–" else series.caliber,
                         modifier = Modifier.weight(COLUMN_1),
-                    )
+                    ) {
+                        ValueText(if (series.caliber == "-") "–" else series.caliber)
+                    }
                     Separator()
                     LabelledValue(
                         label = stringResource(Res.string.stats_group_tag),
-                        value = series.tag?.takeIf { it.isNotBlank() } ?: "–",
                         modifier = Modifier.weight(COLUMN_2),
-                    )
+                    ) {
+                        ValueText(series.tag?.takeIf { it.isNotBlank() } ?: "–")
+                    }
                     Separator()
                     LabelledValue(
                         label = stringResource(Res.string.markera_total_label),
-                        value = series.total().toString(),
-                        valueColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(COLUMN_3),
-                    )
+                    ) {
+                        ValueText(series.total().toString(), color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
         }

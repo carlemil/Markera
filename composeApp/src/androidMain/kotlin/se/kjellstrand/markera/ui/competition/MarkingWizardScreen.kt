@@ -66,6 +66,7 @@ import se.kjellstrand.markera.ui.markera.MarkeraViewModelImpl
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.ScanPhase
 import se.kjellstrand.markera.ui.markera.ScorePickerHorizontalRow
+import se.kjellstrand.markera.ui.markera.ScoreMiniRow
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanner
@@ -524,12 +525,7 @@ private fun LockedContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val shots = ShotMapping.shotsToPickers(result.stationFigureHits)
-            if (shots.isNotEmpty()) {
-                Text(
-                    text = shots.joinToString("  ") { ShotMapping.pickerToShot(it) },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+            if (shots.isNotEmpty()) ScoreMiniRow(shots)
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

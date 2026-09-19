@@ -32,6 +32,9 @@ private val PICKER_ITEM_WIDTH = 44.dp
 private val PICKER_ITEM_HEIGHT = 48.dp
 private val DIALPAD_KEY_SIZE = 72.dp
 private val HIGHLIGHT_SHAPE = RoundedCornerShape(10.dp)
+private val MINI_ITEM_WIDTH = 20.dp
+private val MINI_ITEM_HEIGHT = 24.dp
+private val MINI_SHAPE = RoundedCornerShape(6.dp)
 
 /** Dialpad layout: 0 1 2 / 3 4 5 / 6 7 8 / 9 10 X, as picker indices. */
 private val DIALPAD_KEYS = listOf(
@@ -50,6 +53,7 @@ fun holeLetter(index: Int): String = ('a' + index).toString()
  * the scan screen, or the landscape column) it just displays.
  * [letter] is the small key tying the box to its marker on the photo.
  * Also the series detail screen's score cell, so the two edit the same way.
+ * [compact] is the small list size ([ScoreMiniRow]).
  */
 @Composable
 internal fun ScoreBox(
@@ -57,14 +61,16 @@ internal fun ScoreBox(
     onValueChange: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
     letter: String? = null,
+    compact: Boolean = false,
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    val shape = if (compact) MINI_SHAPE else HIGHLIGHT_SHAPE
     Box(
         modifier = modifier
-            .width(PICKER_ITEM_WIDTH)
-            .height(PICKER_ITEM_HEIGHT)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
-            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE)
+            .width(if (compact) MINI_ITEM_WIDTH else PICKER_ITEM_WIDTH)
+            .height(if (compact) MINI_ITEM_HEIGHT else PICKER_ITEM_HEIGHT)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), shape)
+            .border(if (compact) 1.5.dp else 2.dp, MaterialTheme.colorScheme.primary, shape)
             .then(
                 if (onValueChange == null) {
                     Modifier
@@ -76,7 +82,7 @@ internal fun ScoreBox(
     ) {
         Text(
             text = SCORE_PICKER_LABELS[value.coerceIn(0, SCORE_PICKER_INNER_TEN)],
-            style = MaterialTheme.typography.titleLarge,
+            style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleLarge,
         )
         if (letter != null) {
             Text(
@@ -161,6 +167,14 @@ fun ScorePickerHorizontalRow(
                 letter = if (i < letteredCount) holeLetter(i) else null,
             )
         }
+    }
+}
+
+/** Read-only hits as small score boxes, for lists (Historik, a locked competition lane). */
+@Composable
+fun ScoreMiniRow(values: List<Int>, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        values.forEach { ScoreBox(value = it, onValueChange = null, compact = true) }
     }
 }
 
