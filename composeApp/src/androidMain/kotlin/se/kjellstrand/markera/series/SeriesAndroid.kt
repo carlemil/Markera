@@ -1,30 +1,63 @@
 package se.kjellstrand.markera.series
 
 import android.content.Context
+import androidx.datastore.core.DataMigration
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 
+// Settings (backed up) and the login (excluded in res/xml/*_rules.xml) live in
+// separate files so a restore keeps the one without carrying the token to another device.
 private val Context.backendDataStore by preferencesDataStore(name = "markera_backend")
+private val Context.authDataStore by preferencesDataStore(
+    name = "markera_auth",
+    produceMigrations = { listOf(MoveLoginOut(it.backendDataStore)) },
+)
+
+private object Keys {
+    val token = stringPreferencesKey("token")
+    val userId = longPreferencesKey("user_id")
+    val provider = stringPreferencesKey("provider")
+    val caliber = stringPreferencesKey("caliber")
+    val historyFilter = stringPreferencesKey("history_filter")
+    val openDays = stringPreferencesKey("history_open_days")
+    val tag = stringPreferencesKey("tag")
+    val theme = stringPreferencesKey("theme")
+    val language = stringPreferencesKey("language")
+}
+
+/** Moves a login saved before [authDataStore] existed out of the settings file. */
+internal class MoveLoginOut(private val legacy: DataStore<Preferences>) : DataMigration<Preferences> {
+    override suspend fun shouldMigrate(currentData: Preferences) =
+        legacy.data.first()[Keys.token] != null
+
+    override suspend fun migrate(currentData: Preferences): Preferences {
+        val old = legacy.data.first()
+        return currentData.toMutablePreferences().apply {
+            old[Keys.token]?.let { this[Keys.token] = it }
+            old[Keys.userId]?.let { this[Keys.userId] = it }
+            old[Keys.provider]?.let { this[Keys.provider] = it }
+        }.toPreferences()
+    }
+
+    override suspend fun cleanUp() {
+        legacy.edit {
+            it.remove(Keys.token)
+            it.remove(Keys.userId)
+            it.remove(Keys.provider)
+        }
+    }
+}
 
 /** Persists the Markera backend login in Preferences DataStore. */
 class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     private val dataStore = context.applicationContext.backendDataStore
-
-    private object Keys {
-        val token = stringPreferencesKey("token")
-        val userId = longPreferencesKey("user_id")
-        val provider = stringPreferencesKey("provider")
-        val caliber = stringPreferencesKey("caliber")
-        val historyFilter = stringPreferencesKey("history_filter")
-        val openDays = stringPreferencesKey("history_open_days")
-        val tag = stringPreferencesKey("tag")
-        val theme = stringPreferencesKey("theme")
-        val language = stringPreferencesKey("language")
-    }
+    private val authStore = context.applicationContext.authDataStore
 
     // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
     override suspend fun readTag(): String? = normalizeTag(dataStore.data.first()[Keys.tag])
@@ -65,7 +98,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
     }
 
     override suspend fun read(): BackendAuth? {
-        val prefs = dataStore.data.first()
+        val prefs = authStore.data.first()
         val token = prefs[Keys.token] ?: return null
         return BackendAuth(
             token = token,
@@ -75,7 +108,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
     }
 
     override suspend fun write(auth: BackendAuth) {
-        dataStore.edit { prefs ->
+        authStore.edit { prefs ->
             prefs[Keys.token] = auth.token
             prefs[Keys.userId] = auth.userId
             prefs[Keys.provider] = auth.provider
@@ -84,10 +117,8 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun clear() {
         // The login plus what names this user's tags; the caliber is a device preference.
+        authStore.edit { it.clear() }
         dataStore.edit { prefs ->
-            prefs.remove(Keys.token)
-            prefs.remove(Keys.userId)
-            prefs.remove(Keys.provider)
             prefs.remove(Keys.tag)
             prefs.remove(Keys.historyFilter)
         }
