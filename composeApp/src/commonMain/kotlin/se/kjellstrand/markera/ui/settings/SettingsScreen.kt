@@ -80,11 +80,12 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
 
 /**
  * Overrides the locale Compose resources resolve against (the pattern from the
- * Compose Multiplatform localization docs). Provide it with a `key(locale)`
- * around the content, which is what makes the strings re-resolve.
+ * Compose Multiplatform localization docs). [apply] sets the process-wide locale
+ * (null = the system's) and must run outside composition; then provide it with a
+ * `key(locale)` around the content, which is what makes the strings re-resolve.
  */
 expect object LocalAppLocale {
-    val current: String @Composable get
+    fun apply(value: String?)
 
     @Composable
     infix fun provides(value: String?): ProvidedValue<*>

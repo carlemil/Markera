@@ -106,8 +106,9 @@ fun MarkingGroupsScreen(
                             } else {
                                 activePatrol.sortorder?.let { sortorder ->
                                     Text(
-                                        text = stringResource(Res.string.marking_active_patrol, sortorder) +
-                                            (activePatrol.startTimeHuman?.let { " ($it)" } ?: ""),
+                                        text = activePatrol.startTimeHuman
+                                            ?.let { stringResource(Res.string.marking_active_patrol_at, sortorder, it) }
+                                            ?: stringResource(Res.string.marking_active_patrol, sortorder),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(bottom = 8.dp),

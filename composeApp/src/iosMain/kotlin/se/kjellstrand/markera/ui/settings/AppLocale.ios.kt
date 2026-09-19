@@ -17,19 +17,16 @@ actual object LocalAppLocale {
     }
     private val LocalLocale = staticCompositionLocalOf { default }
 
-    actual val current: String
-        @Composable get() = LocalLocale.current
-
-    @Composable
-    actual infix fun provides(value: String?): ProvidedValue<*> {
-        val new = value ?: default
+    actual fun apply(value: String?) {
         if (value == null) {
             NSUserDefaults.standardUserDefaults.removeObjectForKey(LANG_KEY)
         } else {
-            NSUserDefaults.standardUserDefaults.setObject(listOf(new), LANG_KEY)
+            NSUserDefaults.standardUserDefaults.setObject(listOf(value), LANG_KEY)
         }
-        return LocalLocale.provides(new)
     }
+
+    @Composable
+    actual infix fun provides(value: String?): ProvidedValue<*> = LocalLocale.provides(value ?: default)
 }
 
 // The status bar follows the system appearance on iOS; the in-app theme leaves it be.

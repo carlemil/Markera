@@ -21,7 +21,7 @@ sealed interface SaveStatus {
     data object NeedsCaliber : SaveStatus
     data object Saving : SaveStatus
     data class Saved(val caliber: Caliber) : SaveStatus
-    data class Failed(val message: String) : SaveStatus
+    data class Failed(val error: Throwable) : SaveStatus
 }
 
 /**
@@ -204,7 +204,7 @@ class SeriesRecorder(
                     _status.value = SaveStatus.Idle
                 } else {
                     // Still pending: the chip retries it.
-                    _status.value = SaveStatus.Failed(e.message ?: e.toString())
+                    _status.value = SaveStatus.Failed(e)
                 }
                 return@launch
             }

@@ -231,7 +231,7 @@ fun MarkingWizardScreen(
                             snapshotVm = snapshotVm,
                             uiState = markeraState,
                             showDebug = false,
-                            onError = { markeraVm.setError(it.message) },
+                            onError = markeraVm::setError,
                             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                         )
                     }
@@ -338,7 +338,7 @@ private fun LaneHeader(state: WizardUiState) {
         )
         Column {
             Text(
-                text = entry.signup.user?.fullname ?: "?",
+                text = entry.signup.user?.fullname ?: stringResource(Res.string.wizard_unknown_name),
                 style = MaterialTheme.typography.titleMedium,
             )
             val details = listOfNotNull(
@@ -375,7 +375,7 @@ private fun StepContent(
     ) {
         state.duplicateBy?.let { name ->
             Text(
-                text = stringResource(Res.string.wizard_duplicate, name),
+                text = stringResource(Res.string.wizard_duplicate, name.ifEmpty { stringResource(Res.string.wizard_unknown_name) }),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -478,7 +478,7 @@ private fun StepContent(
 
             is LaneStep.ClaimedByOther -> {
                 Text(
-                    text = stringResource(Res.string.wizard_claimed, step.holder.name ?: "?"),
+                    text = stringResource(Res.string.wizard_claimed, step.holder.name ?: stringResource(Res.string.wizard_unknown_name)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -540,7 +540,7 @@ private fun LockedContent(
             // Total only: a ResultDto carries no caliber or tag.
             TotalBadge(result.points, caliber = null, tag = null)
             Text(
-                text = "${result.hits} X",
+                text = stringResource(Res.string.wizard_x_count, result.hits),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -679,7 +679,7 @@ private fun StationSummaryContent(
                         modifier = Modifier.width(36.dp),
                     )
                     Text(
-                        text = entry.signup.user?.fullname ?: "?",
+                        text = entry.signup.user?.fullname ?: stringResource(Res.string.wizard_unknown_name),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
@@ -689,7 +689,7 @@ private fun StationSummaryContent(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = result?.takeIf { scored }?.hits?.let { "$it X" } ?: "",
+                        text = result?.takeIf { scored }?.hits?.let { stringResource(Res.string.wizard_x_count, it) } ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(32.dp),
@@ -763,7 +763,7 @@ private fun FinishSummary(state: WizardUiState) {
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = standing.name ?: "?",
+                                text = standing.name ?: stringResource(Res.string.wizard_unknown_name),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             val sub = if (standing.tied) {
@@ -787,9 +787,10 @@ private fun FinishSummary(state: WizardUiState) {
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            text = " ${standing.hits} X",
+                            text = stringResource(Res.string.wizard_x_count, standing.hits),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp),
                         )
                     }
                 }

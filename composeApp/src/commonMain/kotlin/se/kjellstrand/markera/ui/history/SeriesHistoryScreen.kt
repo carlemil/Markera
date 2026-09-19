@@ -80,6 +80,7 @@ import se.kjellstrand.markera.series.utcDay
 import se.kjellstrand.markera.ui.AppChip
 import se.kjellstrand.markera.ui.MenuItem
 import se.kjellstrand.markera.ui.StateMessage
+import se.kjellstrand.markera.ui.userMessage
 import se.kjellstrand.markera.ui.rememberBackendSignIn
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CloudOff
@@ -110,7 +111,7 @@ fun SeriesHistoryScreen(
     val auth by services.session.auth.collectAsState()
     val series by services.repository.series.collectAsState()
     var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<StringResource?>(null) }
     var reload by remember { mutableIntStateOf(0) }
     var pending by remember { mutableStateOf<SeriesDto?>(null) }
     var exporting by remember { mutableStateOf(false) }
@@ -133,7 +134,7 @@ fun SeriesHistoryScreen(
     LaunchedEffect(auth, reload) {
         if (auth == null) return@LaunchedEffect
         loading = true
-        error = services.repository.refresh()?.let { it.message ?: it.toString() }
+        error = services.repository.refresh()?.userMessage()
         loading = false
     }
 
@@ -227,7 +228,7 @@ fun SeriesHistoryScreen(
                 error != null && series.isEmpty() -> StateMessage(
                     icon = Icons.Default.CloudOff,
                     title = stringResource(Res.string.state_error_title),
-                    hint = error,
+                    hint = error?.let { stringResource(it) },
                     actionLabel = stringResource(Res.string.retry),
                     onAction = { reload++ },
                 )

@@ -81,7 +81,7 @@ private val MEAN_LINE = 1.dp
 fun TrendChart(
     lines: List<TrendLine>,
     format: (Double) -> String,
-    pointText: (TrendLine, TrendPoint) -> String,
+    pointText: @Composable (TrendLine, TrendPoint) -> String,
 ) {
     val textMeasurer = rememberTextMeasurer()
     val labelStyle = TextStyle(
