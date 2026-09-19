@@ -8,6 +8,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.usePinned
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSData
@@ -23,7 +25,8 @@ import se.kjellstrand.markera.vision.width
 
 private const val IMAGE_MAX_DIM = 3072
 
-actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage {
+// Off the main thread, like the Android actual: a 3072 px draw plus the JPEG encode takes a while.
+actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage = withContext(Dispatchers.Default) {
     val w = image.width
     val h = image.height
     val longest = maxOf(w, h)
@@ -40,9 +43,10 @@ actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage {
     } else {
         image
     }
-    val data = UIImageJPEGRepresentation(target, 0.9)
+    // Throws rather than uploading an empty body; the recorder logs it and the series stays saved.
+    val data = UIImageJPEGRepresentation(target, 0.9) ?: error("JPEG encoding failed")
     // The size reported is the *source* one the hole coordinates are in.
-    return EncodedImage(data?.toByteArray() ?: ByteArray(0), w, h)
+    EncodedImage(data.toByteArray(), w, h)
 }
 
 actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
@@ -67,4 +71,4 @@ private fun ByteArray.toNSData(): NSData = usePinned {
 }
 
 private fun NSData.toByteArray(): ByteArray =
-    bytes?.readBytes(length.toInt()) ?: ByteArray(0)
+    bytes?.readBytes(length.toInt()) ?: error("empty JPEG data")

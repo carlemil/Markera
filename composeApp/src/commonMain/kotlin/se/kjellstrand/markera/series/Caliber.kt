@@ -2,11 +2,11 @@ package se.kjellstrand.markera.series
 
 /**
  * The calibers a series can be tagged with. Declaration order is the UI order
- * and [label] is both the UI text and the wire value the backend validates,
- * so keep them in sync with `CALIBERS` in
- * `server/src/main/kotlin/markera/server/Server.kt` — a label the server does
- * not know is a 400 on save. Labels are stored in the production database:
- * add and reorder freely, never rename.
+ * and [label] is both the UI text and the wire value. The server checks only
+ * a label's shape (1–16 of `[A-Za-z0-9 .,/-]`, `CALIBER_SHAPE` in
+ * `server/src/main/kotlin/markera/server/Server.kt`), so a new one needs no
+ * server change as long as it fits. Labels are stored in the production
+ * database: add and reorder freely, never rename.
  *
  * Constant names: an identifier cannot start with a digit, so a trailing letter
  * group is hoisted to the front (`22lr` → [LR22], `9mm` → [MM9]) and an all-digit

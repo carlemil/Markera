@@ -1,6 +1,7 @@
 package markera.server
 
 import java.io.File
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.sql.Connection
 import java.sql.DriverManager
@@ -50,8 +51,26 @@ class Db(dbPath: String) : AutoCloseable {
                 """CREATE TABLE IF NOT EXISTS sessions (
                      token TEXT PRIMARY KEY,
                      user_id INTEGER NOT NULL REFERENCES users(id),
-                     created_at TEXT NOT NULL)"""
+                     created_at TEXT NOT NULL,
+                     last_used_at TEXT NOT NULL)"""
             )
+            // Databases created before sessions expired and were hashed (both came together): every existing
+            // session starts its 90 idle days now, so the deploy logs nobody out, and its plain token becomes the hash.
+            // All at once, not lazily on use: a lazy rewrite would also re-hash a *hash* sent as a token, making
+            // the stored values usable again.
+            val sessionColumns = st.executeQuery("PRAGMA table_info(sessions)").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("name")) }
+            }
+            if ("last_used_at" !in sessionColumns) {
+                val plain = st.executeQuery("SELECT token FROM sessions").use { rs ->
+                    buildList { while (rs.next()) add(rs.getString(1)) }
+                }
+                conn.prepareStatement("UPDATE sessions SET token = ? WHERE token = ?").use { up ->
+                    for (token in plain) { up.setString(1, sha256(token)); up.setString(2, token); up.executeUpdate() }
+                }
+                st.executeUpdate("ALTER TABLE sessions ADD COLUMN last_used_at TEXT NOT NULL DEFAULT ''")
+                st.executeUpdate("UPDATE sessions SET last_used_at = datetime('now')")
+            }
             st.executeUpdate(
                 """CREATE TABLE IF NOT EXISTS series (
                      id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,19 +163,52 @@ class Db(dbPath: String) : AutoCloseable {
         }
     }
 
+    /**
+     * Returns the raw token; only its sha256 is stored, so a leaked database holds no usable session. Sessions
+     * idle for [SESSION_IDLE] expire; creating one prunes those.
+     */
     @Synchronized
     fun createSession(userId: Long): String {
         val token = ByteArray(32).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
-        conn.prepareStatement("INSERT INTO sessions(token, user_id, created_at) VALUES (?, ?, datetime('now'))")
-            .use { it.setString(1, token); it.setLong(2, userId); it.executeUpdate() }
+        conn.prepareStatement(
+            "INSERT INTO sessions(token, user_id, created_at, last_used_at) VALUES (?, ?, datetime('now'), datetime('now'))"
+        ).use { it.setString(1, sha256(token)); it.setLong(2, userId); it.executeUpdate() }
+        conn.createStatement().use {
+            it.executeUpdate("DELETE FROM sessions WHERE last_used_at < datetime('now', '$SESSION_IDLE')")
+        }
         return token
     }
 
+    /** The session's user, sliding its expiry; null for an unknown, revoked or expired token. */
     @Synchronized
     fun userForToken(token: String): Long? {
-        conn.prepareStatement("SELECT user_id FROM sessions WHERE token = ?").use {
-            it.setString(1, token)
-            it.executeQuery().use { rs -> return if (rs.next()) rs.getLong(1) else null }
+        val hash = sha256(token)
+        val userId = conn.prepareStatement(
+            "SELECT user_id FROM sessions WHERE token = ? AND last_used_at >= datetime('now', '$SESSION_IDLE')"
+        ).use {
+            it.setString(1, hash)
+            it.executeQuery().use { rs -> if (rs.next()) rs.getLong(1) else null }
+        } ?: return null
+        conn.prepareStatement("UPDATE sessions SET last_used_at = datetime('now') WHERE token = ?")
+            .use { it.setString(1, hash); it.executeUpdate() }
+        return userId
+    }
+
+    @Synchronized
+    fun revokeSession(token: String) {
+        conn.prepareStatement("DELETE FROM sessions WHERE token = ?").use { it.setString(1, sha256(token)); it.executeUpdate() }
+    }
+
+    /** Runs [block] as one transaction: all of it lands, or on any failure none of it. */
+    private inline fun <T> transaction(block: () -> T): T {
+        conn.autoCommit = false
+        try {
+            return block().also { conn.commit() }
+        } catch (e: Throwable) {
+            conn.rollback()
+            throw e
+        } finally {
+            conn.autoCommit = true
         }
     }
 
@@ -178,6 +230,18 @@ class Db(dbPath: String) : AutoCloseable {
                 it.executeQuery().use { rs -> if (rs.next()) return rs.getLong(1) }
             }
         }
+        return transaction { insertSeriesRow(userId, timestamp, caliber, holes, geometry, tag, clientId) }
+    }
+
+    private fun insertSeriesRow(
+        userId: Long,
+        timestamp: String,
+        caliber: String,
+        holes: List<Hole>,
+        geometry: Geometry?,
+        tag: String?,
+        clientId: String?,
+    ): Long {
         val seriesId: Long
         conn.prepareStatement(
             "INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at, tag, client_id, " +
@@ -202,7 +266,7 @@ class Db(dbPath: String) : AutoCloseable {
      * Holes flagged [Hole.deleted] are stored but never read back, so earlier ones stay put (training data).
      */
     @Synchronized
-    fun replaceSeries(seriesId: Long, req: SeriesRequest) {
+    fun replaceSeries(seriesId: Long, req: SeriesRequest) = transaction {
         conn.prepareStatement(
             "UPDATE series SET timestamp = ?, caliber = ?, tag = ?, updated_at = $NOW, " +
                 "${GEOMETRY_COLUMNS.joinToString(", ") { "$it = ?" }} WHERE id = ?"
@@ -243,20 +307,22 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     @Synchronized
-    fun listUsers(): List<UserRow> = queryUsers("")
+    fun listUsers(): List<UserRow> = queryUsers(null)
 
     @Synchronized
-    fun getUser(userId: Long): UserRow? = queryUsers("WHERE u.id = $userId").firstOrNull()
+    fun getUser(userId: Long): UserRow? = queryUsers(userId).firstOrNull()
 
-    /** [filter] is built from Longs only — never interpolate anything a client can control. */
-    private fun queryUsers(filter: String): List<UserRow> {
+    /** Every user, or only [userId]. */
+    private fun queryUsers(userId: Long?): List<UserRow> {
         val users = mutableListOf<UserRow>()
         conn.prepareStatement(
             """SELECT u.id, u.provider, u.subject, u.name, u.created_at, COUNT(s.id)
-               FROM users u LEFT JOIN series s ON s.user_id = u.id AND s.deleted_at IS NULL $filter
+               FROM users u LEFT JOIN series s ON s.user_id = u.id AND s.deleted_at IS NULL
+               ${if (userId == null) "" else "WHERE u.id = ?"}
                GROUP BY u.id
                ORDER BY COUNT(s.id) > 0 DESC, u.name IS NULL, u.name COLLATE NOCASE, u.id DESC"""
         ).use { st ->
+            if (userId != null) st.setLong(1, userId)
             st.executeQuery().use { rs ->
                 while (rs.next()) {
                     users += UserRow(
@@ -320,12 +386,14 @@ class Db(dbPath: String) : AutoCloseable {
         includeDeleted: Boolean = false,
     ): List<Series> {
         val series = mutableListOf<Series>()
-        val before = if (beforeId == null) "" else " AND id < $beforeId" // a Long, never client text
+        val before = if (beforeId == null) "" else " AND id < ?"
         conn.prepareStatement(
             "$SERIES_SELECT WHERE user_id = ?${liveOnly(includeDeleted)}$before ORDER BY id DESC LIMIT ?"
         ).use { st ->
-            st.setLong(1, userId)
-            st.setInt(2, limit)
+            var i = 1
+            st.setLong(i++, userId)
+            if (beforeId != null) st.setLong(i++, beforeId)
+            st.setInt(i, limit)
             st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs, tombstone = false) }
         }
         return series.map { it.copy(holes = holesOf(it.id)) }
@@ -464,6 +532,13 @@ class Db(dbPath: String) : AutoCloseable {
  * string, and whole seconds cannot tell two writes in the same second apart.
  */
 private const val NOW = "strftime('%Y-%m-%d %H:%M:%f', 'now')"
+
+/** A session idle longer than this is expired; every use slides it. As a SQLite `datetime` modifier. */
+private const val SESSION_IDLE = "-90 days"
+
+/** Hex sha256: what `sessions.token` holds. */
+internal fun sha256(s: String): String =
+    MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
 
 /** The [Geometry] fields, in field order; every use below relies on that order. */
 private val GEOMETRY_COLUMNS =

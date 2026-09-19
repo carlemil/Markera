@@ -5,6 +5,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlin.test.BeforeTest
@@ -22,11 +23,13 @@ class BackendSessionRepositoryTest {
     private val store = InMemoryBackendTokenStore()
     private lateinit var api: SeriesApi
     private lateinit var repo: BackendSessionRepository
+    private var revokeStatus = HttpStatusCode.NoContent
 
     @BeforeTest
     fun setUp() {
         val engine = MockEngine { request ->
             recorded += request
+            if (request.url.encodedPath == "/auth/session") return@MockEngine respond("", revokeStatus)
             val body = if (request.url.encodedPath == "/series") {
                 """{"id":1}"""
             } else {
@@ -86,5 +89,28 @@ class BackendSessionRepositoryTest {
 
         assertNull(repo.auth.value)
         assertNull(store.read())
+        // The server forgets the token too.
+        val revoke = recorded.last()
+        assertEquals(HttpMethod.Delete, revoke.method)
+        assertEquals("http://host:8080/auth/session", revoke.url.toString())
+        assertEquals("Bearer tok", revoke.headers[HttpHeaders.Authorization])
+    }
+
+    @Test
+    fun signOutStillClearsWhenRevokeFails() = runBlocking {
+        repo.signInDev("subject-1")
+        revokeStatus = HttpStatusCode.InternalServerError
+
+        repo.signOut()
+
+        assertNull(repo.auth.value)
+        assertNull(store.read())
+    }
+
+    @Test
+    fun signOutWhenSignedOutCallsNothing() = runBlocking {
+        repo.signOut()
+
+        assertEquals(emptyList(), recorded)
     }
 }

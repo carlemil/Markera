@@ -15,6 +15,7 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.contentType
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveChannel
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
@@ -67,15 +68,17 @@ data class Config(
 // A ~3000² q90 target photo is ~2 MB; this is headroom for a bigger sensor.
 const val MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
-// Keep in sync with the `Caliber` enum in the app
-// (composeApp/src/commonMain/kotlin/se/kjellstrand/markera/series/Caliber.kt): these labels are the
-// wire values, and one missing here is a 400 on save. Stored in the database — add, never rename.
-val CALIBERS = setOf(
-    "-",
-    "22lr", "22wmr", "17hmr",
-    "32", "380", "9mm", "38", "357", "40", "10mm", "44", "45",
-    "223", "243", "6.5x55", "6.5cm", "270", "308", "30-06", "7.62x39", "8x57", "9.3x62", "300wm",
-)
+// A series JSON is a few KB; 50 holes with every field is still far below this.
+const val MAX_SERIES_BYTES = 1024 * 1024
+
+/** More holes than any series has; a cap so one request cannot store an unbounded list. */
+const val MAX_HOLES = 50
+
+/**
+ * The shape of a caliber label. The app's `Caliber` enum owns the vocabulary; the server only keeps what it stores
+ * short and plain, so a new caliber in the app needs no server release.
+ */
+private val CALIBER_SHAPE = Regex("[A-Za-z0-9 .,/-]{1,16}")
 
 /**
  * One shot. [ring]/[innerTen] is what the user confirmed; [detectedRing]/[detectedInnerTen] what the
@@ -207,7 +210,7 @@ fun Application.markeraModule(config: Config, db: Db) {
 
         post("/series") {
             val userId = authenticate(db) ?: return@post
-            val req = call.receive<SeriesRequest>()
+            val req = receiveSeries() ?: return@post
             if (invalid(req)) return@post
             val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry, req.normalisedTag(), req.clientId)
             call.respond(HttpStatusCode.Created, IdResponse(id))
@@ -216,7 +219,7 @@ fun Application.markeraModule(config: Config, db: Db) {
         // Editing a saved series: same body as POST, replaces timestamp, caliber and every hole.
         put("/series/{id}") {
             val seriesId = ownedSeries(db) ?: return@put
-            val req = call.receive<SeriesRequest>()
+            val req = receiveSeries() ?: return@put
             if (invalid(req)) return@put
             db.replaceSeries(seriesId, req)
             call.respond(HttpStatusCode.NoContent)
@@ -242,6 +245,13 @@ fun Application.markeraModule(config: Config, db: Db) {
             call.respond(HttpStatusCode.NoContent)
         }
 
+        // Sign-out: the token stops working at once instead of idling out after 90 days.
+        delete("/auth/session") {
+            if (authenticate(db) == null) return@delete
+            db.revokeSession(bearerToken()!!)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
         delete("/account") {
             val userId = authenticate(db) ?: return@delete
             db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
@@ -264,10 +274,18 @@ fun Application.markeraModule(config: Config, db: Db) {
                 call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("image must be at most $MAX_IMAGE_BYTES bytes"))
                 return@post
             }
-            val target = imageFile(images, seriesId)
-            val tmp = File(images, "$seriesId.jpg.tmp")
-            tmp.writeBytes(bytes)
-            Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            if (bytes.size < 2 || bytes[0] != 0xFF.toByte() || bytes[1] != 0xD8.toByte()) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("not a JPEG"))
+                return@post
+            }
+            // A unique temp file in the same directory: two uploads cannot share it, and the move stays atomic.
+            val tmp = Files.createTempFile(images.toPath(), "upload-", ".tmp")
+            try {
+                Files.write(tmp, bytes)
+                Files.move(tmp, imageFile(images, seriesId).toPath(), StandardCopyOption.REPLACE_EXISTING)
+            } finally {
+                Files.deleteIfExists(tmp)
+            }
             // ?width=&height= is the size of the frame the hole coordinates were measured in, so the admin
             // page can place markers on the (downscaled but same-aspect) JPEG. Nonsense values are ignored.
             val width = call.request.queryParameters["width"]?.toIntOrNull()?.takeIf { it > 0 }
@@ -283,6 +301,7 @@ fun Application.markeraModule(config: Config, db: Db) {
                 call.respond(HttpStatusCode.NotFound, ErrorResponse("no image"))
                 return@get
             }
+            call.response.header("X-Content-Type-Options", "nosniff")
             call.respondFile(file)
         }
 
@@ -295,8 +314,17 @@ internal fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seri
 /** Responds 400 (and returns true) for a series body that cannot be stored. */
 internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
     val error = when {
-        req.caliber !in CALIBERS -> "unknown caliber '${req.caliber}'"
+        !CALIBER_SHAPE.matches(req.caliber) -> "caliber must be 1-16 characters of letters, digits, space and . , / -"
         req.holes.isEmpty() -> "holes must not be empty"
+        req.holes.size > MAX_HOLES -> "at most $MAX_HOLES holes"
+        req.holes.any { it.ring !in 0..10 } -> "ring must be 0..10"
+        req.holes.any { it.innerTen && it.ring != 10 } -> "innerTen needs ring 10"
+        req.holes.any { h -> h.detectedRing?.let { it !in 0..10 } == true || (h.detectedInnerTen == true && h.detectedRing != 10) } ->
+            "detected score out of range"
+        // Negative x/y are fine (a hole off the frame's edge), NaN and infinities are not.
+        req.holes.any { h ->
+            listOfNotNull(h.x, h.y, h.distanceMm, h.detectedX, h.detectedY).any { !it.isFinite() } || (h.distanceMm ?: 0.0) < 0
+        } -> "hole coordinates must be finite"
         runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
         req.geometry?.let { it.ringSemiMajor <= 0 || it.ringSemiMinor <= 0 } == true ->
             "ring semi-axes must be positive"
@@ -307,6 +335,21 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
     }
     call.respond(HttpStatusCode.BadRequest, ErrorResponse(error))
     return true
+}
+
+/**
+ * The series body, capped at [MAX_SERIES_BYTES] by its declared length (411 without one, 413 over it; null then).
+ * Netty never reads past `Content-Length`, so a false one cannot sneak a bigger body through.
+ */
+internal suspend fun RoutingContext.receiveSeries(): SeriesRequest? {
+    val declared = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+    when {
+        declared == null -> call.respond(HttpStatusCode.LengthRequired, ErrorResponse("Content-Length required"))
+        declared > MAX_SERIES_BYTES ->
+            call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("series must be at most $MAX_SERIES_BYTES bytes"))
+        else -> return call.receive<SeriesRequest>()
+    }
+    return null
 }
 
 /** Resolves `{id}` for the authenticated caller, responding 401/404 (and returning null) when it is not theirs. */
@@ -322,11 +365,13 @@ private suspend fun RoutingContext.ownedSeries(db: Db): Long? {
 
 /** Resolves the Bearer session token, responding 401 (and returning null) when it is missing or unknown. */
 private suspend fun RoutingContext.authenticate(db: Db): Long? {
-    val token = call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()
-    val userId = token?.takeIf { it.isNotEmpty() }?.let { db.userForToken(it) }
+    val userId = bearerToken()?.let { db.userForToken(it) }
     if (userId == null) call.respond(HttpStatusCode.Unauthorized, ErrorResponse("invalid session token"))
     return userId
 }
+
+private fun RoutingContext.bearerToken(): String? =
+    call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()?.takeIf { it.isNotEmpty() }
 
 private suspend fun RoutingContext.providerAuth(db: Db, provider: String, verifier: TokenVerifier?) {
     if (verifier == null) {

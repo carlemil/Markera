@@ -29,6 +29,7 @@ class TokenVerifier(
         val verified = JWT.require(Algorithm.RSA256(key, null))
             .withIssuer(*issuers.toTypedArray()) // java-jwt: passes when the claim matches any of them
             .withAudience(audience)
+            .withClaimPresence("sub") // without it `verified.subject` is null and the login a 500
             .build()
             .verify(idToken)
         val name = listOf("name", "email")
@@ -38,7 +39,11 @@ class TokenVerifier(
 }
 
 private fun cachedJwks(url: String): JwkProvider =
-    JwkProviderBuilder(URI(url).toURL()).cached(10, 24, TimeUnit.HOURS).build()
+    JwkProviderBuilder(URI(url).toURL())
+        .cached(10, 24, TimeUnit.HOURS)
+        // Unknown key ids miss the cache; this keeps a flood of forged ones from hammering the provider.
+        .rateLimited(10, 1, TimeUnit.MINUTES)
+        .build()
 
 fun googleVerifier(clientId: String) = TokenVerifier(
     cachedJwks("https://www.googleapis.com/oauth2/v3/certs"),
