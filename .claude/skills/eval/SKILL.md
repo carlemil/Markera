@@ -80,4 +80,4 @@ Legend to remind the user what they're looking at:
 - **Green boxes** = detected holes, labelled with confidence `%`.
 - **Caption band** (bottom of each tile) = filename and hole count.
 
-Note for the user: the model is single-class (`hole`) — there is no digit detection, no perspective correction, and no automatic scoring. The pipeline just detects holes; ring scores are entered manually in the app.
+Note for the user: the model is single-class (`hole`), so this mosaic shows holes only. The app itself adds digit OCR, the 6/7 ellipse and automatic scoring that pre-fills the pickers.

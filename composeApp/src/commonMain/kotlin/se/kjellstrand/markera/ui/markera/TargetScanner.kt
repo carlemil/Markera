@@ -88,7 +88,7 @@ private const val IOU_THRESHOLD = 0.45f
 private const val MODEL_INPUT_SIZE = 1536
 
 /**
- * Owns the detectors (one ~80 MB ONNX session for the whole app) and the
+ * Owns the detectors (one ~40 MB ONNX session for the whole app) and the
  * synchronous re-entry guard, and runs the two-phase scan pipeline on demand.
  * Both the free-marking screen and the competition wizard drive one shared
  * instance, created with [rememberTargetScanController] above the navigation

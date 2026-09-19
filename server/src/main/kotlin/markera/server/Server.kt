@@ -40,7 +40,7 @@ data class Config(
     val devAuth: Boolean,
     /** JPEG snapshots live here as `<seriesId>.jpg`; defaults next to the database so Docker's volume holds both. */
     val imagesDir: String = defaultImagesDir(dbPath),
-    /** Password for the read-only `/admin` pages (HTTP Basic, user `admin`); blank/null leaves them unregistered. */
+    /** Password for the `/admin` pages (HTTP Basic, user `admin`); blank/null leaves them unregistered. */
     val adminPassword: String? = null,
     /** Shown on the public `/delete-account` and `/privacy` pages as the contact address; null hides it. */
     val contactEmail: String? = null,

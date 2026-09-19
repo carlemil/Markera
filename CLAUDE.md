@@ -20,8 +20,9 @@ goal and a history of detection approaches tried (and which are in use vs. aband
 ### Release build
 
 `release` is minified + resource-shrunk (R8). Keep-rules live in
-`composeApp/proguard-rules.pro` (only two blocks: readable stack traces, and
-`ai.onnxruntime.**` for JNI; kotlinx-serialization ships its own consumer rules).
+`composeApp/proguard-rules.pro` (three blocks: readable stack traces,
+`ai.onnxruntime.**` for JNI, and the `<init>` of Firebase `ComponentRegistrar`s;
+kotlinx-serialization ships its own consumer rules).
 Mapping lands at `composeApp/build/outputs/mapping/release/mapping.txt` and rides
 to Play inside the AAB, so the Play plugin needs no mapping config. Native symbol
 tables (`ndk.debugSymbolLevel = "SYMBOL_TABLE"`) ride along too as
@@ -76,7 +77,8 @@ sh scripts/mac.sh 'bash scripts/mac-build.sh'  # xcodegen + xcodebuild + simctl 
 4 GB `org.gradle.jvmargs` in `gradle.properties` (`sh gradlew --stop` after changing
 it). The Mac clone needs `best.onnx` copied into `composeApp/src/androidMain/assets/`
 too (xcodegen bundles it from there). Kotlin/Native rejects test names containing
-`,` or `()`. `fastlane beta` (TestFlight) waits on the App Store Connect key.
+`,` or `()`. Store uploads: `bash scripts/mac-beta.sh` (binary → TestFlight),
+`bash scripts/mac-metadata.sh` (listing), the fastlane `release` lane (submit).
 
 ### Model asset (required to build/run)
 
@@ -149,13 +151,14 @@ as score entry. `webshooter/` (commonMain, JVM-unit-tested) holds the Ktor API c
 lean DTOs (`ignoreUnknownKeys`; booleans arrive as both `true/false` and `0/1` →
 `LenientBoolean`), `laravelFormEncode` (the save/registration endpoints are Laravel
 bracket-array form posts — `audit[shots][0]=X`), `ShotMapping` (picker 0..10 → shots,
-11 → `"X"`), `MarkingLogic` (resume/skip/locked/isSelf decisions) and
-`MarkingWizardViewModel` (plain class + `dispose()`, deliberately *not* an androidx
+11 → `"X"`) and `MarkingLogic` (resume/skip/locked/isSelf decisions); the
+`MarkingWizardViewModel` lives in commonMain `ui/competition/` (plain class + `dispose()`, deliberately *not* an androidx
 ViewModel so polling/claims die with the screen). `AppNavHost` (commonMain sealed-class
 back stack, hoists the single `TargetScanController` + `FrameSource` above navigation)
 reaches the wizard only through the `CompetitionHost` seam: androidMain
-`ui/competition/CompetitionFlow.kt` owns the four steps, `SHOW_COMPETITION`,
-`DataStoreTokenStore` and the competition screens; iOS passes `null`. Real captured API fixtures live in
+`ui/competition/CompetitionFlow.kt` owns the four steps, `SHOW_COMPETITION` and the
+competition screens (`DataStoreTokenStore`, androidMain `webshooter/auth/`, is built in
+`WebshooterServices`); iOS passes `null`. Real captured API fixtures live in
 `composeApp/src/androidUnitTest/resources/webshooter/`. The test server's
 "Testa mobilregistrering" (competition 244) is the wizard's dev target.
 

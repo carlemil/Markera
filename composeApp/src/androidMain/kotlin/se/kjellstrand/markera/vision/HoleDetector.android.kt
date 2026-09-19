@@ -29,8 +29,8 @@ actual class HoleDetector actual constructor(
     private val inputName: String = session.inputNames.first()
     private val inputShape: LongArray = longArrayOf(1L, 3L, inputSize.toLong(), inputSize.toLong())
 
-    // The exported model may declare its input as fp32 or fp16 (the current
-    // export is FP16); the tensor we feed must match the graph exactly.
+    // The exported model may declare its input as fp32 or fp16; the tensor we
+    // feed must match the graph exactly.
     private val inputIsFp16: Boolean =
         (session.inputInfo.getValue(inputName).info as TensorInfo).type == OnnxJavaType.FLOAT16
 
@@ -92,7 +92,7 @@ actual class HoleDetector actual constructor(
         const val TAG = "HoleDetector"
 
         // Drop obvious noise at the inference boundary so a frame doesn't
-        // allocate 8400 RawDetection objects. The screen still applies a
+        // allocate a RawDetection for each of the 300 NMS rows. The screen still applies a
         // higher user-facing threshold via filterByConfidence().
         const val PREFILTER_CONFIDENCE = 0.01f
 

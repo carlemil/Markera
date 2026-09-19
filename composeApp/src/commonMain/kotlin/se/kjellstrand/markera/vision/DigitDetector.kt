@@ -2,9 +2,8 @@ package se.kjellstrand.markera.vision
 
 /**
  * On-device OCR detector for the printed digits on a precision-shooting
- * target. The Android actual is backed by ML Kit Text Recognition; the iOS
- * actual is a compile-only stub until an iOS host app exists and Apple Vision
- * can be wired in.
+ * target. The Android actual is backed by ML Kit Text Recognition, the iOS
+ * one by Apple Vision's `VNRecognizeTextRequest`.
  *
  * Unlike [HoleDetector] (which needs a normalised CHW tensor), OCR runs on the
  * platform's native image, so [detect] takes a [PlatformImage]. The returned

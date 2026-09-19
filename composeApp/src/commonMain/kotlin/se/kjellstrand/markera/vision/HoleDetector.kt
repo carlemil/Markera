@@ -1,18 +1,19 @@
 package se.kjellstrand.markera.vision
 
 /**
- * On-device YOLO bullet-hole detector. The Android actual is backed by
- * onnxruntime-android; the iOS actual is currently a compile-only stub
- * until an iOS host app exists and onnxruntime-objc can be wired in.
+ * On-device YOLO bullet-hole detector. The Android actual runs
+ * onnxruntime-android; the iOS actual hands the tensor to the Swift
+ * `OrtHoleModel`.
  *
  * The detector intentionally operates on a pre-normalised CHW float
  * tensor rather than on a platform-specific image type, so the
  * Android/iOS image-handling code stays at the call site and the
  * expect/actual surface stays minimal.
  *
- * The model is loaded from [modelPath] (a plain file on disk) so the
- * runtime can read the ~80 MB model natively instead of via a Java-heap
- * byte array, which OOMs small heaps.
+ * Android loads the model from [modelPath] (a plain file on disk) so the
+ * runtime can read the ~40 MB model natively instead of via a Java-heap
+ * byte array, which OOMs small heaps. The iOS actual ignores
+ * [modelPath]; the Swift side opens the model itself.
  */
 expect class HoleDetector(modelPath: String, inputSize: Int) {
 

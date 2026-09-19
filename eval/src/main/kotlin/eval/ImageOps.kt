@@ -7,7 +7,7 @@ import kotlin.math.min
 /**
  * Letterbox-scale [img] into a square of [inputSize] and pack it into a CHW
  * float array normalised to 0..1 — a faithful JVM port of the app's
- * `Bitmap.toModelInput`, so it pairs with the shared `mapToImageSpace`
+ * common `PlatformImage.toModelInput`, so it pairs with the shared `mapToImageSpace`
  * inverse transform.
  */
 fun toModelInput(img: BufferedImage, inputSize: Int): FloatArray {

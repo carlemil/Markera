@@ -26,7 +26,7 @@ import java.util.Base64
 import java.util.Locale
 
 /**
- * Read-only admin pages behind HTTP Basic (user `admin`, [password]). Registered only when
+ * Admin pages behind HTTP Basic (user `admin`, [password]). Registered only when
  * `ADMIN_PASSWORD` is set.
  */
 fun Route.adminRoutes(db: Db, images: File, password: String) {
@@ -130,7 +130,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         )
     }
 
-    // The one write the admin pages have: the same replace as `PUT /series/{id}`, for any user's series.
+    // Edit any user's series: the same replace as `PUT /series/{id}`.
     put("/admin/series/{id}") {
         if (unauthorized(password)) return@put
         val seriesId = pathId()

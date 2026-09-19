@@ -14,13 +14,12 @@ local.properties
 xcuserdata/
 *.xcworkspace/xcuserdata/
 
-# ONNX model — excluded from version control (98 MB).
+# ONNX model — excluded from version control (~40 MB).
 # Drop best.onnx into composeApp/src/androidMain/assets/ before building
 # for Android. See README.md for details.
 composeApp/src/androidMain/assets/*.onnx
-# Model deploy backups must never live under assets/ (they'd be packaged into the
-# APK). deploy.ps1 now writes them outside the repo; this is a safety net for any
-# legacy/manual .bak that lands here.
+# Model backups must never live under assets/ (they'd be packaged into the APK);
+# a safety net for any manual .bak that lands here.
 composeApp/src/androidMain/assets/*.bak
 
 # Release signing + Play API credentials (never commit)
