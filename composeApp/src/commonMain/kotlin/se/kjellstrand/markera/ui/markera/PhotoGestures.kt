@@ -143,15 +143,35 @@ fun Modifier.photoGestures(
             }
         } while (event.changes.any { it.pressed })
 
-        if (holeIndex >= 0 && travel > slop && !pinched) onMoveEnd()
-        if (pinched || travel > slop) return@awaitEachGesture
-        if (holeIndex >= 0) {
-            if (upTime - down.uptimeMillis >= longPress) onRemove(holeIndex)
-        } else {
+        when (gestureEnd(holeIndex >= 0, travel, slop, pinched, upTime - down.uptimeMillis, longPress)) {
+            GestureEnd.MOVE_END -> onMoveEnd()
+            GestureEnd.REMOVE -> onRemove(holeIndex)
             // A clean tap on empty target: place a hole there.
-            imageAt(down.position)?.let { onAdd(it.first, it.second, reach) }
+            GestureEnd.ADD -> imageAt(down.position)?.let { onAdd(it.first, it.second, reach) }
+            GestureEnd.NONE -> {}
         }
     }
+}
+
+/** What a finished gesture does once the finger lifts. */
+internal enum class GestureEnd { NONE, MOVE_END, REMOVE, ADD }
+
+/**
+ * A pinch does nothing; a drag past [slop] ends a hole move (or was a pan);
+ * a press on a hole held [longPressMs] removes it; a tap off a hole adds one.
+ */
+internal fun gestureEnd(
+    onHole: Boolean,
+    travel: Float,
+    slop: Float,
+    pinched: Boolean,
+    heldMs: Long,
+    longPressMs: Long,
+): GestureEnd = when {
+    pinched -> GestureEnd.NONE
+    travel > slop -> if (onHole) GestureEnd.MOVE_END else GestureEnd.NONE
+    onHole -> if (heldMs >= longPressMs) GestureEnd.REMOVE else GestureEnd.NONE
+    else -> GestureEnd.ADD
 }
 
 /** Translation that keeps the scaled square covering the viewport; 0 at zoom 1. */

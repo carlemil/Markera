@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.vision
 
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -26,6 +27,15 @@ const val INNER_TEN_RADIUS_MM: Double = 12.5
  *  index 9 = ring 1 (250mm). Beyond the last entry = miss (ring 0). */
 val RING_RADII_MM: DoubleArray =
     doubleArrayOf(25.0, 50.0, 75.0, 100.0, 125.0, 150.0, 175.0, 200.0, 225.0, 250.0)
+
+/** Ring width over the 6/7 radius, 25 mm / 100 mm. */
+val RING_WIDTH_FRACTION: Double = (RING_RADII_MM[1] - RING_RADII_MM[0]) / TARGET_BLACK_RING_RADIUS_MM
+
+/** The ring lines inside the black 6/7 edge (9/10, 8/9, 7/8), mm. */
+val INNER_RING_RADII_MM: List<Double> = RING_RADII_MM.filter { it < TARGET_BLACK_RING_RADIUS_MM }
+
+/** Where ring [ring]'s digit (1..9) is printed: mid-band, mm from the centre. */
+fun ringDigitRadiusMm(ring: Int): Double = (RING_RADII_MM[10 - ring] + RING_RADII_MM[9 - ring]) / 2.0
 
 data class HitScore(
     /** Hole bbox centre in source-image pixels (for overlay labelling). */
@@ -144,9 +154,29 @@ fun scoreHits(
  * The order hits are always shown (and stored) in: inner-X first, then highest
  * ring, then nearest — so the first five map straight onto the score pickers.
  */
-val HIT_SCORE_ORDER: Comparator<HitScore> = compareByDescending<HitScore> { it.isInnerTen }
-    .thenByDescending { it.ring }
-    .thenBy { it.distanceMm }
+val HIT_SCORE_ORDER: Comparator<HitScore> = scoreOrder({ it.isInnerTen }, { it.ring }, { it.distanceMm })
+
+/** Inner-X first, then highest ring, then nearest; no distance sorts last. */
+fun <T> scoreOrder(innerTen: (T) -> Boolean, ring: (T) -> Int, distanceMm: (T) -> Double?): Comparator<T> =
+    compareByDescending(innerTen).thenByDescending(ring).thenBy { distanceMm(it) ?: Double.MAX_VALUE }
+
+/**
+ * Index of the element nearest [x],[y] within [maxDist], or -1 when nothing is
+ * in reach. [at] gives an element's position; null means it can't be hit.
+ */
+fun <T> List<T>.nearestIndex(x: Double, y: Double, maxDist: Double, at: (T) -> Pair<Double, Double>?): Int {
+    var best = -1
+    var bestDist = maxDist
+    forEachIndexed { i, e ->
+        val (ex, ey) = at(e) ?: return@forEachIndexed
+        val dist = hypot(x - ex, y - ey)
+        if (dist < bestDist) {
+            best = i
+            bestDist = dist
+        }
+    }
+    return best
+}
 
 /** Ring for a scoring distance in mm; 0 = outside the target (a miss). */
 fun ringForDistance(distMm: Double): Int {

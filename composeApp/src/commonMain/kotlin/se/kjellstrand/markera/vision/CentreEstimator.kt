@@ -22,7 +22,11 @@ data class CentreConfig(
      * excluded by default to keep the fitted rows straight.
      */
     val digitValues: IntRange = 6..9,
-)
+) {
+    /** The [digits] of a [digitValues] value at [minConf] or above. */
+    fun usable(digits: List<DigitDetection>): List<DigitDetection> =
+        digits.filter { it.value in digitValues && it.conf >= minConf }
+}
 
 /**
  * Estimate the true centre of a precision target from recognised digit boxes.
@@ -42,7 +46,7 @@ fun estimateCentre(
     imageHeight: Int = 0,
     config: CentreConfig = CentreConfig(),
 ): CentreEstimate {
-    val usable = digits.filter { it.value in config.digitValues && it.conf >= config.minConf }
+    val usable = config.usable(digits)
     // Two digits per row is the absolute floor (the relaxed straddle case in
     // resolveRow); a normal fit wants minDigitsPerRow on each.
     if (usable.size < 2 * RELAXED_ROW_FLOOR) {
@@ -94,7 +98,7 @@ fun rowDigitCounts(
     digits: List<DigitDetection>,
     config: CentreConfig = CentreConfig(),
 ): Pair<Int, Int> {
-    val usable = digits.filter { it.value in config.digitValues && it.conf >= config.minConf }
+    val usable = config.usable(digits)
     if (usable.isEmpty()) return 0 to 0
     val (h, v) = splitRows(usable)
     return h.size to v.size

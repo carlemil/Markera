@@ -1,6 +1,5 @@
 package se.kjellstrand.markera.series
 
-import kotlin.math.hypot
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlinx.serialization.Serializable
@@ -11,7 +10,9 @@ import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.distanceMm
+import se.kjellstrand.markera.vision.nearestIndex
 import se.kjellstrand.markera.vision.ringForDistance
+import se.kjellstrand.markera.vision.scoreOrder
 
 /**
  * The Markera backend payloads (see `server/`). Deliberately duplicated
@@ -212,20 +213,8 @@ fun HoleDto.kindText(manual: String, typed: String, moved: String, detected: Str
  * Index of the hole nearest [x],[y] (source-image px) within [maxDist], or -1
  * when nothing is in reach. Holes with no position can't be hit.
  */
-fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int {
-    var best = -1
-    var bestDist = maxDist
-    forEachIndexed { i, hole ->
-        val hx = hole.x ?: return@forEachIndexed
-        val hy = hole.y ?: return@forEachIndexed
-        val dist = hypot(x - hx, y - hy)
-        if (dist < bestDist) {
-            best = i
-            bestDist = dist
-        }
-    }
-    return best
-}
+fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int =
+    nearestIndex(x, y, maxDist) { h -> h.x?.let { hx -> h.y?.let { hx to it } } }
 
 /**
  * A hole at [x],[y] (source-image px) scored against this scan geometry: the
@@ -248,9 +237,7 @@ fun GeometryDto.scoreHoleAt(x: Double, y: Double): HoleDto {
  * then nearest, matching `HIT_SCORE_ORDER` on the scan side. A positionless
  * (typed) hole has no distance and sorts last within its ring.
  */
-val HOLE_ORDER: Comparator<HoleDto> = compareByDescending<HoleDto> { it.innerTen }
-    .thenByDescending { it.ring }
-    .thenBy { it.distanceMm ?: Double.MAX_VALUE }
+val HOLE_ORDER: Comparator<HoleDto> = scoreOrder({ it.innerTen }, { it.ring }, { it.distanceMm })
 
 /**
  * Appends a hand-placed hole at [x],[y] (source-image px), scored where it lands.

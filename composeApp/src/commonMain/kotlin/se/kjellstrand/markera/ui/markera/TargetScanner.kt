@@ -65,27 +65,27 @@ import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.geometryDto
+import se.kjellstrand.markera.ui.theme.MarkeraGreen
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.HoleDetector
+import se.kjellstrand.markera.vision.INNER_RING_RADII_MM
 import se.kjellstrand.markera.vision.PlatformImage
+import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.centerSquare
 import se.kjellstrand.markera.vision.estimateCentre
-import se.kjellstrand.markera.vision.filterByConfidence
 import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.height
-import se.kjellstrand.markera.vision.mapToImageSpace
-import se.kjellstrand.markera.vision.nonMaxSuppression
+import se.kjellstrand.markera.vision.MODEL_INPUT_SIZE
+import se.kjellstrand.markera.vision.postProcess
+import se.kjellstrand.markera.vision.ringDigitRadiusMm
 import se.kjellstrand.markera.vision.scoreHits
 import se.kjellstrand.markera.vision.width
 
 private const val TAG = "Markera"
-private const val CONFIDENCE_THRESHOLD = 0.35f
-private const val IOU_THRESHOLD = 0.45f
-private const val MODEL_INPUT_SIZE = 1536
 
 /**
  * Owns the detectors (one ~80 MB ONNX session for the whole app) and the
@@ -298,13 +298,7 @@ class TargetScanController(
             snapshot.toModelInput(detector.inputSize)
         }
         val raws = detector.detect(input)
-        val detections = mapToImageSpace(
-            nonMaxSuppression(
-                filterByConfidence(raws, CONFIDENCE_THRESHOLD),
-                IOU_THRESHOLD,
-            ).take(SCORE_PICKER_COUNT), // a series is five shots: keep the most confident five
-            detector.inputSize, snapshot.width, snapshot.height,
-        )
+        val detections = postProcess(raws, detector.inputSize, snapshot.width, snapshot.height)
         // Score each hole against the digit centre and the 6/7 ring.
         val scores = if (centre.method != CentreMethod.NONE && ring != null) {
             scoreHits(detections, centre, ring)
@@ -512,7 +506,7 @@ private fun ScanningOverlay(
         ),
         label = "angle",
     )
-    val green = Color(0xFF00E676)
+    val green = MarkeraGreen
     // Fresh blips once per lap, counted from its own clock: deriving the lap
     // from `angle` would read the animation in composition and recompose every
     // frame, while the detector already has the CPU.
@@ -668,7 +662,7 @@ private fun ViewfinderGuide(modifier: Modifier = Modifier) {
         // 100 mm 6/7 radius — the same set the frozen frame's DetectionOverlay
         // draws, and fainter for the same reason: the 6/7 circle is what you
         // frame against, these only say where the shot landed.
-        for (f in listOf(0.75f, 0.5f, 0.25f)) {
+        for (f in INNER_RING_RADII_MM.map { (it / TARGET_BLACK_RING_RADIUS_MM).toFloat() }) {
             drawCircle(
                 color = guideColor.copy(alpha = 0.45f),
                 radius = f * radius,
@@ -683,8 +677,9 @@ private fun ViewfinderGuide(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
             shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
         )
-        for ((digit, factor) in listOf("9" to 0.375f, "8" to 0.625f, "7" to 0.875f, "6" to 1.125f)) {
-            val layout = textMeasurer.measure(digit, style)
+        for (digit in 9 downTo 6) {
+            val factor = (ringDigitRadiusMm(digit) / TARGET_BLACK_RING_RADIUS_MM).toFloat()
+            val layout = textMeasurer.measure(digit.toString(), style)
             val half = Offset(layout.size.width / 2f, layout.size.height / 2f)
             val d = factor * radius
             for (dir in listOf(Offset(-d, 0f), Offset(d, 0f), Offset(0f, -d), Offset(0f, d))) {

@@ -16,8 +16,19 @@ expect class DigitDetector() {
     /**
      * Recognise single digit characters '1'..'9' on [image]. Returns one
      * [DigitDetection] per recognised digit, in image pixel space.
+     *
+     * Confidence: iOS reports Vision's per-candidate confidence. ML Kit has
+     * none per element, so Android always reports `1f`, and a
+     * [CentreConfig.minConf] filter can only ever drop iOS digits.
      */
     suspend fun detect(image: PlatformImage): List<DigitDetection>
 
     fun close()
+}
+
+/** The digit 1..9 this one-character OCR string reads as, else null. */
+internal fun String.singleDigitOrNull(): Int? {
+    if (length != 1) return null
+    val c = this[0]
+    return if (c in '1'..'9') c - '0' else null
 }

@@ -3,6 +3,9 @@ package se.kjellstrand.markera.series
 import androidx.compose.ui.graphics.ImageBitmap
 import se.kjellstrand.markera.vision.PlatformImage
 
+/** Longest side, px, a series JPEG is uploaded at (see [encodeSeriesJpeg]). */
+const val IMAGE_MAX_DIM = 3072
+
 /**
  * The scanned frame as a JPEG for the backend. These images are training data,
  * so they go up close to what the sensor gave: the size cap only guards against

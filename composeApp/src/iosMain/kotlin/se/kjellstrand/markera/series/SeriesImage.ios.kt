@@ -21,8 +21,6 @@ import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.vision.height
 import se.kjellstrand.markera.vision.width
 
-private const val IMAGE_MAX_DIM = 3072
-
 actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage {
     val w = image.width
     val h = image.height

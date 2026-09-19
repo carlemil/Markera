@@ -54,8 +54,3 @@ actual class DigitDetector actual constructor() {
 }
 
 /** Parse a recognised string that is exactly one digit '1'..'9', else null. */
-private fun String.singleDigitOrNull(): Int? {
-    if (length != 1) return null
-    val c = this[0]
-    return if (c in '1'..'9') c - '0' else null
-}

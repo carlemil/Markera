@@ -8,7 +8,9 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RingProbeTest {
@@ -142,5 +144,83 @@ class RingProbeTest {
         assertEquals(cy + 380f, b.startY, 0.01f)
         assertEquals(cy, l.startY, 0.01f)
         assertEquals(cx, b.startX, 0.01f)
+    }
+
+    // plausible67: a passing baseline, then each gate broken on its own.
+    private val gateCentre = CentreEstimate(100f, 100f, CentreMethod.LINE_INTERSECTION)
+    private val gateEllipse = FittedEllipse(100f, 100f, 100f, 80f, 0f)
+    private val gateSeed = FittedEllipse(100f, 100f, 100f, 100f, 0f)
+    private val halves = listOf(0.5f, 0.5f, 0.5f, 0.5f)
+
+    private fun gate(
+        fractions: List<Float> = halves,
+        e: FittedEllipse = gateEllipse,
+        seed: FittedEllipse? = gateSeed,
+    ) = plausible67(fractions, e, gateCentre, seed)
+
+    @Test
+    fun `plausible67 passes the baseline and one off-image probe and no seed`() {
+        assertTrue(gate())
+        assertTrue(gate(fractions = listOf(Float.NaN, 0.5f, 0.5f, 0.5f)))
+        assertTrue(gate(seed = null))
+    }
+
+    @Test
+    fun `plausible67 rejects two off-image probes`() {
+        assertFalse(gate(fractions = listOf(Float.NaN, Float.NaN, 0.5f, 0.5f)))
+    }
+
+    @Test
+    fun `plausible67 rejects a probe off the rim`() {
+        assertFalse(gate(fractions = listOf(0.66f, 0.5f, 0.5f, 0.5f)))
+        assertFalse(gate(fractions = listOf(0.5f, 0.5f, 0.34f, 0.5f)))
+    }
+
+    @Test
+    fun `plausible67 rejects an ellipse centred far from the digits`() {
+        assertFalse(gate(e = gateEllipse.copy(cx = 126f)))
+        assertTrue(gate(e = gateEllipse.copy(cx = 124f)))
+    }
+
+    @Test
+    fun `plausible67 rejects a sliver`() {
+        assertFalse(gate(e = gateEllipse.copy(semiMinor = 29f)))
+    }
+
+    @Test
+    fun `plausible67 rejects a size far off the digit seed`() {
+        assertFalse(gate(seed = gateSeed.copy(semiMajor = 100f / 0.49f)))
+        assertFalse(gate(seed = gateSeed.copy(semiMajor = 100f / 1.71f)))
+    }
+
+    /** Digits on all four rows whose ring width is the spec quarter of [d65]. */
+    private fun specDigits(d65: Float) = dirs.flatMap { (ux, uy) ->
+        row(cx, cy, ux.toFloat(), uy.toFloat(), d65, 0.25f * d65)
+    }
+
+    @Test
+    fun `fit67RingFromDigits gives the 6-7 radius at the digit centre`() {
+        val fit = assertNotNull(fit67RingFromDigits(specDigits(400f), centre))
+        assertEquals(cx, fit.cx)
+        assertEquals(cy, fit.cy)
+        assertEquals(400f, fit.semiMajor, 0.5f)
+        assertEquals(fit.semiMajor, fit.semiMinor)
+    }
+
+    @Test
+    fun `fit67RingFromDigits ignores a wild misread`() {
+        val wild = DigitDetection(cx + 1188f, cy - 15f, cx + 1212f, cy + 15f, 9, 1f)
+        val fit = assertNotNull(fit67RingFromDigits(specDigits(400f) + wild, centre))
+        assertEquals(400f, fit.semiMajor, 0.5f)
+    }
+
+    @Test
+    fun `fit67RingFromDigits needs five usable digits and a centre`() {
+        val digits = specDigits(400f)
+        assertNull(fit67RingFromDigits(digits.take(4), centre))
+        assertNull(fit67RingFromDigits(digits, CentreEstimate(0f, 0f, CentreMethod.NONE)))
+        // Low confidence and values outside 6..9 don't count towards the five.
+        val unusable = digits.drop(4).map { it.copy(conf = 0.2f) } + digits.map { it.copy(value = 5) }
+        assertNull(fit67RingFromDigits(digits.take(4) + unusable, centre))
     }
 }

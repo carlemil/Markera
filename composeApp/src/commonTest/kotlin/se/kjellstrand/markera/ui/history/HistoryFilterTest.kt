@@ -137,14 +137,14 @@ class HistoryFilterTest {
     }
 
     @Test
-    fun `tagsPresent is the distinct tags, sorted, untagged series aside`() {
+    fun `tagsPresent is the distinct sorted tags with untagged series aside`() {
         val list = listOf(series(1, tag = "tävling"), series(2), series(3, tag = "träning"), series(4, tag = "tävling"))
         assertEquals(listOf("träning", "tävling"), list.tagsPresent())
         assertEquals(emptyList(), listOf(series(1)).tagsPresent())
     }
 
     @Test
-    fun `encode and decode round trip tags, separators included`() {
+    fun `encode and decode round trip tags with separators included`() {
         // Free text: a tag may hold the ; , = % this encoding separates on.
         val filter = HistoryFilter(tags = setOf("träning", "a;b", "c,d", "e=f", "100%"))
         assertEquals(filter, decodeHistoryFilter(filter.encode()))

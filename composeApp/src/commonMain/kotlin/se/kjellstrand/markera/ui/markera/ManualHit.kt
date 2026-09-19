@@ -4,6 +4,7 @@ import kotlin.math.min
 import kotlin.math.sqrt
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.nearestIndex
 
 /**
  * This hole with its score set by hand to picker index [pick] (0..10, or
@@ -77,20 +78,10 @@ fun manualDetection(
  * [maxDist], or -1 when nothing is in reach. Detected and hand-placed holes are
  * equally grabbable — dragging moves them, a long press removes them.
  */
-fun nearestDetectionIndex(x: Float, y: Float, detections: List<Detection>, maxDist: Float): Int {
-    var best = -1
-    var bestDist = maxDist
-    detections.forEachIndexed { i, d ->
-        val dx = x - (d.left + d.right) / 2f
-        val dy = y - (d.top + d.bottom) / 2f
-        val dist = sqrt(dx * dx + dy * dy)
-        if (dist < bestDist) {
-            best = i
-            bestDist = dist
-        }
+fun nearestDetectionIndex(x: Float, y: Float, detections: List<Detection>, maxDist: Float): Int =
+    detections.nearestIndex(x.toDouble(), y.toDouble(), maxDist.toDouble()) { d ->
+        (d.left + d.right) / 2.0 to (d.top + d.bottom) / 2.0
     }
-    return best
-}
 
 /** The same hole box re-centred on [x],[y] (image px) — a dragged hole keeps its size. */
 fun Detection.movedTo(x: Float, y: Float): Detection {
