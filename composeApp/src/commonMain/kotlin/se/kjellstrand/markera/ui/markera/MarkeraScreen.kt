@@ -334,8 +334,12 @@ private fun BottomArea(
                 ScanChips()
                 LiveHint()
                 DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
+                // Without hole detection the button only freezes the frame (and its
+                // ring) for hand marking, so it says that instead of "Detect".
                 PrimaryActionButton(
-                    text = stringResource(Res.string.markera_detect),
+                    text = stringResource(
+                        if (detectHoles) Res.string.markera_detect else Res.string.markera_mark,
+                    ),
                     icon = Icons.Default.PhotoCamera,
                     onClick = onScan,
                 )

@@ -3,6 +3,7 @@
     <string name="markera_camera_permission_required">Kameran behövs för att markera träffar. Tryck för att ge åtkomst.</string>
     <string name="markera_grant_permission">Tillåt åtkomst</string>
     <string name="markera_detect">Detektera</string>
+    <string name="markera_mark">Markera</string>
     <string name="markera_resume_live">Spara</string>
     <string name="markera_reset">Återställ</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
