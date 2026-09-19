@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,7 +47,8 @@ class InMemoryBackendTokenStore(private var auth: BackendAuth? = null) : Backend
 /**
  * Owns the backend login state: restore on app start, sign in via a provider
  * ID token (or the dev endpoint), sign out. The backend session token is
- * opaque and long-lived, so there is no refresh — a 401 means sign in again.
+ * opaque and expires after 90 days unused (every request slides it), so there
+ * is no refresh — a 401 means sign in again.
  *
  * Construct the [SeriesApi] with `tokenProvider = { currentToken }` of this
  * instance so every request picks up the latest token.
@@ -72,6 +74,16 @@ class BackendSessionRepository(
         publish("dev", api.authDev(subject))
 
     suspend fun signOut() {
+        // Best effort, and while the token is still set (the api reads it from here): offline, or the 401
+        // after deleteAccount, must still sign out locally.
+        if (currentToken != null) {
+            try {
+                api.revokeSession()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
         _auth.value = null
         store.clear()
     }

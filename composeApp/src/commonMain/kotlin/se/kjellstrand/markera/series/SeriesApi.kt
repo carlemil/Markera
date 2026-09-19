@@ -121,6 +121,11 @@ class SeriesApi(
     }
 
     /** Wipes the caller's account server-side; the session token stops working. */
+    /** Signs this token out on the server, so it stops working at once rather than idling out. */
+    suspend fun revokeSession() {
+        client.delete("$base/auth/session") { auth() }.throwIfError()
+    }
+
     suspend fun deleteAccount() {
         client.delete("$base/account") { auth() }.throwIfError()
     }

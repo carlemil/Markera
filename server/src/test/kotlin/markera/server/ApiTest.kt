@@ -10,11 +10,13 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.put
+import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.contentType
@@ -85,6 +87,17 @@ class ApiTest {
         type: ContentType = ContentType.Image.JPEG,
         query: String = "",
     ) = post("/series/$seriesId/image$query") { bearerAuth(token); contentType(type); setBody(bytes) }
+
+    /** The smallest body the upload takes: the JPEG start-of-image marker, then anything. */
+    private fun jpeg(size: Int = 16) = ByteArray(size).also { it[0] = 0xFF.toByte(); it[1] = 0xD8.toByte() }
+
+    private suspend fun HttpClient.adminWrite(method: HttpMethod, path: String, body: SeriesRequest? = null, xAdmin: Boolean = true) =
+        request(path) {
+            this.method = method
+            basicAuth("admin", ADMIN_PW)
+            if (xAdmin) header("X-Admin", "1")
+            if (body != null) { contentType(ContentType.Application.Json); setBody(body) }
+        }
 
     private fun series(timestamp: String = "2026-09-06T12:34:56Z", caliber: String = "9mm") = SeriesRequest(
         timestamp = timestamp,
@@ -287,7 +300,7 @@ class ApiTest {
                 ),
             ),
         )
-        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200").status)
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, jpeg(64), query = "?width=100&height=200").status)
 
         val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
         assertEquals(100 to 200, stored.imageWidth to stored.imageHeight)
@@ -433,11 +446,11 @@ class ApiTest {
             contentType(ContentType.Application.Json); setBody(fixed)
         }.status)
         assertEquals(HttpStatusCode.NotFound, client.put("/admin/series/999") {
-            basicAuth("admin", ADMIN_PW); contentType(ContentType.Application.Json); setBody(fixed)
+            basicAuth("admin", ADMIN_PW); header("X-Admin", "1"); contentType(ContentType.Application.Json); setBody(fixed)
         }.status)
 
         val response = client.put("/admin/series/$id") {
-            basicAuth("admin", ADMIN_PW); contentType(ContentType.Application.Json); setBody(fixed)
+            basicAuth("admin", ADMIN_PW); header("X-Admin", "1"); contentType(ContentType.Application.Json); setBody(fixed)
         }
         assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
 
@@ -451,7 +464,7 @@ class ApiTest {
         val me = client.devAuth("me")
         val kept = client.createSeries(me.token)
         val doomed = client.createSeries(me.token)
-        client.putImage(me.token, doomed, ByteArray(16))
+        client.putImage(me.token, doomed, jpeg())
         assertTrue(imagesDir.resolve("$doomed.jpg").isFile)
         assertTrue("""<button id="delete" data-user="${me.userId}">""" in client.admin("/admin/series/$doomed").bodyAsText())
 
@@ -462,10 +475,10 @@ class ApiTest {
         )
         assertEquals(
             HttpStatusCode.NotFound,
-            client.delete("/admin/series/999") { basicAuth("admin", ADMIN_PW) }.status,
+            client.delete("/admin/series/999") { basicAuth("admin", ADMIN_PW); header("X-Admin", "1") }.status,
         )
 
-        val response = client.delete("/admin/series/$doomed") { basicAuth("admin", ADMIN_PW) }
+        val response = client.delete("/admin/series/$doomed") { basicAuth("admin", ADMIN_PW); header("X-Admin", "1") }
         assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
         // Soft-deleted: the admin page still opens it, now offering Restore.
         assertTrue("""<button id="restore">""" in client.admin("/admin/series/$doomed").bodyAsText())
@@ -478,7 +491,7 @@ class ApiTest {
         val me = client.devAuth("me")
         val other = client.devAuth("""quote"and'apostrophe""")
         val mine = client.createSeries(me.token)
-        client.putImage(me.token, mine, ByteArray(16))
+        client.putImage(me.token, mine, jpeg())
         val theirs = client.createSeries(other.token)
 
         val page = client.admin("/admin/users/${me.userId}").bodyAsText()
@@ -497,10 +510,10 @@ class ApiTest {
         )
         assertEquals(
             HttpStatusCode.NotFound,
-            client.delete("/admin/users/999") { basicAuth("admin", ADMIN_PW) }.status,
+            client.delete("/admin/users/999") { basicAuth("admin", ADMIN_PW); header("X-Admin", "1") }.status,
         )
 
-        val response = client.delete("/admin/users/${me.userId}") { basicAuth("admin", ADMIN_PW) }
+        val response = client.delete("/admin/users/${me.userId}") { basicAuth("admin", ADMIN_PW); header("X-Admin", "1") }
         assertEquals(HttpStatusCode.NoContent, response.status, response.bodyAsText())
 
         // Hard: the user, their session, their series and the JPEG are all gone, with nothing to restore.
@@ -629,7 +642,7 @@ class ApiTest {
             me.token,
             series().copy(geometry = Geometry(50.0, 100.0, 50.0, 100.0, 40.0, 30.0, 0.0)),
         )
-        for (id in listOf(plain, drawn)) client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200")
+        for (id in listOf(plain, drawn)) client.putImage(me.token, id, jpeg(64), query = "?width=100&height=200")
 
         val page = client.admin("/admin/series/$drawn").bodyAsText()
         assertTrue("""<svg class="geom" viewBox="0 0 100 200"""" in page, page)
@@ -643,9 +656,21 @@ class ApiTest {
     @Test
     fun invalidSeriesAreRejected() = apiTest { client ->
         val token = client.devAuth("me").token
+        val hole = Hole(1.0, 2.0, 9, false, 31.2)
         val bad = listOf(
-            series(caliber = "50bmg"),
+            series(caliber = "<b>"),
+            series(caliber = ""),
+            series(caliber = "x".repeat(17)),
             series().copy(holes = emptyList()),
+            series().copy(holes = List(MAX_HOLES + 1) { hole }),
+            series().copy(holes = listOf(hole.copy(ring = 11))),
+            series().copy(holes = listOf(hole.copy(ring = -1))),
+            series().copy(holes = listOf(hole.copy(ring = 9, innerTen = true))),
+            series().copy(holes = listOf(hole.copy(detectedRing = 12))),
+            series().copy(holes = listOf(hole.copy(detectedRing = 9, detectedInnerTen = true))),
+            series().copy(holes = listOf(hole.copy(x = Double.NaN))),
+            series().copy(holes = listOf(hole.copy(distanceMm = Double.POSITIVE_INFINITY))),
+            series().copy(holes = listOf(hole.copy(distanceMm = -1.0))),
             series(timestamp = "yesterday"),
             series().copy(geometry = Geometry(1.0, 2.0, 1.0, 2.0, 40.0, 0.0, 0.0)),
         )
@@ -658,33 +683,203 @@ class ApiTest {
         }
     }
 
-    /**
-     * The labels are the wire values the app posts, so they are spelled out here: this list must equal
-     * `Caliber` in composeApp/src/commonMain/kotlin/se/kjellstrand/markera/series/Caliber.kt (CaliberTest
-     * guards the same list on that side). Existing labels are in the database — add, never rename.
-     */
+    /** No vocabulary on the server: every label the app has, and one it has not yet, are all just labels. */
     @Test
-    fun everyKnownCaliberIsAccepted() = apiTest { client ->
-        val expected = listOf(
+    fun calibersAreCheckedByShape() = apiTest { client ->
+        val labels = listOf(
             "-",
             "22lr", "22wmr", "17hmr",
             "32", "380", "9mm", "38", "357", "40", "10mm", "44", "45",
             "223", "243", "6.5x55", "6.5cm", "270", "308", "30-06", "7.62x39", "8x57", "9.3x62", "300wm",
+            "50bmg", "5,6 mm / .22",
         )
-        assertEquals(expected.toSet(), CALIBERS)
-        assertEquals(expected.size, CALIBERS.size, "duplicate label in CALIBERS")
-
         val token = client.devAuth("me").token
-        for (caliber in expected) {
+        for (caliber in labels) {
             val response = client.post("/series") {
                 bearerAuth(token); contentType(ContentType.Application.Json); setBody(series(caliber = caliber))
             }
             assertEquals(HttpStatusCode.Created, response.status, "expected 201 for caliber '$caliber'")
         }
         assertEquals(
-            expected.toSet(),
+            labels.toSet(),
             client.get("/series") { bearerAuth(token) }.body<List<Series>>().map { it.caliber }.toSet(),
         )
+    }
+
+    @Test
+    fun seriesBodyOverOneMegabyteIs413() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        // Valid in every way but its size: a tag this long would be a 400, but the cap answers before decoding.
+        val huge = """{"timestamp":"2026-09-06T12:34:56Z","caliber":"9mm","holes":[{"ring":5,"innerTen":false}],""" +
+            """"tag":"${"a".repeat(MAX_SERIES_BYTES)}"}"""
+        val post = client.post("/series") { bearerAuth(me.token); setBody(TextContent(huge, ContentType.Application.Json)) }
+        assertEquals(HttpStatusCode.PayloadTooLarge, post.status)
+        val put = client.put("/series/$id") { bearerAuth(me.token); setBody(TextContent(huge, ContentType.Application.Json)) }
+        assertEquals(HttpStatusCode.PayloadTooLarge, put.status)
+        val admin = client.put("/admin/series/$id") {
+            basicAuth("admin", ADMIN_PW); header("X-Admin", "1"); setBody(TextContent(huge, ContentType.Application.Json))
+        }
+        assertEquals(HttpStatusCode.PayloadTooLarge, admin.status)
+        assertEquals(listOf(id), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
+    }
+
+    @Test
+    fun imageMustBeANonEmptyJpeg() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        assertEquals(HttpStatusCode.BadRequest, client.putImage(me.token, id, ByteArray(0)).status)
+        assertEquals(HttpStatusCode.BadRequest, client.putImage(me.token, id, "GIF89a...".toByteArray()).status)
+        assertEquals(emptyList(), imagesDir.listFiles().orEmpty().map { it.name })
+
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, jpeg()).status)
+        // Only the image itself: the temp file it was written through is gone.
+        assertEquals(listOf("$id.jpg"), imagesDir.listFiles().orEmpty().map { it.name })
+
+        for (response in listOf(client.get("/series/$id/image") { bearerAuth(me.token) }, client.admin("/admin/series/$id/image"))) {
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals("nosniff", response.headers["X-Content-Type-Options"])
+        }
+    }
+
+    @Test
+    fun sessionsAreStoredHashed() = apiTest { client ->
+        val me = client.devAuth("me")
+        val stored = sql { st -> st.executeQuery("SELECT token FROM sessions").use { it.next(); it.getString(1) } }
+        assertEquals(sha256(me.token), stored)
+        assertTrue(stored != me.token)
+        assertEquals(HttpStatusCode.OK, client.get("/series") { bearerAuth(me.token) }.status)
+        // The stored hash is not itself a token.
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth(stored) }.status)
+    }
+
+    @Test
+    fun sessionExpiresAfter90IdleDays() = apiTest { client ->
+        val idle = client.devAuth("idle")
+        val active = client.devAuth("active")
+        sql {
+            it.executeUpdate("UPDATE sessions SET last_used_at = datetime('now', '-91 days') WHERE token = '${sha256(idle.token)}'")
+            it.executeUpdate("UPDATE sessions SET last_used_at = datetime('now', '-89 days') WHERE token = '${sha256(active.token)}'")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth(idle.token) }.status)
+        assertEquals(HttpStatusCode.OK, client.get("/series") { bearerAuth(active.token) }.status)
+        // Using it slid the expiry to now.
+        val idleDays = sql { st ->
+            st.executeQuery(
+                "SELECT julianday('now') - julianday(last_used_at) FROM sessions WHERE token = '${sha256(active.token)}'"
+            ).use { it.next(); it.getDouble(1) }
+        }
+        assertTrue(idleDays < 1, "last_used_at not bumped: $idleDays days")
+        // A new login prunes the expired row.
+        client.devAuth("someone")
+        assertEquals(0, sql { st ->
+            st.executeQuery("SELECT COUNT(*) FROM sessions WHERE token = '${sha256(idle.token)}'").use { it.next(); it.getInt(1) }
+        })
+    }
+
+    @Test
+    fun oldDatabasesGainTheSessionExpiryColumn() {
+        val dbFile = File.createTempFile("markera-old-sessions", ".db").also { it.delete(); it.deleteOnExit() }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().use { st ->
+                st.executeUpdate(
+                    """CREATE TABLE users (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         provider TEXT NOT NULL, subject TEXT NOT NULL, created_at TEXT NOT NULL,
+                         UNIQUE(provider, subject))"""
+                )
+                st.executeUpdate(
+                    """CREATE TABLE sessions (
+                         token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), created_at TEXT NOT NULL)"""
+                )
+                st.executeUpdate("INSERT INTO users(provider, subject, created_at) VALUES ('google', 'old', 'then')")
+                // A year-old plain-text session: the migration must not expire it.
+                st.executeUpdate("INSERT INTO sessions VALUES ('old-token', 1, datetime('now', '-365 days'))")
+            }
+        }
+        Db(dbFile.path).use { db ->
+            assertEquals(1L, db.userForToken("old-token"))
+            // Stored as the hash from now on, and the hash is not itself a token.
+            assertEquals(null, db.userForToken(sha256("old-token")))
+        }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().executeQuery("SELECT token FROM sessions").use { rs ->
+                assertTrue(rs.next()); assertEquals(sha256("old-token"), rs.getString(1))
+            }
+        }
+        // Reopening must not hash the hash.
+        Db(dbFile.path).use { db -> assertEquals(1L, db.userForToken("old-token")) }
+    }
+
+    @Test
+    fun signOutRevokesTheSession() = apiTest { client ->
+        val me = client.devAuth("me")
+        val otherDevice = client.devAuth("me")
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/auth/session").status)
+        assertEquals(HttpStatusCode.NoContent, client.delete("/auth/session") { bearerAuth(me.token) }.status)
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/series") { bearerAuth(me.token) }.status)
+        assertEquals(HttpStatusCode.Unauthorized, client.delete("/auth/session") { bearerAuth(me.token) }.status)
+        // Only that session: the same user signed in elsewhere stays signed in.
+        assertEquals(HttpStatusCode.OK, client.get("/series") { bearerAuth(otherDevice.token) }.status)
+    }
+
+    @Test
+    fun adminBlobEscapesEveryLessThan() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token, series().copy(tag = "<!--<script>"))
+        val page = client.admin("/admin/series/$id").bodyAsText()
+        assertTrue("<!--<script>" !in page, page)
+        assertTrue(""""tag":"\u003c!--\u003cscript>"""" in page, page)
+    }
+
+    @Test
+    fun adminWritesNeedTheXAdminHeader() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        val deleted = client.createSeries(me.token)
+        client.delete("/series/$deleted") { bearerAuth(me.token) }
+        val edit = series(caliber = "22lr")
+
+        for ((method, path) in listOf(
+            HttpMethod.Put to "/admin/series/$id",
+            HttpMethod.Delete to "/admin/series/$id",
+            HttpMethod.Post to "/admin/series/$deleted/restore",
+            HttpMethod.Delete to "/admin/users/${me.userId}",
+        )) {
+            val body = if (method == HttpMethod.Put) edit else null
+            assertEquals(HttpStatusCode.Forbidden, client.adminWrite(method, path, body, xAdmin = false).status, "$method $path")
+        }
+        // Nothing changed.
+        assertEquals(listOf(id to "9mm"), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id to it.caliber })
+
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Put, "/admin/series/$id", edit).status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/series/$deleted/restore").status)
+        assertEquals(listOf(deleted to "9mm", id to "22lr"), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id to it.caliber })
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Delete, "/admin/series/$id").status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Delete, "/admin/users/${me.userId}").status)
+    }
+
+    @Test
+    fun replaceSeriesIsAtomic() = apiTest { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token)
+        sql { it.executeUpdate("CREATE TRIGGER no_holes BEFORE INSERT ON holes BEGIN SELECT RAISE(ABORT, 'x'); END") }
+
+        val put = client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series(timestamp = "2026-01-01T00:00:00Z", caliber = "22lr"))
+        }
+        assertEquals(HttpStatusCode.InternalServerError, put.status)
+        val post = client.post("/series") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series())
+        }
+        assertEquals(HttpStatusCode.InternalServerError, post.status)
+
+        sql { it.executeUpdate("DROP TRIGGER no_holes") }
+        // Neither half-landed: the series kept its fields and holes, and no hole-less series appeared.
+        val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
+        assertEquals(Triple(id, "9mm", "2026-09-06T12:34:56Z"), Triple(stored.id, stored.caliber, stored.timestamp))
+        assertEquals(series().holes, stored.holes)
     }
 
     @Test
@@ -703,13 +898,13 @@ class ApiTest {
         val id = client.createSeries(me.token)
         assertEquals(listOf(false), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.hasImage })
 
-        val jpeg = ByteArray(4096) { (it % 251).toByte() }
-        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, jpeg).status)
+        val image = jpeg(4096).also { for (i in 2 until it.size) it[i] = (i % 251).toByte() }
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, id, image).status)
 
         val download = client.get("/series/$id/image") { bearerAuth(me.token) }
         assertEquals(HttpStatusCode.OK, download.status)
         assertEquals(ContentType.Image.JPEG, download.contentType()?.withoutParameters())
-        assertContentEquals(jpeg, download.bodyAsBytes())
+        assertContentEquals(image, download.bodyAsBytes())
         assertEquals(listOf(true), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.hasImage })
     }
 
@@ -717,16 +912,16 @@ class ApiTest {
     fun imagesOfOtherUsersAndUnknownSeriesAre404() = apiTest { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(me.token)
-        client.putImage(me.token, id, ByteArray(16))
+        client.putImage(me.token, id, jpeg())
         val stranger = client.devAuth("stranger").token
 
         for (target in listOf(id, 999L)) {
-            assertEquals(HttpStatusCode.NotFound, client.putImage(stranger, target, ByteArray(16)).status)
+            assertEquals(HttpStatusCode.NotFound, client.putImage(stranger, target, jpeg()).status)
             assertEquals(HttpStatusCode.NotFound, client.get("/series/$target/image") { bearerAuth(stranger) }.status)
         }
         assertEquals(HttpStatusCode.NotFound, client.get("/series/999/image") { bearerAuth(me.token) }.status)
         // The owner's image survived the strangers' attempts.
-        assertContentEquals(ByteArray(16), client.get("/series/$id/image") { bearerAuth(me.token) }.bodyAsBytes())
+        assertContentEquals(jpeg(), client.get("/series/$id/image") { bearerAuth(me.token) }.bodyAsBytes())
     }
 
     @Test
@@ -758,7 +953,7 @@ class ApiTest {
         val id = client.createSeries(client.devAuth("me").token)
         assertEquals(HttpStatusCode.Unauthorized, client.get("/series/$id/image").status)
         val post = client.post("/series/$id/image") {
-            contentType(ContentType.Image.JPEG); setBody(ByteArray(16))
+            contentType(ContentType.Image.JPEG); setBody(jpeg())
         }
         assertEquals(HttpStatusCode.Unauthorized, post.status)
     }
@@ -769,8 +964,8 @@ class ApiTest {
         val other = client.devAuth("other")
         val mySeries = client.createSeries(me.token)
         client.createSeries(other.token)
-        val jpeg = ByteArray(64) { it.toByte() }
-        client.putImage(me.token, mySeries, jpeg)
+        val image = jpeg(64).also { for (i in 2 until it.size) it[i] = i.toByte() }
+        client.putImage(me.token, mySeries, image)
 
         val users = client.admin("/admin").bodyAsText()
         assertTrue("me" in users && "other" in users, users)
@@ -794,9 +989,9 @@ class ApiTest {
         assertTrue("""<tr onclick="location.href='/admin/users/${me.userId}'">""" in users, users)
         assertTrue("""<tr onclick="location.href='/admin/series/$mySeries'">""" in userPage, userPage)
 
-        val image = client.admin("/admin/series/$mySeries/image")
-        assertEquals(HttpStatusCode.OK, image.status)
-        assertContentEquals(jpeg, image.bodyAsBytes())
+        val download = client.admin("/admin/series/$mySeries/image")
+        assertEquals(HttpStatusCode.OK, download.status)
+        assertContentEquals(image, download.bodyAsBytes())
     }
 
     @Test
@@ -836,7 +1031,7 @@ class ApiTest {
                 ),
             ),
         )
-        client.putImage(me.token, id, ByteArray(64), query = "?width=100&height=200")
+        client.putImage(me.token, id, jpeg(64), query = "?width=100&height=200")
 
         val page = client.admin("/admin/series/$id").bodyAsText()
         // The starting state the script edits, holes and frame size included.
@@ -885,7 +1080,7 @@ class ApiTest {
         val noImage = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("""<p class="note">""" in noImage && """class="hit"""" !in noImage, noImage)
 
-        client.putImage(me.token, id, ByteArray(64))
+        client.putImage(me.token, id, jpeg(64))
         val noSize = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("""<p class="note">""" in noSize && """class="hit"""" !in noSize, noSize)
         // The "Add hole" button is the way in when there is nowhere to click.
@@ -958,7 +1153,7 @@ class ApiTest {
         val me = client.devAuth("me")
         val kept = client.createSeries(me.token)
         val doomed = client.createSeries(me.token)
-        client.putImage(me.token, doomed, ByteArray(16))
+        client.putImage(me.token, doomed, jpeg())
         assertTrue(imagesDir.resolve("$doomed.jpg").isFile)
 
         val stranger = client.devAuth("stranger").token
@@ -979,13 +1174,13 @@ class ApiTest {
         val me = client.devAuth("me")
         val other = client.devAuth("other")
         val mine = client.createSeries(me.token)
-        client.putImage(me.token, mine, ByteArray(16))
+        client.putImage(me.token, mine, jpeg())
         // A soft-deleted series still has its holes and image; the account deletion takes those too.
         val softDeleted = client.createSeries(me.token)
-        client.putImage(me.token, softDeleted, ByteArray(16))
+        client.putImage(me.token, softDeleted, jpeg())
         assertEquals(HttpStatusCode.NoContent, client.delete("/series/$softDeleted") { bearerAuth(me.token) }.status)
         val theirs = client.createSeries(other.token)
-        client.putImage(other.token, theirs, ByteArray(16))
+        client.putImage(other.token, theirs, jpeg())
 
         assertEquals(HttpStatusCode.Unauthorized, client.delete("/account").status)
         assertEquals(HttpStatusCode.NoContent, client.delete("/account") { bearerAuth(me.token) }.status)
@@ -1046,20 +1241,20 @@ class ApiTest {
         val me = client.devAuth("me")
         val kept = client.createSeries(me.token)
         val doomed = client.createSeries(me.token)
-        client.putImage(me.token, doomed, ByteArray(16))
+        client.putImage(me.token, doomed, jpeg())
         assertEquals(HttpStatusCode.NoContent, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
 
         assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
         // Every route that resolves an id treats it as unknown, and the second delete is a 404 too.
         assertEquals(HttpStatusCode.NotFound, client.get("/series/$doomed/image") { bearerAuth(me.token) }.status)
-        assertEquals(HttpStatusCode.NotFound, client.putImage(me.token, doomed, ByteArray(16)).status)
+        assertEquals(HttpStatusCode.NotFound, client.putImage(me.token, doomed, jpeg()).status)
         assertEquals(HttpStatusCode.NotFound, client.put("/series/$doomed") {
             bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series())
         }.status)
         assertEquals(HttpStatusCode.NotFound, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
         // ...and so do the admin writes; the admin pages show it (adminShowsAndRestoresDeletedSeries).
         assertEquals(HttpStatusCode.NotFound, client.put("/admin/series/$doomed") {
-            basicAuth("admin", ADMIN_PW); contentType(ContentType.Application.Json); setBody(series())
+            basicAuth("admin", ADMIN_PW); header("X-Admin", "1"); contentType(ContentType.Application.Json); setBody(series())
         }.status)
         // The users list counts only the live one.
         assertTrue("<td>1</td>" in client.admin("/admin").bodyAsText())
@@ -1070,7 +1265,7 @@ class ApiTest {
         val me = client.devAuth("me")
         val kept = client.createSeries(me.token)
         val doomed = client.createSeries(me.token)
-        client.putImage(me.token, doomed, ByteArray(16), query = "?width=100&height=200")
+        client.putImage(me.token, doomed, jpeg(), query = "?width=100&height=200")
         assertEquals(HttpStatusCode.NoContent, client.delete("/series/$doomed") { bearerAuth(me.token) }.status)
         // Deleted before deletes kept anything: no holes, no image.
         val old = client.createSeries(me.token)
@@ -1110,13 +1305,13 @@ class ApiTest {
             HttpStatusCode.Unauthorized,
             client.post("/admin/series/$doomed/restore") { basicAuth("admin", "nope") }.status,
         )
-        assertEquals(HttpStatusCode.NotFound, client.post("/admin/series/999/restore") { basicAuth("admin", ADMIN_PW) }.status)
+        assertEquals(HttpStatusCode.NotFound, client.post("/admin/series/999/restore") { basicAuth("admin", ADMIN_PW); header("X-Admin", "1") }.status)
         assertEquals(listOf(kept), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.id })
 
         val tombstone = client.get("/series?since=") { bearerAuth(me.token) }.body<List<Series>>().single { it.id == doomed }
         assertTrue(tombstone.deleted)
         tick()
-        val restored = client.post("/admin/series/$doomed/restore") { basicAuth("admin", ADMIN_PW) }
+        val restored = client.post("/admin/series/$doomed/restore") { basicAuth("admin", ADMIN_PW); header("X-Admin", "1") }
         assertEquals(HttpStatusCode.NoContent, restored.status, restored.bodyAsText())
 
         assertTrue(tombstone.holes.isEmpty())
@@ -1196,12 +1391,12 @@ class ApiTest {
 
         // Uploading the JPEG changes the series (hasImage), size or no size.
         tick()
-        client.putImage(me.token, id, ByteArray(16))
+        client.putImage(me.token, id, jpeg())
         val afterImage = stamp()
         assertTrue(afterImage > afterPut, "the image upload must move updatedAt: $afterPut -> $afterImage")
 
         tick()
-        client.putImage(me.token, id, ByteArray(16), query = "?width=100&height=200")
+        client.putImage(me.token, id, jpeg(), query = "?width=100&height=200")
         val afterSize = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single()
         assertTrue(afterSize.updatedAt > afterImage)
         assertEquals(100 to 200, afterSize.imageWidth to afterSize.imageHeight)

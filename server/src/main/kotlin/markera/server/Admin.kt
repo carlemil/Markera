@@ -3,7 +3,6 @@ package markera.server
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
@@ -26,7 +25,7 @@ import java.util.Base64
 import java.util.Locale
 
 /**
- * Read-only admin pages behind HTTP Basic (user `admin`, [password]). Registered only when
+ * Admin pages behind HTTP Basic (user `admin`, [password]). Registered only when
  * `ADMIN_PASSWORD` is set.
  */
 fun Route.adminRoutes(db: Db, images: File, password: String) {
@@ -103,7 +102,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             """<p class="note">No photo with a stored frame size, so markers cannot be placed &mdash; """ +
                 """"Add hole" adds one without a position.</p>"""
         }
-        val caliber = if (series.deleted) esc(series.caliber) else caliberSelect(series.caliber)
+        val caliber = if (series.deleted) esc(series.caliber) else caliberInput(series.caliber)
         val actions = if (series.deleted) """<button id="restore">Restore</button>""" else {
             """$add<button id="undo" disabled>Undo delete</button> <button id="delete" data-user="$userId">Delete</button>"""
         }
@@ -132,10 +131,10 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
 
     // The one write the admin pages have: the same replace as `PUT /series/{id}`, for any user's series.
     put("/admin/series/{id}") {
-        if (unauthorized(password)) return@put
+        if (unauthorized(password) || notFromPage()) return@put
         val seriesId = pathId()
         if (db.seriesOwner(seriesId) == null) return@put notFound("Unknown series")
-        val req = call.receive<SeriesRequest>()
+        val req = receiveSeries() ?: return@put
         if (invalid(req)) return@put
         db.replaceSeries(seriesId, req)
         call.respond(HttpStatusCode.NoContent)
@@ -143,7 +142,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
 
     // Same removal as `DELETE /series/{id}`, for any user's series.
     delete("/admin/series/{id}") {
-        if (unauthorized(password)) return@delete
+        if (unauthorized(password) || notFromPage()) return@delete
         val seriesId = pathId()
         if (db.seriesOwner(seriesId) == null) return@delete notFound("Unknown series")
         db.deleteSeries(seriesId)
@@ -152,7 +151,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
 
     // Undoes a soft delete (the app's or the admin page's); the holes and image were kept, so they come back too.
     post("/admin/series/{id}/restore") {
-        if (unauthorized(password)) return@post
+        if (unauthorized(password) || notFromPage()) return@post
         val seriesId = pathId()
         if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
         db.restoreSeries(seriesId)
@@ -162,7 +161,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
     // The hard delete, the one the series delete above is not: the same path as `DELETE /account`, so the
     // user, their sessions, every series (soft-deleted ones included), the holes and the JPEGs all go for good.
     delete("/admin/users/{id}") {
-        if (unauthorized(password)) return@delete
+        if (unauthorized(password) || notFromPage()) return@delete
         val userId = pathId()
         if (db.getUser(userId) == null) return@delete notFound("Unknown user")
         db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
@@ -172,7 +171,9 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
     get("/admin/series/{id}/image") {
         if (unauthorized(password)) return@get
         val file = imageFile(images, pathId())
-        if (file.isFile) call.respondFile(file) else notFound("No image")
+        if (!file.isFile) return@get notFound("No image")
+        call.response.header("X-Content-Type-Options", "nosniff")
+        call.respondFile(file)
     }
 }
 
@@ -187,6 +188,17 @@ private suspend fun RoutingContext.unauthorized(password: String): Boolean {
     if (credentials != null && MessageDigest.isEqual(credentials, "admin:$password".toByteArray())) return false
     call.response.header(HttpHeaders.WWWAuthenticate, """Basic realm="markera-admin"""")
     call.respondText("admin login required", status = HttpStatusCode.Unauthorized)
+    return true
+}
+
+/**
+ * Every write needs `X-Admin: 1`. The browser's cached Basic credentials ride along on any cross-site form post,
+ * but a custom header forces a CORS preflight, which this server never answers, so only the admin page's own
+ * `fetch` can send one. Responds 403 (and returns true) without it.
+ */
+private suspend fun RoutingContext.notFromPage(): Boolean {
+    if (call.request.headers["X-Admin"] == "1") return false
+    call.respondText("X-Admin header required", status = HttpStatusCode.Forbidden)
     return true
 }
 
@@ -268,18 +280,20 @@ private fun manualSelect(h: Hole): String {
 
 private fun sel(selected: Boolean) = if (selected) " selected" else ""
 
-private fun caliberSelect(current: String) = CALIBERS.joinToString("", """<select id="caliber">""", "</select>") {
-    """<option${if (it == current) " selected" else ""}>${esc(it)}</option>"""
-}
+/** Free text: the server checks only the label's shape, and a bad one comes back as a 400 in `#msg`. */
+private fun caliberInput(current: String) = """<input id="caliber" value="${esc(current)}" maxlength="16" size="8">"""
 
 /** Defaults included, so the script sees every field (a missing `innerTen` would read as undefined). */
 private val stateJson = Json { encodeDefaults = true }
 
-/** The page's starting state for the script. `</` is escaped so nothing in it can close the script tag. */
-private fun blob(series: Series) = stateJson.encodeToString(series).replace("</", "<\\/")
+/**
+ * The page's starting state for the script. Every `<` is escaped, so nothing in it can close the script tag or
+ * open a `<!--` that changes how the parser reads it; `<` only ever sits inside JSON strings, where `\u003c` means the same.
+ */
+private fun blob(series: Series) = stateJson.encodeToString(series).replace("<", "\\u003c")
 
-/** A database string as a JS literal: JSON quotes it, and `</` cannot close the script tag it sits in. */
-private fun jsString(value: String) = stateJson.encodeToString(value).replace("</", "<\\/")
+/** A database string as a JS literal: JSON quotes it, and [blob]'s escape keeps it inside its script tag. */
+private fun jsString(value: String) = stateJson.encodeToString(value).replace("<", "\\u003c")
 
 /** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
 private fun kind(h: Hole): String {
@@ -362,7 +376,7 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
 .hit.gone{border-style:dashed;cursor:default}
-select,button{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
+select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
 .note{color:#a8b39a}
 #msg{margin-left:8px}
@@ -505,25 +519,29 @@ const add = document.getElementById('add');
 if (add) add.onclick = () => addHole(null, null);
 
 // Every edit saves at once — there is no Save button. The state stays local, so no reload afterwards.
+// Each PUT waits for the one before it: two in flight could land out of order and leave the older state stored.
 document.getElementById('caliber').onchange = () => save();
+let queue = Promise.resolve();
 function save() {
   const msg = document.getElementById('msg');
   msg.textContent = 'saving...';
-  fetch(location.pathname, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
+  // Snapshotted now, not when the PUT finally goes: it is this edit's state.
+  const body = JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
                           geometry: S.geometry,
                           // The editor cannot change the tag, but the PUT replaces the series, so it must carry it back.
                           tag: S.tag,
                           // Removed rows are flagged (Undo brings them back); a positionless hole nobody gave a score is an "Add hole" left behind;
                           // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
                           holes: S.holes.filter(h => h && !h.deleted && !h.removed &&
-                                                     !(h.x == null && h.detectedRing == null && h.ring === 0))})
+                                                     !(h.x == null && h.detectedRing == null && h.ring === 0))});
+  queue = queue.then(() => fetch(location.pathname, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/json', 'X-Admin': '1'},
+    body: body
   }).then(r => r.status === 204 ? msg.textContent = 'saved'
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
-          e => msg.textContent = e);
+          e => msg.textContent = e));
 }
 
 const del = document.getElementById('delete');
@@ -531,7 +549,7 @@ del.onclick = () => {
   if (!confirm('Delete series ' + S.id + '?')) return;
   const msg = document.getElementById('msg');
   msg.textContent = 'deleting...';
-  fetch(location.pathname, {method: 'DELETE', credentials: 'include'})
+  fetch(location.pathname, {method: 'DELETE', credentials: 'include', headers: {'X-Admin': '1'}})
     .then(r => r.status === 204 ? location.href = '/admin/users/' + del.dataset.user
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
@@ -547,7 +565,7 @@ document.getElementById('delete-user').onclick = () => {
   if (!confirm(MSG)) return;
   const msg = document.getElementById('msg');
   msg.textContent = 'deleting...';
-  fetch(location.pathname, {method: 'DELETE', credentials: 'include'})
+  fetch(location.pathname, {method: 'DELETE', credentials: 'include', headers: {'X-Admin': '1'}})
     .then(r => r.status === 204 ? location.href = '/admin'
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
@@ -559,7 +577,7 @@ private const val RESTORE_JS = """
 document.getElementById('restore').onclick = () => {
   const msg = document.getElementById('msg');
   msg.textContent = 'restoring...';
-  fetch(location.pathname + '/restore', {method: 'POST', credentials: 'include'})
+  fetch(location.pathname + '/restore', {method: 'POST', credentials: 'include', headers: {'X-Admin': '1'}})
     .then(r => r.status === 204 ? location.reload()
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);

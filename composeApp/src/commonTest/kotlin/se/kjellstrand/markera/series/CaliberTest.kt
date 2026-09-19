@@ -24,9 +24,9 @@ class CaliberTest {
     }
 
     /**
-     * Labels are wire values the backend validates and the database stores, so they are spelled out
-     * here: this list must equal `CALIBERS` in `server/src/main/kotlin/markera/server/Server.kt`
-     * (ApiTest guards the same list on that side) and an existing one may never be renamed.
+     * Labels are wire values the database stores, so they are spelled out here: an existing one may
+     * never be renamed. The server checks only their shape (`CALIBER_SHAPE` in
+     * `server/src/main/kotlin/markera/server/Server.kt`; ApiTest posts this same list).
      */
     @Test
     fun labelsAreTheAgreedWireValues() {

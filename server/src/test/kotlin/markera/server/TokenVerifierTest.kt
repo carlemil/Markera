@@ -100,6 +100,17 @@ class TokenVerifierTest {
     }
 
     @Test
+    fun tokenWithoutSubjectFails() {
+        val anonymous = JWT.create()
+            .withKeyId("test-key")
+            .withIssuer("https://accounts.google.com")
+            .withAudience("client-id")
+            .withExpiresAt(Date.from(Instant.now().plusSeconds(600)))
+            .sign(algorithm)
+        assertFailsWith<JWTVerificationException> { verifier.identity(anonymous) }
+    }
+
+    @Test
     fun garbageTokenFails() {
         assertFailsWith<JWTVerificationException> { verifier.identity("not-a-jwt") }
     }
