@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.vision
 
+import kotlin.math.roundToInt
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.Test
@@ -68,5 +69,27 @@ class DetectionPostProcessTest {
         val raw = RawDetection(0f, 0f, 0f, 0f, 0.5f)
         val mapped = mapToImageSpace(listOf(raw), inputSize = 320, srcWidth = 0, srcHeight = 100)
         assertTrue(mapped.isEmpty())
+    }
+
+    @Test
+    fun `parseNmsRows turns corners into centre boxes and drops padded rows`() {
+        val out = floatArrayOf(
+            10f, 20f, 30f, 60f, 0.8f, 0f, // a hole
+            0f, 0f, 0f, 0f, 0f, 0f, // zero-padded slot
+            1f, 1f, 2f, 2f, 0.005f, 0f, // below the prefilter
+            5f, 5f, 7f, 7f, // trailing partial row
+        )
+        val raws = parseNmsRows(out.size) { out[it] }
+        assertEquals(listOf(RawDetection(20f, 40f, 20f, 40f, 0.8f)), raws)
+    }
+
+    @Test
+    fun `postProcess keeps the five most confident holes after NMS`() {
+        // Seven far-apart boxes, plus a near-duplicate of the best that NMS drops.
+        val raws = (0 until 7).map { RawDetection(100f + it * 100f, 100f, 20f, 20f, conf = 0.4f + it * 0.05f) } +
+            RawDetection(701f, 100f, 20f, 20f, conf = 0.69f)
+        val kept = postProcess(raws, inputSize = 1000, srcWidth = 1000, srcHeight = 1000)
+        assertEquals(SHOTS_PER_SERIES, kept.size)
+        assertEquals(listOf(70, 65, 60, 55, 50), kept.map { (it.conf * 100).roundToInt() })
     }
 }

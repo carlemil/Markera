@@ -113,6 +113,7 @@ import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
+import se.kjellstrand.markera.vision.ringDigitRadiusMm
 
 /** Ring 1's outer edge — the whole drawn target, and the canvas' mm half-width. */
 private const val PLOT_RADIUS_MM = 250f
@@ -625,7 +626,7 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
             )
         }
         for (ring in 1..9) {
-            val mid = (RING_RADII_MM[10 - ring] + RING_RADII_MM[9 - ring]) / 2.0
+            val mid = ringDigitRadiusMm(ring)
             val colour = if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER
             digit(ring, colour, centre.x - r(mid), centre.y)
             digit(ring, colour, centre.x + r(mid), centre.y)

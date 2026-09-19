@@ -13,7 +13,7 @@ kotlin {
 // harness exercises the same code the app runs. The expect/actual files
 // (HoleDetector: onnxruntime-android, DigitDetector/PlatformImage: ML Kit)
 // cannot compile in a plain JVM module, so we exclude them; a desktop ONNX
-// Runtime detector + the RawDetection/Detection data classes stand in.
+// Runtime detector stands in.
 sourceSets["main"].kotlin {
     srcDir("../composeApp/src/commonMain/kotlin/se/kjellstrand/markera/vision")
     exclude("**/HoleDetector.kt", "**/DigitDetector.kt", "**/PlatformImage.kt")

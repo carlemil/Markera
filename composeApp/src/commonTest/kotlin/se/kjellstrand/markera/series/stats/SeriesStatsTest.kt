@@ -94,7 +94,7 @@ class SeriesStatsTest {
     }
 
     @Test
-    fun `an empty tag set keeps every series, tagged or not`() {
+    fun `an empty tag set keeps every series tagged or not`() {
         val tagged = seriesA.copy(tag = "Träning")
         val plotted = listOf(tagged, seriesB).plotSeries(StatsFilter())
         assertEquals(listOf(1L, 2L), plotted.map { it.series.id })

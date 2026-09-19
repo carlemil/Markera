@@ -101,12 +101,6 @@ private fun String.tokens(): List<Pair<Int, String>> {
 }
 
 /** Parse a recognised string that is exactly one digit '1'..'9', else null. */
-private fun String.singleDigitOrNull(): Int? {
-    if (length != 1) return null
-    val c = this[0]
-    return if (c in '1'..'9') c - '0' else null
-}
-
 /** Vision's normalised, bottom-left rect to top-left pixel space. */
 private fun CValue<CGRect>.toDigitDetection(w: Double, h: Double, digit: Int, conf: Float) =
     useContents {

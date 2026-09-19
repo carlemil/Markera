@@ -5,6 +5,7 @@ import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.SHOTS_PER_SERIES
 
 data class MarkeraUiState(
     val detections: List<Detection> = emptyList(),
@@ -34,7 +35,7 @@ data class MarkeraUiState(
  */
 enum class ScanPhase { IDLE, GEOMETRY, HOLES }
 
-const val SCORE_PICKER_COUNT = 5
+const val SCORE_PICKER_COUNT = SHOTS_PER_SERIES
 const val SCORE_PICKER_INNER_TEN = 11
 val SCORE_PICKER_LABELS: List<String> =
     (0..10).map { it.toString() } + "X"

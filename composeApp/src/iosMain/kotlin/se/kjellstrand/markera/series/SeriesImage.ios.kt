@@ -23,8 +23,6 @@ import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.vision.height
 import se.kjellstrand.markera.vision.width
 
-private const val IMAGE_MAX_DIM = 3072
-
 // Off the main thread, like the Android actual: a 3072 px draw plus the JPEG encode takes a while.
 actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage = withContext(Dispatchers.Default) {
     val w = image.width

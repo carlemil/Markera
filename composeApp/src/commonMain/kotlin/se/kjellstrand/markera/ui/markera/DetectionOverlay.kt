@@ -19,12 +19,14 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.HIT_DOT_ALPHA
 import se.kjellstrand.markera.series.hitDotRadiusMm
+import se.kjellstrand.markera.ui.theme.MarkeraGreen
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.INNER_RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.TargetLine
 import se.kjellstrand.markera.vision.ringOutline
@@ -32,11 +34,15 @@ import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
 
-/** Ring lines inside the black 6/7 edge: the 7/8, 8/9 and 9/10 boundaries (mm). */
-private val INNER_RING_RADII_MM = listOf(75.0, 50.0, 25.0)
-
 /** Hand-placed holes: the photo marker and their score box share it. */
 val MANUAL_HIT_COLOR = Color(0xFFFFB74D)
+
+private val BOX_COLOR = MarkeraGreen
+private val DIGIT_COLOR = Color(0xFF00B0FF)
+private val CENTRE_COLOR = Color(0xFFFF1744)
+private val ROW_LINE_COLOR = Color(0xFFFFC400)
+private val RING_COLOR = MarkeraGreen
+private const val STROKE_WIDTH_PX = 4f
 
 /**
  * Draws the scoring result over the frozen frame, fit-centre letterboxed to
@@ -66,16 +72,10 @@ fun DetectionOverlay(
     /** Sizes the hole dots; [Caliber.NONE] draws them at the calibration size. */
     caliber: Caliber = Caliber.NONE,
     showDebug: Boolean = false,
-    boxColor: Color = Color(0xFF00E676),
-    digitColor: Color = Color(0xFF00B0FF),
-    centreColor: Color = Color(0xFFFF1744),
-    rowLineColor: Color = Color(0xFFFFC400),
-    ringColor: Color = Color(0xFF00E676),
     scoreColor: Color = Color(0xFFFFFFFF),
-    holeColor: Color = Color(0xFF00E676),
+    holeColor: Color = MarkeraGreen,
     /** Holes the user tapped in by hand, marker and label. */
     manualColor: Color = MANUAL_HIT_COLOR,
-    strokeWidthPx: Float = 4f,
 ) {
     val textMeasurer = rememberTextMeasurer()
     Canvas(modifier = modifier) {
@@ -83,11 +83,12 @@ fun DetectionOverlay(
         val scale = min(size.width / imageWidth, size.height / imageHeight)
         val offsetX = (size.width - imageWidth * scale) / 2f
         val offsetY = (size.height - imageHeight * scale) / 2f
+        val labelSize = (28f * scale).coerceIn(44f, 128f)
 
         // 6/7 boundary ellipse: drawn at its own fitted centre — it is the fit,
         // and its fit quality is what the user reads off the photo.
         if (ring != null) {
-            drawTargetRing(ring, scale, offsetX, offsetY, ringColor, strokeWidthPx + 2f)
+            drawTargetRing(ring, scale, offsetX, offsetY, RING_COLOR, STROKE_WIDTH_PX + 2f)
         }
 
         // The ring lines inside the black 6/7 edge (7/8, 8/9, 9/10). Each is the
@@ -98,11 +99,11 @@ fun DetectionOverlay(
         // No 12.5mm inner-X circle: it lands exactly where the hits cluster and
         // would clutter the middle of the photo under the markers.
         if (ring != null && centre != null && centre.method != CentreMethod.NONE) {
-            val innerRingColor = ringColor.copy(alpha = 0.45f)
+            val innerRingColor = RING_COLOR.copy(alpha = 0.45f)
             INNER_RING_RADII_MM.forEach { r ->
                 drawTargetRing(
                     ringOutline(ring, centre, r), scale, offsetX, offsetY,
-                    innerRingColor, strokeWidthPx * 0.6f,
+                    innerRingColor, STROKE_WIDTH_PX * 0.6f,
                 )
             }
         }
@@ -119,15 +120,15 @@ fun DetectionOverlay(
             val imagePxPerMm = ring.semiMajor / TARGET_BLACK_RING_RADIUS_MM
             max(2f, (caliber.hitDotRadiusMm() * imagePxPerMm).toFloat() * scale)
         } else {
-            max(3f, strokeWidthPx * 1.1f)
+            max(3f, STROKE_WIDTH_PX * 1.1f)
         }
         if (showDebug) {
             detections.forEach { d ->
                 drawRect(
-                    color = boxColor,
+                    color = BOX_COLOR,
                     topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
                     size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
-                    style = Stroke(width = strokeWidthPx),
+                    style = Stroke(width = STROKE_WIDTH_PX),
                 )
             }
         } else if (scores.isNotEmpty()) {
@@ -154,7 +155,7 @@ fun DetectionOverlay(
         // score box / list row. Deliberately small and unbolded — the ring
         // value above the hole is the primary label.
         if (scores.isNotEmpty()) {
-            val letterSize = (28f * scale).coerceIn(44f, 128f) * 0.52f
+            val letterSize = labelSize * 0.52f
             scores.forEachIndexed { i, hit ->
                 val layout = textMeasurer.measure(
                     letters.getOrElse(i) { holeLetter(i) },
@@ -179,10 +180,10 @@ fun DetectionOverlay(
         if (showDebug) {
             digits.forEach { d ->
                 drawRect(
-                    color = digitColor,
+                    color = DIGIT_COLOR,
                     topLeft = Offset(d.left * scale + offsetX, d.top * scale + offsetY),
                     size = Size((d.right - d.left) * scale, (d.bottom - d.top) * scale),
-                    style = Stroke(width = strokeWidthPx),
+                    style = Stroke(width = STROKE_WIDTH_PX),
                 )
             }
         }
@@ -190,7 +191,6 @@ fun DetectionOverlay(
         // Ring-value label above each scored hole ("X" for inner-ten), nudged up
         // to avoid overlapping labels in dense clusters.
         if (scores.isNotEmpty()) {
-            val labelSize = (28f * scale).coerceIn(44f, 128f)
             val gap = labelSize * 0.15f
             val placed = ArrayList<Rect>(scores.size)
             // Place top holes first so lower labels stack above them.
@@ -233,7 +233,7 @@ fun DetectionOverlay(
                     bottom = offsetY + imageHeight * scale,
                 ) {
                     listOfNotNull(centre.horizontalLine, centre.verticalLine).forEach { line ->
-                        drawRowLine(line, scale, offsetX, offsetY, rowLineColor, strokeWidthPx / 2f)
+                        drawRowLine(line, scale, offsetX, offsetY, ROW_LINE_COLOR, STROKE_WIDTH_PX / 2f)
                     }
                 }
             }
@@ -242,16 +242,16 @@ fun DetectionOverlay(
             val cy = centre.y * scale + offsetY
             val arm = 24f
             drawLine(
-                color = centreColor,
+                color = CENTRE_COLOR,
                 start = Offset(cx - arm, cy),
                 end = Offset(cx + arm, cy),
-                strokeWidth = strokeWidthPx + 2f,
+                strokeWidth = STROKE_WIDTH_PX + 2f,
             )
             drawLine(
-                color = centreColor,
+                color = CENTRE_COLOR,
                 start = Offset(cx, cy - arm),
                 end = Offset(cx, cy + arm),
-                strokeWidth = strokeWidthPx + 2f,
+                strokeWidth = STROKE_WIDTH_PX + 2f,
             )
         }
     }

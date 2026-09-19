@@ -41,39 +41,10 @@ actual class HoleDetector actual constructor(
             // The Swift side returns an empty Data() on any failure.
             if (out.length == 0uL) error("hole model failed")
 
-            // YOLO export with embedded NMS: [1, 300, 6], each row
-            // (x1, y1, x2, y2, confidence, classId) in input-tensor pixels.
-            // Unused slots are zero-padded and fall below PREFILTER_CONFIDENCE.
             val floats = out.bytes?.reinterpret<FloatVar>() ?: error("hole model failed")
-            val rows = (out.length / 4uL).toInt() / 6
-            val list = ArrayList<RawDetection>(rows)
-            for (i in 0 until rows) {
-                val base = i * 6
-                val conf = floats[base + 4]
-                if (conf >= PREFILTER_CONFIDENCE) {
-                    val x1 = floats[base]
-                    val y1 = floats[base + 1]
-                    val x2 = floats[base + 2]
-                    val y2 = floats[base + 3]
-                    list += RawDetection(
-                        cx = (x1 + x2) * 0.5f,
-                        cy = (y1 + y2) * 0.5f,
-                        w = x2 - x1,
-                        h = y2 - y1,
-                        conf = conf,
-                        cls = floats[base + 5].toInt(),
-                    )
-                }
-            }
-            list
+            parseNmsRows((out.length / 4uL).toInt()) { floats[it] }
         }
     }
 
     actual fun close() {}
-
-    private companion object {
-        // Same prefilter as Android: drop obvious noise at the inference
-        // boundary; the screen applies the user-facing threshold later.
-        const val PREFILTER_CONFIDENCE = 0.01f
-    }
 }

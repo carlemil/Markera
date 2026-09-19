@@ -81,7 +81,6 @@ import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.TagDialog
 import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
-import se.kjellstrand.markera.ui.markera.MANUAL_HIT_COLOR
 import se.kjellstrand.markera.ui.markera.TotalBadge
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
@@ -314,7 +313,6 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             caliber = caliber,
                             holeColor = DETECTED_COLOR,
                             scoreColor = DETECTED_COLOR,
-                            manualColor = MANUAL_HIT_COLOR,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }

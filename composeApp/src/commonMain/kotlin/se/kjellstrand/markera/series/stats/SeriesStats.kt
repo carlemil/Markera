@@ -34,7 +34,7 @@ enum class DatePreset(private val days: Int?) {
         days?.let { (now - it.days) to null } ?: (null to null)
 }
 
-private const val DAY_MS = 24L * 60 * 60 * 1000
+internal const val DAY_MS = 24L * 60 * 60 * 1000
 
 /**
  * The `from..to` window for this preset, shared by Statistik and Historik so the two

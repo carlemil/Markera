@@ -40,6 +40,7 @@ import kotlin.math.pow
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import se.kjellstrand.markera.series.stats.DAY_MS
 import se.kjellstrand.markera.series.stats.TrendPoint
 import se.kjellstrand.markera.series.stats.fit
 
@@ -68,7 +69,6 @@ private val X_GUTTER = 20.dp
 private val MARK = 5.dp
 private val FIT_LINE = 2.dp
 private val MEAN_LINE = 1.dp
-private const val DAY_MS = 24L * 60 * 60 * 1000
 
 /**
  * A scatterplot of [lines] over time with a recessive grid, first/last date on the

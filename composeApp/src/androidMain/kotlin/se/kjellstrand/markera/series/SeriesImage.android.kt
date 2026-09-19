@@ -9,8 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.vision.PlatformImage
 
-private const val IMAGE_MAX_DIM = 3072
-
 actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage =
     withContext(Dispatchers.Default) {
         val longest = maxOf(image.width, image.height)
