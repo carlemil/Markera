@@ -10,6 +10,20 @@ import kotlin.test.assertTrue
 
 class HitScoringTest {
 
+    @Test
+    fun scoreAtOnTheTenLineWithNoRadiusIsATen() {
+        assertEquals(10 to false, scoreAt(25.0, 0.0))
+    }
+
+    @Test
+    fun scoreAtGaugesTheEdgeByTheHoleRadius() {
+        assertEquals(9, scoreAt(27.0, 0.0).first)
+        // A .22 lr hole (radius 2.83 mm) 27 mm out still touches the 10 line.
+        assertEquals(10, scoreAt(27.0, 2.83).first)
+        assertFalse(scoreAt(14.0, 0.0).second)
+        assertTrue(scoreAt(14.0, 2.0).second)
+    }
+
     private fun centre(x: Float, y: Float) = CentreEstimate(x, y, CentreMethod.LINE_INTERSECTION)
 
     /** A circular 6/7 ring; semiMajor 100 px makes mmPerPx == 1.0. */

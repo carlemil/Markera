@@ -9,9 +9,8 @@ import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.distanceMm
-import se.kjellstrand.markera.vision.ringForDistance
+import se.kjellstrand.markera.vision.scoreAt
 
 /**
  * The Markera backend payloads (see `server/`). Deliberately duplicated
@@ -228,19 +227,14 @@ fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int {
 }
 
 /**
- * A hole at [x],[y] (source-image px) scored against this scan geometry: the
- * same target spec the scan itself scores by, minus the edge gauge — a marker
- * the user placed carries no hole size. The only way a stored score changes.
+ * A hole at [x],[y] (source-image px) scored against this scan geometry by the
+ * scan's own rule ([scoreAt]), edge-gauged by [caliber]'s hole radius — none
+ * for [Caliber.NONE]. [HoleDto.distanceMm] stays the centre distance.
  */
-fun GeometryDto.scoreHoleAt(x: Double, y: Double): HoleDto {
+fun GeometryDto.scoreHoleAt(x: Double, y: Double, caliber: Caliber): HoleDto {
     val dist = distanceMm(x.toFloat(), y.toFloat(), centre(), ring())
-    return HoleDto(
-        x = x,
-        y = y,
-        ring = ringForDistance(dist),
-        innerTen = dist <= INNER_TEN_RADIUS_MM,
-        distanceMm = dist,
-    )
+    val (ring, innerTen) = scoreAt(dist, caliber.holeRadiusMm() ?: 0.0)
+    return HoleDto(x = x, y = y, ring = ring, innerTen = innerTen, distanceMm = dist)
 }
 
 /**
@@ -256,20 +250,34 @@ val HOLE_ORDER: Comparator<HoleDto> = compareByDescending<HoleDto> { it.innerTen
  * Appends a hand-placed hole at [x],[y] (source-image px), scored where it lands.
  * Re-sorted, so the list always reads highest first.
  */
-fun List<HoleDto>.withNewHole(x: Double, y: Double, geometry: GeometryDto): List<HoleDto> =
-    (this + geometry.scoreHoleAt(x, y)).sortedWith(HOLE_ORDER)
+fun List<HoleDto>.withNewHole(x: Double, y: Double, geometry: GeometryDto, caliber: Caliber): List<HoleDto> =
+    (this + geometry.scoreHoleAt(x, y, caliber)).sortedWith(HOLE_ORDER)
 
 /**
- * Hole [index] dragged to [x],[y] (source-image px): rescored where it now sits,
- * keeping what the detector said about it so the pair stays training data. The
- * list comes back re-sorted, so the moved hole may not be at [index] any more.
+ * Hole [index] dragged to [x],[y] (source-image px), keeping what the detector
+ * said about it so the pair stays training data. An automatic score is rescored
+ * where the hole now sits; a score the user selected is never overwritten, only
+ * the position moves. The list comes back re-sorted, so the moved hole may not
+ * be at [index] any more.
  */
-fun List<HoleDto>.moveHole(index: Int, x: Double, y: Double, geometry: GeometryDto): List<HoleDto> =
+fun List<HoleDto>.moveHole(
+    index: Int,
+    x: Double,
+    y: Double,
+    geometry: GeometryDto,
+    caliber: Caliber,
+): List<HoleDto> =
     mapIndexed { i, hole ->
         if (i != index) {
             hole
         } else {
-            geometry.scoreHoleAt(x, y).copy(
+            val fresh = geometry.scoreHoleAt(x, y, caliber)
+            val scored = if (hole.hasAutoScore(geometry, caliber)) {
+                fresh
+            } else {
+                fresh.copy(ring = hole.ring, innerTen = hole.innerTen)
+            }
+            scored.copy(
                 detectedRing = hole.detectedRing,
                 detectedInnerTen = hole.detectedInnerTen,
                 detectedX = hole.detectedX,
@@ -277,6 +285,23 @@ fun List<HoleDto>.moveHole(index: Int, x: Double, y: Double, geometry: GeometryD
             )
         }
     }.sortedWith(HOLE_ORDER)
+
+/**
+ * Whether this hole's score is what its position gave it rather than one the
+ * user selected (Detail keeps no typed flag): the score [caliber] gives there,
+ * the ungauged one hand-placed holes got before caliber sizing, or the
+ * detector's own untouched score on its detected spot (gauged by a box radius
+ * Detail can't recompute). A detection already dragged on the scan screen fails
+ * all three and so counts as selected — a stored hole radius would fix that.
+ */
+private fun HoleDto.hasAutoScore(geometry: GeometryDto, caliber: Caliber): Boolean {
+    val hx = x ?: return false
+    val hy = y ?: return false
+    fun same(other: HoleDto) = other.ring == ring && other.innerTen == innerTen
+    return same(geometry.scoreHoleAt(hx, hy, caliber)) ||
+        same(geometry.scoreHoleAt(hx, hy, Caliber.NONE)) ||
+        (detectedX == hx && detectedY == hy && !isEdited())
+}
 
 /**
  * Overlay the score pickers on the detected holes: picker slot `i` is hole `i`

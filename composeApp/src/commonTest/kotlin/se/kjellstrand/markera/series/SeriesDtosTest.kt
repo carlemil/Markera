@@ -3,10 +3,17 @@ package se.kjellstrand.markera.series
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
+import se.kjellstrand.markera.ui.markera.holeSidePx
+import se.kjellstrand.markera.ui.markera.manualDetection
+import se.kjellstrand.markera.vision.CentreEstimate
+import se.kjellstrand.markera.vision.CentreMethod
+import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
+import se.kjellstrand.markera.vision.scoreHits
 import se.kjellstrand.markera.webshooter.api.webshooterJson
 
 class SeriesDtosTest {
@@ -182,12 +189,12 @@ class SeriesDtosTest {
         // An inner ten sorts ahead of the ring 9 that was already there.
         assertEquals(
             listOf(HoleDto(110.0, 100.0, 10, true, 10.0)) + existing,
-            existing.withNewHole(110.0, 100.0, geometry),
+            existing.withNewHole(110.0, 100.0, geometry, Caliber.NONE),
         )
         // 60 mm out lands in ring 8, behind the 9, and no edge gauge is applied.
         assertEquals(
             existing + HoleDto(100.0, 160.0, 8, false, 60.0),
-            existing.withNewHole(100.0, 160.0, geometry),
+            existing.withNewHole(100.0, 160.0, geometry, Caliber.NONE),
         )
     }
 
@@ -200,9 +207,57 @@ class SeriesDtosTest {
 
         // The ring 8 dragged onto the centre: rescored to an inner X, first now,
         // and still carrying what the detector said about it.
-        val moved = holes.moveHole(1, 105.0, 100.0, geometry)
+        val moved = holes.moveHole(1, 105.0, 100.0, geometry, Caliber.NONE)
         assertEquals(HoleDto(105.0, 100.0, 10, true, 5.0, 8, false, 2.0, 2.0), moved.first())
         assertEquals(holes[0], moved.last())
+    }
+
+    @Test
+    fun aHandPlacedHoleScoresTheSameOnTheScanAndInDetail() {
+        val centre = CentreEstimate(100f, 100f, CentreMethod.LINE_INTERSECTION)
+        val ring = FittedEllipse(100f, 100f, 100f, 100f, 0f)
+        for (caliber in listOf(Caliber.LR22, Caliber.C45)) {
+            for (dx in listOf(10.0, 14.0, 27.0, 28.5, 52.0, 77.0)) {
+                val x = 100.0 + dx
+                // As addHit builds it: a box of the caliber's side, scored by scoreHits.
+                val box = assertNotNull(
+                    manualDetection(x.toFloat(), 100f, emptyList(), 0f, caliber.holeSidePx(ring)),
+                )
+                val scan = scoreHits(listOf(box), centre, ring).single()
+                val detail = geometry.scoreHoleAt(x, 100.0, caliber)
+                assertEquals(scan.ring to scan.isInnerTen, detail.ring to detail.innerTen, "$caliber at $dx mm")
+            }
+        }
+    }
+
+    @Test
+    fun aDot22HoleJustOutsideTheTenLineScoresTen() {
+        assertEquals(10, geometry.scoreHoleAt(127.0, 100.0, Caliber.LR22).ring)
+        assertEquals(9, geometry.scoreHoleAt(127.0, 100.0, Caliber.NONE).ring)
+    }
+
+    @Test
+    fun aSelectedScoreSurvivesADragInDetail() {
+        // 60 mm out scores 8 by position; the user set it to 7.
+        val holes = listOf(HoleDto(160.0, 100.0, 7, false, 60.0))
+
+        val moved = holes.moveHole(0, 100.0, 130.0, geometry, Caliber.LR22).single()
+
+        assertEquals(HoleDto(100.0, 130.0, 7, false, 30.0), moved)
+    }
+
+    @Test
+    fun anAutoScoreIsRescoredWhenDraggedInDetail() {
+        val auto = geometry.scoreHoleAt(160.0, 100.0, Caliber.LR22)
+        // Placed before caliber sizing: 51 mm ungauged is an 8, gauged by .22 a 9.
+        val oldUngauged = HoleDto(151.0, 100.0, 8, false, 51.0)
+        // The detector's untouched score, gauged by a box radius Detail can't recompute.
+        val detected = HoleDto(174.0, 100.0, 9, false, 74.0, 9, false, 174.0, 100.0)
+
+        assertEquals(10, listOf(auto).moveHole(0, 120.0, 100.0, geometry, Caliber.LR22).single().ring)
+        assertEquals(10, listOf(oldUngauged).moveHole(0, 120.0, 100.0, geometry, Caliber.LR22).single().ring)
+        val movedDetected = listOf(detected).moveHole(0, 120.0, 100.0, geometry, Caliber.LR22).single()
+        assertEquals(HoleDto(120.0, 100.0, 10, false, 20.0, 9, false, 174.0, 100.0), movedDetected)
     }
 
     @Test

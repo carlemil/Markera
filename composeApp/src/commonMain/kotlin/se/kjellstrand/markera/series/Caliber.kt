@@ -12,8 +12,9 @@ package se.kjellstrand.markera.series
  * group is hoisted to the front (`22lr` → [LR22], `9mm` → [MM9]) and an all-digit
  * label gets a `C` prefix (`32` → [C32], `6.5x55` → [C65X55]); `.` and `-` drop out.
  *
- * [diameterMm] is the nominal bullet diameter, used only to size the hit dots the
- * app draws — the backend knows nothing about it.
+ * [diameterMm] is the nominal bullet diameter. It sizes the hit dots the app draws
+ * and the hole a hand-placed hit is edge-gauged with ([holeRadiusMm]) — the
+ * backend knows nothing about it.
  */
 enum class Caliber(val label: String, val diameterMm: Float) {
     /** An unknown caliber is drawn at the calibration size, i.e. exactly like [C32]. */
@@ -76,3 +77,9 @@ const val HIT_DOT_ALPHA = 0.80f
  */
 fun Caliber.hitDotRadiusMm(): Float =
     HIT_DOT_RADIUS_32_MM * (diameterMm / Caliber.C32.diameterMm)
+
+/**
+ * Radius in mm of the hole a hand-placed hit is edge-gauged with; null for
+ * [Caliber.NONE], whose callers keep their own fallback.
+ */
+fun Caliber.holeRadiusMm(): Double? = if (this == Caliber.NONE) null else diameterMm / 2.0

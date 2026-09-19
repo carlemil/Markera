@@ -169,7 +169,8 @@ class TargetScanController(
     /**
      * The user tapped a hole the detector missed, at [x],[y] in source-image px.
      * Scores that point with the same geometry as the scan and adds it as a
-     * manual hole. A tap within [minGapPx] (image px) of an existing hole is a
+     * manual hole, its box sized by [caliber] (the median hole for
+     * [Caliber.NONE]). A tap within [minGapPx] (image px) of an existing hole is a
      * mis-tap and adds nothing.
      */
     fun addHit(
@@ -178,8 +179,10 @@ class TargetScanController(
         x: Float,
         y: Float,
         minGapPx: Float,
+        caliber: Caliber,
     ) = editHoles(viewModel, snapshot) { state, centre, ring ->
-        val detection = manualDetection(x, y, state.detections, minGapPx) ?: return@editHoles false
+        val detection = manualDetection(x, y, state.detections, minGapPx, caliber.holeSidePx(ring))
+            ?: return@editHoles false
         val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
             ?: return@editHoles false
         viewModel.addManualHit(detection, hit)

@@ -4,7 +4,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.vision.Detection
+import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 
 class ManualHitTest {
@@ -31,6 +33,21 @@ class ManualHitTest {
         val existing = listOf(box(0f, 0f, 10f), box(500f, 500f, 20f), box(900f, 900f, 30f))
         val d = assertNotNull(manualDetection(100f, 200f, existing, minGapPx = 24f))
         assertEquals(Detection(90f, 190f, 110f, 210f, 1f), d)
+    }
+
+    @Test
+    fun aGivenHoleSideSizesTheBoxCentredOnTheTap() {
+        val existing = listOf(box(0f, 0f, 10f), box(500f, 500f, 20f), box(900f, 900f, 30f))
+        val d = assertNotNull(manualDetection(100f, 200f, existing, minGapPx = 24f, holeSidePx = 8f))
+        assertEquals(Detection(96f, 196f, 104f, 204f, 1f), d)
+    }
+
+    @Test
+    fun theCaliberSetsTheHoleSideAndNoneLeavesItToTheMedian() {
+        // semiMajor 500 px = 100 mm, so 0.2 mm/px: a 5.66 mm .22 lr hole is 28.3 px.
+        val ring = FittedEllipse(0f, 0f, 500f, 400f, 0f)
+        assertEquals(28.3f, assertNotNull(Caliber.LR22.holeSidePx(ring)), 0.001f)
+        assertNull(Caliber.NONE.holeSidePx(ring))
     }
 
     @Test

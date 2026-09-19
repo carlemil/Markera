@@ -47,8 +47,8 @@ data class HitScore(
     val original: HitScore? = null,
     /**
      * [ring]/[isInnerTen] were set by tapping the score box, not derived from
-     * where the hole sits ([distanceMm] still is). A drag
-     * clears it, since then the position is the truth again.
+     * where the hole sits ([distanceMm] still is). It survives a drag: a score
+     * the user selected is never overwritten.
      */
     val typed: Boolean = false,
 )
@@ -108,9 +108,7 @@ fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse):
  * rotated so the ellipse major axis aligns with +x, then the minor-axis
  * component is stretched by `semiMajor / semiMinor` so the ellipse becomes
  * the original circle; distances convert to mm via `mmPerPx` derived from
- * `semiMajor`. Edge gauge: the shot counts the higher ring if the hole's
- * edge reaches the line, so the ring is decided on the distance to the
- * hole's inner edge (centre distance minus the hole radius).
+ * `semiMajor`. Each hole is edge-gauged by its box radius through [scoreAt].
  *
  * Returned inner-X first, then highest ring, then nearest — so the first
  * five map straight onto the score pickers.
@@ -126,18 +124,28 @@ fun scoreHits(
         val cx = (d.left + d.right) / 2f
         val cy = (d.top + d.bottom) / 2f
         val distMm = distanceMm(cx, cy, centre, ring)
-        // Edge gauge: score on the distance to the hole's inner edge.
         val holeRadiusMm = ((d.right - d.left) + (d.bottom - d.top)) / 4.0 * mmPerPx
-        val edgeMm = (distMm - holeRadiusMm).coerceAtLeast(0.0)
+        val (ring, innerTen) = scoreAt(distMm, holeRadiusMm)
         HitScore(
             centerXpx = cx,
             centerYpx = cy,
             topYpx = d.top,
             distanceMm = distMm,
-            ring = ringForDistance(edgeMm),
-            isInnerTen = edgeMm <= INNER_TEN_RADIUS_MM,
+            ring = ring,
+            isInnerTen = innerTen,
         )
     }
+}
+
+/**
+ * The one scoring rule, detected or hand-placed: (ring, inner-X) for a hole
+ * whose centre is [distMm] from the target centre. Edge gauge — the shot counts
+ * the higher ring if the hole's edge reaches the line, so the ring is decided on
+ * the distance to the hole's inner edge (centre distance minus [holeRadiusMm]).
+ */
+fun scoreAt(distMm: Double, holeRadiusMm: Double): Pair<Int, Boolean> {
+    val edgeMm = (distMm - holeRadiusMm).coerceAtLeast(0.0)
+    return ringForDistance(edgeMm) to (edgeMm <= INNER_TEN_RADIUS_MM)
 }
 
 /**
