@@ -28,11 +28,8 @@ actual class HoleDetector actual constructor(
     actual val inputSize: Int = inputSize
 
     actual suspend fun detect(inputChw: FloatArray): List<RawDetection> {
-        val model = holeModel
-        if (model == null) {
-            println("HoleDetector: no HoleModel bound")
-            return emptyList()
-        }
+        // Throw rather than return nothing, so the scan shows its inference error.
+        val model = holeModel ?: error("no HoleModel bound")
         return withContext(Dispatchers.Default) {
             // NSData.create(bytes:length:) copies, so the pin can end here.
             val input = inputChw.usePinned {
@@ -41,11 +38,13 @@ actual class HoleDetector actual constructor(
             val started = TimeSource.Monotonic.markNow()
             val out = model.run(input, inputSize)
             println("HoleDetector: inference took ${started.elapsedNow()}")
+            // The Swift side returns an empty Data() on any failure.
+            if (out.length == 0uL) error("hole model failed")
 
             // YOLO export with embedded NMS: [1, 300, 6], each row
             // (x1, y1, x2, y2, confidence, classId) in input-tensor pixels.
             // Unused slots are zero-padded and fall below PREFILTER_CONFIDENCE.
-            val floats = out.bytes?.reinterpret<FloatVar>() ?: return@withContext emptyList<RawDetection>()
+            val floats = out.bytes?.reinterpret<FloatVar>() ?: error("hole model failed")
             val rows = (out.length / 4uL).toInt() / 6
             val list = ArrayList<RawDetection>(rows)
             for (i in 0 until rows) {

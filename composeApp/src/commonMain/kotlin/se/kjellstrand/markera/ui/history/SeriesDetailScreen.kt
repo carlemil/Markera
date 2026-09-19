@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -433,6 +434,8 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     try {
                         services.repository.delete(series.id)
                         onBack()
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (_: Throwable) {
                         toast(deleteFailedText)
                     }

@@ -27,7 +27,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.viewinterop.UIKitView
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.convert
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.compose.resources.stringResource
@@ -59,8 +58,8 @@ import platform.UIKit.UIImageOrientation
 import platform.UIKit.UIView
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
+import platform.darwin.dispatch_queue_create
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.ios_pick_photo
 import se.kjellstrand.markera.series.keyWindow
@@ -114,6 +113,10 @@ private class CameraFrameSource : FrameSource {
     private val session = AVCaptureSession()
     private val photoOutput = AVCapturePhotoOutput()
 
+    // startRunning blocks, so it runs off main — but on one serial queue, so a
+    // stop can never overtake the start it follows.
+    private val sessionQueue = dispatch_queue_create("markera.camera", null)
+
     // AVFoundation holds the capture delegate weakly; park it for the shot.
     private var captureDelegate: PhotoCaptureDelegate? = null
 
@@ -142,9 +145,8 @@ private class CameraFrameSource : FrameSource {
                     modifier = Modifier.fillMaxSize(),
                 )
                 DisposableEffect(Unit) {
-                    // startRunning blocks; AVFoundation wants it off the main thread.
-                    onBackgroundQueue { session.startRunning() }
-                    onDispose { onBackgroundQueue { session.stopRunning() } }
+                    dispatch_async(sessionQueue) { session.startRunning() }
+                    onDispose { dispatch_async(sessionQueue) { session.stopRunning() } }
                 }
             } else {
                 PickedPhoto(shown)
@@ -155,6 +157,10 @@ private class CameraFrameSource : FrameSource {
 
     override suspend fun capture(): PlatformImage? {
         picked?.let { return it }
+        // Capturing without a running session or a live video connection raises
+        // an ObjC exception Kotlin cannot catch; no frame shows the scan error.
+        val connection = photoOutput.connectionWithMediaType(AVMediaTypeVideo)
+        if (!session.running || connection == null || !connection.enabled || !connection.active) return null
         return suspendCancellableCoroutine { cont ->
             val delegate = PhotoCaptureDelegate { image -> cont.resume(image) }
             captureDelegate = delegate
@@ -203,8 +209,12 @@ private class PhotoCaptureDelegate(
         error: NSError?,
     ) {
         if (error != null) println("CameraFrameSource: capture failed: ${error.localizedDescription}")
+        val data = didFinishProcessingPhoto.fileDataRepresentation()
         // The JPEG carries an EXIF orientation; upright() bakes it into pixels.
-        onPhoto(didFinishProcessingPhoto.fileDataRepresentation()?.let { UIImage(data = it) }?.upright())
+        // The callback runs on a background queue and UIImage drawing wants main.
+        dispatch_async(dispatch_get_main_queue()) {
+            onPhoto(data?.let { UIImage(data = it) }?.upright())
+        }
     }
 }
 
@@ -233,9 +243,6 @@ private fun BoxScope.PickButton(onPicked: (UIImage?) -> Unit) {
         )
     }
 }
-
-private fun onBackgroundQueue(block: () -> Unit) =
-    dispatch_async(dispatch_get_global_queue(0.convert(), 0.convert()), block)
 
 // PHPickerViewController holds its delegate weakly; park it until it fires.
 private var pickerDelegate: PickerDelegate? = null

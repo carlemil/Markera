@@ -1,14 +1,21 @@
-@file:OptIn(ExperimentalForeignApi::class)
+@file:OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 
 package se.kjellstrand.markera.vision
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.ObjCObjectVar
+import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.ptr
+import kotlinx.cinterop.value
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import platform.CoreGraphics.CGRect
+import platform.Foundation.NSError
 import platform.Foundation.NSMakeRange
 import platform.Vision.VNImageRequestHandler
 import platform.Vision.VNRecognizeTextRequest
@@ -28,7 +35,7 @@ actual class DigitDetector actual constructor() {
     actual suspend fun detect(image: PlatformImage): List<DigitDetection> =
         withContext(Dispatchers.Default) {
             // A CIImage-backed UIImage has no CGImage; Vision needs one.
-            val cg = image.CGImage ?: return@withContext emptyList<DigitDetection>()
+            val cg = image.CGImage ?: error("image has no CGImage")
             val w = image.width.toDouble()
             val h = image.height.toDouble()
             val started = TimeSource.Monotonic.markNow()
@@ -38,8 +45,12 @@ actual class DigitDetector actual constructor() {
             request.usesLanguageCorrection = false
             // The synchronous form: performRequests blocks until done, and we
             // are already off the main thread.
-            VNImageRequestHandler(cGImage = cg, options = mapOf<Any?, Any>())
-                .performRequests(listOf(request), null)
+            memScoped {
+                val err = alloc<ObjCObjectVar<NSError?>>()
+                val ok = VNImageRequestHandler(cGImage = cg, options = mapOf<Any?, Any>())
+                    .performRequests(listOf(request), err.ptr)
+                if (!ok) error(err.value?.localizedDescription ?: "text recognition failed")
+            }
 
             val observations = request.results?.filterIsInstance<VNRecognizedTextObservation>()
                 ?: emptyList()

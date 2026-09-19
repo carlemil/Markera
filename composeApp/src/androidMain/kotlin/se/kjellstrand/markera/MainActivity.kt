@@ -6,16 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
-import io.ktor.client.engine.okhttp.OkHttp
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.io.files.Path
-import se.kjellstrand.markera.series.DataStoreBackendTokenStore
-import se.kjellstrand.markera.series.SeriesServices
-import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.ui.MarkeraApp
 import se.kjellstrand.markera.ui.competition.rememberCompetitionHost
@@ -33,16 +27,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun start(modelPath: String) {
-        // Built once, outside composition: it owns the DB, the DataStore and the
-        // unpacked model file.
+        // Built outside composition. The series services (DB, DataStore) are the
+        // process's, so a recreation reuses them.
         val app = AppServices(
-            series = SeriesServices(
-                engine = OkHttp.create(),
-                baseUrl = BuildConfig.BACKEND_URL,
-                store = DataStoreBackendTokenStore(this),
-                driver = AndroidSqliteDriver(MarkeraDb.Schema, this, "markera-series.db"),
-                cacheDir = Path(cacheDir.path),
-            ),
+            series = (application as MarkeraApplication).series,
             modelPath = modelPath,
             shareFile = { shareFile(this@MainActivity, File(it)) },
         )

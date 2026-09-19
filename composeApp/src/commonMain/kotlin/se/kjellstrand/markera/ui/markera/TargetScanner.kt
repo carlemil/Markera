@@ -53,6 +53,7 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlin.time.TimeSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -105,6 +106,11 @@ class TargetScanController(
     // the main thread before launch, so a second tap is rejected immediately.
     private val detecting = AtomicBoolean(false)
 
+    // close() arrived mid-scan: the scan's finally closes the detectors once
+    // the native run has returned (closing the ORT session under a running
+    // session.run is a use-after-free).
+    private val closeRequested = AtomicBoolean(false)
+
     /**
      * Called with the scored holes, the frame they came from and the geometry
      * they were scored against (null when there was none) after every
@@ -115,6 +121,13 @@ class TargetScanController(
     var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?) -> Unit)? = null
 
     fun close() {
+        closeRequested.store(true)
+        // Idle: claim the guard for good (no scan can start again) and close
+        // now. Mid-scan: the scan's finally closes instead.
+        if (detecting.compareAndSet(false, true)) closeDetectors()
+    }
+
+    private fun closeDetectors() {
         detector.close()
         digitDetector.close()
     }
@@ -156,11 +169,14 @@ class TargetScanController(
                 val snapshot = frame.centerSquare()
                 snapshotVm.set(snapshot)
                 runPipeline(snapshot, viewModel, detectHoles)
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 println("$TAG: snapshot inference failed " + t.stackTraceToString())
                 viewModel.setError(errorMessage)
             } finally {
                 detecting.store(false)
+                if (closeRequested.load() && detecting.compareAndSet(false, true)) closeDetectors()
             }
         }
         return true
@@ -186,7 +202,6 @@ class TargetScanController(
         val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
             ?: return@editHoles false
         viewModel.addManualHit(detection, hit)
-        true
     }
 
     /**
@@ -431,8 +446,9 @@ fun TargetScanner(
         }
         Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
             if (frozen != null) {
+                val bitmap = remember(frozen) { frozen.toImageBitmap() }
                 Image(
-                    bitmap = frozen.toImageBitmap(),
+                    bitmap = bitmap,
                     contentDescription = null,
                     // Fit-centre so the DetectionOverlay boxes (also fit-centre)
                     // line up with the holes in this non-square snapshot.
