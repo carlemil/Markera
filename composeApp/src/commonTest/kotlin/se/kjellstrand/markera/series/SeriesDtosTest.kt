@@ -14,7 +14,6 @@ import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.scoreHits
-import se.kjellstrand.markera.webshooter.api.webshooterJson
 
 class SeriesDtosTest {
 
@@ -115,7 +114,7 @@ class SeriesDtosTest {
             HoleDto(null, null, 7, false, null, null, null),
         )
         val req = request(*holes.toTypedArray())
-        assertEquals(req, webshooterJson.decodeFromString(webshooterJson.encodeToString(req)))
+        assertEquals(req, seriesJson.decodeFromString(seriesJson.encodeToString(req)))
     }
 
     private fun request(vararg holes: HoleDto) =

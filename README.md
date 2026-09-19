@@ -16,12 +16,14 @@ The app scoring a target in real time:
 ## Goal
 
 To **score precision-shooting series automatically** from an Android and iOS
-app, then save the results to a local database and possibly a backend
-([webshooter](https://github.com/)), with export/share to CSV, Excel, etc.
+app, then save the results to a local database and a backend, with export/share
+to CSV, Excel, etc.
 
-> Note: scoring is now computed automatically from the photo (see *Current
+> Status: scoring is computed automatically from the photo (see *Current
 > pipeline* below) and pre-fills the on-screen pickers, which stay editable.
-> Persistence, backend sync, and export are still goals — not implemented yet.
+> Scored series are saved to the Markera backend (`server/`) and cached locally
+> (SQLDelight); History exports them as a zip of CSVs + images; and competition
+> results can be marked straight into [webshooter](https://webshooter.se/).
 
 ## Current pipeline (what's in use)
 
@@ -175,7 +177,7 @@ editable.
 
 ### Building for Android
 
-The ONNX model `best.onnx` (~80 MB) is **not** committed to the repository. Drop
+The ONNX model `best.onnx` (~40 MB) is **not** committed to the repository. Drop
 it into `composeApp/src/androidMain/assets/best.onnx` before building. The model
 runs at a 1536×1536 input.
 

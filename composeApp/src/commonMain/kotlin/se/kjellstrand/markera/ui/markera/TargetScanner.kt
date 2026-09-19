@@ -89,7 +89,7 @@ import se.kjellstrand.markera.vision.width
 private const val TAG = "Markera"
 
 /**
- * Owns the detectors (one ~80 MB ONNX session for the whole app) and the
+ * Owns the detectors (one ~40 MB ONNX session for the whole app) and the
  * synchronous re-entry guard, and runs the two-phase scan pipeline on demand.
  * Both the free-marking screen and the competition wizard drive one shared
  * instance, created with [rememberTargetScanController] above the navigation
@@ -557,12 +557,11 @@ private fun ScanningOverlay(
             val offsetX = (size.width - imageWidth * s) / 2f
             val offsetY = (size.height - imageHeight * s) / 2f
             // Pivot the sweep on the true target centre — the digit-row line
-            // intersection — falling back to the ring centre, then the viewport.
+            // intersection — falling back to the viewport centre (a ring is only
+            // ever fitted from a found centre).
             val pivot = when {
                 centre != null && centre.method != CentreMethod.NONE && hasImage ->
                     Offset(centre.x * s + offsetX, centre.y * s + offsetY)
-                ring != null && hasImage ->
-                    Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
                 else -> Offset(size.width / 2f, size.height / 2f)
             }
             // The ellipse-based elements (rotating tip, guide rings, trail,

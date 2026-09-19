@@ -254,7 +254,7 @@ class MarkingWizardViewModel(
         }
     }
 
-    /** Back from confirm (or locked) to a fresh scan. */
+    /** Back to a fresh scan, from any step (Locked goes through [unlockForEdit] first). */
     fun rescan() {
         _uiState.update { it.copy(step = LaneStep.Entering, saveError = false, duplicateBy = null) }
     }

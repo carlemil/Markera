@@ -6,8 +6,8 @@ import androidx.compose.ui.Modifier
 import se.kjellstrand.markera.vision.PlatformImage
 
 /**
- * Source of the frame fed into hole detection: a live CameraX preview, see
- * [rememberFrameSource].
+ * Source of the frame fed into hole detection, see [rememberFrameSource]: a live
+ * CameraX preview on Android, AVFoundation or the photo picker on iOS.
  */
 @Stable
 interface FrameSource {

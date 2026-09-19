@@ -105,7 +105,7 @@ fun fit67RingFromDigits(
  * own 6..9 digits (digit v sits mid-band, so `dist = alpha - beta*v` evaluated
  * at v = 6.5; one digit uses the spec ring-width ratio), so the near side of a
  * tilted target starts further out. A side without digits mirrors the opposite
- * one; neither falls back to [fit67RingFromDigits]'s median radius.
+ * one; when both lack digits they start at [fit67RingFromDigits]'s median radius.
  *
  * Move: a disk of radius rho centred on a circle of radius R is dark over
  * `f* = 0.5 - rho/(3*pi*R)` of its area. Both the measured fraction and f* are

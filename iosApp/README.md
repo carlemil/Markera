@@ -16,7 +16,7 @@ From Windows, mirror the working tree and build over ssh:
 
 ```sh
 sh scripts/mac-sync.sh                     # HEAD + uncommitted files -> ~/source/Markera on the Mac
-sh scripts/mac.sh sh scripts/mac-build.sh  # xcodegen + xcodebuild + simctl install/launch
+sh scripts/mac.sh 'bash scripts/mac-build.sh'  # xcodegen + xcodebuild + simctl install/launch
 ```
 
 `scripts/mac-build.sh` copies `Config/Local.xcconfig.example` to the gitignored
@@ -128,10 +128,11 @@ the iPhone 17 Pro Max simulator; the device is inferred from the size, `overwrit
 replaces the set). The version string follows `MARKETING_VERSION` in `project.yml`.
 `fastlane release` does the same, attaches the newest processed TestFlight build and
 submits for review (export compliance: no non-exempt encryption). Both run fine over
-`scripts/mac.sh` with the API key alone, but need a UTF-8 locale:
+`scripts/mac.sh` with the API key alone, but need a UTF-8 locale; `mac-metadata.sh`
+sets it for the listing, the release lane has no script:
 
 ```sh
-sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane metadata'
+sh scripts/mac.sh 'bash scripts/mac-metadata.sh'
 sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane release'
 ```
 

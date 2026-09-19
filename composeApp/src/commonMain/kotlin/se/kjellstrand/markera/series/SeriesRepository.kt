@@ -11,7 +11,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.series.db.MarkeraDb
-import se.kjellstrand.markera.webshooter.api.webshooterJson
 
 /** The scanned frames on disk, one JPEG per series id. */
 interface ImageCache {
@@ -220,16 +219,13 @@ class SeriesRepository(
     private fun insert(dto: SeriesDto) = q.upsert(
         id = dto.id,
         timestamp = dto.timestamp,
-        caliber = dto.caliber,
-        updated_at = dto.updatedAt ?: "",
-        has_image = if (dto.hasImage) 1L else 0L,
-        json = webshooterJson.encodeToString(dto),
+        json = seriesJson.encodeToString(dto),
     )
 
     /** Never throws: an undecodable row is dropped, and the stamp with it so the next refresh reloads it whole. */
     private fun reload() {
         val rows = q.selectAll().executeAsList()
-        val good = rows.mapNotNull { runCatching { webshooterJson.decodeFromString<SeriesDto>(it.json) }.getOrNull() }
+        val good = rows.mapNotNull { runCatching { seriesJson.decodeFromString<SeriesDto>(it.json) }.getOrNull() }
         if (good.size < rows.size) {
             val kept = good.mapTo(HashSet()) { it.id }
             rows.filter { it.id !in kept }.forEach { q.deleteById(it.id) }

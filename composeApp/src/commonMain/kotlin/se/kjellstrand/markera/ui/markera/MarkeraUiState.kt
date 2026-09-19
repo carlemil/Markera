@@ -11,7 +11,7 @@ data class MarkeraUiState(
     val detections: List<Detection> = emptyList(),
     val digits: List<DigitDetection> = emptyList(),
     val centre: CentreEstimate? = null,
-    /** Digit-predicted 6/7 boundary, snapped to the black->white edge. */
+    /** The 6/7 ring, the probe-disk ellipse from `fit67Ring`; null when that was implausible. */
     val ring: FittedEllipse? = null,
     /** Per-hole ring scores, inner-X first; the first five fill the pickers. */
     val scores: List<HitScore> = emptyList(),

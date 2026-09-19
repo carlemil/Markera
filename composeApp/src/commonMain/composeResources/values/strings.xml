@@ -200,7 +200,6 @@
     <string name="detail_kind_typed">typed</string>
     <string name="detail_kind_moved">moved</string>
     <string name="detail_kind_detected">detected</string>
-    <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Remove hit</string>
 
     <!-- Webshooter login -->
@@ -218,7 +217,6 @@
 
     <!-- Marking groups -->
     <string name="marking_title">Marking</string>
-    <string name="marking_pick_group">Choose marking group</string>
     <string name="marking_active_patrol">Squad called right now: Squad %1$d</string>
     <string name="marking_active_patrol_at">Squad called right now: Squad %1$d (%2$s)</string>
     <string name="wizard_unknown_name">Unknown</string>
@@ -236,7 +234,6 @@
 
     <!-- Marking wizard -->
     <string name="wizard_series">Series %1$d of %2$d</string>
-    <string name="wizard_lane">Lane %1$d</string>
     <string name="wizard_scan">Scan the target</string>
     <string name="wizard_rescan">Rescan</string>
     <string name="wizard_save">Save</string>
@@ -249,10 +246,8 @@
     <string name="wizard_skip">Skip</string>
     <string name="wizard_claimed">%1$s is working on this lane</string>
     <string name="wizard_claim_retry">Try again</string>
-    <string name="wizard_show_summary">Show series</string>
     <string name="wizard_station_summary">Series %1$d — summary</string>
     <string name="wizard_next_station">Go to series %1$d</string>
-    <string name="wizard_all_marked">Every lane is fully marked in this series.</string>
     <string name="wizard_registered_count">%1$d of %2$d registered</string>
     <string name="wizard_duplicate">Already marked by %1$s</string>
     <string name="wizard_save_error">Could not save. Try again.</string>

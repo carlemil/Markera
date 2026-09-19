@@ -27,7 +27,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.PlatformImage
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
 // The recorder saves on its own scope, so the tests wait on the status flow
 // instead of assuming a dispatcher.
@@ -86,7 +85,7 @@ class SeriesRecorderTest {
                 )
             }
         }
-        val api = SeriesApi(createWebshooterHttpClient(engine), "http://host:8090") { "tok" }
+        val api = SeriesApi(createSeriesHttpClient(engine), "http://host:8090") { "tok" }
         session = BackendSessionRepository(
             api,
             InMemoryBackendTokenStore(

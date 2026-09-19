@@ -10,7 +10,7 @@ data class AuthSession(
     val userName: String? = null,
 )
 
-/** Platform persistence for [AuthSession] (DataStore on Android, stub on iOS). */
+/** Platform persistence for [AuthSession] (Android only, DataStore; iOS has no webshooter token store). */
 interface TokenStore {
     suspend fun read(): AuthSession?
     suspend fun write(session: AuthSession)

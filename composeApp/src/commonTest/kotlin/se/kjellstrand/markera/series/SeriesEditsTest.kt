@@ -10,7 +10,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
 class SeriesEditsTest {
 
@@ -23,7 +22,7 @@ class SeriesEditsTest {
 
     private val repository = run {
         val api = SeriesApi(
-            createWebshooterHttpClient(
+            createSeriesHttpClient(
                 MockEngine { request ->
                     bodies += (request.body as TextContent).text
                     respond("", status)

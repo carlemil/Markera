@@ -187,25 +187,3 @@ fun ScoreMiniRow(values: List<Int>, modifier: Modifier = Modifier) {
     }
 }
 
-/** Landscape — the score boxes in a column, read-only (only the scan screen). */
-@Composable
-fun ScorePickerVerticalColumn(
-    values: List<Int>,
-    modifier: Modifier = Modifier,
-    letteredCount: Int = 0,
-    manual: List<Boolean> = emptyList(),
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(PICKER_GAP),
-    ) {
-        values.forEachIndexed { i, v ->
-            ScoreBox(
-                value = v,
-                onValueChange = null,
-                letter = if (i < letteredCount) holeLetter(i) else null,
-                manual = manual.getOrElse(i) { false },
-            )
-        }
-    }
-}

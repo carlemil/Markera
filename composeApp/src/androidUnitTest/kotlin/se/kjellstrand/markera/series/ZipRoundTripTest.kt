@@ -4,10 +4,10 @@ import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 import kotlinx.io.Buffer
 import kotlinx.io.readByteArray
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /** The zip we hand-roll in common code has to open in a real zip reader. */
 class ZipRoundTripTest {
@@ -26,12 +26,12 @@ class ZipRoundTripTest {
         ZipInputStream(ByteArrayInputStream(buffer.readByteArray())).use { zip ->
             val first = zip.nextEntry!!
             assertEquals("images/å.jpg", first.name)
-            assertArrayEquals(jpeg, zip.readBytes())
+            assertContentEquals(jpeg, zip.readBytes())
             assertEquals(jpeg.size.toLong(), first.size)
 
             val second = zip.nextEntry!!
             assertEquals("empty.csv", second.name)
-            assertArrayEquals(ByteArray(0), zip.readBytes())
+            assertContentEquals(ByteArray(0), zip.readBytes())
             assertEquals(0L, second.size)
 
             assertNull(zip.nextEntry)

@@ -4,7 +4,7 @@ import kotlin.math.min
 
 /**
  * Pack row-major `0xAARRGGBB` pixels into 8-bit luma (Rec. 601 weights), the
- * input the edge/ellipse routines expect. One byte per pixel, no padding.
+ * input of the Otsu threshold and the 6/7 probe disks (`Preprocess.kt`). One byte per pixel, no padding.
  */
 fun lumaFromArgb(argb: IntArray): ByteArray {
     val out = ByteArray(argb.size)

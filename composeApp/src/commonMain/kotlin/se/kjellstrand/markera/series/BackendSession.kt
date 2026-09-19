@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 /** The persisted Markera backend login. [provider] is `google`, `apple` or `dev`. */
 data class BackendAuth(val token: String, val userId: Long, val provider: String)
 
-/** Platform persistence for [BackendAuth] (DataStore on Android, stub on iOS). */
+/** Platform persistence for [BackendAuth] (DataStore on Android, NSUserDefaults on iOS). */
 interface BackendTokenStore {
     suspend fun read(): BackendAuth?
     suspend fun write(auth: BackendAuth)
@@ -35,13 +35,6 @@ interface BackendTokenStore {
     suspend fun writeTheme(value: String) {}
     suspend fun readLanguage(): String? = null
     suspend fun writeLanguage(value: String?) {}
-}
-
-/** In-memory store for tests. */
-class InMemoryBackendTokenStore(private var auth: BackendAuth? = null) : BackendTokenStore {
-    override suspend fun read(): BackendAuth? = auth
-    override suspend fun write(auth: BackendAuth) { this.auth = auth }
-    override suspend fun clear() { auth = null }
 }
 
 /**

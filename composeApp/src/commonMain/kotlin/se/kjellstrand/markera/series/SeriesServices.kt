@@ -7,7 +7,6 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readByteArray
 import se.kjellstrand.markera.series.db.MarkeraDb
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
 /**
  * Wires the Markera series backend stack (HTTP client → API → session → local
@@ -26,7 +25,7 @@ class SeriesServices(
     val repository: SeriesRepository
 
     init {
-        val client = createWebshooterHttpClient(engine)
+        val client = createSeriesHttpClient(engine)
         lateinit var repo: BackendSessionRepository
         api = SeriesApi(client, baseUrl, tokenProvider = { repo.currentToken })
         repo = BackendSessionRepository(api, store)

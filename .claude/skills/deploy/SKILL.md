@@ -104,6 +104,7 @@ just deploying), the detect flow can be driven and observed with:
 
 - Tap the detect FAB (bottom-right): `adb -s <serial> shell input tap 1264 2880`
   (valid for this phone's 1440×3216 @ 640 dpi screen).
-- Watch results: `adb -s <serial> logcat -d -s Markera HoleDetector` — the app
+- Watch results: `adb -s <serial> logcat -d -s Markera HoleDetector System.out` — the app
+  (`TargetScanner`'s `println`s land under `System.out`)
   logs snapshot size, raw/kept detection counts, centre method, and
   `inference took N ms`.

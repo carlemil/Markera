@@ -2,6 +2,8 @@ package se.kjellstrand.markera.series
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -15,9 +17,21 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
-import se.kjellstrand.markera.webshooter.api.dto.ApiErrorDto
-import se.kjellstrand.markera.webshooter.api.webshooterJson
+import kotlinx.serialization.json.Json
+
+/** The backend's JSON, and the local cache's: `SeriesRepository` stores whole [SeriesDto]s with it. */
+val seriesJson: Json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    explicitNulls = false
+}
+
+fun createSeriesHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(engine) {
+    expectSuccess = false
+    install(ContentNegotiation) { json(seriesJson) }
+}
 
 /** Non-2xx from the Markera backend; [message] is the server's `{"error": ...}` when present. */
 class SeriesApiException(val status: Int, message: String) : Exception(message) {
@@ -33,6 +47,10 @@ private data class DevAuthRequest(val subject: String)
 
 @Serializable
 private data class IdResponse(val id: Long)
+
+/** The server's error body, `{"error": ...}`. */
+@Serializable
+private data class ServerError(val error: String? = null)
 
 /**
  * Typed client for the Markera series backend (`server/`). Adds the Bearer
@@ -54,7 +72,7 @@ class SeriesApi(
         if (status.value in 200..299) return
         val text = bodyAsText()
         val error = try {
-            webshooterJson.decodeFromString<ApiErrorDto>(text).error
+            seriesJson.decodeFromString<ServerError>(text).error
         } catch (_: Exception) {
             null
         }

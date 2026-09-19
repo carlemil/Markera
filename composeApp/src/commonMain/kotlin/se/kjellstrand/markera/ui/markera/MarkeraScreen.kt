@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -135,15 +134,13 @@ fun MarkeraScreen(
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             // Edge-to-edge draws under the status bar / nav bar; keep content
             // clear of both, while the preview stays full-bleed horizontally.
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
     ) {
-        val isPortrait = maxHeight >= maxWidth
-
         if (!permission.granted) {
             CameraPermissionPrompt(onGrantClick = permission.request)
         } else {
@@ -166,54 +163,27 @@ fun MarkeraScreen(
                         },
                     ),
                 )
-                if (isPortrait) {
-                    TargetScanner(
-                        frameSource = frameSource,
-                        snapshotVm = snapshotVm,
-                        uiState = uiState,
-                        showDebug = showDebug,
-                        onError = viewModel::setError,
-                        editing = editing,
-                        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-                    )
-                    BottomArea(
-                        isFrozen = isFrozen,
-                        processing = processing,
-                        uiState = uiState,
-                        onScan = onDetectClick,
-                        onResume = onResumeLive,
-                        onReset = onReset,
-                        onSetScore = onSetScore,
-                        detectHoles = detectHoles,
-                        onToggleDetectHoles = { detectHoles = it },
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                    )
-                } else {
-                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        BottomArea(
-                            isFrozen = isFrozen,
-                            processing = processing,
-                            uiState = uiState,
-                            onScan = onDetectClick,
-                            onResume = onResumeLive,
-                            onReset = onReset,
-                            onSetScore = onSetScore,
-                            detectHoles = detectHoles,
-                            onToggleDetectHoles = { detectHoles = it },
-                            landscape = true,
-                            modifier = Modifier.fillMaxHeight().weight(1f),
-                        )
-                        TargetScanner(
-                            frameSource = frameSource,
-                            snapshotVm = snapshotVm,
-                            uiState = uiState,
-                            showDebug = showDebug,
-                            onError = viewModel::setError,
-                            editing = editing,
-                            modifier = Modifier.fillMaxHeight().aspectRatio(1f),
-                        )
-                    }
-                }
+                TargetScanner(
+                    frameSource = frameSource,
+                    snapshotVm = snapshotVm,
+                    uiState = uiState,
+                    showDebug = showDebug,
+                    onError = viewModel::setError,
+                    editing = editing,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                )
+                BottomArea(
+                    isFrozen = isFrozen,
+                    processing = processing,
+                    uiState = uiState,
+                    onScan = onDetectClick,
+                    onResume = onResumeLive,
+                    onReset = onReset,
+                    onSetScore = onSetScore,
+                    detectHoles = detectHoles,
+                    onToggleDetectHoles = { detectHoles = it },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
             }
         }
 
@@ -260,7 +230,7 @@ fun MarkeraScreen(
 }
 
 /**
- * Area below (portrait) or beside (landscape) the viewport: a live hint before
+ * Area below the viewport: a live hint before
  * the first scan, a "working" line while detecting, and the results (total +
  * editable score pickers + actions) once a frame has been scored.
  */
@@ -276,7 +246,6 @@ private fun BottomArea(
     detectHoles: Boolean,
     onToggleDetectHoles: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    landscape: Boolean = false,
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
         when {
@@ -310,7 +279,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onResume, onReset, onSetScore, landscape, Modifier.fillMaxSize())
+            else -> ResultsContent(uiState, onResume, onReset, onSetScore, Modifier.fillMaxSize())
         }
     }
 }
@@ -371,13 +340,12 @@ private fun ResultsContent(
     onResume: () -> Unit,
     onReset: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
-    landscape: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
     val manual = uiState.scores.map { it.manual }
     Column(modifier) {
-        // Badge + boxes centred while they fit, scrolled when they don't (landscape);
+        // Badge + boxes centred while they fit, scrolled when they don't;
         // the action bar below never scrolls away.
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Column(
@@ -386,22 +354,14 @@ private fun ResultsContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 TotalBadge(total)
-                if (landscape) {
-                    ScorePickerVerticalColumn(
-                        values = uiState.topScores,
-                        letteredCount = uiState.scores.size,
-                        manual = manual,
-                    )
-                } else {
-                    // A box with a hole takes a typed score (the hole stays put); empty slots just display.
-                    ScorePickerHorizontalRow(
-                        values = uiState.topScores,
-                        onValueChange = onSetScore,
-                        letteredCount = uiState.scores.size,
-                        editableCount = uiState.scores.size,
-                        manual = manual,
-                    )
-                }
+                // A box with a hole takes a typed score (the hole stays put); empty slots just display.
+                ScorePickerHorizontalRow(
+                    values = uiState.topScores,
+                    onValueChange = onSetScore,
+                    letteredCount = uiState.scores.size,
+                    editableCount = uiState.scores.size,
+                    manual = manual,
+                )
             }
         }
         Row(
