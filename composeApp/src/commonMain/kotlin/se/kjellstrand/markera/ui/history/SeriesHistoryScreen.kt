@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -75,7 +76,7 @@ import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.localTime
-import se.kjellstrand.markera.series.scoreLine
+import se.kjellstrand.markera.series.scorePicks
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.series.utcDay
@@ -91,6 +92,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.AppTopBar
+import se.kjellstrand.markera.ui.markera.ScoreMiniRow
 import se.kjellstrand.markera.ui.stats.DateRangeDialog
 import se.kjellstrand.markera.ui.stats.SectionHeader
 import se.kjellstrand.markera.ui.markera.TotalBadge
@@ -511,7 +513,7 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
  */
 private const val COLUMN_1 = 1f
 private const val COLUMN_2 = 1f
-private const val COLUMN_3 = 1.3f
+private const val COLUMN_3 = 1.8f
 
 /** The hairline "|" between the columns. */
 @Composable
@@ -523,12 +525,12 @@ private fun Separator() {
     )
 }
 
-/** One labelled column of the card's top strip: small label over the value. */
+/** One labelled column of the card's top strip: small label over the [content]. */
 @Composable
 private fun LabelledValue(
     label: String,
-    value: String,
     modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
 ) {
     // Centred in the column, label over value.
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -538,16 +540,22 @@ private fun LabelledValue(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
+        content()
     }
+}
+
+/** A [LabelledValue]'s value as text. */
+@Composable
+private fun ValueText(value: String, color: Color = MaterialTheme.colorScheme.onSurface) {
+    Text(
+        text = value,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -606,22 +614,25 @@ internal fun SeriesCard(
                 ) {
                     LabelledValue(
                         label = stringResource(Res.string.history_time_label),
-                        value = localTime(series.timestamp),
                         modifier = Modifier.weight(COLUMN_1),
-                    )
+                    ) {
+                        ValueText(localTime(series.timestamp))
+                    }
                     Separator()
                     LabelledValue(
                         label = stringResource(Res.string.stats_bucket_series),
-                        value = ordinal.toString(),
                         modifier = Modifier.weight(COLUMN_2),
-                    )
+                    ) {
+                        ValueText(ordinal.toString())
+                    }
                     Separator()
                     // The widest column: an X plus five two-digit rings.
                     LabelledValue(
                         label = stringResource(Res.string.stats_hits),
-                        value = series.scoreLine(),
                         modifier = Modifier.weight(COLUMN_3),
-                    )
+                    ) {
+                        if (series.holes.isEmpty()) ValueText("–") else ScoreMiniRow(series.scorePicks())
+                    }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                 // Not tappable: the card itself opens the Serie page, where these are edited.

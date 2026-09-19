@@ -206,7 +206,7 @@ class SeriesDtosTest {
     }
 
     @Test
-    fun totalSumsRingsAndScoreLineSortsHighestFirst() {
+    fun totalSumsRingsAndScorePicksSortHighestFirst() {
         val series = SeriesDto(
             id = 1,
             timestamp = "2026-09-06T10:00:00Z",
@@ -220,6 +220,6 @@ class SeriesDtosTest {
             ),
         )
         assertEquals(46, series.total())
-        assertEquals("X 10 9 9 8", series.scoreLine())
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 10, 9, 9, 8), series.scorePicks())
     }
 }
