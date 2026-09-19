@@ -100,6 +100,28 @@ internal fun ScoreBox(
     }
 }
 
+/** A display-only [ScoreBox] at a third less size, for a series' hits in a list row. */
+@Composable
+fun MiniScoreBox(value: Int) {
+    Box(
+        modifier = Modifier
+            .width(MINI_ITEM_WIDTH)
+            .height(MINI_ITEM_HEIGHT)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), MINI_SHAPE)
+            .border(1.5.dp, MaterialTheme.colorScheme.primary, MINI_SHAPE),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = SCORE_PICKER_LABELS[value.coerceIn(0, SCORE_PICKER_INNER_TEN)],
+            style = MaterialTheme.typography.titleSmall,
+        )
+    }
+}
+
+private val MINI_ITEM_WIDTH = 30.dp
+private val MINI_ITEM_HEIGHT = 32.dp
+private val MINI_SHAPE = RoundedCornerShape(7.dp)
+
 /**
  * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. The
  * competition wizard types any slot; the scan screen only a slot with a hole.

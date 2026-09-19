@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -482,6 +483,57 @@ fun TotalBadge(total: Int) {
                 Text(
                     text = total.toString(),
                     style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The small, display-only caliber | tag | total pill of a saved series (the
+ * Historik card). "-" caliber and no tag both show `–`; a long tag ellipsizes
+ * so the total always stays in view.
+ */
+@Composable
+fun CompactTotalBadge(total: Int, caliber: String, tag: String?, modifier: Modifier = Modifier) {
+    Surface(
+        // On the surfaceVariant card, so the pill takes the plain surface.
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+    ) {
+        Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+            val segment = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            val style = MaterialTheme.typography.labelLarge
+            Text(
+                text = if (caliber == "-") "–" else caliber,
+                style = style,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                modifier = segment,
+            )
+            VerticalDivider()
+            Text(
+                text = tag?.takeIf { it.isNotBlank() } ?: "–",
+                style = style,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = segment.widthIn(max = 96.dp),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = total.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 1,
                 )

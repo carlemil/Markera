@@ -220,6 +220,6 @@ class SeriesDtosTest {
             ),
         )
         assertEquals(46, series.total())
-        assertEquals("X 10 9 9 8", series.scoreLine())
+        assertEquals(listOf(11, 10, 9, 9, 8), series.scorePicks())
     }
 }

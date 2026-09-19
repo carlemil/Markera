@@ -57,12 +57,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -79,11 +76,13 @@ import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.localTime
-import se.kjellstrand.markera.series.scoreLine
+import se.kjellstrand.markera.series.scorePicks
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.series.utcDay
 import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.markera.CompactTotalBadge
+import se.kjellstrand.markera.ui.markera.MiniScoreBox
 import se.kjellstrand.markera.ui.MenuItem
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
@@ -521,53 +520,6 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
     }
 }
 
-/**
- * The card's three columns. Shared by both of its rows so the time sits over
- * the caliber, the series number over the tag and the hits over the total; the
- * third is widest because the hit list is the longest value on the card.
- */
-private const val COLUMN_1 = 1f
-private const val COLUMN_2 = 1f
-private const val COLUMN_3 = 1.3f
-
-/** The hairline "|" between the columns. */
-@Composable
-private fun Separator() {
-    Text(
-        text = "|",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-    )
-}
-
-/** One labelled column of the card's bottom strip: small label over the value. */
-@Composable
-private fun LabelledValue(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
-) {
-    // Centred in the column, label over value, so the two rows read as a grid.
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = valueColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
 @Composable
 private fun SeriesCard(
     series: SeriesDto,
@@ -610,61 +562,19 @@ private fun SeriesCard(
                         .clip(RoundedCornerShape(8.dp)),
                 )
             }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                // Six labelled cells in two rows, on three shared columns: when
-                // it was shot and how it went above, what it was shot with below.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // The day itself is the group header above this card.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LabelledValue(
-                        label = stringResource(Res.string.history_time_label),
-                        value = localTime(series.timestamp),
-                        modifier = Modifier.weight(COLUMN_1),
-                    )
-                    Separator()
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_bucket_series),
-                        value = ordinal.toString(),
-                        modifier = Modifier.weight(COLUMN_2),
-                    )
-                    Separator()
-                    // The widest column: an X plus five two-digit rings.
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_hits),
-                        value = series.scoreLine(),
-                        modifier = Modifier.weight(COLUMN_3),
-                    )
+                Text(
+                    stringResource(Res.string.history_card_title, localTime(series.timestamp), ordinal),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                // Display only: the card itself opens the Serie page, where these are edited.
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    series.scorePicks().forEach { MiniScoreBox(it) }
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-                // The same three weights and the same separators as the line
-                // above, so the two rows' columns sit on the same edges.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_group_caliber),
-                        value = if (series.caliber == "-") "–" else series.caliber,
-                        modifier = Modifier.weight(COLUMN_1),
-                    )
-                    Separator()
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_group_tag),
-                        value = series.tag?.takeIf { it.isNotBlank() } ?: "–",
-                        modifier = Modifier.weight(COLUMN_2),
-                    )
-                    Separator()
-                    LabelledValue(
-                        label = stringResource(Res.string.markera_total_label),
-                        value = series.total().toString(),
-                        valueColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(COLUMN_3),
-                    )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    CompactTotalBadge(series.total(), series.caliber, series.tag)
                 }
             }
         }
