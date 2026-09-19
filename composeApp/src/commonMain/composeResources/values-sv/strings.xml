@@ -276,4 +276,7 @@
     <string name="stats_no_series">Inga serier att visa än</string>
     <string name="competitions_empty_hint">Prova en annan sökning.</string>
     <string name="detail_photo_missing">Inget foto</string>
+    <string name="badge_caliber_short">Kal.</string>
+    <string name="badge_tag_short">Tagg</string>
+    <string name="badge_total_short">Summa</string>
 </resources>

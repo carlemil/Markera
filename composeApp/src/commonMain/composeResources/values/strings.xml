@@ -276,4 +276,7 @@
     <string name="stats_no_series">No series to show yet</string>
     <string name="competitions_empty_hint">Try another search.</string>
     <string name="detail_photo_missing">No photo</string>
+    <string name="badge_caliber_short">Cal.</string>
+    <string name="badge_tag_short">Tag</string>
+    <string name="badge_total_short">Sum</string>
 </resources>
