@@ -104,17 +104,19 @@ fun MarkeraScreen(
     // Editing the frozen frame: tap adds the hole the detector missed (the reach
     // keeps a mis-tap next to a marked hole from doubling it), drag moves one,
     // long press removes one. Each edit re-publishes the pending series.
+    val recorder = LocalSeriesRecorder.current
     val editing = remember(scanController) {
         HoleEditing(
             add = { x, y, reach ->
-                scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach)
+                // Read at tap time, so the remembered lambda sees the current caliber.
+                val caliber = recorder?.caliber?.value ?: Caliber.NONE
+                scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
             },
             move = { i, x, y -> scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y) },
             remove = { i -> pendingDeleteIndex = i },
         )
     }
 
-    val recorder = LocalSeriesRecorder.current
     val onResumeLive: () -> Unit = {
         // Read the pickers before clearResults() wipes them.
         val picks = uiState.topScores

@@ -250,7 +250,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                     -1
                                 } else {
                                     val moved =
-                                        holes.value.moveHole(i, x.toDouble(), y.toDouble(), geometry)
+                                        holes.value.moveHole(i, x.toDouble(), y.toDouble(), geometry, caliber)
                                     holes.value = moved
                                     // Rescoring re-sorts: find the hole again by
                                     // where it was just put, so the drag follows.
@@ -264,7 +264,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                 if (holes.value.size < SCORE_PICKER_COUNT) {
                                     geometry?.let {
                                         holes.value =
-                                            holes.value.withNewHole(x.toDouble(), y.toDouble(), it)
+                                            holes.value.withNewHole(x.toDouble(), y.toDouble(), it, caliber)
                                         commit()
                                     }
                                 }

@@ -56,15 +56,26 @@ class TypedScoreTest {
     }
 
     @Test
-    fun movingATypedHoleReturnsItToItsPositionScore() {
+    fun aTypedScoreSurvivesADrag() {
         val typed = eight.withTypedScore(SCORE_PICKER_INNER_TEN)
         val fresh = HitScore(25f, 0f, 0f, 45.0, 9, false)
 
         val moved = fresh.movedFrom(typed)
 
+        assertTrue(moved.typed)
+        assertEquals(10, moved.ring)
+        assertTrue(moved.isInnerTen)
+        assertEquals(45.0, moved.distanceMm)
+        assertEquals(25f, moved.centerXpx)
+        assertEquals(eight, moved.original)
+    }
+
+    @Test
+    fun anUntypedHoleTakesTheFreshScoreWhenDragged() {
+        val moved = HitScore(25f, 0f, 0f, 45.0, 9, false).movedFrom(eight)
+
         assertFalse(moved.typed)
         assertEquals(9, moved.ring)
-        assertFalse(moved.isInnerTen)
         assertEquals(eight, moved.original)
     }
 
