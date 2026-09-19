@@ -90,13 +90,12 @@ fun List<TrendPoint>.fit(): TrendFit? {
 }
 
 private fun bucketStart(at: Instant, bucket: Bucket, zone: TimeZone): Instant {
-    if (bucket == Bucket.SERIES) return at
     val date = at.toLocalDateTime(zone).date
     val start = when (bucket) {
+        Bucket.SERIES -> return at
         Bucket.DAY -> date
         Bucket.WEEK -> date.minus(date.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY) // Monday
         Bucket.MONTH -> LocalDate(date.year, date.monthNumber, 1)
-        Bucket.SERIES -> at.toLocalDateTime(zone).date // unreachable
     }
     return start.atStartOfDayIn(zone)
 }

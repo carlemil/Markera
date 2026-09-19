@@ -1,7 +1,6 @@
 package se.kjellstrand.markera.ui.markera
 
 import android.util.Rational
-import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
@@ -36,7 +35,6 @@ fun CameraPreview(
     imageCapture: ImageCapture,
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
-    onCameraReady: (Camera) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -69,12 +67,11 @@ fun CameraPreview(
                     .addUseCase(imageCapture)
                     .build()
                 provider.unbindAll()
-                val camera = provider.bindToLifecycle(
+                provider.bindToLifecycle(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     useCases,
                 )
-                onCameraReady(camera)
             } catch (t: Throwable) {
                 Log.e(TAG, "CameraX bind failed", t)
                 onError(t)

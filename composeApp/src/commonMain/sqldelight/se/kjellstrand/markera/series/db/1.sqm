@@ -1,0 +1,14 @@
+-- v1 -> v2: drop the never-read caliber/updated_at/has_image columns. A rebuild,
+-- not DROP COLUMN, which older Android SQLite lacks; the cached rows survive.
+
+CREATE TABLE series_new (
+    id INTEGER NOT NULL PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    json TEXT NOT NULL
+);
+
+INSERT INTO series_new(id, timestamp, json) SELECT id, timestamp, json FROM series;
+
+DROP TABLE series;
+
+ALTER TABLE series_new RENAME TO series;

@@ -197,7 +197,6 @@
     <string name="detail_kind_typed">inskriven</string>
     <string name="detail_kind_moved">flyttad</string>
     <string name="detail_kind_detected">detekterad</string>
-    <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Ta bort träff</string>
 
     <!-- Webshooter login -->
@@ -215,7 +214,6 @@
 
     <!-- Marking groups -->
     <string name="marking_title">Markering</string>
-    <string name="marking_pick_group">Välj markeringsgrupp</string>
     <string name="marking_active_patrol">Uppropat skjutlag just nu: Skjutlag %1$d</string>
     <string name="marking_no_active_patrol">Inget skjutlag är uppropat för mobilregistrering ännu — aktivera skjutlaget i uppropsvyn först, annars går markeringen inte att öppna.</string>
     <string name="marking_lanes">bana %1$d–%2$d</string>
@@ -230,7 +228,6 @@
 
     <!-- Marking wizard -->
     <string name="wizard_series">Serie %1$d av %2$d</string>
-    <string name="wizard_lane">Bana %1$d</string>
     <string name="wizard_scan">Skanna tavlan</string>
     <string name="wizard_rescan">Skanna om</string>
     <string name="wizard_save">Spara</string>
@@ -243,10 +240,8 @@
     <string name="wizard_skip">Hoppa över</string>
     <string name="wizard_claimed">%1$s håller på med den här banan</string>
     <string name="wizard_claim_retry">Försök igen</string>
-    <string name="wizard_show_summary">Visa serie</string>
     <string name="wizard_station_summary">Serie %1$d — sammanfattning</string>
     <string name="wizard_next_station">Gå till serie %1$d</string>
-    <string name="wizard_all_marked">Alla banor är färdigmarkerade i den här serien.</string>
     <string name="wizard_registered_count">%1$d av %2$d registrerade</string>
     <string name="wizard_duplicate">Redan markerad av %1$s</string>
     <string name="wizard_save_error">Kunde inte spara. Försök igen.</string>

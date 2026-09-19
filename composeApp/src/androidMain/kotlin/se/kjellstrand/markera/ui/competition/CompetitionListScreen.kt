@@ -2,7 +2,6 @@ package se.kjellstrand.markera.ui.competition
 
 import se.kjellstrand.markera.ui.AppTopBar
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.safeDrawing
@@ -21,9 +20,6 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import se.kjellstrand.markera.ui.MenuItem
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -37,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
 import se.kjellstrand.markera.webshooter.api.dto.CompetitionSummaryDto

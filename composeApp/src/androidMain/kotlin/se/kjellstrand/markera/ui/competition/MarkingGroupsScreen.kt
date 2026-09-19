@@ -2,7 +2,6 @@ package se.kjellstrand.markera.ui.competition
 
 import se.kjellstrand.markera.ui.AppTopBar
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.safeDrawing
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.stringResource
-import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.SecondaryActionButton
 import se.kjellstrand.markera.res.*
@@ -224,7 +221,7 @@ private fun MarkingGroupCard(
                 val last = group.lastMarked
                 if (last?.serie != null && last.lane != null && last.shooter != null) {
                     Text(
-                        text = stringResource(Res.string.marking_last, last.serie!!, last.shooter!!, last.lane!!),
+                        text = stringResource(Res.string.marking_last, last.serie, last.shooter, last.lane),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

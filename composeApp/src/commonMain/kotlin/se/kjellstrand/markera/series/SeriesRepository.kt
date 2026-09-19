@@ -174,9 +174,6 @@ class SeriesRepository(
     private fun insert(dto: SeriesDto) = q.upsert(
         id = dto.id,
         timestamp = dto.timestamp,
-        caliber = dto.caliber,
-        updated_at = dto.updatedAt ?: "",
-        has_image = if (dto.hasImage) 1L else 0L,
         json = webshooterJson.encodeToString(dto),
     )
 

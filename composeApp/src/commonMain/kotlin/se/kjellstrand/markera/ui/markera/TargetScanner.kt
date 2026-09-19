@@ -539,12 +539,11 @@ private fun ScanningOverlay(
             val offsetX = (size.width - imageWidth * s) / 2f
             val offsetY = (size.height - imageHeight * s) / 2f
             // Pivot the sweep on the true target centre — the digit-row line
-            // intersection — falling back to the ring centre, then the viewport.
+            // intersection — falling back to the viewport centre (a ring is only
+            // ever fitted from a found centre).
             val pivot = when {
                 centre != null && centre.method != CentreMethod.NONE && hasImage ->
                     Offset(centre.x * s + offsetX, centre.y * s + offsetY)
-                ring != null && hasImage ->
-                    Offset(ring.cx * s + offsetX, ring.cy * s + offsetY)
                 else -> Offset(size.width / 2f, size.height / 2f)
             }
             // The ellipse-based elements (rotating tip, guide rings, trail,

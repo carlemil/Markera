@@ -178,7 +178,6 @@ play {
 }
 
 dependencies {
-    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
     testImplementation(libs.junit)

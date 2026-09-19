@@ -58,7 +58,6 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.random.Random
 import org.jetbrains.compose.resources.stringResource
-import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.ui.markera.CameraPermissionPrompt
 import se.kjellstrand.markera.ui.markera.FrameSource
@@ -191,11 +190,13 @@ fun MarkingWizardScreen(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = stringResource(Res.string.wizard_shots_unsupported, state.unsupportedShots!!),
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                    )
+                    state.unsupportedShots?.let { shots ->
+                        Text(
+                            text = stringResource(Res.string.wizard_shots_unsupported, shots),
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
 
                 state.step is LaneStep.StationDone -> StationSummaryContent(
