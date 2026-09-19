@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
-    id("com.github.triplet.play") version "4.0.0"
+    alias(libs.plugins.triplet.play)
 }
 
 kotlin {
@@ -36,8 +36,8 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.compose.ui.backhandler)
             implementation(libs.compose.material.icons.extended)
-            implementation(libs.androidx.lifecycle.viewmodel)
-            implementation(libs.androidx.lifecycle.viewmodel.compose)
+            implementation(libs.jetbrains.lifecycle.viewmodel)
+            implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
@@ -180,5 +180,4 @@ play {
 dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
-    testImplementation(libs.junit)
 }
