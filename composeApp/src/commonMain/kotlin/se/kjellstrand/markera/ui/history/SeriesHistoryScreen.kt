@@ -32,7 +32,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,12 +53,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -507,57 +503,6 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
     }
 }
 
-/**
- * The card's three columns; the third is widest because the hit list is the
- * longest value on the card.
- */
-private const val COLUMN_1 = 1f
-private const val COLUMN_2 = 1f
-private const val COLUMN_3 = 1.8f
-
-/** The hairline "|" between the columns. */
-@Composable
-private fun Separator() {
-    Text(
-        text = "|",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-    )
-}
-
-/** One labelled column of the card's top strip: small label over the [content]. */
-@Composable
-private fun LabelledValue(
-    label: String,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    // Centred in the column, label over value.
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        content()
-    }
-}
-
-/** A [LabelledValue]'s value as text. */
-@Composable
-private fun ValueText(value: String, color: Color = MaterialTheme.colorScheme.onSurface) {
-    Text(
-        text = value,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = color,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.Center,
-    )
-}
-
 @Composable
 internal fun SeriesCard(
     series: SeriesDto,
@@ -601,41 +546,15 @@ internal fun SeriesCard(
                         .clip(MaterialTheme.shapes.small),
                 )
             }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                // When it was shot and how it went above, the caliber | tag | total
-                // pill below.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // The day itself is the group header above this card.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LabelledValue(
-                        label = stringResource(Res.string.history_time_label),
-                        modifier = Modifier.weight(COLUMN_1),
-                    ) {
-                        ValueText(localTime(series.timestamp))
-                    }
-                    Separator()
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_bucket_series),
-                        modifier = Modifier.weight(COLUMN_2),
-                    ) {
-                        ValueText(ordinal.toString())
-                    }
-                    Separator()
-                    // The widest column: an X plus five two-digit rings.
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_hits),
-                        modifier = Modifier.weight(COLUMN_3),
-                    ) {
-                        if (series.holes.isEmpty()) ValueText("–") else ScoreMiniRow(series.scorePicks())
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-                // Not tappable: the card itself opens the Serie page, where these are edited.
+                Text(
+                    stringResource(Res.string.history_card_title, localTime(series.timestamp), ordinal),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                // Display only: the card itself opens the Serie page, where these are edited.
+                if (series.holes.isNotEmpty()) ScoreMiniRow(series.scorePicks())
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TotalBadge(series.total(), series.caliber, series.tag, compact = true)
                 }
