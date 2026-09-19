@@ -1,6 +1,6 @@
 ---
 name: release
-description: Bump minor version and deploy Markera to the Google Play internal test track. Invoke as /release [liveVersion]. Specialized for this repo — :composeApp module, Swedish release notes.
+description: Bump minor version and deploy Markera to the Google Play internal test track. Invoke as /release [liveVersion]. Specialized for this repo — :composeApp module, English + Swedish release notes.
 user_invocable: true
 ---
 
@@ -11,7 +11,8 @@ Specialized for the **Markera** repo:
 - App is a **Compose Multiplatform** project; the Android main source set lives under `composeApp/src/androidMain/`.
 - `applicationId = "se.kjellstrand.markera"` (no product flavors — plain `debug`/`release` build types).
 - Version lives **inside `defaultConfig`** as `versionCode = <N>` and `versionName = "<X>.<Y>.<Z>"` — not as top-level `val`s.
-- Primary locale: **Swedish** (`sv-SE`). No prebuilt database.
+- Primary locale: **English** (`en-US`), plus `en-GB` and `sv-SE`. No prebuilt database.
+- Store listing descriptions exist per locale (Play `composeApp/src/main/play/listings/<locale>/`, App Store `iosApp/fastlane/metadata/<locale>/`) — edit them together.
 
 **Optional argument:** `<liveVersion>` — the version currently live on Google Play (e.g., `1.2.0`). If provided, release notes are based on changes since git tag `v<liveVersion>`.
 
@@ -147,19 +148,20 @@ git log --oneline -20
 ```
 
 ### 3c. Write the release notes file
-Write Swedish release notes to:
+Write the release notes in English first, then the other two locales:
 ```
-composeApp/src/androidMain/play/release-notes/sv-SE/default.txt
+composeApp/src/main/play/release-notes/en-US/default.txt
+composeApp/src/main/play/release-notes/en-GB/default.txt   # British spelling (calibre, centre, colour)
+composeApp/src/main/play/release-notes/sv-SE/default.txt   # Swedish
 ```
-Create parent directories if needed. (If Step 5's publish later reports it found no release notes, the Play plugin may resolve the main source set differently — fall back to `composeApp/src/main/play/release-notes/sv-SE/default.txt`.)
 
 Rules:
-- **Write in Swedish.**
-- **Maximum 500 characters** (Google Play hard limit — count carefully).
+- **Same content in all three**, each a faithful translation.
+- **Maximum 500 characters each** (Google Play hard limit — count carefully).
 - Focus on what the **user experiences**, not implementation detail.
 - Short, friendly language — no jargon, commit hashes, or branch names.
 - Bullet list with short lines if there are multiple changes.
-- If nothing is user-visible, write a generic "Buggfixar och förbättringar" line.
+- If nothing is user-visible, write a generic "Bug fixes and improvements" / "Buggfixar och förbättringar" line.
 - Show the generated text to the user before continuing.
 
 ---
@@ -193,7 +195,8 @@ Wait for it to complete. If it fails, show the error output and stop.
 
 Only when `iosApp/` exists. Keep `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
 `iosApp/project.yml` equal to the Android versionName / versionCode, and copy the release
-notes to `iosApp/fastlane/metadata/sv/release_notes.txt`. Then run the archive + TestFlight
+notes to `iosApp/fastlane/metadata/{en-US,en-GB,sv}/release_notes.txt` (en-US from the en-US
+notes, en-GB from en-GB, sv from sv-SE). Then run the archive + TestFlight
 upload yourself (signing uses the build keychain from `iosApp/fastlane/.env`):
 
 ```
@@ -207,8 +210,11 @@ shows the new number), push the listing and submit:
 sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane release'
 ```
 
-Retake `iosApp/fastlane/screenshots/sv/*.png` on the simulator first when the UI changed
-(same four screens as `store/screenshots/`).
+When the UI changed, retake the screenshots in **both** languages first (Settings → language):
+Play via `python store/crop_screenshots.py <en-US|sv-SE> <screencaps>...` (writes
+`store/screenshots/<locale>/` and the listing's graphics), and on the simulator
+`iosApp/fastlane/screenshots/{en-US,sv}/*.png` (same four screens as `store/screenshots/`).
+en-GB has no screenshots; both stores fall back to en-US.
 
 ---
 
@@ -216,12 +222,12 @@ Retake `iosApp/fastlane/screenshots/sv/*.png` on the simulator first when the UI
 
 ```
 git add composeApp/build.gradle.kts
-git add composeApp/src/androidMain/play/release-notes/ iosApp/project.yml iosApp/fastlane/metadata/sv/release_notes.txt
+git add composeApp/src/main/play/release-notes/ iosApp/project.yml iosApp/fastlane/metadata/*/release_notes.txt
 git commit -m "Bump version to <newVersionName> (build <newVersionCode>)"
 git tag v<newVersionName>
 ```
 
-Adjust the `git add` path for release notes if you used a fallback location in Step 3c. End the commit message with the project's standard co-author trailer if one is in use.
+End the commit message with the project's standard co-author trailer if one is in use.
 
 ---
 

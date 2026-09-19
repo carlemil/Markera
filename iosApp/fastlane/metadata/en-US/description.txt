@@ -1,0 +1,19 @@
+Markera scores a precision target from a photo. Point the camera at the target or pick a saved photo, tap Detect, and the app finds the holes, the rings and the center and scores every hit. Correct a value with a single tap if the detection misses, add a missed hit directly on the photo, or move and remove hits with your finger.
+
+Sign in with Apple and every series is saved with its time, caliber, tag and photo. Browse the history, open a series to adjust the hits afterwards, and follow how your shot pattern develops in the statistics.
+
+Statistics
+Choose caliber, tag, period and shots per series, and see every hit from the chosen series on a drawn target. Older and newer series get different colors, and below the target you get the mean distance to the center, the distance between hits, group size, mean and median point of impact, average score, share of tens, and the best and worst series.
+
+Features
+• Automatic scoring from the camera image or a saved photo
+• Manual correction: change scores, add, move and remove hits
+• Caliber per series (24 common calibers)
+• Tags per series, such as training or competition
+• History with photos and editing afterwards
+• Statistics on shot pattern and measures over time
+• In English or Swedish
+• Export of all series as CSV with photos
+• Delete single series or your whole account whenever you like
+
+Scanning works without signing in. Signing in is only needed to save series and see the history and statistics.
