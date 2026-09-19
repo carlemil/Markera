@@ -57,6 +57,8 @@ class UserDefaultsBackendTokenStore(
         )
     }
 
+    // NSUserDefaults rides along in iCloud/iTunes backups, unencrypted, and the bearer
+    // token with it. Moving it to the Keychain is deferred on the user's call (2026-09-19).
     override suspend fun write(auth: BackendAuth) {
         defaults.setObject(auth.token, Keys.TOKEN)
         defaults.setObject(auth.userId.toString(), Keys.USER_ID)
