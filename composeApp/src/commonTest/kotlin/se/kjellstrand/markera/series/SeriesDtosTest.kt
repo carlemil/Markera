@@ -7,7 +7,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.webshooter.api.webshooterJson
 
 class SeriesDtosTest {
 
@@ -108,7 +107,7 @@ class SeriesDtosTest {
             HoleDto(null, null, 7, false, null, null, null),
         )
         val req = request(*holes.toTypedArray())
-        assertEquals(req, webshooterJson.decodeFromString(webshooterJson.encodeToString(req)))
+        assertEquals(req, seriesJson.decodeFromString(seriesJson.encodeToString(req)))
     }
 
     private fun request(vararg holes: HoleDto) =

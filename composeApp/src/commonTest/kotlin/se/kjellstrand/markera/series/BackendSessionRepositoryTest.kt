@@ -12,7 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
 // commonTest: it runs on the JVM and on iOS. runBlocking is not part of the
 // *common* coroutines API but exists on both of this project's targets.
@@ -40,7 +39,7 @@ class BackendSessionRepositoryTest {
         }
         lateinit var session: BackendSessionRepository
         api = SeriesApi(
-            client = createWebshooterHttpClient(engine),
+            client = createSeriesHttpClient(engine),
             baseUrl = "http://host:8080",
             tokenProvider = { session.currentToken },
         )

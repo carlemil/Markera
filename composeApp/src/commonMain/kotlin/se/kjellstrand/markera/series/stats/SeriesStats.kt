@@ -69,8 +69,9 @@ data class StatsFilter(
 /** One hole placed in the target plane, mm from the centre, image axes (y down). */
 data class PlottedHit(val xMm: Double, val yMm: Double, val ring: Int, val innerTen: Boolean)
 
-/** [age] 0 = the oldest series in the selection, 1 = the newest. */
-data class PlottedSeries(val series: SeriesDto, val hits: List<PlottedHit>, val age: Float)
+/** [age] 0 = the oldest series in the selection, 1 = the newest; [at] its parsed timestamp. */
+@OptIn(ExperimentalTime::class)
+data class PlottedSeries(val series: SeriesDto, val hits: List<PlottedHit>, val age: Float, val at: Instant)
 
 /**
  * The series [filter] keeps, oldest first, each un-projected to target mm.
@@ -97,7 +98,7 @@ fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
             val (xMm, yMm) = targetOffsetMm(x.toFloat(), y.toFloat(), centre, ring)
             PlottedHit(xMm, yMm, hole.ring, hole.innerTen)
         }
-        at to PlottedSeries(series, hits, 0f)
+        at to PlottedSeries(series, hits, 0f, at)
     }.sortedBy { it.first }
     val last = kept.size - 1
     return kept.mapIndexed { i, (_, plotted) ->

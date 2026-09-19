@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.series.db.MarkeraDb
-import se.kjellstrand.markera.webshooter.api.webshooterJson
 
 /** The scanned frames on disk, one JPEG per series id. */
 interface ImageCache {
@@ -174,12 +173,12 @@ class SeriesRepository(
     private fun insert(dto: SeriesDto) = q.upsert(
         id = dto.id,
         timestamp = dto.timestamp,
-        json = webshooterJson.encodeToString(dto),
+        json = seriesJson.encodeToString(dto),
     )
 
     private fun reload() {
         _series.value = q.selectAll().executeAsList()
-            .map { webshooterJson.decodeFromString<SeriesDto>(it) }
+            .map { seriesJson.decodeFromString<SeriesDto>(it) }
     }
 
     private fun wipe() {

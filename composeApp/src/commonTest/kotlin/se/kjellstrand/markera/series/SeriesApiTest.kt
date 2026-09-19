@@ -21,8 +21,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
-import se.kjellstrand.markera.webshooter.api.webshooterJson
 
 // commonTest: it runs on the JVM and on iOS. runBlocking is not part of the
 // *common* coroutines API but exists on both of this project's targets.
@@ -39,7 +37,7 @@ class SeriesApiTest {
             recorded += request
             respondWith(request)
         }
-        return SeriesApi(createWebshooterHttpClient(engine), baseUrl) { token }
+        return SeriesApi(createSeriesHttpClient(engine), baseUrl) { token }
     }
 
     private fun MockRequestHandleScope.json(
@@ -82,7 +80,7 @@ class SeriesApiTest {
 
         assertEquals("Bearer tok", recorded.single().headers[HttpHeaders.Authorization])
         assertEquals("http://host:8080/series", recorded.single().url.toString())
-        assertEquals(request, webshooterJson.decodeFromString<SeriesRequest>(sentBody))
+        assertEquals(request, seriesJson.decodeFromString<SeriesRequest>(sentBody))
         assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
         // innerTen has no default, so false values must still be on the wire
         // (quoted, so the detectedInnerTen keys don't count).
@@ -136,7 +134,7 @@ class SeriesApiTest {
         assertEquals("http://host:8080/series/7", request.url.toString())
         assertEquals("Bearer tok", request.headers[HttpHeaders.Authorization])
         assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
-        assertEquals(req, webshooterJson.decodeFromString<SeriesRequest>(sentBody))
+        assertEquals(req, seriesJson.decodeFromString<SeriesRequest>(sentBody))
     }
 
     @Test

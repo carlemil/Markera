@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.series.stats
 
 import kotlin.math.sqrt
+import kotlin.time.ExperimentalTime
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -42,13 +43,14 @@ data class TrendPoint(val at: Instant, val value: Double, val seriesCount: Int)
  * [metric] per [bucket], oldest first. A bucket's value is the group statistic over
  * its series — the same maths as the rows under the target, just over fewer series.
  */
+@OptIn(ExperimentalTime::class)
 fun List<PlottedSeries>.trend(
     metric: Metric,
     bucket: Bucket,
     zone: TimeZone = TimeZone.currentSystemDefault(),
 ): List<TrendPoint> =
-    // plotSeries already dropped every series whose timestamp does not parse.
-    groupBy { bucketStart(Instant.parse(it.series.timestamp), bucket, zone) }
+    // kotlinx-datetime 0.6 has no conversion from kotlin.time.Instant.
+    groupBy { bucketStart(Instant.fromEpochMilliseconds(it.at.toEpochMilliseconds()), bucket, zone) }
         .map { (start, group) -> TrendPoint(start, group.statistics()!!.value(metric), group.size) }
         .sortedBy { it.at }
 

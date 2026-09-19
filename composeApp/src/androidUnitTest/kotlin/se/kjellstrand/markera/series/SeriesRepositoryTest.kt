@@ -18,7 +18,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
 import se.kjellstrand.markera.series.db.MarkeraDb
-import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
 /** Signed in as [userId] without talking to the network. */
 fun testSession(api: SeriesApi, userId: Long = 1): BackendSessionRepository =
@@ -41,7 +40,7 @@ class SeriesRepositoryTest {
             recorded += request
             respondWith(request)
         }
-        val api = SeriesApi(createWebshooterHttpClient(engine), "http://host:8090") { "tok" }
+        val api = SeriesApi(createSeriesHttpClient(engine), "http://host:8090") { "tok" }
         return SeriesRepository(api, db, images, testSession(api, userId))
     }
 
