@@ -16,8 +16,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -35,6 +38,7 @@ class SeriesRecorderTest {
     private val writtenTags = mutableListOf<String?>()
     private val scope = CoroutineScope(Dispatchers.Default)
     private lateinit var session: BackendSessionRepository
+    private lateinit var repository: SeriesRepository
 
     private val scores = listOf(
         HitScore(1f, 2f, 0f, 10.0, 10, true),
@@ -61,15 +65,23 @@ class SeriesRecorderTest {
         // The pre-image tests below count series requests only; their default
         // encoder fails, so nothing is uploaded unless a test asks for it.
         encodeJpeg: suspend (PlatformImage) -> EncodedImage = { error("no encoder") },
+        // Held until completed: the first series POST, so a test can act while it is in flight.
+        gate: CompletableDeferred<Unit>? = null,
+        // What the first series POST answers instead of [status].
+        firstStatus: HttpStatusCode? = null,
     ): SeriesRecorder {
+        var posts = 0
         val engine = MockEngine { request ->
             recorded += request
             if (request.url.encodedPath.endsWith("/image")) {
                 respond("", imageStatus)
             } else {
+                val n = ++posts
+                if (n == 1) gate?.await()
+                val answer = if (n == 1) firstStatus ?: status else status
                 respond(
-                    if (status.value < 300) """{"id":1}""" else """{"error":"boom"}""",
-                    status,
+                    if (answer.value < 300) """{"id":$n}""" else """{"error":"boom"}""",
+                    answer,
                     headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
                 )
             }
@@ -83,7 +95,7 @@ class SeriesRecorderTest {
         )
         // The recorder saves through the cache now; a real in-memory one, so
         // the request counts below are still exactly what goes over the wire.
-        val repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session)
+        repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session)
         return runBlocking {
             session.restore()
             SeriesRecorder(
@@ -113,6 +125,12 @@ class SeriesRecorderTest {
     }
 
     private val sentBody: String get() = (recorded.last().body as TextContent).text
+
+    private val seriesPosts get() = recorded.filter { it.url.encodedPath == "/series" }
+
+    private fun clientIds() = seriesPosts.map {
+        Regex(""""clientId":"([^"]+)"""").find((it.body as TextContent).text)!!.groupValues[1]
+    }
 
     @Test
     fun signedOutReportsSignedOutAndPostsNothing() {
@@ -417,5 +435,81 @@ class SeriesRecorderTest {
         runBlocking { recorder.caliber.first { it == Caliber.MM9 } }
         assertEquals(SaveStatus.Idle, recorder.status.value)
         assertTrue(recorded.isEmpty())
+    }
+
+    @Test
+    fun aScanDuringASlowSaveIsNotLost() {
+        val gate = CompletableDeferred<Unit>()
+        val recorder = recorder(stored = Caliber.LR22, gate = gate)
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        awaitRequests(1)
+
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        gate.complete(Unit)
+
+        awaitRequests(2)
+        runBlocking { withTimeout(5_000) { repository.series.first { it.size == 2 } } }
+        assertEquals(2, clientIds().toSet().size)
+    }
+
+    @Test
+    fun theChipTappedDuringASaveDoesNotPostItAgain() {
+        val gate = CompletableDeferred<Unit>()
+        val recorder = recorder(stored = Caliber.LR22, gate = gate)
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        awaitRequests(1)
+
+        recorder.selectCaliber(Caliber.MM9)
+        gate.complete(Unit)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        runBlocking { delay(200) }
+        assertEquals(1, seriesPosts.size)
+    }
+
+    @Test
+    fun aRescanDuringASaveLetsItFinishWithItsImage() {
+        val gate = CompletableDeferred<Unit>()
+        val recorder = recorder(stored = Caliber.LR22, gate = gate, encodeJpeg = { encoded })
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        awaitRequests(1)
+
+        recorder.clear()
+        gate.complete(Unit)
+
+        awaitRequests(2)
+        assertTrue(recorded.last().url.encodedPath.endsWith("/series/1/image"))
+    }
+
+    @Test
+    fun aRetryAfterAFailedSaveKeepsItsClientId() {
+        val recorder = recorder(stored = Caliber.LR22, firstStatus = HttpStatusCode.InternalServerError)
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        assertIs<SaveStatus.Failed>(recorder.awaitDone())
+
+        recorder.selectCaliber(Caliber.LR22)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals(2, seriesPosts.size)
+        assertEquals(1, clientIds().toSet().size)
+    }
+
+    @Test
+    fun aRejectedSessionSignsOutInsteadOfFailing() = runBlocking {
+        val recorder = recorder(stored = Caliber.LR22, status = HttpStatusCode.Unauthorized)
+        val expired = async(start = CoroutineStart.UNDISPATCHED) { repository.sessionExpired.first() }
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        withTimeout(5_000) {
+            expired.await()
+            assertEquals(SaveStatus.Idle, recorder.status.first { it == SaveStatus.Idle || it is SaveStatus.Failed })
+        }
+        assertNull(session.auth.value)
     }
 }

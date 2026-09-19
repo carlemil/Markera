@@ -49,6 +49,7 @@
     <string name="series_tag_suggest_competition">Competition</string>
     <string name="series_status_saved">Saved</string>
     <string name="series_status_failed">Could not save</string>
+    <string name="session_expired">Signed out: sign in again to save series</string>
 
     <!-- Series history -->
     <string name="history_title">History</string>

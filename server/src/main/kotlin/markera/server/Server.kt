@@ -143,6 +143,8 @@ data class SeriesRequest(
     val geometry: Geometry? = null,
     // Defaulted, like every nullable above: an app build from before tags omits the field entirely.
     val tag: String? = null,
+    /** The app's id for this scan: a retried POST with the same one returns the first id instead of a copy. */
+    val clientId: String? = null,
 )
 
 /** Longer than any label worth filing under, and short enough that the column stays readable. */
@@ -207,7 +209,7 @@ fun Application.markeraModule(config: Config, db: Db) {
             val userId = authenticate(db) ?: return@post
             val req = call.receive<SeriesRequest>()
             if (invalid(req)) return@post
-            val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry, req.normalisedTag())
+            val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry, req.normalisedTag(), req.clientId)
             call.respond(HttpStatusCode.Created, IdResponse(id))
         }
 
@@ -300,6 +302,7 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
             "ring semi-axes must be positive"
         // Free text, deliberately no vocabulary: only the length is the server's business.
         (req.normalisedTag()?.length ?: 0) > MAX_TAG_LENGTH -> "tag must be at most $MAX_TAG_LENGTH characters"
+        (req.clientId?.length ?: 0) > 64 -> "clientId must be at most 64 characters"
         else -> return false
     }
     call.respond(HttpStatusCode.BadRequest, ErrorResponse(error))

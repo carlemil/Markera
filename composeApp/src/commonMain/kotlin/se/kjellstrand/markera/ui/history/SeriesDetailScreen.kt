@@ -416,7 +416,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 pendingDeleteIndex = null
                 val hole = holes.value[index]
                 holes.value = holes.value.filterIndexed { j, _ -> j != index }
-                commit(removedHole = hole.copy(deleted = true))
+                // Only a detection is worth keeping as training data; a hole added by hand
+                // (here or at the scan) has none, so it just goes.
+                commit(removedHole = hole.takeIf { it.detectedRing != null }?.copy(deleted = true))
             },
         )
     }

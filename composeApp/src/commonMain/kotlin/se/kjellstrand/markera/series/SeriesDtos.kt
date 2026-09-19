@@ -3,6 +3,8 @@ package se.kjellstrand.markera.series
 import kotlin.math.hypot
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.vision.CentreEstimate
@@ -89,6 +91,11 @@ data class SeriesRequest(
     val geometry: GeometryDto? = null,
     /** Free-text label, see [normalizeTag]. Defaulted, so an older server still gets a valid body. */
     val tag: String? = null,
+    /**
+     * This scan's own id, so a retried POST returns the first id instead of a second copy.
+     * Null (and so omitted) on the edit PUT.
+     */
+    val clientId: String? = null,
 )
 
 /** The server rejects a longer tag with a 400, so nothing longer may be entered. */
@@ -300,6 +307,7 @@ fun pickRing(pick: Int) = if (pick == SCORE_PICKER_INNER_TEN) 10 else pick
 
 fun pickInnerTen(pick: Int) = pick == SCORE_PICKER_INNER_TEN
 
+@OptIn(ExperimentalUuidApi::class)
 fun seriesRequest(
     scores: List<HitScore>,
     caliber: Caliber,
@@ -310,6 +318,7 @@ fun seriesRequest(
     caliber = caliber.label,
     holes = scores.map { it.toHoleDto() },
     geometry = geometry,
+    clientId = Uuid.random().toString(),
 )
 
 /** ISO-8601 instant with a `Z` suffix — what the server's `Instant.parse` accepts. */

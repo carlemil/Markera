@@ -16,7 +16,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 
@@ -35,7 +39,7 @@ class SeriesRepositoryTest {
     private fun repo(
         userId: Long = 1,
         db: MarkeraDb = testSeriesDb(),
-        respondWith: MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
+        respondWith: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
     ): SeriesRepository {
         val engine = MockEngine { request ->
             recorded += request
@@ -224,5 +228,63 @@ class SeriesRepositoryTest {
 
         assertTrue(""""deleted":true""" in (recorded.single().body as TextContent).text)
         assertEquals(listOf(live), repo.series.value.single().holes)
+    }
+
+    private suspend fun awaitRequests(n: Int) = withTimeout(5_000) { while (recorded.size < n) delay(10) }
+
+    @Test
+    fun anUndecodableCachedRowIsDroppedNotThrown() = runBlocking {
+        val db = testSeriesDb()
+        repo(db = db) {
+            json("""[${dto(1, "2026-09-01T10:00:00Z", "2026-09-01 10:00:00.000")}]""")
+        }.refresh()
+        db.seriesQueries.upsert(5, "2026-09-02T10:00:00Z", "9mm", "", 0, "garbage")
+
+        val repo = repo(db = db) { json("[]") }
+
+        assertNull(repo.refresh())
+        assertEquals(listOf(1L), repo.series.value.map { it.id })
+        assertEquals(listOf(1L), db.seriesQueries.selectAll().executeAsList().map { it.id })
+        // The stamp went with it, so the next refresh is a full load that fetches a clean copy.
+        repo.refresh()
+        assertNull(lastSince)
+    }
+
+    @Test
+    fun aSaveDuringAFullLoadSurvivesIt() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        val repo = repo { request ->
+            if (request.method == HttpMethod.Post) {
+                json("""{"id":7}""", HttpStatusCode.Created)
+            } else {
+                gate.await()
+                json("[]")
+            }
+        }
+        val refresh = async { repo.refresh() }
+        awaitRequests(1)
+        val save = async { repo.save(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList())) }
+        delay(100)
+        gate.complete(Unit)
+
+        assertNull(refresh.await())
+        assertEquals(7L, save.await())
+        assertEquals(listOf(7L), repo.series.value.map { it.id })
+    }
+
+    @Test
+    fun aRefreshAskedForDuringAnotherIsSkipped() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        val repo = repo {
+            gate.await()
+            json("[]")
+        }
+        val first = async { repo.refresh() }
+        awaitRequests(1)
+
+        assertNull(repo.refresh())
+        gate.complete(Unit)
+        assertNull(first.await())
+        assertEquals(1, recorded.size)
     }
 }

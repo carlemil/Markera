@@ -3,6 +3,7 @@ package se.kjellstrand.markera.series
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,15 +68,25 @@ class SeriesRecorder(
     private val _tagDialogOpen = MutableStateFlow(false)
     val tagDialogOpen: StateFlow<Boolean> = _tagDialogOpen.asStateFlow()
 
+    /**
+     * A scanned series and the frame it was scored from (uploaded once the series has an id).
+     * [committed] once [commit] asked for the save; until then a caliber choice only stores it.
+     */
+    private class Pending(var request: SeriesRequest, val image: PlatformImage?) {
+        var committed = false
+    }
+
     /** The scanned series waiting for a caliber (or for its POST to finish). */
-    private var pending: SeriesRequest? = null
+    private var pending: Pending? = null
 
-    /** The frame it was scored from, uploaded once the series has an id. */
-    private var pendingImage: PlatformImage? = null
-    private var saveJob: Job? = null
+    /** The one whose POST is running: a second save of it (the chip tapped mid-save) is refused. */
+    private var inFlight: Pending? = null
 
-    /** True once [commit] asked for the save; until then a caliber choice only stores it. */
-    private var saveRequested = false
+    /**
+     * Every save is its own child of this: a rescan or the next scan never cancels a
+     * committed save (its image and cache insert included), only [dispose] does.
+     */
+    private val saves = SupervisorJob(scope.coroutineContext[Job])
 
     init {
         // The stored value must not clobber a choice made before the read lands.
@@ -94,13 +105,11 @@ class SeriesRecorder(
     fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage, geometry: GeometryDto?) {
         if (session.auth.value == null) {
             pending = null
-            pendingImage = null
             _status.value = SaveStatus.SignedOut
             return
         }
-        pending = seriesRequest(scores, _caliber.value, geometry = geometry)
-        pendingImage = image
-        saveRequested = false // a fresh scan waits for its own commit
+        // A fresh scan waits for its own commit.
+        pending = Pending(seriesRequest(scores, _caliber.value, geometry = geometry), image)
         _status.value = SaveStatus.Pending
     }
 
@@ -110,8 +119,9 @@ class SeriesRecorder(
      * so the caliber dialog's later [selectCaliber] posts the edited series too.
      */
     fun commit(topScores: List<Int>) {
-        pending = pending?.withPicks(topScores) ?: return
-        saveRequested = true
+        val p = pending ?: return
+        p.request = p.request.withPicks(topScores)
+        p.committed = true
         val caliber = _caliber.value
         if (caliber == Caliber.NONE) {
             _status.value = SaveStatus.NeedsCaliber
@@ -157,17 +167,14 @@ class SeriesRecorder(
         _tagDialogOpen.value = false
     }
 
-    /** Rescan: forget the pending series and its status, saving nothing. */
+    /** Rescan: forget the pending series and its status. A save already under way still finishes. */
     fun clear() {
-        saveJob?.cancel()
         pending = null
-        pendingImage = null
-        saveRequested = false
         _status.value = SaveStatus.Idle
     }
 
     fun dispose() {
-        saveJob?.cancel()
+        saves.cancel()
     }
 
     /**
@@ -176,28 +183,35 @@ class SeriesRecorder(
      * tag it with), only the preference is written and the status is left as it was.
      */
     private fun startSave(caliber: Caliber, persist: Boolean = false) {
-        val request = pending
-            ?.takeIf { caliber != Caliber.NONE && saveRequested }
-            // The tag is read at save time, so retagging a frozen frame still counts.
-            ?.copy(caliber = caliber.label, tag = _tag.value)
-        val image = pendingImage
-        saveJob?.cancel()
-        if (request != null) _status.value = SaveStatus.Saving
-        saveJob = scope.launch {
-            if (persist) writeCaliber(caliber)
-            if (request == null) return@launch
+        if (persist) scope.launch { writeCaliber(caliber) }
+        val p = pending?.takeIf { caliber != Caliber.NONE && it.committed && it !== inFlight } ?: return
+        // The tag is read at save time, so retagging a frozen frame still counts. The clientId
+        // rides along unchanged, so a retry after a lost answer cannot store a second copy.
+        val request = p.request.copy(caliber = caliber.label, tag = _tag.value)
+        val image = p.image
+        inFlight = p
+        _status.value = SaveStatus.Saving
+        scope.launch(saves) {
             val id = try {
-                repository.save(request).also {
-                    pending = null
-                    pendingImage = null
-                    _status.value = SaveStatus.Saved(caliber)
-                }
+                repository.save(request)
             } catch (e: CancellationException) {
-                throw e // clear()/dispose() cancelled us; the status is theirs to set.
+                throw e // dispose() cancelled us; the screen is gone.
             } catch (e: Exception) {
-                _status.value = SaveStatus.Failed(e.message ?: e.toString())
+                if (inFlight === p) inFlight = null
+                if (e is SeriesApiException && e.isUnauthorized) {
+                    // The repository signed out and toasts it; a Failed would be a second toast.
+                    pending = null
+                    _status.value = SaveStatus.Idle
+                } else {
+                    // Still pending: the chip retries it.
+                    _status.value = SaveStatus.Failed(e.message ?: e.toString())
+                }
                 return@launch
             }
+            if (inFlight === p) inFlight = null
+            // A series scanned while this one was posting stays pending.
+            if (pending === p) pending = null
+            _status.value = SaveStatus.Saved(caliber)
             // The snapshot is a bonus: a failed encode or upload never
             // downgrades an already-saved series.
             if (image == null) return@launch

@@ -2,9 +2,13 @@ package se.kjellstrand.markera.series
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.webshooter.api.webshooterJson
@@ -24,7 +28,8 @@ interface ImageCache {
  *
  * Writes go to the server first and to the cache after, so a failed write
  * leaves nothing behind; a failed *read* (offline) keeps the cached rows and is
- * reported, never thrown.
+ * reported, never thrown. Refreshes and writes take turns ([lock]), so a save
+ * can never land in the middle of a full load that then wipes it.
  */
 class SeriesRepository(
     private val api: SeriesApi,
@@ -39,13 +44,32 @@ class SeriesRepository(
     /** Newest timestamp first. Empty until the first [refresh] reads the cache. */
     val series: StateFlow<List<SeriesDto>> = _series.asStateFlow()
 
+    private val _sessionExpired = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** The server answered 401: signed out and wiped already, the UI only has to say so. */
+    val sessionExpired: SharedFlow<Unit> = _sessionExpired
+
+    private val lock = Mutex()
+
+    /** Held only to skip a [refresh] asked for while one is already running. */
+    private val refreshing = Mutex()
+
     /**
      * Publishes the cached rows, then merges the server's delta into them.
      * @return null when the server part succeeded, else what went wrong — the
      * cached rows stay published either way.
      */
-    suspend fun refresh(): Throwable? = withContext(Dispatchers.Default) {
-        val user = session.auth.value?.userId?.toString() ?: return@withContext null
+    suspend fun refresh(): Throwable? {
+        if (!refreshing.tryLock()) return null
+        return try {
+            withContext(Dispatchers.Default) { lock.withLock { refreshLocked() } }
+        } finally {
+            refreshing.unlock()
+        }
+    }
+
+    private suspend fun refreshLocked(): Throwable? {
+        val user = session.auth.value?.userId?.toString() ?: return null
         val stamp = q.lastSync().executeAsOneOrNull()
         // A different account on this device: its rows and images are not ours.
         if (stamp != null && stamp.user_id != user) wipe()
@@ -54,12 +78,32 @@ class SeriesRepository(
         try {
             if (since == null) fullLoad(user) else applyDelta(api.listSeriesSince(since), user)
             reload()
-            null
+            return null
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            e
+            if (e is SeriesApiException && e.isUnauthorized) expire()
+            return e
         }
+    }
+
+    /** One write at a time, and never inside a refresh; a 401 signs out on the way. */
+    private suspend fun <T> locked(block: suspend () -> T): T = lock.withLock {
+        try {
+            block()
+        } catch (e: SeriesApiException) {
+            if (e.isUnauthorized) expire()
+            throw e
+        }
+    }
+
+    private suspend fun expire() {
+        session.signOut()
+        withContext(Dispatchers.Default) {
+            wipe()
+            reload()
+        }
+        _sessionExpired.tryEmit(Unit)
     }
 
     /**
@@ -67,7 +111,7 @@ class SeriesRepository(
      * a round trip. The row carries no `updatedAt` yet — the next [refresh]
      * delta returns it and fills that in.
      */
-    suspend fun save(req: SeriesRequest): Long {
+    suspend fun save(req: SeriesRequest): Long = locked {
         val id = api.postSeries(req)
         withContext(Dispatchers.Default) {
             insert(
@@ -82,11 +126,11 @@ class SeriesRepository(
             )
             reload()
         }
-        return id
+        id
     }
 
     /** The scanned frame for [id]: uploaded, then cached so it is never downloaded back. */
-    suspend fun uploadImage(id: Long, bytes: ByteArray, width: Int, height: Int) {
+    suspend fun uploadImage(id: Long, bytes: ByteArray, width: Int, height: Int) = locked {
         api.postSeriesImage(id, bytes, width, height)
         withContext(Dispatchers.Default) {
             images.write(id, bytes)
@@ -97,7 +141,7 @@ class SeriesRepository(
         }
     }
 
-    suspend fun update(id: Long, req: SeriesRequest) {
+    suspend fun update(id: Long, req: SeriesRequest) = locked {
         api.updateSeries(id, req)
         // Deleted holes go up for training and never come back down.
         val kept = req.holes.filterNot { it.deleted }
@@ -116,7 +160,7 @@ class SeriesRepository(
         }
     }
 
-    suspend fun delete(id: Long) {
+    suspend fun delete(id: Long) = locked {
         api.deleteSeries(id)
         withContext(Dispatchers.Default) {
             q.deleteById(id)
@@ -138,9 +182,11 @@ class SeriesRepository(
     }
 
     /** Sign-out, account deletion, or a different user: nothing cached survives. */
-    suspend fun clear() = withContext(Dispatchers.Default) {
-        wipe()
-        reload()
+    suspend fun clear() = locked {
+        withContext(Dispatchers.Default) {
+            wipe()
+            reload()
+        }
     }
 
     private suspend fun fullLoad(user: String) {
@@ -180,9 +226,16 @@ class SeriesRepository(
         json = webshooterJson.encodeToString(dto),
     )
 
+    /** Never throws: an undecodable row is dropped, and the stamp with it so the next refresh reloads it whole. */
     private fun reload() {
-        _series.value = q.selectAll().executeAsList()
-            .map { webshooterJson.decodeFromString<SeriesDto>(it) }
+        val rows = q.selectAll().executeAsList()
+        val good = rows.mapNotNull { runCatching { webshooterJson.decodeFromString<SeriesDto>(it.json) }.getOrNull() }
+        if (good.size < rows.size) {
+            val kept = good.mapTo(HashSet()) { it.id }
+            rows.filter { it.id !in kept }.forEach { q.deleteById(it.id) }
+            q.clearSync()
+        }
+        _series.value = good
     }
 
     private fun wipe() {

@@ -201,6 +201,7 @@ fun AppNavHost(
     val savedText = stringResource(Res.string.series_status_saved)
     val failedText = stringResource(Res.string.series_status_failed)
     val signInText = stringResource(Res.string.home_sign_in)
+    val expiredText = stringResource(Res.string.session_expired)
     LaunchedEffect(recorder) {
         recorder.status.collect { status ->
             val message = when (status) {
@@ -211,6 +212,9 @@ fun AppNavHost(
             }
             toast(message)
         }
+    }
+    LaunchedEffect(seriesServices.repository) {
+        seriesServices.repository.sessionExpired.collect { toast(expiredText) }
     }
 
     var stack by stackState

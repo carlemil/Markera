@@ -49,6 +49,7 @@
     <string name="series_tag_suggest_competition">Tävling</string>
     <string name="series_status_saved">Sparad</string>
     <string name="series_status_failed">Kunde inte spara</string>
+    <string name="session_expired">Utloggad: logga in igen för att spara serier</string>
 
     <!-- Series history -->
     <string name="history_title">Historik</string>

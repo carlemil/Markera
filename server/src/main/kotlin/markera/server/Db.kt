@@ -64,6 +64,7 @@ class Db(dbPath: String) : AutoCloseable {
                      image_width INTEGER,
                      image_height INTEGER,
                      tag TEXT,
+                     client_id TEXT,
                      ${GEOMETRY_COLUMNS.joinToString(", ") { "$it REAL" }})"""
             )
             // Databases created before the image carried the frame size.
@@ -87,6 +88,10 @@ class Db(dbPath: String) : AutoCloseable {
             }
             // Databases created before series carried a free-text tag; nullable, so existing rows need no backfill.
             if ("tag" !in seriesColumns) st.executeUpdate("ALTER TABLE series ADD COLUMN tag TEXT")
+            // Databases created before POST /series was idempotent. NULLs never collide, so old rows and old apps
+            // (no clientId) are unaffected.
+            if ("client_id" !in seriesColumns) st.executeUpdate("ALTER TABLE series ADD COLUMN client_id TEXT")
+            st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS series_user_client ON series(user_id, client_id)")
             st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
@@ -163,18 +168,28 @@ class Db(dbPath: String) : AutoCloseable {
         holes: List<Hole>,
         geometry: Geometry? = null,
         tag: String? = null,
+        clientId: String? = null,
     ): Long {
+        // A retry of a POST whose answer got lost: the series is already here (soft-deleted or not).
+        if (clientId != null) {
+            conn.prepareStatement("SELECT id FROM series WHERE user_id = ? AND client_id = ?").use {
+                it.setLong(1, userId)
+                it.setString(2, clientId)
+                it.executeQuery().use { rs -> if (rs.next()) return rs.getLong(1) }
+            }
+        }
         val seriesId: Long
         conn.prepareStatement(
-            "INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at, tag, " +
-                "${GEOMETRY_COLUMNS.joinToString(", ")}) VALUES (?, ?, ?, datetime('now'), $NOW, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at, tag, client_id, " +
+                "${GEOMETRY_COLUMNS.joinToString(", ")}) VALUES (?, ?, ?, datetime('now'), $NOW, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             Statement.RETURN_GENERATED_KEYS
         ).use {
             it.setLong(1, userId)
             it.setString(2, timestamp)
             it.setString(3, caliber)
             it.setString(4, tag)
-            it.setGeometry(5, geometry)
+            it.setString(5, clientId)
+            it.setGeometry(6, geometry)
             it.executeUpdate()
             it.generatedKeys.use { rs -> rs.next(); seriesId = rs.getLong(1) }
         }

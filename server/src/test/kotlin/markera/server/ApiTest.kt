@@ -1257,4 +1257,51 @@ class ApiTest {
         }
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
     }
+
+    private fun seriesCount() = sql { st -> st.executeQuery("SELECT COUNT(*) FROM series").use { it.next(); it.getInt(1) } }
+
+    @Test
+    fun aRepeatedClientIdReturnsTheFirstSeries() = apiTest { client ->
+        val token = client.devAuth("alice").token
+        val first = client.createSeries(token, series().copy(clientId = "scan-1"))
+        val again = client.createSeries(token, series().copy(clientId = "scan-1"))
+        assertEquals(first, again)
+        assertEquals(1, seriesCount())
+    }
+
+    @Test
+    fun theSameClientIdFromTwoUsersIsTwoSeries() = apiTest { client ->
+        val a = client.createSeries(client.devAuth("alice").token, series().copy(clientId = "scan-1"))
+        val b = client.createSeries(client.devAuth("bob").token, series().copy(clientId = "scan-1"))
+        assertTrue(a != b)
+        assertEquals(2, seriesCount())
+    }
+
+    @Test
+    fun noClientIdPostedTwiceIsTwoSeries() = apiTest { client ->
+        val token = client.devAuth("alice").token
+        client.createSeries(token)
+        client.createSeries(token)
+        assertEquals(2, seriesCount())
+    }
+
+    @Test
+    fun anOverlongClientIdIsRejected() = apiTest { client ->
+        val response = client.post("/series") {
+            bearerAuth(client.devAuth("alice").token); contentType(ContentType.Application.Json)
+            setBody(series().copy(clientId = "x".repeat(65)))
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun reopeningADatabaseRerunsTheMigrationsHarmlessly() {
+        val file = File.createTempFile("markera-reopen", ".db").also { it.delete(); it.deleteOnExit() }
+        Db(file.path).close()
+        Db(file.path).use { db ->
+            val user = db.upsertUser("dev", "alice", null)
+            val id = db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", series().holes, clientId = "c")
+            assertEquals(id, db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", series().holes, clientId = "c"))
+        }
+    }
 }

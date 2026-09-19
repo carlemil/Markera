@@ -18,7 +18,7 @@ CREATE TABLE sync (
 );
 
 selectAll:
-SELECT json FROM series ORDER BY timestamp DESC;
+SELECT id, json FROM series ORDER BY timestamp DESC;
 
 upsert:
 INSERT OR REPLACE INTO series(id, timestamp, caliber, updated_at, has_image, json)
