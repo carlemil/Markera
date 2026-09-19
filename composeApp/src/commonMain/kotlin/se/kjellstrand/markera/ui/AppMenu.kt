@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -176,9 +175,9 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(MaterialTheme.shapes.small)
                         .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(6.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 )
                 if (!fromStart) {

@@ -62,7 +62,8 @@ fun Modifier.zoomPan(t: ZoomPan): Modifier = graphicsLayer {
  * [DRAG_LIFT] above the finger so it stays visible. At zoom 1 an unhandled drag
  * stays unconsumed, so a surrounding column still scrolls.
  *
- * [onMove] returns the moved hole's (possibly new) index in the list.
+ * [onMove] returns the moved hole's (possibly new) index in the list;
+ * [onMoveEnd] fires once when the finger lifts after a drag.
  * All coordinates handed to the callbacks are source-image px, mapped through
  * the same fit-centre letterbox `DetectionOverlay` draws with; [holeAt] and
  * [onAdd] also get the grab reach in those px. [key] restarts the loop when the
@@ -78,6 +79,7 @@ fun Modifier.photoGestures(
     onMove: (index: Int, x: Float, y: Float) -> Int,
     onAdd: (x: Float, y: Float, reach: Float) -> Unit,
     onRemove: (index: Int) -> Unit = {},
+    onMoveEnd: () -> Unit = {},
 ): Modifier = clipToBounds().pointerInput(key, imageW, imageH) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
@@ -141,6 +143,7 @@ fun Modifier.photoGestures(
             }
         } while (event.changes.any { it.pressed })
 
+        if (holeIndex >= 0 && travel > slop && !pinched) onMoveEnd()
         if (pinched || travel > slop) return@awaitEachGesture
         if (holeIndex >= 0) {
             if (upTime - down.uptimeMillis >= longPress) onRemove(holeIndex)

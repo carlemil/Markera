@@ -76,12 +76,21 @@ class SeriesStatsTest {
     }
 
     @Test
-    fun `caliber null keeps everything and a caliber keeps only its own`() {
+    fun `no calibers keeps everything and a caliber keeps only its own`() {
         val other = series(id = 3, caliber = "22lr", holes = seriesA.holes)
         val all = listOf(seriesA, other).plotSeries(StatsFilter(hits = 2))
         assertEquals(listOf(1L, 3L), all.map { it.series.id })
-        val nine = listOf(seriesA, other).plotSeries(StatsFilter(caliber = Caliber.MM9, hits = 2))
+        val nine = listOf(seriesA, other).plotSeries(StatsFilter(calibers = setOf(Caliber.MM9), hits = 2))
         assertEquals(listOf(1L), nine.map { it.series.id })
+    }
+
+    @Test
+    fun `several calibers keep each of them and drop the rest`() {
+        val rimfire = series(id = 3, caliber = "22lr", holes = seriesA.holes)
+        val rifle = series(id = 4, caliber = "308", holes = seriesA.holes)
+        val plotted = listOf(seriesA, rimfire, rifle)
+            .plotSeries(StatsFilter(calibers = setOf(Caliber.MM9, Caliber.LR22), hits = 2))
+        assertEquals(listOf(1L, 3L), plotted.map { it.series.id })
     }
 
     @Test
@@ -105,7 +114,7 @@ class SeriesStatsTest {
         val rimfire = series(id = 3, caliber = "22lr", holes = seriesA.holes).copy(tag = "Träning")
         val all = listOf(nine, rimfire)
         assertEquals(listOf(1L, 3L), all.plotSeries(StatsFilter(tags = setOf("Träning"))).map { it.series.id })
-        val both = all.plotSeries(StatsFilter(caliber = Caliber.MM9, tags = setOf("Träning")))
+        val both = all.plotSeries(StatsFilter(calibers = setOf(Caliber.MM9), tags = setOf("Träning")))
         assertEquals(listOf(1L), both.map { it.series.id })
     }
 

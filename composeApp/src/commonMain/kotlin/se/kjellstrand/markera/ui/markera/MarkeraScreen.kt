@@ -23,19 +23,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -52,13 +50,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesRecorder
-import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.AppChip
+import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.MenuItem
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Tune
@@ -147,11 +148,21 @@ fun MarkeraScreen(
             val isFrozen = snapshotVm.snapshot != null
             val processing = uiState.phase != ScanPhase.IDLE
             Column(modifier = Modifier.fillMaxSize()) {
-                MarkeraTopBar(
-                    showDebug = showDebug,
-                    onToggleDebug = { showDebug = !showDebug },
-                    onHelp = { showingHelp = true },
+                AppTopBar(
+                    title = stringResource(Res.string.app_name),
                     onBack = onBack,
+                    menuItems = listOfNotNull(
+                        MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
+                        // Developer tool: no entry point in release builds (the overlay itself stays).
+                        if (isDebugBuild) {
+                            MenuItem(
+                                if (showDebug) Icons.Default.Tune else Icons.Outlined.Tune,
+                                stringResource(Res.string.markera_toggle_debug),
+                            ) { showDebug = !showDebug }
+                        } else {
+                            null
+                        },
+                    ),
                 )
                 if (isPortrait) {
                     TargetScanner(
@@ -246,53 +257,6 @@ fun MarkeraScreen(
     }
 }
 
-/** Slim top bar: app name + a toggle that reveals the raw detection overlay. */
-@Composable
-private fun MarkeraTopBar(
-    showDebug: Boolean,
-    onToggleDebug: () -> Unit,
-    onHelp: () -> Unit,
-    onBack: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(Res.string.markera_back),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Text(
-            text = stringResource(Res.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.weight(1f))
-        AppMenu(
-            listOfNotNull(
-                MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { onHelp() },
-                // Developer tool: no entry point in release builds (the overlay itself stays).
-                if (isDebugBuild) {
-                    MenuItem(
-                        if (showDebug) Icons.Default.Tune else Icons.Outlined.Tune,
-                        stringResource(Res.string.markera_toggle_debug),
-                    ) { onToggleDebug() }
-                } else {
-                    null
-                },
-            ),
-        )
-    }
-}
-
 /**
  * Area below (portrait) or beside (landscape) the viewport: a live hint before
  * the first scan, a "working" line while detecting, and the results (total +
@@ -344,7 +308,7 @@ private fun BottomArea(
                     onClick = onScan,
                 )
             }
-            else -> ResultsContent(uiState, onResume, onReset, onSetScore, landscape)
+            else -> ResultsContent(uiState, onResume, onReset, onSetScore, landscape, Modifier.fillMaxSize())
         }
     }
 }
@@ -356,12 +320,9 @@ private fun BottomArea(
 @Composable
 private fun ScanChips() {
     val recorder = LocalSeriesRecorder.current ?: return
-    Row(
-        modifier = Modifier.height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        CaliberChip(recorder, Modifier.fillMaxHeight())
-        TagChip(recorder, Modifier.fillMaxHeight())
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CaliberChip(recorder)
+        TagChip(recorder)
     }
 }
 
@@ -409,37 +370,53 @@ private fun ResultsContent(
     onReset: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
     landscape: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        TotalBadge(total)
-        if (landscape) {
-            ScorePickerVerticalColumn(
-                values = uiState.topScores,
-                letteredCount = uiState.scores.size,
-            )
-        } else {
-            // A box with a hole takes a typed score (the hole stays put); empty slots just display.
-            ScorePickerHorizontalRow(
-                values = uiState.topScores,
-                onValueChange = onSetScore,
-                letteredCount = uiState.scores.size,
-                editableCount = uiState.scores.size,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onReset) {
-                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(Res.string.markera_reset))
+    val manual = uiState.scores.map { it.manual }
+    Column(modifier) {
+        // Badge + boxes centred while they fit, scrolled when they don't (landscape);
+        // the action bar below never scrolls away.
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                TotalBadge(total)
+                if (landscape) {
+                    ScorePickerVerticalColumn(
+                        values = uiState.topScores,
+                        letteredCount = uiState.scores.size,
+                        manual = manual,
+                    )
+                } else {
+                    // A box with a hole takes a typed score (the hole stays put); empty slots just display.
+                    ScorePickerHorizontalRow(
+                        values = uiState.topScores,
+                        onValueChange = onSetScore,
+                        letteredCount = uiState.scores.size,
+                        editableCount = uiState.scores.size,
+                        manual = manual,
+                    )
+                }
             }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SecondaryActionButton(
+                text = stringResource(Res.string.markera_reset),
+                icon = Icons.Default.Refresh,
+                onClick = onReset,
+            )
             PrimaryActionButton(
                 text = stringResource(Res.string.markera_resume_live),
                 icon = Icons.Default.Save,
                 onClick = onResume,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -451,8 +428,9 @@ fun PrimaryActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
-    Button(onClick = onClick, enabled = enabled) {
+    Button(onClick = onClick, enabled = enabled, modifier = modifier) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(text)
@@ -460,32 +438,69 @@ fun PrimaryActionButton(
 }
 
 /**
- * The scored total, as the last segment of one pill with the caliber and tag
- * (each still tappable). Both screens show their results through this.
+ * [PrimaryActionButton]'s icon-only outlined sibling, left of it; [text] is the
+ * accessibility label. The primary beside it takes the rest of the row (`weight(1f)`).
+ */
+@Composable
+fun SecondaryActionButton(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedIconButton(onClick = onClick, modifier = modifier) {
+        Icon(icon, contentDescription = text)
+    }
+}
+
+/**
+ * The scored total with the pending series' caliber and tag, tappable to open the
+ * recorder's dialogs. The scan screen and the wizard's Confirm step use this.
  */
 @Composable
 fun TotalBadge(total: Int) {
     val recorder = LocalSeriesRecorder.current
+        ?: return TotalBadge(total, caliber = null, tag = null)
+    val caliber by recorder.caliber.collectAsState()
+    val tag by recorder.tag.collectAsState()
+    TotalBadge(total, caliber.label, tag, recorder::openCaliberDialog, recorder::openTagDialog)
+}
+
+/**
+ * The one result header: caliber | tag | total in one pill, shared by the scan
+ * screen, wizard, Serie page and Historik. A null [caliber] leaves only the total;
+ * a null click leaves that segment untappable; [compact] is the list-row size.
+ */
+@Composable
+fun TotalBadge(
+    total: Int,
+    caliber: String?,
+    tag: String?,
+    onCaliberClick: (() -> Unit)? = null,
+    onTagClick: (() -> Unit)? = null,
+    compact: Boolean = false,
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(16.dp),
+        shape = if (compact) MaterialTheme.shapes.small else MaterialTheme.shapes.medium,
     ) {
         Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-            if (recorder != null) {
-                CaliberChip(recorder, Modifier.fillMaxHeight(), segment = true)
+            if (caliber != null) {
+                PillSegment(caliber.takeUnless { it.isBlank() || it == Caliber.NONE.label } ?: "–", onCaliberClick, compact)
                 VerticalDivider()
-                TagChip(recorder, Modifier.fillMaxHeight(), segment = true)
+                // Capped: a 32-character tag must not push the total off the row.
+                PillSegment(tag?.takeUnless { it.isBlank() } ?: "–", onTagClick, compact, if (compact) 96.dp else 120.dp)
             }
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(horizontal = if (compact) 10.dp else 16.dp, vertical = if (compact) 2.dp else 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = total.toString(),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 1,
                 )
@@ -494,49 +509,38 @@ fun TotalBadge(total: Int) {
     }
 }
 
-/** The caliber the next series is tagged with; tap to change it. */
+/** The caliber the next series is tagged with; tap to change it. Filled once one is set. */
 @Composable
-private fun CaliberChip(recorder: SeriesRecorder, modifier: Modifier = Modifier, segment: Boolean = false) {
+private fun CaliberChip(recorder: SeriesRecorder) {
     val caliber by recorder.caliber.collectAsState()
-    Surface(
-        color = if (segment) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
-        shape = if (segment) RectangleShape else RoundedCornerShape(16.dp),
-        modifier = modifier.clickable { recorder.openCaliberDialog() },
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = if (segment) 14.dp else 20.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = caliber.label,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
+    val label = if (caliber == Caliber.NONE) "–" else caliber.label
+    AppChip(caliber != Caliber.NONE, recorder::openCaliberDialog, label)
 }
 
-/** The tag the next series is saved with; tap to change it. Untagged shows the word. */
+/** The tag the next series is saved with; tap to change it. Untagged shows –. */
 @Composable
-private fun TagChip(recorder: SeriesRecorder, modifier: Modifier = Modifier, segment: Boolean = false) {
+private fun TagChip(recorder: SeriesRecorder) {
     val tag by recorder.tag.collectAsState()
-    Surface(
-        color = if (segment) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant,
-        shape = if (segment) RectangleShape else RoundedCornerShape(16.dp),
-        modifier = modifier.clickable { recorder.openTagDialog() },
+    AppChip(tag != null, recorder::openTagDialog, tag ?: "–", Modifier.widthIn(max = 120.dp))
+}
+
+/** A caliber or tag section of the [TotalBadge] pill; tappable when [onClick] is set. */
+@Composable
+private fun PillSegment(label: String, onClick: (() -> Unit)?, compact: Boolean, maxWidth: Dp = Dp.Unspecified) {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .widthIn(max = maxWidth)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = if (compact) 8.dp else 14.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            // Capped: a 32-character tag must not push the total off the row.
-            modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = if (segment) 14.dp else 20.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = tag ?: stringResource(Res.string.series_tag_chip_empty),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Text(
+            text = label,
+            style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }

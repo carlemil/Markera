@@ -25,16 +25,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -83,15 +79,21 @@ import se.kjellstrand.markera.series.scoreLine
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.series.utcDay
-import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.AppChip
 import se.kjellstrand.markera.ui.MenuItem
+import se.kjellstrand.markera.ui.StateMessage
+import se.kjellstrand.markera.ui.rememberBackendSignIn
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
-import se.kjellstrand.markera.ui.competition.CompetitionTopBar
+import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.stats.DateRangeDialog
-import se.kjellstrand.markera.ui.stats.SectionDivider
-import se.kjellstrand.markera.ui.stats.statsChipColors
+import se.kjellstrand.markera.ui.stats.SectionHeader
+import se.kjellstrand.markera.ui.markera.TotalBadge
 
 /** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
 private const val THUMB_MAX_DIM = 256
@@ -104,6 +106,7 @@ fun SeriesHistoryScreen(
     onBack: () -> Unit,
     shareFile: suspend (path: String) -> Unit,
     onOpen: (SeriesDto) -> Unit = {},
+    onMarkera: () -> Unit = {},
 ) {
     val auth by services.session.auth.collectAsState()
     val series by services.repository.series.collectAsState()
@@ -112,6 +115,7 @@ fun SeriesHistoryScreen(
     var reload by remember { mutableIntStateOf(0) }
     var pending by remember { mutableStateOf<SeriesDto?>(null) }
     var exporting by remember { mutableStateOf(false) }
+    val (signingIn, signIn) = rememberBackendSignIn(services)
     var showingHelp by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(HistoryFilter()) }
     // Guards against writing the still-default filter back before the saved one loaded.
@@ -170,62 +174,71 @@ fun SeriesHistoryScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(
-                title = stringResource(Res.string.history_title),
-                onBack = onBack,
-                actions = {
-                    if (exporting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    }
-                    AppMenu(
-                        listOf(
-                            MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
-                            MenuItem(
-                                Icons.Default.Backup,
-                                stringResource(Res.string.history_export),
-                                enabled = !exporting && auth != null && shown.isNotEmpty(),
-                            ) {
-                                exporting = true
-                                scope.launch {
-                                    try {
-                                        shareFile(
-                                            exportSeriesZip(
-                                                services.repository,
-                                                services.cacheDir,
-                                                shown,
-                                            ).toString(),
-                                        )
-                                    } catch (_: Throwable) {
-                                        toast(getString(Res.string.history_export_failed))
-                                    }
-                                    exporting = false
+            // The export spinner rides at the end of the bar while the zip is built.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppTopBar(
+                    title = stringResource(Res.string.history_title),
+                    onBack = onBack,
+                    modifier = Modifier.weight(1f),
+                    menuItems = listOf(
+                        MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
+                        MenuItem(
+                            Icons.Default.Backup,
+                            stringResource(Res.string.history_export),
+                            enabled = !exporting && auth != null && shown.isNotEmpty(),
+                        ) {
+                            exporting = true
+                            scope.launch {
+                                try {
+                                    shareFile(
+                                        exportSeriesZip(
+                                            services.repository,
+                                            services.cacheDir,
+                                            shown,
+                                        ).toString(),
+                                    )
+                                } catch (_: Throwable) {
+                                    toast(getString(Res.string.history_export_failed))
                                 }
-                            },
-                        ),
+                                exporting = false
+                            }
+                        },
+                    ),
+                )
+                if (exporting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(end = 16.dp).size(24.dp),
+                        strokeWidth = 2.dp,
                     )
-                },
-            )
+                }
+            }
             when {
-                auth == null -> Centered { Text(stringResource(Res.string.history_signed_out)) }
+                auth == null -> if (signingIn) StateMessage(loading = true) else StateMessage(
+                    icon = Icons.Default.AccountCircle,
+                    title = stringResource(Res.string.history_signed_out),
+                    hint = stringResource(Res.string.signed_out_hint),
+                    actionLabel = stringResource(Res.string.home_sign_in),
+                    onAction = signIn,
+                )
 
                 // A failed delta only takes over the screen with nothing cached to show.
-                error != null && series.isEmpty() -> Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(error!!, style = MaterialTheme.typography.bodyMedium)
-                    Button(onClick = { reload++ }) { Text(stringResource(Res.string.history_retry)) }
-                }
+                error != null && series.isEmpty() -> StateMessage(
+                    icon = Icons.Default.CloudOff,
+                    title = stringResource(Res.string.state_error_title),
+                    hint = error,
+                    actionLabel = stringResource(Res.string.retry),
+                    onAction = { reload++ },
+                )
 
-                loading && series.isEmpty() -> Centered { CircularProgressIndicator() }
+                loading && series.isEmpty() -> StateMessage(loading = true)
 
-                series.isEmpty() -> Centered { Text(stringResource(Res.string.history_empty)) }
+                series.isEmpty() -> StateMessage(
+                    icon = Icons.Default.History,
+                    title = stringResource(Res.string.history_empty),
+                    hint = stringResource(Res.string.empty_markera_hint),
+                    actionLabel = stringResource(Res.string.home_free_marking),
+                    onAction = onMarkera,
+                )
 
                 else -> Column(modifier = Modifier.fillMaxSize()) {
                     HistoryFilterRow(
@@ -237,13 +250,10 @@ fun SeriesHistoryScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     )
                     if (shown.isEmpty()) {
-                        Centered {
-                            Text(
-                                stringResource(Res.string.history_filter_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        StateMessage(
+                            icon = Icons.Default.FilterAltOff,
+                            title = stringResource(Res.string.history_filter_empty),
+                        )
                     } else {
                         LazyColumn(
                             state = listState,
@@ -369,11 +379,6 @@ internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     )
 }
 
-@Composable
-private fun Centered(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
-}
-
 /**
  * The caliber and tag (multi-select) and date (Statistik's single-select) chip rows.
  * A caliber or tag the user picked earlier still gets a chip even once it drops out
@@ -390,90 +395,73 @@ private fun HistoryFilterRow(
     onPickDates: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val chipColors = statsChipColors()
     val offered = (calibers + filter.calibers).distinct().sortedBy { it.ordinal }
     // Titled rules between the groups, as on Statistik — three chip rows in a
     // column are otherwise one undifferentiated block. 4 dp, so each title sits
     // with the chips it names.
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionDivider(stringResource(Res.string.stats_group_caliber))
+        SectionHeader(stringResource(Res.string.stats_group_caliber))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
+            AppChip(
                 selected = filter.calibers.isEmpty(),
                 onClick = { onFilter(filter.copy(calibers = emptySet())) },
-                label = { Text(stringResource(Res.string.stats_caliber_all)) },
-                colors = chipColors,
-                border = null,
+                label = stringResource(Res.string.stats_caliber_all),
             )
             offered.forEach { c ->
-                FilterChip(
+                AppChip(
                     selected = c in filter.calibers,
                     onClick = {
                         val next = if (c in filter.calibers) filter.calibers - c else filter.calibers + c
                         onFilter(filter.copy(calibers = next))
                     },
-                    label = { Text(if (c == Caliber.NONE) "–" else c.label) },
-                    colors = chipColors,
-                    border = null,
+                    label = if (c == Caliber.NONE) "–" else c.label,
                 )
             }
         }
         // No tag anywhere in the series (and none selected) means no row at all.
         val offeredTags = (tags + filter.tags).distinct().sorted()
         if (offeredTags.isNotEmpty()) {
-            SectionDivider(stringResource(Res.string.stats_group_tag))
+            SectionHeader(stringResource(Res.string.stats_group_tag))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+                AppChip(
                     selected = filter.tags.isEmpty(),
                     onClick = { onFilter(filter.copy(tags = emptySet())) },
-                    label = { Text(stringResource(Res.string.stats_caliber_all)) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(Res.string.stats_caliber_all),
                 )
                 offeredTags.forEach { tag ->
-                    FilterChip(
+                    AppChip(
                         selected = tag in filter.tags,
                         onClick = {
                             val next = if (tag in filter.tags) filter.tags - tag else filter.tags + tag
                             onFilter(filter.copy(tags = next))
                         },
-                        label = { Text(tag) },
-                        colors = chipColors,
-                        border = null,
+                        label = tag,
                     )
                 }
             }
         }
-        SectionDivider(stringResource(Res.string.stats_group_date))
+        SectionHeader(stringResource(Res.string.stats_group_date))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val presetChip = @Composable { value: DatePreset, label: StringResource ->
-                FilterChip(
+                AppChip(
                     selected = filter.preset == value,
                     onClick = { onFilter(filter.copy(preset = value)) },
-                    label = { Text(stringResource(label)) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(label),
                 )
             }
             presetChip(DatePreset.ALL, Res.string.stats_date_all)
-            FilterChip(
+            AppChip(
                 selected = filter.preset == DatePreset.CUSTOM,
                 onClick = onPickDates,
-                label = {
-                    Text(
-                        if (filter.preset == DatePreset.CUSTOM && filter.customRange != null) {
-                            stringResource(
-                                Res.string.stats_date_range,
-                                utcDay(filter.customRange.first),
-                                utcDay(filter.customRange.second),
-                            )
-                        } else {
-                            stringResource(Res.string.stats_date_custom)
-                        },
+                label = if (filter.preset == DatePreset.CUSTOM && filter.customRange != null) {
+                    stringResource(
+                        Res.string.stats_date_range,
+                        utcDay(filter.customRange.first),
+                        utcDay(filter.customRange.second),
                     )
+                } else {
+                    stringResource(Res.string.stats_date_custom)
                 },
-                colors = chipColors,
-                border = null,
             )
             presetChip(DatePreset.WEEK, Res.string.stats_date_week)
             presetChip(DatePreset.MONTH, Res.string.stats_date_month)
@@ -483,8 +471,8 @@ private fun HistoryFilterRow(
 }
 
 /**
- * A day's titled rule — `⌄ 2026-09-15 ——— 3 serier · 87 poäng` — in Statistik's
- * `SectionDivider` idiom. The whole row folds the day's cards in and out.
+ * A day's header — `⌄ 2026-09-15      3 serier · 87 poäng` — the day in the shared
+ * `SectionHeader` style. The whole row folds the day's cards in and out.
  */
 @Composable
 private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) {
@@ -500,14 +488,10 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
             imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = null,
             modifier = Modifier.rotate(angle),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.primary,
         )
-        Text(group.day, style = MaterialTheme.typography.titleSmall)
-        HorizontalDivider(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp),
-        )
+        SectionHeader(group.day)
+        Spacer(Modifier.weight(1f))
         val points = group.series.sumOf { it.total() }
         Text(
             text = if (group.series.size == 1) {
@@ -522,9 +506,8 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
 }
 
 /**
- * The card's three columns. Shared by both of its rows so the time sits over
- * the caliber, the series number over the tag and the hits over the total; the
- * third is widest because the hit list is the longest value on the card.
+ * The card's three columns; the third is widest because the hit list is the
+ * longest value on the card.
  */
 private const val COLUMN_1 = 1f
 private const val COLUMN_2 = 1f
@@ -540,15 +523,14 @@ private fun Separator() {
     )
 }
 
-/** One labelled column of the card's bottom strip: small label over the value. */
+/** One labelled column of the card's top strip: small label over the value. */
 @Composable
 private fun LabelledValue(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
-    // Centred in the column, label over value, so the two rows read as a grid.
+    // Centred in the column, label over value.
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label.uppercase(),
@@ -560,7 +542,7 @@ private fun LabelledValue(
             text = value,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = valueColor,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -569,14 +551,15 @@ private fun LabelledValue(
 }
 
 @Composable
-private fun SeriesCard(
+internal fun SeriesCard(
     series: SeriesDto,
     /** Which series of its day this was, counted from the first one shot. */
     ordinal: Int,
     services: SeriesServices,
     thumbnails: MutableMap<Long, ImageBitmap>,
     onClick: () -> Unit,
-    onLongPress: () -> Unit,
+    /** Null (Home) = no long-press delete. */
+    onLongPress: (() -> Unit)? = null,
 ) {
     if (series.hasImage) {
         LaunchedEffect(series.id) {
@@ -588,11 +571,11 @@ private fun SeriesCard(
             }
         }
     }
-    Card(
+    OutlinedCard(
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongPress),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Row(
             modifier = Modifier
@@ -607,15 +590,15 @@ private fun SeriesCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(72.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(MaterialTheme.shapes.small),
                 )
             }
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                // Six labelled cells in two rows, on three shared columns: when
-                // it was shot and how it went above, what it was shot with below.
+                // When it was shot and how it went above, the caliber | tag | total
+                // pill below.
                 // The day itself is the group header above this card.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -641,30 +624,9 @@ private fun SeriesCard(
                     )
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-                // The same three weights and the same separators as the line
-                // above, so the two rows' columns sit on the same edges.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_group_caliber),
-                        value = if (series.caliber == "-") "–" else series.caliber,
-                        modifier = Modifier.weight(COLUMN_1),
-                    )
-                    Separator()
-                    LabelledValue(
-                        label = stringResource(Res.string.stats_group_tag),
-                        value = series.tag?.takeIf { it.isNotBlank() } ?: "–",
-                        modifier = Modifier.weight(COLUMN_2),
-                    )
-                    Separator()
-                    LabelledValue(
-                        label = stringResource(Res.string.markera_total_label),
-                        value = series.total().toString(),
-                        valueColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(COLUMN_3),
-                    )
+                // Not tappable: the card itself opens the Serie page, where these are edited.
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TotalBadge(series.total(), series.caliber, series.tag, compact = true)
                 }
             }
         }

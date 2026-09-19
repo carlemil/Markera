@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.competition
 
+import se.kjellstrand.markera.ui.AppTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -58,7 +59,7 @@ fun LoginScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(title = stringResource(Res.string.login_title), onBack = onBack)
+            AppTopBar(title = stringResource(Res.string.login_title), onBack = onBack)
             Column(
                 modifier = Modifier
                     .fillMaxSize()

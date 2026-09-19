@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.competition
 
+import se.kjellstrand.markera.ui.AppTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.StateMessage
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.EmojiEvents
 import se.kjellstrand.markera.ui.MenuItem
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,22 +61,18 @@ fun CompetitionListScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(
+            AppTopBar(
                 title = stringResource(Res.string.competitions_title),
                 subtitle = services.sessionRepository.session.collectAsState().value?.userName,
                 onBack = onBack,
-                actions = {
-                    AppMenu(
-                        listOf(
-                            MenuItem(Icons.AutoMirrored.Filled.Logout, stringResource(Res.string.logout)) {
-                                scope.launch {
-                                    services.sessionRepository.logout()
-                                    onLoggedOut()
-                                }
-                            },
-                        ),
-                    )
-                },
+                menuItems = listOf(
+                    MenuItem(Icons.AutoMirrored.Filled.Logout, stringResource(Res.string.logout)) {
+                        scope.launch {
+                            services.sessionRepository.logout()
+                            onLoggedOut()
+                        }
+                    },
+                ),
             )
             OutlinedTextField(
                 value = uiState.search,
@@ -85,22 +84,21 @@ fun CompetitionListScreen(
                     .padding(horizontal = 16.dp),
             )
             when {
-                uiState.loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) { CircularProgressIndicator() }
+                uiState.loading -> StateMessage(loading = true)
 
-                uiState.error -> ErrorRetry(onRetry = { viewModel.load() })
+                uiState.error -> StateMessage(
+                    icon = Icons.Default.CloudOff,
+                    title = stringResource(Res.string.state_error_title),
+                    hint = stringResource(Res.string.error_network),
+                    actionLabel = stringResource(Res.string.retry),
+                    onAction = { viewModel.load() },
+                )
 
-                uiState.competitions.isEmpty() -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.competitions_empty),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                uiState.competitions.isEmpty() -> StateMessage(
+                    icon = Icons.Default.EmojiEvents,
+                    title = stringResource(Res.string.competitions_empty),
+                    hint = stringResource(Res.string.competitions_empty_hint),
+                )
 
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -118,7 +116,7 @@ fun CompetitionListScreen(
 
 @Composable
 private fun CompetitionCard(competition: CompetitionSummaryDto, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    OutlinedCard(onClick = onClick, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,26 +136,6 @@ private fun CompetitionCard(competition: CompetitionSummaryDto, onClick: () -> U
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-    }
-}
-
-@Composable
-internal fun ErrorRetry(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, androidx.compose.ui.Alignment.CenterVertically),
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(Res.string.error_network),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        androidx.compose.material3.Button(onClick = onRetry) {
-            Text(stringResource(Res.string.wizard_retry))
         }
     }
 }

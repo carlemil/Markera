@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -26,8 +28,8 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -48,6 +50,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -56,6 +59,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -72,12 +77,15 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
+import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.history.SeriesDetailScreen
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
+import se.kjellstrand.markera.ui.history.SeriesCard
+import se.kjellstrand.markera.ui.history.dayOrdinals
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
@@ -91,6 +99,9 @@ import se.kjellstrand.markera.ui.theme.MarkeraTheme
 
 /** Shows a short message; the host lives in [AppNavHost], above every screen. */
 val LocalToast = staticCompositionLocalOf<(String) -> Unit> { error("no toast host") }
+
+/** The same host as [LocalToast], for a message with an action (Undo). */
+val LocalSnackbar = staticCompositionLocalOf<SnackbarHostState> { error("no snackbar host") }
 
 /** The app's screens; a simple list-backed stack, no navigation library. */
 sealed interface Screen {
@@ -220,6 +231,7 @@ fun AppNavHost(
     CompositionLocalProvider(
         LocalSeriesRecorder provides recorder,
         LocalToast provides toast,
+        LocalSnackbar provides snackbarHostState,
         LocalMenuHost provides menuHost,
         LocalOpenSettings provides { push(Screen.Settings) },
     ) {
@@ -229,6 +241,7 @@ fun AppNavHost(
             onFreeMarking = { push(Screen.FreeMarking) },
             onCompetition = competition?.let { { push(Screen.Competition) } },
             onHistory = { push(Screen.History) },
+            onOpenSeries = { push(Screen.SeriesDetail(it)) },
             onStatistics = { push(Screen.Statistics) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,
@@ -246,9 +259,14 @@ fun AppNavHost(
             onBack = pop,
             shareFile = app.shareFile,
             onOpen = { push(Screen.SeriesDetail(it)) },
+            onMarkera = { push(Screen.FreeMarking) },
         )
 
-        Screen.Statistics -> StatsScreen(services = seriesServices, onBack = pop)
+        Screen.Statistics -> StatsScreen(
+            services = seriesServices,
+            onBack = pop,
+            onMarkera = { push(Screen.FreeMarking) },
+        )
 
         Screen.Settings -> SettingsScreen(settings = settings, onBack = pop)
 
@@ -320,6 +338,9 @@ internal fun TagDialog(
                 Text(stringResource(Res.string.series_tag_use))
             }
         },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_cancel)) }
+        },
         text = {
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -366,6 +387,9 @@ internal fun CaliberDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.series_caliber_title)) },
         confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_cancel)) }
+        },
         text = {
             // Compact rows: the whole row is the tap target, so the radio's 48 dp minimum is off.
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
@@ -396,9 +420,10 @@ internal fun CaliberDialog(
 @Composable
 private fun HomeScreen(
     onFreeMarking: () -> Unit,
-    /** Null hides the card: the platform supplied no competition flow. */
+    /** Null hides the button: the platform supplied no competition flow. */
     onCompetition: (() -> Unit)?,
     onHistory: () -> Unit,
+    onOpenSeries: (SeriesDto) -> Unit,
     onStatistics: () -> Unit,
     backendAuth: BackendAuth?,
     seriesServices: SeriesServices,
@@ -420,35 +445,38 @@ private fun HomeScreen(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(48.dp))
-                HomeCard(
-                    title = stringResource(Res.string.home_free_marking),
-                    subtitle = stringResource(Res.string.home_free_marking_hint),
-                    icon = { Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                    onClick = onFreeMarking,
-                )
-                if (onCompetition != null) {
-                    Spacer(Modifier.height(16.dp))
-                    HomeCard(
-                        title = stringResource(Res.string.home_competition),
-                        subtitle = stringResource(Res.string.home_competition_hint),
-                        icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                        onClick = onCompetition,
+                Button(onClick = onFreeMarking, modifier = Modifier.fillMaxWidth().height(72.dp)) {
+                    Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(28.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(Res.string.home_free_marking), style = MaterialTheme.typography.titleLarge)
+                }
+                // Signed out or nothing saved yet: the cache is empty and the card just isn't there.
+                val cached by seriesServices.repository.series.collectAsState()
+                val latest = cached.firstOrNull() // Series.sq orders by timestamp DESC
+                if (latest != null) {
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        stringResource(Res.string.home_latest_series, localStamp(latest.timestamp).take(10)),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    )
+                    SeriesCard(
+                        series = latest,
+                        ordinal = remember(cached) { cached.dayOrdinals() }[latest.id] ?: 1,
+                        services = seriesServices,
+                        thumbnails = remember { mutableStateMapOf() },
+                        onClick = { onOpenSeries(latest) },
                     )
                 }
-                Spacer(Modifier.height(16.dp))
-                HomeCard(
-                    title = stringResource(Res.string.home_history),
-                    subtitle = stringResource(Res.string.home_history_hint),
-                    icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                    onClick = onHistory,
-                )
-                Spacer(Modifier.height(16.dp))
-                HomeCard(
-                    title = stringResource(Res.string.home_stats),
-                    subtitle = stringResource(Res.string.home_stats_hint),
-                    icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(36.dp)) },
-                    onClick = onStatistics,
-                )
+                Spacer(Modifier.height(24.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HomeButton(Icons.Default.History, stringResource(Res.string.home_history), onHistory)
+                    HomeButton(Icons.Default.BarChart, stringResource(Res.string.home_stats), onStatistics)
+                    if (onCompetition != null) {
+                        HomeButton(Icons.Default.EmojiEvents, stringResource(Res.string.home_competition), onCompetition)
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
                 AccountRow(backendAuth, seriesServices)
             }
@@ -482,10 +510,36 @@ private fun HomeScreen(
     }
 }
 
+/**
+ * Backend sign-in as (busy, start): Home's account row and the signed-out states of
+ * Historik/Statistik share it. A failure is toasted.
+ */
+@Composable
+internal fun rememberBackendSignIn(services: SeriesServices): Pair<Boolean, () -> Unit> {
+    val signIn = rememberSignIn(services.session)
+    val toast = LocalToast.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    return busy to {
+        busy = true
+        scope.launch {
+            try {
+                signIn()
+                // A different account must not inherit the last one's cache.
+                services.repository.refresh()
+            } catch (t: Throwable) {
+                toast(t.message ?: t.toString())
+            } finally {
+                busy = false
+            }
+        }
+    }
+}
+
 /** Markera-backend account: sign in to save scanned series, or sign out. */
 @Composable
 private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
-    val signIn = rememberSignIn(seriesServices.session)
+    val (signingIn, signIn) = rememberBackendSignIn(seriesServices)
     val toast = LocalToast.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -522,25 +576,12 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
         )
     }
 
-    if (busy) {
+    if (busy || signingIn) {
         CircularProgressIndicator(Modifier.size(24.dp))
         return
     }
     if (auth == null) {
-        TextButton(onClick = {
-            busy = true
-            scope.launch {
-                try {
-                    signIn()
-                    // A different account must not inherit the last one's cache.
-                    seriesServices.repository.refresh()
-                } catch (t: Throwable) {
-                    toast(t.message ?: t.toString())
-                } finally {
-                    busy = false
-                }
-            }
-        }) {
+        TextButton(onClick = signIn) {
             Text(stringResource(Res.string.home_sign_in))
         }
     } else {
@@ -571,34 +612,13 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
     }
 }
 
+/** One of Home's equal-width list buttons; icon above the label so three fit in Swedish. */
 @Composable
-private fun HomeCard(
-    title: String,
-    subtitle: String,
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit,
-) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            icon()
-            Text(title, style = MaterialTheme.typography.titleLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+private fun RowScope.HomeButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, modifier = Modifier.weight(1f)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = null)
+            Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

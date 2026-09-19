@@ -1,7 +1,6 @@
 package se.kjellstrand.markera.ui.history
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +20,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,9 +42,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
@@ -52,7 +52,8 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
-import se.kjellstrand.markera.series.SeriesRequest
+import se.kjellstrand.markera.series.SeriesEdit
+import se.kjellstrand.markera.series.SeriesEdits
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.centre
@@ -68,15 +69,19 @@ import se.kjellstrand.markera.series.pickRing
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.CaliberDialog
-import se.kjellstrand.markera.ui.AppMenu
 import se.kjellstrand.markera.ui.MenuItem
+import se.kjellstrand.markera.ui.StateMessage
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.HideImage
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
+import se.kjellstrand.markera.ui.LocalSnackbar
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.TagDialog
-import se.kjellstrand.markera.ui.competition.CompetitionTopBar
+import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
-import se.kjellstrand.markera.ui.markera.PrimaryActionButton
+import se.kjellstrand.markera.ui.markera.MANUAL_HIT_COLOR
+import se.kjellstrand.markera.ui.markera.TotalBadge
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.ui.markera.ScoreBox
@@ -89,7 +94,6 @@ import se.kjellstrand.markera.vision.distanceMm
 
 /** Same greens/oranges the live overlay uses for detected vs. hand-placed holes. */
 private val DETECTED_COLOR = Color(0xFF9CCC65)
-private val MANUAL_COLOR = Color(0xFFFFB74D)
 
 /** How close a drag has to start to a marker to grab it. */
 private val GRAB_RADIUS = 24.dp
@@ -101,7 +105,8 @@ private const val PHOTO_MAX_DIM = 1536
  * One saved series: the scanned photo with a marker per positioned hole, the
  * hole list, and editing — tap the photo to add a hole, drag a marker to move
  * it, pinch to zoom in first. A score is never typed: it always comes from where
- * the hole sits. "Spara" PUTs the whole series back; going back discards.
+ * the hole sits. Every edit is saved at once (the whole series is PUT back) and
+ * a snackbar offers to undo it.
  */
 @Composable
 fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
@@ -109,39 +114,81 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     val cached by services.repository.series.collectAsState()
     val series = cached.firstOrNull { it.id == initial.id } ?: initial
     val toast = LocalToast.current
+    val snackbar = LocalSnackbar.current
     val scope = rememberCoroutineScope()
     // A plain State (not `by`), so the drag gesture — which is not recomposed —
     // reads and writes the current list.
     val holes = remember(series.id) { mutableStateOf(series.holes) }
-    // Holes the user removed: saved flagged `deleted` so the backend keeps them for training.
-    var removed by remember(series.id) { mutableStateOf(listOf<HoleDto>()) }
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
-    // Edited locally like the holes: the pick only reaches the server on "Spara",
-    // so it can't commit the pending hole edits behind the user's back.
+    // Local like the holes; commit() below saves all three together.
     var caliber by remember(series.id) { mutableStateOf(Caliber.fromLabel(series.caliber)) }
     var pickingCaliber by remember(series.id) { mutableStateOf(false) }
-    // Same deal for the tag: local until "Spara", and deliberately not routed
-    // through SeriesRecorder — that one owns the *pending scan*, not this series.
+    // Deliberately not routed through SeriesRecorder — that one owns the
+    // *pending scan*, not this series.
     var tag by remember(series.id) { mutableStateOf(series.tag) }
     var pickingTag by remember(series.id) { mutableStateOf(false) }
     // A score only ever comes from a position, so without geometry the holes
     // can't be edited at all.
     val geometry = series.geometry
-    var saving by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var pendingDeleteIndex by remember(series.id) { mutableStateOf<Int?>(null) }
     var showingHelp by remember { mutableStateOf(false) }
     val zoomPan = rememberZoomPan(series.id)
     val savedText = stringResource(Res.string.detail_saved)
     val failedText = stringResource(Res.string.detail_save_failed)
+    val undoText = stringResource(Res.string.undo)
     val deleteFailedText = stringResource(Res.string.history_delete_failed)
     val grabPx = with(LocalDensity.current) { GRAB_RADIUS.toPx() }
 
+    val edits = remember(series.id) { SeriesEdits(services.repository, series) }
+    var undoJob by remember { mutableStateOf<Job?>(null) }
+    fun restore(to: SeriesEdit) {
+        holes.value = to.holes
+        caliber = Caliber.fromLabel(to.caliber)
+        tag = to.tag
+    }
+
+    // Saves the local state as it is now; a failed save puts back what the server has.
+    fun commit(removedHole: HoleDto? = null) {
+        val next = SeriesEdit(holes.value, caliber.label, tag)
+        if (next == edits.saved && removedHole == null) return
+        scope.launch {
+            val before = edits.save(next, removedHole)
+            if (before == null) {
+                toast(failedText)
+                restore(edits.saved)
+                return@launch
+            }
+            // One undo offer at a time: quick edits don't queue a snackbar each.
+            undoJob?.cancel()
+            undoJob = scope.launch {
+                val result = snackbar.showSnackbar(savedText, undoText, duration = SnackbarDuration.Short)
+                if (result == SnackbarResult.ActionPerformed) {
+                    restore(before)
+                    if (edits.save(before) == null) {
+                        toast(failedText)
+                        restore(edits.saved)
+                    }
+                }
+            }
+        }
+    }
+
+    // Tells a photo that will not come ("No photo") from one still loading (spinner).
+    var photoFailed by remember(series.id) { mutableStateOf(false) }
     LaunchedEffect(series.id) {
         if (!series.hasImage) return@LaunchedEffect
-        // Null (a failed download with nothing cached) is the whole fallback.
-        val bytes = services.repository.image(series.id) ?: return@LaunchedEffect
-        photo = decodeSeriesJpeg(bytes, PHOTO_MAX_DIM)
+        // Null is a failed download with nothing cached.
+        val bytes = services.repository.image(series.id)
+        // Only the decode is caught, so cancellation still propagates.
+        photo = bytes?.let {
+            try {
+                decodeSeriesJpeg(it, PHOTO_MAX_DIM)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        photoFailed = photo == null
     }
 
     // Without the source-frame size the hole pixels mean nothing against the
@@ -155,19 +202,15 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(
+            AppTopBar(
                 title = stringResource(Res.string.detail_title),
                 onBack = onBack,
-                actions = {
-                    AppMenu(
-                        listOf(
-                            MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
-                            MenuItem(Icons.Default.Delete, stringResource(Res.string.history_delete_confirm)) {
-                                confirmDelete = true
-                            },
-                        ),
-                    )
-                },
+                menuItems = listOf(
+                    MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
+                    MenuItem(Icons.Default.Delete, stringResource(Res.string.history_delete_confirm)) {
+                        confirmDelete = true
+                    },
+                ),
             )
             Column(
                 modifier = Modifier
@@ -222,19 +265,34 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                     geometry?.let {
                                         holes.value =
                                             holes.value.withNewHole(x.toDouble(), y.toDouble(), it)
+                                        commit()
                                     }
                                 }
                             },
+                            // One save per drag, when the finger lifts.
+                            onMoveEnd = { commit() },
                         ),
                 ) {
                     Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
-                        photo?.let {
-                            Image(
-                                bitmap = it,
+                        val shown = photo
+                        val placeholder = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                        when {
+                            shown != null -> Image(
+                                bitmap = shown,
                                 contentDescription = null,
                                 contentScale = ContentScale.Fit,
                                 modifier = Modifier.fillMaxSize(),
                             )
+
+                            !series.hasImage || photoFailed -> StateMessage(
+                                icon = Icons.Default.HideImage,
+                                title = stringResource(Res.string.detail_photo_missing),
+                                modifier = placeholder,
+                            )
+
+                            else -> StateMessage(loading = true, modifier = placeholder)
                         }
                         // A hole without a position has no marker, so carry the
                         // letter along from the list index — otherwise the
@@ -255,108 +313,44 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             caliber = caliber,
                             holeColor = DETECTED_COLOR,
                             scoreColor = DETECTED_COLOR,
-                            manualColor = MANUAL_COLOR,
+                            manualColor = MANUAL_HIT_COLOR,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
-
-                // Right under the photo, greyed out until a hole was moved,
-                // added or removed.
-                PrimaryActionButton(
-                    text = stringResource(Res.string.detail_save),
-                    icon = Icons.Default.Save,
-                    // The server rejects an empty hole list, so don't offer it.
-                    enabled = !saving && holes.value.isNotEmpty() &&
-                        (holes.value != series.holes || caliber.label != series.caliber || tag != series.tag),
-                    onClick = {
-                        saving = true
-                        scope.launch {
-                            try {
-                                services.repository.update(
-                                    series.id,
-                                    SeriesRequest(
-                                        series.timestamp,
-                                        caliber.label,
-                                        holes.value + removed,
-                                        series.geometry,
-                                        // A PUT replaces the whole series, so the tag rides
-                                        // along — the edited one when it was changed here.
-                                        tag,
-                                    ),
-                                )
-                                toast(savedText)
-                                onBack()
-                            } catch (_: Throwable) {
-                                toast(failedText)
-                                saving = false
-                            }
-                        }
-                    },
-                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Caliber and tag are the two values edited from here, so they
-                    // read at titleLarge with room to breathe between the rows.
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
-                        // Tap to correct a wrong caliber; saved by "Spara" above.
-                        Row(
-                            modifier = Modifier.clickable { pickingCaliber = true },
-                            verticalAlignment = Alignment.CenterVertically,
-                            // The gap is layout, not a trailing space in the string:
-                            // resource parsers trim that and the label would run into the value.
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.detail_caliber),
-                                style = MaterialTheme.typography.titleLarge,
-                            )
-                            Text(
-                                text = if (caliber == Caliber.NONE) "–" else caliber.label,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                        // Same again for the tag; also saved by "Spara".
-                        Row(
-                            modifier = Modifier.clickable { pickingTag = true },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.detail_tag),
-                                style = MaterialTheme.typography.titleLarge,
-                            )
-                            Text(
-                                text = tag ?: "–",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-                    Text(
-                        text = holes.value.sumOf { it.ring }.toString(),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                    Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
+                    // Tap caliber or tag to correct it.
+                    TotalBadge(
+                        total = holes.value.sumOf { it.ring },
+                        caliber = caliber.label,
+                        tag = tag,
+                        onCaliberClick = { pickingCaliber = true },
+                        onTagClick = { pickingTag = true },
                     )
                 }
 
                 // Own column: the rows sit tight, the 16 dp outside stays
-                // between the photo/header/button blocks.
+                // between the photo and header blocks.
                 Column {
                     holes.value.forEachIndexed { i, hole ->
                         HoleRow(
                             hole = hole,
                             letter = holeLetter(i),
-                            onDelete = { pendingDeleteIndex = i },
+                            // The server rejects an empty hole list, so the last
+                            // hole stays; the whole series goes from the menu.
+                            onDelete = if (holes.value.size > 1) {
+                                { pendingDeleteIndex = i }
+                            } else {
+                                null
+                            },
                             // Same gate as the photo editing above: no geometry,
-                            // no editing. "Spara" sends the whole list, so the
-                            // pick only has to land in the local state.
+                            // no editing.
                             onScoreChange = geometry?.let {
                                 { pick: Int ->
                                     holes.value = holes.value.mapIndexed { j, h ->
@@ -366,6 +360,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                                             h
                                         }
                                     }
+                                    commit()
                                 }
                             },
                         )
@@ -393,6 +388,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
             onSelect = {
                 caliber = it
                 pickingCaliber = false
+                commit()
             },
             onDismiss = { pickingCaliber = false },
         )
@@ -407,6 +403,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 // Typed text arrives raw; normalize so "  " is untagged, not a blank tag.
                 tag = normalizeTag(it)
                 pickingTag = false
+                commit()
             },
             onDismiss = { pickingTag = false },
         )
@@ -417,8 +414,9 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
             onDismiss = { pendingDeleteIndex = null },
             onConfirm = {
                 pendingDeleteIndex = null
-                removed = removed + holes.value[index].copy(deleted = true)
+                val hole = holes.value[index]
                 holes.value = holes.value.filterIndexed { j, _ -> j != index }
+                commit(removedHole = hole.copy(deleted = true))
             },
         )
     }
@@ -451,7 +449,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
 private fun HoleRow(
     hole: HoleDto,
     letter: String,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
     onScoreChange: ((Int) -> Unit)?,
 ) {
     Row(
@@ -496,6 +494,8 @@ private fun HoleRow(
         ScoreBox(
             value = if (hole.innerTen) SCORE_PICKER_INNER_TEN else hole.ring,
             onValueChange = onScoreChange,
+            // Same test as asHitScore's orange marker, so box and marker agree.
+            manual = hole.detectedRing == null && hole.x != null,
         )
         Text(
             // Whole millimetres only — no decimals anywhere in this UI.
@@ -518,12 +518,14 @@ private fun HoleRow(
         )
         // Trimmed from the 48 dp default so the text, not the button, sets
         // the row height; the 24 dp icon still fits.
-        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = stringResource(Res.string.detail_delete_hole),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        if (onDelete != null) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(Res.string.detail_delete_hole),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

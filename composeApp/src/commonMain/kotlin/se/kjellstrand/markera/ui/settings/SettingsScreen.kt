@@ -34,8 +34,10 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.BackendTokenStore
-import se.kjellstrand.markera.ui.competition.CompetitionTopBar
-import se.kjellstrand.markera.ui.stats.SectionDivider
+import se.kjellstrand.markera.ui.AppTopBar
+import se.kjellstrand.markera.ui.LocalOpenSettings
+import androidx.compose.runtime.CompositionLocalProvider
+import se.kjellstrand.markera.ui.stats.SectionHeader
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
@@ -103,19 +105,22 @@ fun SettingsScreen(settings: AppSettings, onBack: () -> Unit) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(title = stringResource(Res.string.settings), onBack = onBack)
+            // Settings must not offer Settings: the menu holds only Back.
+            CompositionLocalProvider(LocalOpenSettings provides null) {
+                AppTopBar(title = stringResource(Res.string.settings), onBack = onBack)
+            }
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                SectionDivider(stringResource(Res.string.settings_language))
+                SectionHeader(stringResource(Res.string.settings_language))
                 Choice(system, language == null) { settings.setLanguage(null) }
                 LANGUAGES.forEach { (code, name) ->
                     Choice(name, language == code) { settings.setLanguage(code) }
                 }
-                SectionDivider(stringResource(Res.string.settings_theme))
+                SectionHeader(stringResource(Res.string.settings_theme))
                 Choice(system, theme == ThemeMode.SYSTEM) { settings.setTheme(ThemeMode.SYSTEM) }
                 Choice(stringResource(Res.string.settings_theme_light), theme == ThemeMode.LIGHT) {
                     settings.setTheme(ThemeMode.LIGHT)

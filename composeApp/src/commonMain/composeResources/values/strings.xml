@@ -7,7 +7,6 @@
     <string name="markera_resume_live">Save</string>
     <string name="markera_reset">Reset</string>
     <string name="markera_error_inference">Detection failed.</string>
-    <string name="markera_total_label">Total</string>
     <string name="markera_hint">Point the camera at the target and tap to count the hits.</string>
     <string name="markera_analyzing">Analysing hits…</string>
     <string name="markera_detect_holes">Detect holes</string>
@@ -25,13 +24,10 @@
 
     <!-- Home -->
     <string name="home_free_marking">Mark</string>
-    <string name="home_free_marking_hint">Scan a target</string>
     <string name="home_competition">Competition</string>
-    <string name="home_competition_hint">Mark in a Webshooter competition</string>
     <string name="home_history">History</string>
-    <string name="home_history_hint">Saved series</string>
     <string name="home_stats">Statistics</string>
-    <string name="home_stats_hint">Shot pattern and measures over time</string>
+    <string name="home_latest_series">Latest series · %1$s</string>
     <string name="home_sign_in">Sign in to save series</string>
     <string name="home_signed_in">Signed in with %1$s</string>
     <string name="home_sign_out">Sign out</string>
@@ -47,7 +43,6 @@
     <string name="series_caliber_none">None chosen</string>
     <string name="series_tag_title">Choose tag</string>
     <string name="series_tag_none">No tag</string>
-    <string name="series_tag_chip_empty">Tag</string>
     <string name="series_tag_new">New tag</string>
     <string name="series_tag_use">Use</string>
     <string name="series_tag_suggest_practice">Practice</string>
@@ -62,7 +57,6 @@
     <string name="history_filter_empty">No series match the filter.</string>
     <string name="history_day_summary">%1$d series · %2$d points</string>
     <string name="history_day_summary_one">1 series · %1$d points</string>
-    <string name="history_retry">Try again</string>
     <string name="history_time_label">Time</string>
     <string name="history_delete_title">Delete the series?</string>
     <string name="history_delete_message">%1$s · %2$d points</string>
@@ -78,7 +72,6 @@
     <!-- Statistics -->
     <string name="stats_title">Statistics</string>
     <string name="stats_signed_out">Sign in to see statistics</string>
-    <string name="stats_retry">Try again</string>
     <string name="stats_empty">No series match the filter.</string>
     <string name="stats_caliber_all">All</string>
     <string name="stats_date_week">7 d</string>
@@ -154,7 +147,7 @@
     <string name="help_scan_caliber">Caliber</string>
     <string name="help_scan_caliber_body">The chip beside the score shows the caliber the series is saved with. Tap it to change — if none is chosen, the app asks when you save. The caliber is shown in the history and can be filtered on in the statistics.</string>
     <string name="help_scan_save">Save</string>
-    <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. Reset discards the scan without saving.</string>
+    <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. The ↻ button discards the scan without saving.</string>
     <string name="help_scan_debug">Troubleshooting</string>
     <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines.</string>
 
@@ -174,7 +167,7 @@
     <string name="help_detail_photo">The photo</string>
     <string name="help_detail_photo_body">The scanned target with hits, ring and centre. Pinch to zoom, drag a hit to move it and tap the target to add a missing one — the score is recalculated from the hit\’s position.</string>
     <string name="help_detail_holes">The hits</string>
-    <string name="help_detail_holes_body">The list shows the ring, the distance from the centre in millimetres and whether the hit was detected or added by hand. The bin in the row removes the hit after a confirmation. Changes are only saved when you tap Save.</string>
+    <string name="help_detail_holes_body">The list shows the ring, the distance from the centre in millimetres and whether the hit was detected or added by hand. The bin in the row removes the hit after a confirmation. Changes are saved at once; undo them from the message at the bottom.</string>
     <string name="help_detail_delete">Delete</string>
     <string name="help_detail_delete_body">Delete in the menu removes the series from the app. The server keeps the series, its hits and the target photo until you delete the account.</string>
 
@@ -195,8 +188,8 @@
 
     <!-- Series detail -->
     <string name="detail_title">Series</string>
-    <string name="detail_save">Save</string>
     <string name="detail_saved">Saved</string>
+    <string name="undo">Undo</string>
     <string name="detail_save_failed">Could not save</string>
     <string name="detail_mm">%1$d mm</string>
     <string name="detail_no_distance">–</string>
@@ -206,8 +199,6 @@
     <string name="detail_kind_detected">detected</string>
     <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Remove hit</string>
-    <string name="detail_caliber">Caliber:</string>
-    <string name="detail_tag">Tag:</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Sign in to Webshooter</string>
@@ -264,7 +255,8 @@
     <string name="wizard_resume_stay">Stay here</string>
     <string name="wizard_not_active">The squad is not active</string>
     <string name="wizard_not_active_hint">Ask the competition admin to activate the squad from the roll-call view, or call the squad to activate it automatically.</string>
-    <string name="wizard_retry">Try again</string>
+    <string name="retry">Try again</string>
+    <string name="dialog_cancel">Cancel</string>
     <string name="wizard_standings">Standings · total</string>
     <string name="wizard_tied">Shoot-off required</string>
     <string name="wizard_standing_lane">lane %1$d</string>
@@ -272,4 +264,11 @@
     <string name="wizard_shots_unsupported">Series with %1$d shots are not supported yet.</string>
     <string name="error_network">Network error. Check the connection and try again.</string>
     <string name="ios_pick_photo">Pick photo</string>
+    <!-- Shared empty / loading / error states (StateMessage) -->
+    <string name="state_error_title">Couldn't load</string>
+    <string name="empty_markera_hint">Scan a target and save the series to see it here.</string>
+    <string name="signed_out_hint">Series you save while signed in show up here.</string>
+    <string name="stats_no_series">No series to show yet</string>
+    <string name="competitions_empty_hint">Try another search.</string>
+    <string name="detail_photo_missing">No photo</string>
 </resources>

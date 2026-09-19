@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.competition
 
+import se.kjellstrand.markera.ui.AppTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +19,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import se.kjellstrand.markera.ui.StateMessage
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.ui.markera.PrimaryActionButton
+import se.kjellstrand.markera.ui.markera.SecondaryActionButton
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
 import se.kjellstrand.markera.webshooter.api.dto.MarkingGroupDto
@@ -69,18 +76,21 @@ fun MarkingGroupsScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(
+            AppTopBar(
                 title = stringResource(Res.string.marking_title),
                 subtitle = uiState.targets?.competition?.name,
                 onBack = onBack,
             )
             when {
-                uiState.loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
+                uiState.loading -> StateMessage(loading = true)
 
-                uiState.error -> ErrorRetry(onRetry = viewModel::load)
+                uiState.error -> StateMessage(
+                    icon = Icons.Default.CloudOff,
+                    title = stringResource(Res.string.state_error_title),
+                    hint = stringResource(Res.string.error_network),
+                    actionLabel = stringResource(Res.string.retry),
+                    onAction = viewModel::load,
+                )
 
                 else -> {
                     val targets = uiState.targets
@@ -108,9 +118,10 @@ fun MarkingGroupsScreen(
                         val groups = targets?.markingGroups.orEmpty()
                         if (groups.isEmpty() && !uiState.notEnabled) {
                             item {
-                                Text(
-                                    text = stringResource(Res.string.marking_empty),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                StateMessage(
+                                    icon = Icons.Default.Groups,
+                                    title = stringResource(Res.string.marking_empty),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                                 )
                             }
                         }
@@ -144,6 +155,7 @@ fun MarkingGroupsScreen(
 @Composable
 private fun NoActivePatrolBanner(onRetry: () -> Unit) {
     Card(
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth(),
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -155,9 +167,11 @@ private fun NoActivePatrolBanner(onRetry: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
-            OutlinedButton(onClick = onRetry) {
-                Text(stringResource(Res.string.wizard_retry))
-            }
+            PrimaryActionButton(
+                text = stringResource(Res.string.retry),
+                icon = Icons.Default.Refresh,
+                onClick = onRetry,
+            )
         }
     }
 }
@@ -171,7 +185,7 @@ private fun MarkingGroupCard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    OutlinedCard(onClick = onClick, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -230,13 +244,22 @@ private fun MarkingGroupCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onConfirm) {
-                        Text(stringResource(Res.string.marking_reenter_yes))
-                    }
-                    OutlinedButton(onClick = onCancel) {
-                        Text(stringResource(Res.string.marking_cancel))
-                    }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SecondaryActionButton(
+                        text = stringResource(Res.string.marking_cancel),
+                        icon = Icons.Default.Close,
+                        onClick = onCancel,
+                    )
+                    PrimaryActionButton(
+                        text = stringResource(Res.string.marking_reenter_yes),
+                        icon = Icons.Default.Check,
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -247,7 +270,7 @@ private fun MarkingGroupCard(
 private fun CompleteBadge() {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+        shape = MaterialTheme.shapes.small,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),

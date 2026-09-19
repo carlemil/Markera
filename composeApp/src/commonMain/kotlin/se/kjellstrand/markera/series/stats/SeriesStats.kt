@@ -53,8 +53,8 @@ fun DatePreset.window(customRange: Pair<Long, Long>?, now: Instant): Pair<Instan
 
 @OptIn(ExperimentalTime::class)
 data class StatsFilter(
-    /** null = every caliber. */
-    val caliber: Caliber? = null,
+    /** Empty = every caliber. */
+    val calibers: Set<Caliber> = emptySet(),
     val from: Instant? = null,
     val to: Instant? = null,
     /** Exactly this many holes; null = any count. The usual series is five shots. */
@@ -75,7 +75,7 @@ data class PlottedSeries(val series: SeriesDto, val hits: List<PlottedHit>, val 
 /**
  * The series [filter] keeps, oldest first, each un-projected to target mm.
  * Dropped: no geometry, an unpositioned hole, the wrong hole count, another
- * caliber, a tag outside [StatsFilter.tags], a timestamp outside the window — or
+ * caliber outside [StatsFilter.calibers], a tag outside [StatsFilter.tags], a timestamp outside the window — or
  * one that won't parse at all.
  */
 @OptIn(ExperimentalTime::class)
@@ -83,9 +83,7 @@ fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
     val kept = mapNotNull { series ->
         val geometry = series.geometry ?: return@mapNotNull null
         if (filter.hits != null && series.holes.size != filter.hits) return@mapNotNull null
-        if (filter.caliber != null && Caliber.fromLabel(series.caliber) != filter.caliber) {
-            return@mapNotNull null
-        }
+        if (filter.calibers.isNotEmpty() && Caliber.fromLabel(series.caliber) !in filter.calibers) return@mapNotNull null
         if (filter.tags.isNotEmpty() && series.tag !in filter.tags) return@mapNotNull null
         val at = runCatching { Instant.parse(series.timestamp) }.getOrNull() ?: return@mapNotNull null
         if (filter.from?.let { at < it } == true || filter.to?.let { at > it } == true) {

@@ -33,9 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
@@ -101,11 +99,17 @@ import se.kjellstrand.markera.series.stats.trend
 import se.kjellstrand.markera.series.stats.trendByCaliber
 import se.kjellstrand.markera.series.stats.window
 import androidx.compose.material.icons.Icons
-import se.kjellstrand.markera.ui.AppMenu
+import se.kjellstrand.markera.ui.AppChip
 import se.kjellstrand.markera.ui.MenuItem
+import se.kjellstrand.markera.ui.StateMessage
+import se.kjellstrand.markera.ui.rememberBackendSignIn
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
-import se.kjellstrand.markera.ui.competition.CompetitionTopBar
+import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
@@ -148,14 +152,15 @@ private val KNOB = DpSize(20.dp, 20.dp)
  */
 @OptIn(ExperimentalTime::class)
 @Composable
-fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
+fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> Unit = {}) {
     val auth by services.session.auth.collectAsState()
     val series by services.repository.series.collectAsState()
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var reload by remember { mutableIntStateOf(0) }
+    val (signingIn, signIn) = rememberBackendSignIn(services)
 
-    var caliber by remember { mutableStateOf<Caliber?>(null) }
+    var selectedCalibers by remember { mutableStateOf(emptySet<Caliber>()) }
     // Multi-select like Historik's tag chips; empty = no tag filtering at all.
     var tags by remember { mutableStateOf(emptySet<String>()) }
     var preset by remember { mutableStateOf(DatePreset.ALL) }
@@ -177,9 +182,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
         loading = false
     }
 
-    val filter = remember(caliber, tags, preset, customRange) {
+    val filter = remember(selectedCalibers, tags, preset, customRange) {
         val (from, to) = preset.window(customRange, Clock.System.now())
-        StatsFilter(caliber = caliber, from = from, to = to, tags = tags)
+        StatsFilter(calibers = selectedCalibers, from = from, to = to, tags = tags)
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
@@ -194,10 +199,10 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            CompetitionTopBar(
+            AppTopBar(
                 title = stringResource(Res.string.stats_title),
                 onBack = onBack,
-                actions = { AppMenu(listOf(MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true })) },
+                menuItems = listOf(MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true }),
             )
             TabRow(selectedTabIndex = tab) {
                 listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend).forEachIndexed { i, label ->
@@ -205,20 +210,32 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                 }
             }
             when {
-                auth == null -> Centered { Text(stringResource(Res.string.stats_signed_out)) }
+                auth == null -> if (signingIn) StateMessage(loading = true) else StateMessage(
+                    icon = Icons.Default.AccountCircle,
+                    title = stringResource(Res.string.stats_signed_out),
+                    hint = stringResource(Res.string.signed_out_hint),
+                    actionLabel = stringResource(Res.string.home_sign_in),
+                    onAction = signIn,
+                )
 
                 // Cached series still plot: an error only shows with nothing to draw.
-                error != null && series.isEmpty() -> Centered {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(error!!, style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = { reload++ }) { Text(stringResource(Res.string.stats_retry)) }
-                    }
-                }
+                error != null && series.isEmpty() -> StateMessage(
+                    icon = Icons.Default.CloudOff,
+                    title = stringResource(Res.string.state_error_title),
+                    hint = error,
+                    actionLabel = stringResource(Res.string.retry),
+                    onAction = { reload++ },
+                )
 
-                loading && series.isEmpty() -> Centered { CircularProgressIndicator() }
+                loading && series.isEmpty() -> StateMessage(loading = true)
+
+                series.isEmpty() -> StateMessage(
+                    icon = Icons.Default.QueryStats,
+                    title = stringResource(Res.string.stats_no_series),
+                    hint = stringResource(Res.string.empty_markera_hint),
+                    actionLabel = stringResource(Res.string.home_free_marking),
+                    onAction = onMarkera,
+                )
 
                 else -> Column(
                     modifier = Modifier
@@ -230,8 +247,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                     // Hoisted above the tabs in state, drawn below them: one row, both tabs.
                     FilterRow(
                         calibers = series.calibersWithGeometry(),
-                        caliber = caliber,
-                        onCaliber = { caliber = it },
+                        selectedCalibers = selectedCalibers,
+                        onCalibers = { selectedCalibers = it },
                         tags = series.tagsWithGeometry(),
                         selectedTags = tags,
                         onTags = { tags = it },
@@ -241,10 +258,10 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                         onPickDates = { pickingDates = true },
                     )
                     if (stats == null) {
-                        Text(
-                            stringResource(Res.string.stats_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        StateMessage(
+                            icon = Icons.Default.FilterAltOff,
+                            title = stringResource(Res.string.stats_empty),
+                            modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                         )
                     } else if (tab == 0) {
                         val segment = remember(plotted, selection) {
@@ -264,7 +281,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
                             bucket = bucket,
                             onBucket = { bucket = it },
                             // One caliber filtered in leaves nothing to split.
-                            splitOffered = caliber == null && series.calibersWithGeometry().size >= 2,
+                            splitOffered = selectedCalibers.size != 1 && series.calibersWithGeometry().size >= 2,
                             split = splitByCaliber,
                             onSplit = { splitByCaliber = it },
                         )
@@ -307,11 +324,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit) {
     }
 }
 
-@Composable
-private fun Centered(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
-}
-
 /** The calibers actually worth offering: those on plottable (geometry-carrying) series. */
 private fun List<SeriesDto>.calibersWithGeometry(): List<Caliber> =
     filter { it.geometry != null }
@@ -328,8 +340,8 @@ private fun List<SeriesDto>.tagsWithGeometry(): List<String> =
 @Composable
 private fun FilterRow(
     calibers: List<Caliber>,
-    caliber: Caliber?,
-    onCaliber: (Caliber?) -> Unit,
+    selectedCalibers: Set<Caliber>,
+    onCalibers: (Set<Caliber>) -> Unit,
     tags: List<String>,
     selectedTags: Set<String>,
     onTags: (Set<String>) -> Unit,
@@ -338,25 +350,23 @@ private fun FilterRow(
     onPreset: (DatePreset) -> Unit,
     onPickDates: () -> Unit,
 ) {
-    val chipColors = statsChipColors()
     // One child of the caller's 16 dp column, so only the filter rows sit tight.
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionDivider(stringResource(Res.string.stats_group_caliber))
+        SectionHeader(stringResource(Res.string.stats_group_caliber))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = caliber == null,
-                onClick = { onCaliber(null) },
-                label = { Text(stringResource(Res.string.stats_caliber_all)) },
-                colors = chipColors,
-                border = null,
+            AppChip(
+                selected = selectedCalibers.isEmpty(),
+                onClick = { onCalibers(emptySet()) },
+                label = stringResource(Res.string.stats_caliber_all),
             )
-            calibers.forEach {
-                FilterChip(
-                    selected = caliber == it,
-                    onClick = { onCaliber(it) },
-                    label = { Text(it.label) },
-                    colors = chipColors,
-                    border = null,
+            // A caliber picked before a refresh dropped its last series stays deselectable.
+            (calibers + selectedCalibers).distinct().sortedBy { it.ordinal }.forEach {
+                AppChip(
+                    selected = it in selectedCalibers,
+                    onClick = {
+                        onCalibers(if (it in selectedCalibers) selectedCalibers - it else selectedCalibers + it)
+                    },
+                    label = it.label,
                 )
             }
         }
@@ -365,59 +375,47 @@ private fun FilterRow(
         // the filter stays deselectable.
         val offeredTags = (tags + selectedTags).distinct().sorted()
         if (offeredTags.isNotEmpty()) {
-            SectionDivider(stringResource(Res.string.stats_group_tag))
+            SectionHeader(stringResource(Res.string.stats_group_tag))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
+                AppChip(
                     selected = selectedTags.isEmpty(),
                     onClick = { onTags(emptySet()) },
-                    label = { Text(stringResource(Res.string.stats_caliber_all)) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(Res.string.stats_caliber_all),
                 )
                 offeredTags.forEach { tag ->
-                    FilterChip(
+                    AppChip(
                         selected = tag in selectedTags,
                         onClick = {
                             onTags(if (tag in selectedTags) selectedTags - tag else selectedTags + tag)
                         },
-                        label = { Text(tag) },
-                        colors = chipColors,
-                        border = null,
+                        label = tag,
                     )
                 }
             }
         }
-        SectionDivider(stringResource(Res.string.stats_group_date))
+        SectionHeader(stringResource(Res.string.stats_group_date))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val presetChip = @Composable { value: DatePreset, label: StringResource ->
-                FilterChip(
+                AppChip(
                     selected = preset == value,
                     onClick = { onPreset(value) },
-                    label = { Text(stringResource(label)) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(label),
                 )
             }
             presetChip(DatePreset.ALL, Res.string.stats_date_all)
             // "Välj…" right after "Alla", so the custom range is one tap away on every width.
-            FilterChip(
+            AppChip(
                 selected = preset == DatePreset.CUSTOM,
                 onClick = onPickDates,
-                label = {
-                    Text(
-                        if (preset == DatePreset.CUSTOM && customRange != null) {
-                            stringResource(
-                                Res.string.stats_date_range,
-                                utcDay(customRange.first),
-                                utcDay(customRange.second),
-                            )
-                        } else {
-                            stringResource(Res.string.stats_date_custom)
-                        },
+                label = if (preset == DatePreset.CUSTOM && customRange != null) {
+                    stringResource(
+                        Res.string.stats_date_range,
+                        utcDay(customRange.first),
+                        utcDay(customRange.second),
                     )
+                } else {
+                    stringResource(Res.string.stats_date_custom)
                 },
-                colors = chipColors,
-                border = null,
             )
             presetChip(DatePreset.WEEK, Res.string.stats_date_week)
             presetChip(DatePreset.MONTH, Res.string.stats_date_month)
@@ -441,21 +439,18 @@ private fun TrendTab(
     split: Boolean,
     onSplit: (Boolean) -> Unit,
 ) {
-    val chipColors = statsChipColors()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionDivider(stringResource(Res.string.stats_group_metric))
+        SectionHeader(stringResource(Res.string.stats_group_metric))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Metric.entries.forEach {
-                FilterChip(
+                AppChip(
                     selected = metric == it,
                     onClick = { onMetric(it) },
-                    label = { Text(stringResource(it.label())) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(it.label()),
                 )
             }
         }
-        SectionDivider(stringResource(Res.string.stats_group_bucket))
+        SectionHeader(stringResource(Res.string.stats_group_bucket))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
                 Bucket.SERIES to Res.string.stats_bucket_series,
@@ -463,21 +458,17 @@ private fun TrendTab(
                 Bucket.WEEK to Res.string.stats_bucket_week,
                 Bucket.MONTH to Res.string.stats_bucket_month,
             ).forEach { (value, label) ->
-                FilterChip(
+                AppChip(
                     selected = bucket == value,
                     onClick = { onBucket(value) },
-                    label = { Text(stringResource(label)) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(label),
                 )
             }
             if (splitOffered) {
-                FilterChip(
+                AppChip(
                     selected = split,
                     onClick = { onSplit(!split) },
-                    label = { Text(stringResource(Res.string.stats_split_caliber)) },
-                    colors = chipColors,
-                    border = null,
+                    label = stringResource(Res.string.stats_split_caliber),
                 )
             }
         }
@@ -515,32 +506,17 @@ private fun Metric.label() = when (this) {
     Metric.SCORE -> Res.string.stats_short_mean_score
 }
 
-/** A titled rule above a chip group: `——— Kaliber ———`. Shared with Historik's filters. */
+/** Left-aligned section title in bold green caps. Shared app-wide. */
 @Composable
-internal fun SectionDivider(title: String) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        HorizontalDivider(modifier = Modifier.weight(1f))
-        Text(
-            title,
-            modifier = Modifier.padding(horizontal = 8.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        HorizontalDivider(modifier = Modifier.weight(1f))
-    }
+internal fun SectionHeader(title: String, modifier: Modifier = Modifier) {
+    Text(
+        title.uppercase(),
+        modifier = modifier,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
-
-/**
- * Selected reads as a solid green pill with a dark label; unselected recedes into a
- * borderless surface-variant pill — the stock outline made every chip look selected.
- */
-@Composable
-internal fun statsChipColors() = FilterChipDefaults.filterChipColors(
-    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    selectedContainerColor = MaterialTheme.colorScheme.primary,
-    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

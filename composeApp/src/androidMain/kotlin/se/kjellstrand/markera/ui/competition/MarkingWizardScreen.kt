@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.competition
 
+import se.kjellstrand.markera.ui.AppTopBar
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -15,27 +16,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import se.kjellstrand.markera.ui.StateMessage
+import se.kjellstrand.markera.ui.stats.SectionHeader
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +65,7 @@ import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.MarkeraSnapshotViewModel
 import se.kjellstrand.markera.ui.markera.MarkeraViewModelImpl
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
+import se.kjellstrand.markera.ui.markera.SecondaryActionButton
 import se.kjellstrand.markera.ui.markera.ScanPhase
 import se.kjellstrand.markera.ui.markera.ScorePickerHorizontalRow
 import se.kjellstrand.markera.ui.markera.TargetScanController
@@ -164,7 +166,7 @@ fun MarkingWizardScreen(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
             val stationCount = state.context?.stations?.size ?: 0
-            CompetitionTopBar(
+            AppTopBar(
                 title = groupName,
                 subtitle = state.station?.let {
                     stringResource(Res.string.wizard_series, it.sortorder, stationCount)
@@ -172,12 +174,15 @@ fun MarkingWizardScreen(
                 onBack = onExit,
             )
             when {
-                state.loading -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
+                state.loading -> StateMessage(loading = true)
 
-                state.loadError -> ErrorRetry(onRetry = wizardVm::load)
+                state.loadError -> StateMessage(
+                    icon = Icons.Default.CloudOff,
+                    title = stringResource(Res.string.state_error_title),
+                    hint = stringResource(Res.string.error_network),
+                    actionLabel = stringResource(Res.string.retry),
+                    onAction = wizardVm::load,
+                )
 
                 state.notActive -> NotActiveContent(onRetry = wizardVm::load)
 
@@ -232,7 +237,7 @@ fun MarkingWizardScreen(
                     markeraState.error?.let { msg ->
                         Text(
                             text = msg,
-                            color = MaterialTheme.colorScheme.onError,
+                            color = MaterialTheme.colorScheme.error,
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
                                 .padding(8.dp),
@@ -282,10 +287,10 @@ private fun LaneStrip(state: WizardUiState, onLaneClick: (Int) -> Unit) {
             Surface(
                 onClick = { onLaneClick(index) },
                 color = containerColor,
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.small,
                 modifier = if (current) {
                     Modifier.border(
-                        2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp),
+                        2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small,
                     )
                 } else {
                     Modifier
@@ -304,7 +309,7 @@ private fun LaneStrip(state: WizardUiState, onLaneClick: (Int) -> Unit) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
-                            modifier = Modifier.height(14.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                     }
                 }
@@ -405,17 +410,22 @@ private fun StepContent(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = onRescan) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.height(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(Res.string.wizard_rescan))
-                    }
-                    Button(onClick = wizardVm::save) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.height(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(Res.string.wizard_save))
-                    }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SecondaryActionButton(
+                        text = stringResource(Res.string.wizard_rescan),
+                        icon = Icons.Default.Refresh,
+                        onClick = onRescan,
+                    )
+                    PrimaryActionButton(
+                        text = stringResource(Res.string.wizard_save),
+                        icon = Icons.Default.Check,
+                        onClick = wizardVm::save,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
@@ -431,8 +441,8 @@ private fun StepContent(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF00E676),
-                    modifier = Modifier.height(48.dp).aspectRatio(1f),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp),
                 )
                 Text(
                     text = stringResource(Res.string.wizard_saved, step.lane, step.points, step.xCount),
@@ -458,9 +468,11 @@ private fun StepContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                Button(onClick = wizardVm::skipToNextOpenLane) {
-                    Text(stringResource(Res.string.wizard_skip))
-                }
+                PrimaryActionButton(
+                    text = stringResource(Res.string.wizard_skip),
+                    icon = Icons.Default.ChevronRight,
+                    onClick = wizardVm::skipToNextOpenLane,
+                )
             }
 
             is LaneStep.ClaimedByOther -> {
@@ -470,13 +482,22 @@ private fun StepContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = wizardVm::retryLane) {
-                        Text(stringResource(Res.string.wizard_claim_retry))
-                    }
-                    Button(onClick = wizardVm::skipToNextOpenLane) {
-                        Text(stringResource(Res.string.wizard_skip))
-                    }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SecondaryActionButton(
+                        text = stringResource(Res.string.wizard_claim_retry),
+                        icon = Icons.Default.Refresh,
+                        onClick = wizardVm::retryLane,
+                    )
+                    PrimaryActionButton(
+                        text = stringResource(Res.string.wizard_skip),
+                        icon = Icons.Default.ChevronRight,
+                        onClick = wizardVm::skipToNextOpenLane,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
@@ -492,6 +513,7 @@ private fun LockedContent(
     onSkip: () -> Unit,
 ) {
     Card(
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -514,10 +536,8 @@ private fun LockedContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                text = result.points.toString(),
-                style = MaterialTheme.typography.displayMedium,
-            )
+            // Total only: a ResultDto carries no caliber or tag.
+            TotalBadge(result.points, caliber = null, tag = null)
             Text(
                 text = "${result.hits} X",
                 style = MaterialTheme.typography.titleMedium,
@@ -532,17 +552,22 @@ private fun LockedContent(
             }
         }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onUnlock) {
-            Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.height(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(Res.string.wizard_unlock))
-        }
-        Button(onClick = onSkip) {
-            Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.height(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(Res.string.wizard_skip))
-        }
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SecondaryActionButton(
+            text = stringResource(Res.string.wizard_unlock),
+            icon = Icons.Default.LockOpen,
+            onClick = onUnlock,
+        )
+        PrimaryActionButton(
+            text = stringResource(Res.string.wizard_skip),
+            icon = Icons.Default.ChevronRight,
+            onClick = onSkip,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -555,6 +580,7 @@ private fun ResumeHintBanner(
     onDismiss: () -> Unit,
 ) {
     Card(
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -568,9 +594,22 @@ private fun ResumeHintBanner(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onGo) { Text(stringResource(Res.string.wizard_resume_go)) }
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(Res.string.wizard_resume_stay)) }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SecondaryActionButton(
+                    text = stringResource(Res.string.wizard_resume_stay),
+                    icon = Icons.Default.Close,
+                    onClick = onDismiss,
+                )
+                PrimaryActionButton(
+                    text = stringResource(Res.string.wizard_resume_go),
+                    icon = Icons.Default.ChevronRight,
+                    onClick = onGo,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -595,7 +634,11 @@ private fun NotActiveContent(onRetry: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onRetry) { Text(stringResource(Res.string.wizard_retry)) }
+        PrimaryActionButton(
+            text = stringResource(Res.string.retry),
+            icon = Icons.Default.Refresh,
+            onClick = onRetry,
+        )
     }
 }
 
@@ -616,10 +659,7 @@ private fun StationSummaryContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = stringResource(Res.string.wizard_station_summary, station.sortorder),
-            style = MaterialTheme.typography.titleMedium,
-        )
+        SectionHeader(stringResource(Res.string.wizard_station_summary, station.sortorder))
         var registered = 0
         context.lanes.forEachIndexed { index, entry ->
             val result = MarkingLogic.resultFor(entry.signup, station.sortorder)
@@ -628,7 +668,7 @@ private fun StationSummaryContent(
             Surface(
                 onClick = { onGoToLane(index) },
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.small,
             ) {
                 Row(
                     modifier = Modifier
@@ -663,7 +703,7 @@ private fun StationSummaryContent(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.height(18.dp),
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 }
@@ -677,13 +717,12 @@ private fun StationSummaryContent(
         )
         if (!state.isLastStation) {
             val next = context.stations.getOrNull(state.stationIndex + 1)
-            Button(
+            PrimaryActionButton(
+                text = stringResource(Res.string.wizard_next_station, next?.sortorder ?: station.sortorder + 1),
+                icon = Icons.Default.ChevronRight,
                 onClick = onNextStation,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
-                Text(stringResource(Res.string.wizard_next_station, next?.sortorder ?: station.sortorder + 1))
-                Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.height(18.dp))
-            }
+            )
         } else {
             FinishSummary(state)
         }
@@ -705,11 +744,7 @@ private fun FinishSummary(state: WizardUiState) {
             color = MaterialTheme.colorScheme.primary,
         )
         if (summary.standings.isNotEmpty()) {
-            Text(
-                text = stringResource(Res.string.wizard_standings),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SectionHeader(stringResource(Res.string.wizard_standings))
             summary.standings.forEach { standing ->
                 Surface(
                     color = if (standing.tied) {
@@ -717,7 +752,7 @@ private fun FinishSummary(state: WizardUiState) {
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant
                     },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = MaterialTheme.shapes.small,
                 ) {
                     Row(
                         modifier = Modifier
@@ -756,7 +791,7 @@ private fun FinishSummary(state: WizardUiState) {
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            text = " ${standing.hits}x",
+                            text = " ${standing.hits} X",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

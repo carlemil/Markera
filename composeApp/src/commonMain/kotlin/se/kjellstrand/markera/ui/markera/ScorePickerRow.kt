@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,7 +31,6 @@ private val PICKER_GAP = 6.dp
 private val PICKER_ITEM_WIDTH = 44.dp
 private val PICKER_ITEM_HEIGHT = 48.dp
 private val DIALPAD_KEY_SIZE = 72.dp
-private val HIGHLIGHT_SHAPE = RoundedCornerShape(10.dp)
 
 /** Dialpad layout: 0 1 2 / 3 4 5 / 6 7 8 / 9 10 X, as picker indices. */
 private val DIALPAD_KEYS = listOf(
@@ -57,14 +56,17 @@ internal fun ScoreBox(
     onValueChange: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
     letter: String? = null,
+    /** A hand-placed hole: orange like its photo marker. */
+    manual: Boolean = false,
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    val accent = if (manual) MANUAL_HIT_COLOR else MaterialTheme.colorScheme.primary
     Box(
         modifier = modifier
             .width(PICKER_ITEM_WIDTH)
             .height(PICKER_ITEM_HEIGHT)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
-            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE)
+            .background(accent.copy(alpha = 0.14f), MaterialTheme.shapes.medium)
+            .border(2.dp, accent, MaterialTheme.shapes.medium)
             .then(
                 if (onValueChange == null) {
                     Modifier
@@ -112,6 +114,9 @@ private fun ScoreDialpadDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_cancel)) }
+        },
         title = { Text(stringResource(Res.string.score_pick_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(PICKER_GAP)) {
@@ -130,8 +135,8 @@ private fun DialpadKey(value: Int, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(DIALPAD_KEY_SIZE)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), HIGHLIGHT_SHAPE)
-            .border(2.dp, MaterialTheme.colorScheme.primary, HIGHLIGHT_SHAPE)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), MaterialTheme.shapes.medium)
+            .border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -149,6 +154,8 @@ fun ScorePickerHorizontalRow(
     letteredCount: Int = 0,
     /** How many leading boxes [onValueChange] applies to; the rest just display. */
     editableCount: Int = values.size,
+    /** Per box: a hand-placed hole, drawn orange. */
+    manual: List<Boolean> = emptyList(),
 ) {
     Row(
         modifier = modifier,
@@ -159,6 +166,7 @@ fun ScorePickerHorizontalRow(
                 value = v,
                 onValueChange = onValueChange?.takeIf { i < editableCount }?.let { f -> { v2: Int -> f(i, v2) } },
                 letter = if (i < letteredCount) holeLetter(i) else null,
+                manual = manual.getOrElse(i) { false },
             )
         }
     }
@@ -170,6 +178,7 @@ fun ScorePickerVerticalColumn(
     values: List<Int>,
     modifier: Modifier = Modifier,
     letteredCount: Int = 0,
+    manual: List<Boolean> = emptyList(),
 ) {
     Column(
         modifier = modifier,
@@ -180,6 +189,7 @@ fun ScorePickerVerticalColumn(
                 value = v,
                 onValueChange = null,
                 letter = if (i < letteredCount) holeLetter(i) else null,
+                manual = manual.getOrElse(i) { false },
             )
         }
     }

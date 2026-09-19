@@ -35,6 +35,9 @@ import kotlin.math.min
 /** Ring lines inside the black 6/7 edge: the 7/8, 8/9 and 9/10 boundaries (mm). */
 private val INNER_RING_RADII_MM = listOf(75.0, 50.0, 25.0)
 
+/** Hand-placed holes: the photo marker and their score box share it. */
+val MANUAL_HIT_COLOR = Color(0xFFFFB74D)
+
 /**
  * Draws the scoring result over the frozen frame, fit-centre letterboxed to
  * line up with the Image/PreviewView: the 6/7 [ring], the [centre] crosshair, a
@@ -71,7 +74,7 @@ fun DetectionOverlay(
     scoreColor: Color = Color(0xFFFFFFFF),
     holeColor: Color = Color(0xFF00E676),
     /** Holes the user tapped in by hand, marker and label. */
-    manualColor: Color = Color(0xFFFFB74D),
+    manualColor: Color = MANUAL_HIT_COLOR,
     strokeWidthPx: Float = 4f,
 ) {
     val textMeasurer = rememberTextMeasurer()

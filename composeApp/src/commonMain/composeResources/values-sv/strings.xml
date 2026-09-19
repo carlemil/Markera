@@ -7,7 +7,6 @@
     <string name="markera_resume_live">Spara</string>
     <string name="markera_reset">Återställ</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
-    <string name="markera_total_label">Summa</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
     <string name="markera_analyzing">Analyserar träffar…</string>
     <string name="markera_detect_holes">Detektera hål</string>
@@ -25,13 +24,10 @@
 
     <!-- Home -->
     <string name="home_free_marking">Markera</string>
-    <string name="home_free_marking_hint">Scanna en tavla</string>
     <string name="home_competition">Tävling</string>
-    <string name="home_competition_hint">Markera i en Webshooter-tävling</string>
     <string name="home_history">Historik</string>
-    <string name="home_history_hint">Sparade serier</string>
     <string name="home_stats">Statistik</string>
-    <string name="home_stats_hint">Träffbild och mått över tid</string>
+    <string name="home_latest_series">Senaste serien · %1$s</string>
     <string name="home_sign_in">Logga in för att spara serier</string>
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
@@ -47,7 +43,6 @@
     <string name="series_caliber_none">Ingen vald</string>
     <string name="series_tag_title">Välj tagg</string>
     <string name="series_tag_none">Ingen tagg</string>
-    <string name="series_tag_chip_empty">Tagg</string>
     <string name="series_tag_new">Ny tagg</string>
     <string name="series_tag_use">Använd</string>
     <string name="series_tag_suggest_practice">Träning</string>
@@ -62,7 +57,6 @@
     <string name="history_filter_empty">Inga serier matchar filtret.</string>
     <string name="history_day_summary">%1$d serier · %2$d poäng</string>
     <string name="history_day_summary_one">1 serie · %1$d poäng</string>
-    <string name="history_retry">Försök igen</string>
     <string name="history_time_label">Tid</string>
     <string name="history_delete_title">Radera serien?</string>
     <string name="history_delete_message">%1$s · %2$d poäng</string>
@@ -78,7 +72,6 @@
     <!-- Statistik -->
     <string name="stats_title">Statistik</string>
     <string name="stats_signed_out">Logga in för att se statistik</string>
-    <string name="stats_retry">Försök igen</string>
     <string name="stats_empty">Inga serier matchar filtret.</string>
     <string name="stats_caliber_all">Alla</string>
     <string name="stats_date_week">7 d</string>
@@ -154,7 +147,7 @@
     <string name="help_scan_caliber">Kaliber</string>
     <string name="help_scan_caliber_body">Brickan bredvid poängen visar vilken kaliber serien sparas med. Tryck på den för att byta — har du ingen vald frågar appen när du sparar. Kalibern visas i historiken och går att filtrera på i statistiken.</string>
     <string name="help_scan_save">Spara</string>
-    <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. Återställ slänger scanningen utan att spara.</string>
+    <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. ↻-knappen slänger scanningen utan att spara.</string>
     <string name="help_scan_debug">Felsökning</string>
     <string name="help_scan_debug_body">Visa detektionsdata i menyn visar detektorns råa rutor, sifferrader och linjer.</string>
 
@@ -174,7 +167,7 @@
     <string name="help_detail_photo">Bilden</string>
     <string name="help_detail_photo_body">Den scannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge.</string>
     <string name="help_detail_holes">Träffarna</string>
-    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Ändringarna sparas först när du trycker Spara.</string>
+    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Ändringar sparas direkt; ångra dem i meddelandet längst ned.</string>
     <string name="help_detail_delete">Radera</string>
     <string name="help_detail_delete_body">Radera i menyn tar bort serien ur appen. Servern behåller serien, dess träffar och tavelfoto tills du raderar kontot.</string>
 
@@ -195,8 +188,8 @@
 
     <!-- Series detail -->
     <string name="detail_title">Serie</string>
-    <string name="detail_save">Spara</string>
     <string name="detail_saved">Sparat</string>
+    <string name="undo">Ångra</string>
     <string name="detail_save_failed">Kunde inte spara</string>
     <string name="detail_mm">%1$d mm</string>
     <string name="detail_no_distance">–</string>
@@ -206,8 +199,6 @@
     <string name="detail_kind_detected">detekterad</string>
     <string name="detail_no_score">—</string>
     <string name="detail_delete_hole">Ta bort träff</string>
-    <string name="detail_caliber">Kaliber:</string>
-    <string name="detail_tag">Tagg:</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>
@@ -264,7 +255,8 @@
     <string name="wizard_resume_stay">Stanna kvar här</string>
     <string name="wizard_not_active">Skjutlaget är inte aktivt</string>
     <string name="wizard_not_active_hint">Be tävlingsadmin att aktivera skjutlaget från uppropsvyn, eller ropa upp skjutlaget för att aktivera automatiskt.</string>
-    <string name="wizard_retry">Försök igen</string>
+    <string name="retry">Försök igen</string>
+    <string name="dialog_cancel">Avbryt</string>
     <string name="wizard_standings">Ställning · totalt</string>
     <string name="wizard_tied">Särskjutning krävs</string>
     <string name="wizard_standing_lane">bana %1$d</string>
@@ -272,4 +264,11 @@
     <string name="wizard_shots_unsupported">Serier med %1$d skott stöds inte ännu.</string>
     <string name="error_network">Nätverksfel. Kontrollera uppkopplingen och försök igen.</string>
     <string name="ios_pick_photo">Välj foto</string>
+    <!-- Shared empty / loading / error states (StateMessage) -->
+    <string name="state_error_title">Kunde inte hämta</string>
+    <string name="empty_markera_hint">Skanna en tavla och spara serien så syns den här.</string>
+    <string name="signed_out_hint">Serier du sparar när du är inloggad visas här.</string>
+    <string name="stats_no_series">Inga serier att visa än</string>
+    <string name="competitions_empty_hint">Prova en annan sökning.</string>
+    <string name="detail_photo_missing">Inget foto</string>
 </resources>
