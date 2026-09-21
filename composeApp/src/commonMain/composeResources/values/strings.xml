@@ -152,7 +152,7 @@
     <string name="help_scan_save">Save</string>
     <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. The ↻ button discards the scan without saving.</string>
     <string name="help_scan_debug">Troubleshooting</string>
-    <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines.</string>
+    <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines, plus the fitted ring and the centre.</string>
 
     <!-- Help: history -->
     <string name="help_history_title">About the history</string>
