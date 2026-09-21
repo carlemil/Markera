@@ -448,10 +448,16 @@ fun TotalBadge(
     ) {
         Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
             if (caliber != null) {
-                PillSegment(caliber.takeUnless { it.isBlank() || it == Caliber.NONE.label } ?: "–", onCaliberClick, compact)
+                PillSegment(
+                    caliber.takeUnless { it.isBlank() || it == Caliber.NONE.label } ?: "–", onCaliberClick, compact,
+                    caption = if (compact) stringResource(Res.string.badge_caliber_short) else null,
+                )
                 VerticalDivider()
                 // Capped: a 32-character tag must not push the total off the row.
-                PillSegment(tag?.takeUnless { it.isBlank() } ?: "–", onTagClick, compact, if (compact) 96.dp else 120.dp)
+                PillSegment(
+                    tag?.takeUnless { it.isBlank() } ?: "–", onTagClick, compact, if (compact) 96.dp else 120.dp,
+                    caption = if (compact) stringResource(Res.string.badge_tag_short) else null,
+                )
             }
             Box(
                 modifier = Modifier
@@ -460,12 +466,19 @@ fun TotalBadge(
                     .padding(horizontal = if (compact) 10.dp else 16.dp, vertical = if (compact) 2.dp else 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = total.toString(),
-                    style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    maxLines = 1,
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Only Historik's compact rows label the segments.
+                    if (compact) PillCaption(
+                        stringResource(Res.string.badge_total_short),
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    )
+                    Text(
+                        text = total.toString(),
+                        style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -488,7 +501,13 @@ private fun TagChip(recorder: SeriesRecorder) {
 
 /** A caliber or tag section of the [TotalBadge] pill; tappable when [onClick] is set. */
 @Composable
-private fun PillSegment(label: String, onClick: (() -> Unit)?, compact: Boolean, maxWidth: Dp = Dp.Unspecified) {
+private fun PillSegment(
+    label: String,
+    onClick: (() -> Unit)?,
+    compact: Boolean,
+    maxWidth: Dp = Dp.Unspecified,
+    caption: String? = null,
+) {
     Box(
         modifier = Modifier
             .fillMaxHeight()
@@ -497,12 +516,21 @@ private fun PillSegment(label: String, onClick: (() -> Unit)?, compact: Boolean,
             .padding(horizontal = if (compact) 8.dp else 14.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (caption != null) PillCaption(caption, MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = label,
+                style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
+}
+
+/** The short label above a [TotalBadge] segment's value. */
+@Composable
+private fun PillCaption(text: String, color: Color) {
+    Text(text, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
 }
