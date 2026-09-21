@@ -7,6 +7,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,13 +16,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -95,7 +98,7 @@ import se.kjellstrand.markera.ui.stats.DateRangeDialog
 import se.kjellstrand.markera.ui.stats.SectionHeader
 import se.kjellstrand.markera.ui.markera.TotalBadge
 
-/** The list thumbnail is 72 dp; the stored frame is ~3000², so subsample hard. */
+/** The list thumbnail is ~80 dp square; the stored frame is ~3000², so subsample hard. */
 private const val THUMB_MAX_DIM = 256
 
 /** The cached series, newest first; opening asks the backend for a delta. */
@@ -540,20 +543,35 @@ internal fun SeriesCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(IntrinsicSize.Min)
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            thumbnails[series.id]?.let {
-                Image(
-                    bitmap = it,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(72.dp)
+            if (series.hasImage) {
+                // The Box owns the square slot so the row height comes from the text
+                // column, not the bitmap's intrinsic size, and nothing reflows when the
+                // async decode lands.
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
                         .clip(MaterialTheme.shapes.small),
-                )
+                ) {
+                    thumbnails[series.id]?.let {
+                        Image(
+                            bitmap = it,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize(),
+                        )
+                    }
+                }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 // The day itself is the group header above this card.
                 Text(
                     stringResource(Res.string.history_card_title, localTime(series.timestamp), ordinal),
@@ -562,9 +580,7 @@ internal fun SeriesCard(
                 )
                 // Display only: the card itself opens the Serie page, where these are edited.
                 if (series.holes.isNotEmpty()) ScoreMiniRow(series.scorePicks())
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TotalBadge(series.total(), series.caliber, series.tag, compact = true)
-                }
+                TotalBadge(series.total(), series.caliber, series.tag, compact = true)
             }
         }
     }
