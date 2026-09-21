@@ -46,6 +46,9 @@ private data class IdTokenRequest(val idToken: String)
 private data class DevAuthRequest(val subject: String)
 
 @Serializable
+private data class AppleClaimRequest(val state: String, val secret: String)
+
+@Serializable
 private data class IdResponse(val id: Long)
 
 /** The server's error body, `{"error": ...}`. */
@@ -98,6 +101,13 @@ class SeriesApi(
 
     suspend fun authApple(idToken: String): BackendAuthResponse =
         postJson("/auth/apple", IdTokenRequest(idToken), authorized = false).parseOrThrow()
+
+    /**
+     * Redeems the session the backend parked for Apple's browser flow (Android's Sign in with Apple):
+     * [state] is the hex sha256 of [secret], which only the app that started the flow has.
+     */
+    suspend fun claimApple(state: String, secret: String): BackendAuthResponse =
+        postJson("/auth/apple/claim", AppleClaimRequest(state, secret), authorized = false).parseOrThrow()
 
     suspend fun authDev(subject: String): BackendAuthResponse =
         postJson("/auth/dev", DevAuthRequest(subject), authorized = false).parseOrThrow()

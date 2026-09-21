@@ -208,7 +208,13 @@ written to `cacheDir/export` and shared via the `${applicationId}.fileprovider`
 `FileProvider` (`res/xml/file_paths.xml`).
 The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
 `signInWithProvider` (Credential Manager + `googleid`, needs
-`markera.google.client.id` in `local.properties`). Backend URL is
+`markera.google.client.id` in `local.properties`), with a two-button chooser that also offers
+**Sign in with Apple**: Apple has no Android SDK, so `AppleSignIn.kt` opens the browser at the
+backend's `/auth/apple/start?state=`, which mediates the whole OAuth flow and parks the session for
+`POST /auth/apple/claim` (`state` = hex sha256 of a secret that stays on the device, so catching the
+`markera://auth/apple` deep link buys nothing). Needs the five `APPLE_*`/`PUBLIC_URL` vars on the
+server; without them that route answers 503 and only Google works. No account linking — Apple and
+Google are separate users. Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple in
 `iosMain/series/SignIn.kt` with a dev-auth fallback when Info.plist `MarkeraDevAuth`
 is set (Debug), backend URL from `MarkeraBackendUrl` (Debug `http://127.0.0.1:8091`,

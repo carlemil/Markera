@@ -12,7 +12,21 @@ Env vars: `PORT` (8080), `DB_PATH` (`./data/markera.db`), `IMAGES_DIR` (`<DB_PAT
 with user `admin` and this password; blank/unset leaves them unregistered),
 `TZ` (the zone the admin pages show timestamps in; compose sets `Europe/Stockholm`).
 
+Sign in with Apple from a browser (how **Android** reaches it — Apple ships no Android SDK, and the flow's
+client secret must never live in an APK) needs five more, all of them or none:
+`APPLE_SERVICES_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (the `.p8` on one line, PEM header
+optional) and `PUBLIC_URL`. Missing any leaves `/auth/apple/{start,callback,claim}` answering **503**;
+`POST /auth/apple` (the native iOS token) keeps working off `APPLE_BUNDLE_ID` alone. The Services ID's
+*Primary App ID* must be the iOS bundle id, or Apple hands Android a different `sub` and the user lands on a
+second, empty account; its Return URL must be exactly `$PUBLIC_URL/auth/apple/callback`. Apple verifies the
+domain by fetching `/.well-known/apple-developer-domain-association.txt`, served from
+`src/main/resources/apple-developer-domain-association.txt` (404 while that file is absent).
+
 API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
+`GET /auth/apple/start?state=` → 302 to Apple, `GET /auth/apple/callback` → 302 to `markera://auth/apple?state=`,
+`POST /auth/apple/claim` `{state, secret}` → `{token, userId}` (`state` is the hex sha256 of `secret`, which
+never leaves the device — any app can catch the deep link, only the one that started the flow can redeem it;
+single use, 60 s),
 `POST /series` / `GET /series` / `PUT /series/{id}` (same body as POST, replaces timestamp, caliber and
 every hole → 204) / `DELETE /series/{id}` (→ 204, 404 if not yours) with
 `Authorization: Bearer <token>`, `DELETE /account` (→ 204; wipes the caller's series, images and sessions,

@@ -37,7 +37,7 @@ class TokenVerifierTest {
         )
     }
 
-    private val verifier = TokenVerifier(jwks, "client-id", listOf("https://accounts.google.com", "accounts.google.com"))
+    private val verifier = TokenVerifier(jwks, listOf("client-id"), listOf("https://accounts.google.com", "accounts.google.com"))
 
     private fun token(
         issuer: String = "https://accounts.google.com",
@@ -72,6 +72,15 @@ class TokenVerifierTest {
     @Test
     fun wrongAudienceFails() {
         assertFailsWith<JWTVerificationException> { verifier.identity(token(audience = "someone-elses-app")) }
+    }
+
+    /** Apple's two audiences: the iOS bundle id natively, the Services ID from the browser flow. */
+    @Test
+    fun anyOfSeveralAudiencesPasses() {
+        val both = TokenVerifier(jwks, listOf("bundle-id", "services-id"), listOf("https://accounts.google.com"))
+        assertEquals("subject-123", both.identity(token(audience = "bundle-id")).subject)
+        assertEquals("subject-123", both.identity(token(audience = "services-id")).subject)
+        assertFailsWith<JWTVerificationException> { both.identity(token(audience = "someone-elses-app")) }
     }
 
     @Test
