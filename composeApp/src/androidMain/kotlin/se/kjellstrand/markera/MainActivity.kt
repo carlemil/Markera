@@ -1,6 +1,7 @@
 package se.kjellstrand.markera
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import se.kjellstrand.markera.series.AppleReturn
 import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.ui.MarkeraApp
 import se.kjellstrand.markera.ui.competition.rememberCompetitionHost
@@ -24,6 +26,19 @@ class MainActivity : ComponentActivity() {
             val modelPath = withContext(Dispatchers.IO) { prepareModel(this@MainActivity) }
             start(modelPath)
         }
+    }
+
+    /** Sign in with Apple coming back from the browser (singleTop, so this is the same instance). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        AppleReturn.deliver(intent.data)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Back from the browser with nothing delivered: the user backed out, so stop the spinner.
+        AppleReturn.cancel()
     }
 
     private fun start(modelPath: String) {

@@ -258,6 +258,9 @@
     <string name="wizard_not_active_hint">Be tävlingsadmin att aktivera skjutlaget från uppropsvyn, eller ropa upp skjutlaget för att aktivera automatiskt.</string>
     <string name="retry">Försök igen</string>
     <string name="dialog_cancel">Avbryt</string>
+    <string name="sign_in_title">Logga in</string>
+    <string name="sign_in_google">Fortsätt med Google</string>
+    <string name="sign_in_apple">Logga in med Apple</string>
     <string name="wizard_standings">Ställning · totalt</string>
     <string name="wizard_tied">Särskjutning krävs</string>
     <string name="wizard_standing_lane">bana %1$d</string>

@@ -18,6 +18,7 @@ import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.delete
@@ -45,9 +46,23 @@ data class Config(
     val adminPassword: String? = null,
     /** Shown on the public `/delete-account` and `/privacy` pages as the contact address; null hides it. */
     val contactEmail: String? = null,
+    /** Sign in with Apple from a browser — how Android reaches it. Null leaves the browser routes answering 503. */
+    val appleWeb: AppleWebConfig? = null,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
+
+        /** All five or nothing: a half-configured Apple web flow would fail at Apple, not here. */
+        private fun appleWebFromEnv(): AppleWebConfig? {
+            fun env(name: String) = System.getenv(name)?.ifBlank { null }
+            return AppleWebConfig(
+                servicesId = env("APPLE_SERVICES_ID") ?: return null,
+                teamId = env("APPLE_TEAM_ID") ?: return null,
+                keyId = env("APPLE_KEY_ID") ?: return null,
+                privateKey = env("APPLE_PRIVATE_KEY") ?: return null,
+                publicUrl = env("PUBLIC_URL") ?: return null,
+            )
+        }
 
         fun fromEnv(): Config {
             val dbPath = System.getenv("DB_PATH")?.ifBlank { null } ?: "./data/markera.db"
@@ -60,6 +75,7 @@ data class Config(
                 imagesDir = System.getenv("IMAGES_DIR")?.ifBlank { null } ?: defaultImagesDir(dbPath),
                 adminPassword = System.getenv("ADMIN_PASSWORD")?.ifBlank { null },
                 contactEmail = System.getenv("CONTACT_EMAIL")?.ifBlank { null },
+                appleWeb = appleWebFromEnv(),
             )
         }
     }
@@ -165,6 +181,10 @@ data class IdTokenRequest(val idToken: String)
 @Serializable
 data class DevAuthRequest(val subject: String)
 
+/** The app redeeming the login the Apple callback parked: [secret] is the pre-image of `state`. */
+@Serializable
+data class AppleClaimRequest(val state: String, val secret: String)
+
 @Serializable
 data class AuthResponse(val token: String, val userId: Long)
 
@@ -180,7 +200,15 @@ fun main() {
     embeddedServer(Netty, port = config.port, host = "0.0.0.0") { markeraModule(config, db) }.start(wait = true)
 }
 
-fun Application.markeraModule(config: Config, db: Db) {
+fun Application.markeraModule(
+    config: Config,
+    db: Db,
+    /**
+     * Apple's `code` -> who it stands for. Null uses the real flow (token exchange, then id_token
+     * verification against Apple's JWKS); tests substitute it, since neither is reachable from one.
+     */
+    appleCodeIdentity: ((String) -> Identity)? = null,
+) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
         exception<BadRequestException> { call, e ->
@@ -190,7 +218,14 @@ fun Application.markeraModule(config: Config, db: Db) {
 
     val images = File(config.imagesDir).also { it.mkdirs() }
     val google = config.googleClientId?.let { googleVerifier(it) }
-    val apple = config.appleBundleId?.let { appleVerifier(it) }
+    // Native iOS tokens carry `aud = <bundle id>`, the browser flow's `aud = <services id>`.
+    val apple = listOfNotNull(config.appleBundleId, config.appleWeb?.servicesId)
+        .takeIf { it.isNotEmpty() }
+        ?.let { appleVerifier(it) }
+    val appleWeb = config.appleWeb
+    val identifyAppleCode = appleCodeIdentity
+        ?: { code -> apple!!.identity(exchangeAppleCode(appleWeb!!, code)) }
+    val pendingLogins = PendingLogins()
 
     routing {
         get("/health") { call.respondText("""{"status":"ok"}""", ContentType.Application.Json) }
@@ -201,6 +236,65 @@ fun Application.markeraModule(config: Config, db: Db) {
 
         post("/auth/google") { providerAuth(db, "google", google) }
         post("/auth/apple") { providerAuth(db, "apple", apple) }
+
+        // Sign in with Apple from a browser (Android). The app only ever sees `state`, the sha256 of a
+        // secret it keeps: any app can register `markera://`, but only the starter can claim the session.
+        get("/auth/apple/start") {
+            val web = appleWeb ?: return@get appleWebUnavailable()
+            val state = call.request.queryParameters["state"]
+            if (state == null || !APPLE_STATE_SHAPE.matches(state)) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("state must be a hex sha256"))
+                return@get
+            }
+            call.respondRedirect(appleAuthorizeUrl(web, state))
+        }
+
+        // ponytail: GET only - Apple posts the callback only when scopes are requested, and we request none.
+        get("/auth/apple/callback") {
+            if (appleWeb == null) return@get appleWebUnavailable()
+            val state = call.request.queryParameters["state"]
+            if (state == null || !APPLE_STATE_SHAPE.matches(state)) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("state must be a hex sha256"))
+                return@get
+            }
+            // The user backed out at Apple's page; the app turns this into a silent cancel.
+            if (call.request.queryParameters["error"] != null) {
+                call.respondRedirect("$APPLE_DEEP_LINK?state=$state&error=cancelled")
+                return@get
+            }
+            val code = call.request.queryParameters["code"]
+            if (code == null) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("missing code"))
+                return@get
+            }
+            val identity = try {
+                identifyAppleCode(code)
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.Unauthorized, ErrorResponse(e.message ?: "apple sign-in failed"))
+                return@get
+            }
+            val userId = db.upsertUser("apple", identity.subject, identity.name)
+            pendingLogins.park(state, AuthResponse(db.createSession(userId), userId))
+            call.respondRedirect("$APPLE_DEEP_LINK?state=$state")
+        }
+
+        post("/auth/apple/claim") {
+            if (appleWeb == null) return@post appleWebUnavailable()
+            val req = call.receive<AppleClaimRequest>()
+            val auth = pendingLogins.claim(req.state, req.secret)
+            if (auth == null) {
+                call.respond(HttpStatusCode.Unauthorized, ErrorResponse("unknown or expired login"))
+                return@post
+            }
+            call.respond(auth)
+        }
+
+        // Apple verifies the domain by fetching this; the blob is a public token, so it is committed.
+        get("/.well-known/apple-developer-domain-association.txt") {
+            val blob = Config::class.java.getResourceAsStream("/apple-developer-domain-association.txt")
+            if (blob == null) call.respond(HttpStatusCode.NotFound, ErrorResponse("no domain association file"))
+            else call.respondText(blob.use { it.readBytes().decodeToString() }, ContentType.Text.Plain)
+        }
         if (config.devAuth) {
             post("/auth/dev") {
                 val subject = call.receive<DevAuthRequest>().subject
@@ -372,6 +466,9 @@ private suspend fun RoutingContext.authenticate(db: Db): Long? {
 
 private fun RoutingContext.bearerToken(): String? =
     call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()?.takeIf { it.isNotEmpty() }
+
+private suspend fun RoutingContext.appleWebUnavailable() =
+    call.respond(HttpStatusCode.ServiceUnavailable, ErrorResponse("apple web sign-in is not configured"))
 
 private suspend fun RoutingContext.providerAuth(db: Db, provider: String, verifier: TokenVerifier?) {
     if (verifier == null) {

@@ -15,7 +15,8 @@ data class Identity(val subject: String, val name: String?)
 /** Verifies an RS256 provider ID token against a JWKS and returns its `sub` plus a display name. */
 class TokenVerifier(
     private val jwks: JwkProvider,
-    private val audience: String,
+    /** Accepted `aud` values; any one matching is enough (native iOS carries the bundle id, Apple's web flow the Services ID). */
+    private val audiences: List<String>,
     private val issuers: List<String>,
 ) {
     /** @throws JWTVerificationException if the signature, issuer, audience or expiry is wrong. */
@@ -28,7 +29,8 @@ class TokenVerifier(
         }
         val verified = JWT.require(Algorithm.RSA256(key, null))
             .withIssuer(*issuers.toTypedArray()) // java-jwt: passes when the claim matches any of them
-            .withAudience(audience)
+            // withAudience() would demand *all* of them; this passes on any one.
+            .withAnyOfAudience(*audiences.toTypedArray())
             .withClaimPresence("sub") // without it `verified.subject` is null and the login a 500
             .build()
             .verify(idToken)
@@ -47,12 +49,13 @@ private fun cachedJwks(url: String): JwkProvider =
 
 fun googleVerifier(clientId: String) = TokenVerifier(
     cachedJwks("https://www.googleapis.com/oauth2/v3/certs"),
-    clientId,
+    listOf(clientId),
     listOf("https://accounts.google.com", "accounts.google.com"),
 )
 
-fun appleVerifier(bundleId: String) = TokenVerifier(
+/** [audiences] is the iOS bundle id, the Apple Services ID (the Android web flow), or both. */
+fun appleVerifier(audiences: List<String>) = TokenVerifier(
     cachedJwks("https://appleid.apple.com/auth/keys"),
-    bundleId,
+    audiences,
     listOf("https://appleid.apple.com"),
 )
