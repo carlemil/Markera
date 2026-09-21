@@ -7,13 +7,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -54,7 +54,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -543,20 +542,13 @@ internal fun SeriesCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .height(IntrinsicSize.Min),
         ) {
             if (series.hasImage) {
-                // The Box owns the square slot so the row height comes from the text
-                // column, not the bitmap's intrinsic size, and nothing reflows when the
-                // async decode lands.
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                        .clip(MaterialTheme.shapes.small),
-                ) {
+                // The Box owns the slot so the row height comes from the text column, not
+                // the bitmap, and nothing reflows when the async decode lands. Flush with
+                // the card edge; the card's own shape clips the corners.
+                Box(Modifier.fillMaxHeight().width(72.dp)) {
                     thumbnails[series.id]?.let {
                         Image(
                             bitmap = it,
@@ -568,7 +560,7 @@ internal fun SeriesCard(
                 }
             }
             Column(
-                Modifier.weight(1f),
+                Modifier.weight(1f).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
