@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -97,8 +97,8 @@ import se.kjellstrand.markera.ui.stats.DateRangeDialog
 import se.kjellstrand.markera.ui.stats.SectionHeader
 import se.kjellstrand.markera.ui.markera.TotalBadge
 
-/** The list thumbnail is ~80 dp square; the stored frame is ~3000², so subsample hard. */
-private const val THUMB_MAX_DIM = 256
+/** The list thumbnail is ~100 dp square; the stored frame is ~3000², so subsample hard. */
+private const val THUMB_MAX_DIM = 384
 
 /** The cached series, newest first; opening asks the backend for a delta. */
 @OptIn(ExperimentalTime::class)
@@ -546,9 +546,10 @@ internal fun SeriesCard(
         ) {
             if (series.hasImage) {
                 // The Box owns the slot so the row height comes from the text column, not
-                // the bitmap, and nothing reflows when the async decode lands. Flush with
+                // the bitmap, and nothing reflows when the async decode lands. Square off
+                // that height (the frame is square, so Crop stops slicing it), flush with
                 // the card edge; the card's own shape clips the corners.
-                Box(Modifier.fillMaxHeight().width(72.dp)) {
+                Box(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)) {
                     thumbnails[series.id]?.let {
                         Image(
                             bitmap = it,
@@ -560,8 +561,8 @@ internal fun SeriesCard(
                 }
             }
             Column(
-                Modifier.weight(1f).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // The day itself is the group header above this card.
