@@ -152,7 +152,8 @@ fun MarkeraScreen(
                     onBack = onBack,
                     menuItems = listOfNotNull(
                         MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
-                        // Developer tool: no entry point in release builds (the overlay itself stays).
+                        // Developer tool: no entry point in release builds, and with it off the
+                        // overlay drops the 6/7 ring and the centre cross too.
                         if (isDebugBuild) {
                             MenuItem(
                                 if (showDebug) Icons.Default.Tune else Icons.Outlined.Tune,

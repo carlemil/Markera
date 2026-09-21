@@ -152,7 +152,7 @@
     <string name="help_scan_save">Spara</string>
     <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. ↻-knappen slänger scanningen utan att spara.</string>
     <string name="help_scan_debug">Felsökning</string>
-    <string name="help_scan_debug_body">Visa detektionsdata i menyn visar detektorns råa rutor, sifferrader och linjer.</string>
+    <string name="help_scan_debug_body">Visa detektionsdata i menyn visar detektorns råa rutor, sifferrader och linjer, samt den inpassade ringen och centrum.</string>
 
     <!-- Hjälp: historiken -->
     <string name="help_history_title">Om historiken</string>

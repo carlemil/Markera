@@ -46,12 +46,12 @@ private const val STROKE_WIDTH_PX = 4f
 
 /**
  * Draws the scoring result over the frozen frame, fit-centre letterboxed to
- * line up with the Image/PreviewView: the 6/7 [ring], the [centre] crosshair, a
- * marker + ring-value label per scored hole.
+ * line up with the Image/PreviewView: a marker + key letter + ring-value label
+ * per scored hole, plus the ring lines inside the black 6/7 edge.
  *
  * [showDebug] adds the raw detection data — hole boxes, recognised [digits]
- * boxes and the fitted digit-row lines — for diagnostics; the default clean
- * view shows only the result.
+ * boxes, the fitted digit-row lines, the fitted 6/7 [ring] and the [centre]
+ * crosshair — for diagnostics; the default clean view shows only the result.
  */
 @Composable
 fun DetectionOverlay(
@@ -85,9 +85,10 @@ fun DetectionOverlay(
         val offsetY = (size.height - imageHeight * scale) / 2f
         val labelSize = (28f * scale).coerceIn(44f, 128f)
 
-        // 6/7 boundary ellipse: drawn at its own fitted centre — it is the fit,
-        // and its fit quality is what the user reads off the photo.
-        if (ring != null) {
+        // 6/7 boundary ellipse: drawn at its own fitted centre — it is the fit.
+        // Debug only: it is a diagnostic for judging that fit, and the user
+        // already has the black edge itself right under it in the photo.
+        if (showDebug && ring != null) {
             drawTargetRing(ring, scale, offsetX, offsetY, RING_COLOR, STROKE_WIDTH_PX + 2f)
         }
 
@@ -222,19 +223,19 @@ fun DetectionOverlay(
             }
         }
 
-        if (centre != null && centre.method != CentreMethod.NONE) {
-            // Fitted digit-row lines — debug only (infinite lines, clipped to
-            // the image area so they don't bleed into the letterbox bars).
-            if (showDebug) {
-                clipRect(
-                    left = offsetX,
-                    top = offsetY,
-                    right = offsetX + imageWidth * scale,
-                    bottom = offsetY + imageHeight * scale,
-                ) {
-                    listOfNotNull(centre.horizontalLine, centre.verticalLine).forEach { line ->
-                        drawRowLine(line, scale, offsetX, offsetY, ROW_LINE_COLOR, STROKE_WIDTH_PX / 2f)
-                    }
+        // Digit-row lines and the centre crosshair — both debug only: they say
+        // where the fit put the centre, which is diagnostics, not a score.
+        if (showDebug && centre != null && centre.method != CentreMethod.NONE) {
+            // Infinite lines, clipped to the image area so they don't bleed
+            // into the letterbox bars.
+            clipRect(
+                left = offsetX,
+                top = offsetY,
+                right = offsetX + imageWidth * scale,
+                bottom = offsetY + imageHeight * scale,
+            ) {
+                listOfNotNull(centre.horizontalLine, centre.verticalLine).forEach { line ->
+                    drawRowLine(line, scale, offsetX, offsetY, ROW_LINE_COLOR, STROKE_WIDTH_PX / 2f)
                 }
             }
 
