@@ -5,6 +5,10 @@ import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.Instant as CalendarInstant
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.centre
@@ -23,6 +27,7 @@ import se.kjellstrand.markera.vision.targetOffsetMm
 /** Quick date ranges for the filter row; [ALL] and [CUSTOM] set no bounds themselves. */
 @OptIn(ExperimentalTime::class)
 enum class DatePreset(private val days: Int?) {
+    TODAY(null),
     WEEK(7),
     MONTH(30),
     YEAR(365),
@@ -30,8 +35,17 @@ enum class DatePreset(private val days: Int?) {
     CUSTOM(null);
 
     /** `from to to` for this preset — open-ended above, and both null for [ALL]/[CUSTOM]. */
-    fun range(now: Instant): Pair<Instant?, Instant?> =
-        days?.let { (now - it.days) to null } ?: (null to null)
+    fun range(now: Instant, zone: TimeZone = TimeZone.currentSystemDefault()): Pair<Instant?, Instant?> =
+        when (this) {
+            // The calendar day where the phone stands, not the last 24 hours. Via epoch
+            // millis because the calendar maths lives on kotlinx-datetime 0.6's own Instant.
+            TODAY -> {
+                val midnight = CalendarInstant.fromEpochMilliseconds(now.toEpochMilliseconds())
+                    .toLocalDateTime(zone).date.atStartOfDayIn(zone)
+                Instant.fromEpochMilliseconds(midnight.toEpochMilliseconds()) to null
+            }
+            else -> days?.let { (now - it.days) to null } ?: (null to null)
+        }
 }
 
 internal const val DAY_MS = 24L * 60 * 60 * 1000
@@ -43,11 +57,15 @@ internal const val DAY_MS = 24L * 60 * 60 * 1000
  * its last millisecond.
  */
 @OptIn(ExperimentalTime::class)
-fun DatePreset.window(customRange: Pair<Long, Long>?, now: Instant): Pair<Instant?, Instant?> {
+fun DatePreset.window(
+    customRange: Pair<Long, Long>?,
+    now: Instant,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+): Pair<Instant?, Instant?> {
     val range = customRange.takeIf { this == DatePreset.CUSTOM }
     val from = range?.let { Instant.fromEpochMilliseconds(it.first) }
     val to = range?.let { Instant.fromEpochMilliseconds(it.second + DAY_MS - 1) }
-    val (presetFrom, presetTo) = range(now)
+    val (presetFrom, presetTo) = range(now, zone)
     return (from ?: presetFrom) to (to ?: presetTo)
 }
 

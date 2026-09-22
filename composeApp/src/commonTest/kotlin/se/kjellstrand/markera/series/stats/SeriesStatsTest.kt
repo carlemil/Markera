@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.HoleDto
@@ -253,5 +254,14 @@ class SeriesStatsTest {
         assertEquals(now - 365.days to null, DatePreset.YEAR.range(now))
         assertEquals(null to null, DatePreset.ALL.range(now))
         assertEquals(null to null, DatePreset.CUSTOM.range(now))
+    }
+
+    @Test
+    fun `today starts at local midnight`() {
+        val zone = TimeZone.of("Europe/Stockholm") // 2026-09-22 is UTC+2 there.
+        val now = Instant.parse("2026-09-22T05:00:00Z") // 07:00 local.
+        val (from, to) = DatePreset.TODAY.window(null, now, zone)
+        assertEquals(Instant.parse("2026-09-21T22:00:00Z"), from)
+        assertNull(to)
     }
 }

@@ -75,6 +75,7 @@
     <string name="stats_signed_out">Logga in för att se statistik</string>
     <string name="stats_empty">Inga serier matchar filtret.</string>
     <string name="stats_caliber_all">Alla</string>
+    <string name="stats_date_today">Idag</string>
     <string name="stats_date_week">7 d</string>
     <string name="stats_date_month">30 d</string>
     <string name="stats_date_year">1 år</string>
