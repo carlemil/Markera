@@ -1,6 +1,8 @@
 package se.kjellstrand.markera.ui.stats
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -57,13 +59,11 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -124,17 +124,16 @@ private val PAPER = Color(0xFFE8DEC8)
 private val BLACK = Color(0xFF15151A)
 private val LINE_ON_BLACK = Color(0xFFEDEDED)
 private val LINE_ON_PAPER = Color(0xFF6B6455)
-/**
- * Oldest → newest hit colours, also the legend's gradient bar: one continuous
- * blue → red gradient, its two far-apart ends keeping early and late series
- * easy to tell apart. The black outline on each hit keeps both ends crisp
- * against the cream paper.
- */
-private val HIT_SCALE = listOf(
-    Color(0xFF304FFE), // blue
-    Color(0xFFFF1A1A), // red
-)
-// Green sits far from both ends, magenta off to the pink side of the red one; the
+/** Grey for a series with no caliber ("-"): it gets no slot in the palette. */
+private val NO_CALIBER = Color(0xFF9E9E9E)
+
+/** A caliber's colour: its slot in [calibers], so Tavla and Trend agree on it. */
+private fun caliberColour(caliber: Caliber, calibers: List<Caliber>): Color =
+    calibers.indexOf(caliber).let {
+        if (it < 0) NO_CALIBER else TREND_COLOURS[it.mod(TREND_COLOURS.size)]
+    }
+
+// Green sits far from the palette, magenta off to its pink side; the
 // + / × shapes and drawMark's dark halo still tell them apart for colour-blind readers.
 private val MEAN_MARK = Color(0xFFFF00C8)
 private val MEDIAN_MARK = Color(0xFF00C853)
@@ -149,7 +148,7 @@ private val KNOB = DpSize(20.dp, 20.dp)
 
 /**
  * All saved series with geometry, filtered and drawn on one target: every hit
- * un-projected to target millimetres, coloured old → new, with the group
+ * un-projected to target millimetres, coloured by caliber, with the group
  * measurements underneath. The maths lives in `series/stats/`; this only draws.
  */
 @OptIn(ExperimentalTime::class)
@@ -161,6 +160,10 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var error by remember { mutableStateOf<StringResource?>(null) }
     var reload by remember { mutableIntStateOf(0) }
     val (signingIn, signIn) = rememberBackendSignIn(services)
+
+    // Every caliber on any plottable series: a caliber's colour is its slot here,
+    // whatever the filter keeps.
+    val calibers = remember(series) { series.calibersWithGeometry() }
 
     var selectedCalibers by remember { mutableStateOf(emptySet<Caliber>()) }
     // Multi-select like Historik's tag chips; empty = no tag filtering at all.
@@ -248,7 +251,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 ) {
                     // Hoisted above the tabs in state, drawn below them: one row, both tabs.
                     FilterRow(
-                        calibers = series.calibersWithGeometry(),
+                        calibers = calibers,
                         selectedCalibers = selectedCalibers,
                         onCalibers = { selectedCalibers = it },
                         tags = series.tagsWithGeometry(),
@@ -270,20 +273,20 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             plotted.subList(selection.first, selection.last + 1)
                         }
                         val segmentStats = remember(segment) { segment.statistics() }
-                        TargetCanvas(segment, segmentStats)
+                        TargetCanvas(segment, segmentStats, calibers)
                         AgeLegend(plotted, selection) { selection = it }
-                        MarkerLegend()
+                        MarkerLegend(segment, calibers)
                         segmentStats?.let { MeasurementRows(it) }
                     } else {
                         TrendTab(
                             plotted = plotted,
-                            calibers = series.calibersWithGeometry(),
+                            calibers = calibers,
                             metric = metric,
                             onMetric = { metric = it },
                             bucket = bucket,
                             onBucket = { bucket = it },
                             // One caliber filtered in leaves nothing to split.
-                            splitOffered = selectedCalibers.size != 1 && series.calibersWithGeometry().size >= 2,
+                            splitOffered = selectedCalibers.size != 1 && calibers.size >= 2,
                             split = splitByCaliber,
                             onSplit = { splitByCaliber = it },
                         )
@@ -478,7 +481,7 @@ private fun TrendTab(
     val lines = remember(plotted, calibers, metric, bucket, split, splitOffered) {
         if (split && splitOffered) {
             plotted.trendByCaliber(metric, bucket).map { (caliber, points) ->
-                TrendLine(caliber.label, TREND_COLOURS[calibers.indexOf(caliber).mod(TREND_COLOURS.size)], points)
+                TrendLine(caliber.label, caliberColour(caliber, calibers), points)
             }
         } else {
             listOf(TrendLine("", TREND_COLOURS[0], plotted.trend(metric, bucket)))
@@ -558,7 +561,12 @@ internal fun DateRangeDialog(onDismiss: () -> Unit, onPicked: (Long, Long) -> Un
  * zoom, drag to pan once zoomed, double-tap to reset.
  */
 @Composable
-private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?) {
+private fun TargetCanvas(
+    plotted: List<PlottedSeries>,
+    stats: SeriesStatistics?,
+    /** Every caliber on any plottable series — see [caliberColour]. */
+    calibers: List<Caliber>,
+) {
     val textMeasurer = rememberTextMeasurer()
     // The layer scales about its top-left corner, so zooming about the pinch
     // centroid is a plain "keep the centroid still" rescale of the pan.
@@ -644,9 +652,10 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
         }
 
         plotted.forEach { series ->
-            val colour = hitColour(series.age).copy(alpha = HIT_DOT_ALPHA)
+            val caliber = Caliber.fromLabel(series.series.caliber)
+            val colour = caliberColour(caliber, calibers).copy(alpha = HIT_DOT_ALPHA)
             // scale is px/mm here, so the caliber's mm radius converts directly.
-            val dotRadius = Caliber.fromLabel(series.series.caliber).hitDotRadiusMm() * scale
+            val dotRadius = caliber.hitDotRadiusMm() * scale
             series.hits.forEach { hit ->
                 val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
                 drawCircle(colour, radius = dotRadius, center = at)
@@ -675,13 +684,6 @@ private fun TargetCanvas(plotted: List<PlottedSeries>, stats: SeriesStatistics?)
     }
 }
 
-/** [HIT_SCALE] sampled at [age] (0 = oldest, 1 = newest): a lerp within one segment. */
-private fun hitColour(age: Float): Color {
-    val t = age.coerceIn(0f, 1f) * (HIT_SCALE.size - 1)
-    val i = t.toInt().coerceAtMost(HIT_SCALE.size - 2)
-    return lerp(HIT_SCALE[i], HIT_SCALE[i + 1], t - i)
-}
-
 /**
  * The point-of-impact mark: "+" on the axes, "×" on the diagonals. Sized in dp so
  * the target and the legend below it draw the identical symbol.
@@ -702,9 +704,34 @@ private fun DrawScope.drawMark(at: Offset, colour: Color, diagonal: Boolean) {
     }
 }
 
-/** What the two point-of-impact markers on the target mean. */
+/**
+ * The key to the target: a swatch per caliber on show — only worth drawing when the
+ * segment holds two or more, since one caliber means every dot is the same colour —
+ * then what the two point-of-impact markers mean.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MarkerLegend() {
+private fun MarkerLegend(plotted: List<PlottedSeries>, calibers: List<Caliber>) {
+    val shown = remember(plotted) {
+        plotted.map { Caliber.fromLabel(it.series.caliber) }.distinct().sortedBy { it.ordinal }
+    }
+    if (shown.size >= 2) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            shown.forEach { caliber ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Box(modifier = Modifier.size(10.dp).background(caliberColour(caliber, calibers), CircleShape))
+                    Text(
+                        caliber.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         listOf(
             false to (MEAN_MARK to Res.string.stats_legend_mean),
@@ -731,11 +758,10 @@ private fun MarkerLegend() {
 }
 
 /**
- * The age colour scale, doubling as a two-knob range slider (one series or fewer:
+ * The series timeline, doubling as a two-knob range slider (one series or fewer:
  * nothing to segment, so it's just the plain dotted bar). Dragging the knobs narrows
  * [selection] — an index range into [plotted], oldest first — which the target and
- * measurements above follow; hit colours always come from the full-range age, so a
- * hit's colour still matches its dot's position on the bar.
+ * measurements above follow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -785,23 +811,21 @@ private fun AgeLegend(plotted: List<PlottedSeries>, selection: IntRange, onSelec
 }
 
 /**
- * The gradient bar itself, with a small dot at each series' own position — the same
- * [PlottedSeries.age] fraction that colours its hits, so a dot always sits under the
- * colour its hits are drawn in. Used both standalone (one series) and as the
- * [RangeSlider]'s custom track, whose slot is already inset to the thumbs' travel
- * width — whatever [KNOB] the thumbs are — so `fillMaxWidth()` here lines the dots
- * up exactly under where the knobs snap.
+ * The bar itself, with a small dot at each series' own position along it
+ * ([PlottedSeries.age], oldest left to newest right). Used both standalone (one
+ * series) and as the [RangeSlider]'s custom track, whose slot is already inset to the
+ * thumbs' travel width — whatever [KNOB] the thumbs are — so `fillMaxWidth()` here
+ * lines the dots up exactly under where the knobs snap.
  */
 @Composable
 private fun AgeTrack(plotted: List<PlottedSeries>) {
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    val dot = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {
-        drawRoundRect(brush = Brush.horizontalGradient(HIT_SCALE), cornerRadius = CornerRadius(4.dp.toPx()))
+        drawRoundRect(track, cornerRadius = CornerRadius(4.dp.toPx()))
         val dotRadius = 2.dp.toPx()
-        val ringWidth = 0.75.dp.toPx()
         plotted.forEach { s ->
-            val at = Offset(size.width * s.age, size.height / 2f)
-            drawCircle(BLACK, radius = dotRadius, center = at)
-            drawCircle(LINE_ON_BLACK, radius = dotRadius, center = at, style = Stroke(width = ringWidth))
+            drawCircle(dot, radius = dotRadius, center = Offset(size.width * s.age, size.height / 2f))
         }
     }
 }
