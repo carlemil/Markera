@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -57,6 +58,7 @@ import se.kjellstrand.markera.series.SeriesEdit
 import se.kjellstrand.markera.series.SeriesEdits
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
+import se.kjellstrand.markera.series.localTime
 import se.kjellstrand.markera.series.centre
 import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.detectedLabel
@@ -323,7 +325,12 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(localStamp(series.timestamp), style = MaterialTheme.typography.titleMedium)
+                    // Time over date, the two lines centred against each other.
+                    Text(
+                        "${localTime(series.timestamp)}\n${localStamp(series.timestamp).take(10)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                    )
                     // Tap caliber or tag to correct it.
                     TotalBadge(
                         total = holes.value.sumOf { it.ring },
