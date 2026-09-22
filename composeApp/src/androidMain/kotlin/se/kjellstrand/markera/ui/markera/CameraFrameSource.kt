@@ -89,6 +89,9 @@ private class CameraFrameSource(
         // PreviewView.getBitmap() must run on the main thread (this is called
         // from a LaunchedEffect, so it already is); scaling the ~1440 px render
         // down is the expensive half and goes off it.
+        // ponytail: copies the ~1440² render on the main thread every tick; if
+        // that janks on the phone, add a small-resolution ImageAnalysis use case
+        // to the UseCaseGroup in CameraPreview.kt and sample that instead.
         val bmp = previewView.bitmap ?: return null
         return try {
             withContext(Dispatchers.Default) { lumaFromArgb(bmp.argb(size, size)) }
@@ -112,6 +115,10 @@ actual fun rememberFrameSource(): FrameSource {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            // Only while attached: the live preview, and in continuous mode the
+            // preview kept behind a frozen frame, so a tripod-mounted series
+            // does not sleep mid-way.
+            keepScreenOn = true
         }
     }
     val imageCapture = remember {

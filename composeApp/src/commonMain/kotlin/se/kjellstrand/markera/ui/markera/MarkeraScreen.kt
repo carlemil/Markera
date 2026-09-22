@@ -153,9 +153,11 @@ fun MarkeraScreen(
 
     // Sample the live feed; a changed-and-settled scene runs exactly the scan
     // the button runs. The snapshot-state reads are current on every tick, so
-    // the loop never has to restart.
-    LaunchedEffect(continuous, frameSource) {
-        if (!continuous) return@LaunchedEffect
+    // the loop never has to restart. Detection off stops it too: its switch is
+    // hidden then, so nothing else could.
+    val watching = continuous && detectHoles && frameSource.supportsContinuousScan
+    LaunchedEffect(watching, frameSource) {
+        if (!watching) return@LaunchedEffect
         val watch = ChangeWatch()
         while (true) {
             delay(CHANGE_SAMPLE_MS)
@@ -206,7 +208,7 @@ fun MarkeraScreen(
                     showDebug = showDebug,
                     onError = viewModel::setError,
                     editing = editing,
-                    keepPreviewAlive = continuous,
+                    keepPreviewAlive = watching,
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                 )
                 BottomArea(
