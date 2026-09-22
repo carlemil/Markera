@@ -32,8 +32,8 @@ private val PICKER_GAP = 6.dp
 private val PICKER_ITEM_WIDTH = 44.dp
 private val PICKER_ITEM_HEIGHT = 48.dp
 private val DIALPAD_KEY_SIZE = 72.dp
-private val MINI_ITEM_WIDTH = 32.dp
-private val MINI_ITEM_HEIGHT = 32.dp
+private val MINI_ITEM_WIDTH = 30.dp
+private val MINI_ITEM_HEIGHT = 30.dp
 private val MINI_SHAPE = RoundedCornerShape(6.dp)
 
 /** Dialpad layout: 0 1 2 / 3 4 5 / 6 7 8 / 9 10 X, as picker indices. */
