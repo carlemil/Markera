@@ -176,6 +176,12 @@ fun HitScore.toHoleDto(): HoleDto {
 fun HoleDto.isEdited(): Boolean =
     detectedRing != null && (detectedRing != ring || (detectedInnerTen == true) != innerTen)
 
+/** The user dragged this hole off the spot the detector put it on. */
+fun HoleDto.wasMoved(): Boolean = detectedX != null && (x != detectedX || y != detectedY)
+
+/** There is a detection to go back to, and the hole no longer matches it. */
+fun HoleDto.canRestore(): Boolean = detectedRing != null && (isEdited() || wasMoved())
+
 private fun scoreLabel(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()
 
 /** A hole's score as the pickers show it: `X` for an inner ten, else the ring. */
@@ -207,9 +213,8 @@ fun HoleDto.kindText(manual: String, typed: String, moved: String, detected: Str
         detectedRing == null -> manual
         else -> ""
     }
-    val wasMoved = detectedX != null && (x != detectedX || y != detectedY)
     return when {
-        !wasMoved -> base.ifEmpty { detected }
+        !wasMoved() -> base.ifEmpty { detected }
         base.isEmpty() -> moved
         else -> "$base, $moved"
     }
@@ -276,6 +281,34 @@ fun List<HoleDto>.moveHole(
                 detectedInnerTen = hole.detectedInnerTen,
                 detectedX = hole.detectedX,
                 detectedY = hole.detectedY,
+            )
+        }
+    }.sortedWith(HOLE_ORDER)
+
+/**
+ * Hole [index] put back to what the detector said about it: position, score and
+ * the distance that follows from it. A hole stored before [HoleDto.detectedX]
+ * existed keeps the position it has. The list comes back re-sorted like
+ * [moveHole], so the restored hole may not be at [index] any more.
+ */
+fun List<HoleDto>.restoreHole(index: Int, geometry: GeometryDto): List<HoleDto> =
+    mapIndexed { i, hole ->
+        val ring = hole.detectedRing
+        if (i != index || ring == null) {
+            hole
+        } else {
+            val hx = hole.detectedX ?: hole.x
+            val hy = hole.detectedY ?: hole.y
+            hole.copy(
+                x = hx,
+                y = hy,
+                ring = ring,
+                innerTen = hole.detectedInnerTen == true,
+                distanceMm = if (hx != null && hy != null) {
+                    distanceMm(hx.toFloat(), hy.toFloat(), geometry.centre(), geometry.ring())
+                } else {
+                    hole.distanceMm
+                },
             )
         }
     }.sortedWith(HOLE_ORDER)
