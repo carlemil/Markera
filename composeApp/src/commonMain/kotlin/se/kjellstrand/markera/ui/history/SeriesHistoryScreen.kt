@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -548,7 +549,7 @@ internal fun SeriesCard(
                 // The Box owns the slot so the row height comes from the text column, not
                 // the bitmap, and nothing reflows when the async decode lands. Flush with
                 // the card edge; the card's own shape clips the corners.
-                Box(Modifier.fillMaxHeight().width(72.dp)) {
+                Box(Modifier.fillMaxHeight().aspectRatio(1f)) {
                     thumbnails[series.id]?.let {
                         Image(
                             bitmap = it,
@@ -560,8 +561,7 @@ internal fun SeriesCard(
                 }
             }
             Column(
-                // Only the gap to the photo: the rows meet the card's top, bottom and right edges.
-                Modifier.weight(1f).padding(start = 16.dp),
+                Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
