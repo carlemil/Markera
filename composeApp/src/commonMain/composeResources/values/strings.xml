@@ -75,6 +75,7 @@
     <string name="stats_signed_out">Sign in to see statistics</string>
     <string name="stats_empty">No series match the filter.</string>
     <string name="stats_caliber_all">All</string>
+    <string name="stats_date_today">Today</string>
     <string name="stats_date_week">7 d</string>
     <string name="stats_date_month">30 d</string>
     <string name="stats_date_year">1 yr</string>

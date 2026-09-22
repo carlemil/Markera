@@ -422,6 +422,7 @@ private fun FilterRow(
                     stringResource(Res.string.stats_date_custom)
                 },
             )
+            presetChip(DatePreset.TODAY, Res.string.stats_date_today)
             presetChip(DatePreset.WEEK, Res.string.stats_date_week)
             presetChip(DatePreset.MONTH, Res.string.stats_date_month)
             presetChip(DatePreset.YEAR, Res.string.stats_date_year)
