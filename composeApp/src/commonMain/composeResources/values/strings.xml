@@ -10,6 +10,7 @@
     <string name="markera_hint">Point the camera at the target and tap to count the hits.</string>
     <string name="markera_analyzing">Analysing hits…</string>
     <string name="markera_detect_holes">Detect holes</string>
+    <string name="markera_continuous">Continuous scan</string>
     <string name="markera_toggle_debug">Show detection data</string>
     <string name="markera_back">Back</string>
     <string name="markera_scanning">SCANNING TARGET…</string>
@@ -152,6 +153,8 @@
     <string name="help_scan_caliber_body">The chip beside the score shows the caliber the series is saved with. Tap it to change — if none is chosen, the app asks when you save. The caliber is shown in the history and can be filtered on in the statistics.</string>
     <string name="help_scan_save">Save</string>
     <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. The ↻ button discards the scan without saving.</string>
+    <string name="help_scan_continuous">Continuous scan</string>
+    <string name="help_scan_continuous_body">With the phone propped up at the target, the app watches the live picture and rescans by itself whenever the target changes, so the scores follow the series shot by shot. The camera keeps running while a result is shown, and each scan replaces the one before it. Changing a score or moving a hole pauses it until you save or start over.</string>
     <string name="help_scan_debug">Troubleshooting</string>
     <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines, plus the fitted ring and the centre.</string>
 

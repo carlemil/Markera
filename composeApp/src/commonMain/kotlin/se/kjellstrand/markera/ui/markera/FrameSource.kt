@@ -23,6 +23,15 @@ interface FrameSource {
 
     /** Called when the user taps "resume live" to drop a frozen snapshot. */
     fun onResumeLive()
+
+    /** Whether this source has a live feed a continuous scan can watch. */
+    val supportsContinuousScan: Boolean get() = false
+
+    /**
+     * A [size]x[size] row-major luma thumbnail of the live feed, for change
+     * detection; null when no frame is available yet.
+     */
+    suspend fun peekLuma(size: Int): ByteArray? = null
 }
 
 @Composable

@@ -10,6 +10,7 @@
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
     <string name="markera_analyzing">Analyserar träffar…</string>
     <string name="markera_detect_holes">Detektera hål</string>
+    <string name="markera_continuous">Kontinuerlig skanning</string>
     <string name="markera_toggle_debug">Visa detektionsdata</string>
     <string name="markera_back">Tillbaka</string>
     <string name="markera_scanning">SCANNAR TAVLAN…</string>
@@ -152,6 +153,8 @@
     <string name="help_scan_caliber_body">Brickan bredvid poängen visar vilken kaliber serien sparas med. Tryck på den för att byta — har du ingen vald frågar appen när du sparar. Kalibern visas i historiken och går att filtrera på i statistiken.</string>
     <string name="help_scan_save">Spara</string>
     <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. ↻-knappen slänger scanningen utan att spara.</string>
+    <string name="help_scan_continuous">Kontinuerlig skanning</string>
+    <string name="help_scan_continuous_body">Med telefonen uppställd mot tavlan bevakar appen livebilden och skannar om av sig själv så fort tavlan ändras, så att poängen följer serien skott för skott. Kameran fortsätter gå medan ett resultat visas, och varje skanning ersätter den förra. Ändrar du en poäng eller flyttar ett hål pausas den tills du sparar eller börjar om.</string>
     <string name="help_scan_debug">Felsökning</string>
     <string name="help_scan_debug_body">Visa detektionsdata i menyn visar detektorns råa rutor, sifferrader och linjer, samt den inpassade ringen och centrum.</string>
 

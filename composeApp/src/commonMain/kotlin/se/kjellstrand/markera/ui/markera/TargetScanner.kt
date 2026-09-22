@@ -395,6 +395,7 @@ fun TargetScanner(
     onError: (String) -> Unit,
     modifier: Modifier = Modifier,
     editing: HoleEditing? = null,
+    keepPreviewAlive: Boolean = false,
 ) {
     val frozen = snapshotVm.snapshot
     // Editing (and with it the zoom) only on a frozen frame that has been scored.
@@ -430,7 +431,11 @@ fun TargetScanner(
     ) {
         // The preview stays outside the zoom layer: it is a SurfaceView, which
         // ignores a graphicsLayer transform anyway, and it never zooms.
-        if (frozen == null) {
+        // Behind a frozen frame it stays bound only for a continuous scan, which
+        // needs the live feed to watch and the ImageCapture (bound beside it) to
+        // capture with. The frozen photo covers it: it is centre-squared into
+        // this square viewport and the zoom is clamped to keep it covering.
+        if (frozen == null || keepPreviewAlive) {
             val cameraError = stringResource(Res.string.markera_error_camera)
             frameSource.Preview(
                 onError = {
@@ -441,7 +446,7 @@ fun TargetScanner(
             )
             // Framing guide on the live viewfinder only — a centred circle
             // (~70% of the viewport) with a small crosshair at its centre.
-            ViewfinderGuide(modifier = Modifier.fillMaxSize())
+            if (frozen == null) ViewfinderGuide(modifier = Modifier.fillMaxSize())
         }
         Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
             if (frozen != null) {

@@ -19,6 +19,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import se.kjellstrand.markera.vision.argb
+import se.kjellstrand.markera.vision.lumaFromArgb
 
 private const val TAG = "Markera"
 
@@ -79,6 +82,20 @@ private class CameraFrameSource(
 
     // The live preview resumes on its own once the frozen snapshot clears.
     override fun onResumeLive() = Unit
+
+    override val supportsContinuousScan = true
+
+    override suspend fun peekLuma(size: Int): ByteArray? {
+        // PreviewView.getBitmap() must run on the main thread (this is called
+        // from a LaunchedEffect, so it already is); scaling the ~1440 px render
+        // down is the expensive half and goes off it.
+        val bmp = previewView.bitmap ?: return null
+        return try {
+            withContext(Dispatchers.Default) { lumaFromArgb(bmp.argb(size, size)) }
+        } finally {
+            bmp.recycle()
+        }
+    }
 }
 
 @Composable
