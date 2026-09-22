@@ -70,6 +70,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -661,7 +662,7 @@ private fun TargetCanvas(
                 val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
                 drawCircle(colour, radius = dotRadius, center = at)
                 drawCircle(
-                    BLACK.copy(alpha = HIT_DOT_ALPHA),
+                    hitOutline(hypot(hit.xMm, hit.yMm)),
                     radius = dotRadius,
                     center = at,
                     style = Stroke(width = 1f),
@@ -684,6 +685,18 @@ private fun TargetCanvas(
         }
     }
 }
+
+/**
+ * A hit's outline: the inverse of the paper it lands on — light inside the black
+ * 6/7 disk, dark on the cream outside it — so the dot's edge stays crisp either
+ * way. Same split as the ring lines and digits above.
+ *
+ * ponytail: one colour for the whole circle, so a dot straddling the 100 mm edge
+ * picks the side its centre is on; clip-draw it twice if that ever reads wrong.
+ */
+private fun hitOutline(radiusMm: Double) =
+    (if (radiusMm <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else BLACK)
+        .copy(alpha = HIT_DOT_ALPHA)
 
 /**
  * The point-of-impact mark: "+" on the axes, "×" on the diagonals. Sized in dp so
