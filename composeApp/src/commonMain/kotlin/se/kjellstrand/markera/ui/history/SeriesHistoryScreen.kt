@@ -560,7 +560,8 @@ internal fun SeriesCard(
                 }
             }
             Column(
-                Modifier.weight(1f).padding(16.dp),
+                // Only the gap to the photo: the rows meet the card's top, bottom and right edges.
+                Modifier.weight(1f).padding(start = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
