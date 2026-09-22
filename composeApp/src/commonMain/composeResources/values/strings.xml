@@ -186,8 +186,8 @@
     <string name="stats_help_impact">The centre of the shot pattern: the mean of all hits\’ x and y, in millimetres right of and below the centre (negative numbers mean left and up). Drawn as a + on the target.</string>
     <string name="stats_help_impact_median">The median of all hits\’ x and y separately — less sensitive to the odd flyer than the mean point. Drawn as a × on the target.</string>
     <string name="stats_help_mean_score">The mean of the series\’ total scores.</string>
-    <string name="stats_help_colours">The colour scale</string>
-    <string name="stats_help_colours_body">Hits are coloured by when the series was shot: the scale under the target runs from the oldest series on the left to the newest on the right. The dots on the scale show each series, and the two knobs narrow the target and the measures down to a selection of them.</string>
+    <string name="stats_help_colours">Colours and the timeline</string>
+    <string name="stats_help_colours_body">Hits are coloured by caliber, the same colours as the lines in the Trend tab. The bar under the target is the series timeline: it runs from the oldest series on the left to the newest on the right, with a dot per series, and the two knobs narrow the target and the measures down to a selection of them.</string>
 
     <!-- Series detail -->
     <string name="detail_title">Series</string>
