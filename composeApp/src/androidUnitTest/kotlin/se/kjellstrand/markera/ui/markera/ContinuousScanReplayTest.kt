@@ -34,9 +34,11 @@ class ContinuousScanReplayTest {
             val (ref, prev, cur) = listOf("ref", "prev", "cur").map { decodePgm(File(dir, "$n-$it.pgm").readBytes(), rotation) }
             val watch = NewHoleWatch()
             watch.seed(ref, prev)
+            val start = System.nanoTime()
             val fired = watch.offer(cur)
+            val ms = (System.nanoTime() - start) / 1_000_000
             val now = watch.last?.reason.orEmpty().replace('\n', ' ')
-            println("$n: recorded \"$old\" → now \"$now\" fired=$fired")
+            println("$n: recorded \"$old\" → now \"$now\" fired=$fired ($ms ms)")
         }
     }
 }

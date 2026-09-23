@@ -3,6 +3,7 @@ package se.kjellstrand.markera.ui.markera
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 // ponytail: hand-set thresholds, calibrated on the phone against a real target
 // at a real distance (a .22 hole is ~5-10 px at the ~480 px sample grid). A
@@ -43,29 +44,78 @@ internal const val GLOBAL_CHANGE_SHARE = 0.01f
  */
 class LumaFrame(val width: Int, val height: Int, val luma: ByteArray, val rotation: Int = 0)
 
-/** A [changeMask] result: the mask, the luma step it was cut at and the shift it aligned away. */
-internal class Change(val mask: BooleanArray, val threshold: Int, val dx: Int, val dy: Int) {
+/** A [changeMask] result: the mask, the luma step it was cut at, the shift it aligned away and the [light] it took out. */
+internal class Change(val mask: BooleanArray, val threshold: Int, val dx: Int, val dy: Int, val light: Light) {
     val count = mask.count { it }
 }
 
 /**
- * The whole-pixel shake (dx, dy) that best lines [cur] up with [ref], so
- * cur(x, y) ≈ ref(x + dx, y + dy): the least absolute difference, brightness
- * [offset] taken out, over every 4th pixel — the standard block-matching global
- * motion estimate, enough for a few px of tripod shake.
+ * Local-light window side (grid px): the local light level is the mean over it.
+ * Wide enough that a hole's own step barely moves its window's mean, narrow
+ * enough to follow a soft shadow edge.
  */
-internal fun estimateShift(ref: LumaFrame, cur: LumaFrame, offset: Int, radius: Int = MAX_SHIFT): Pair<Int, Int> {
+internal const val LIGHT_WINDOW = 15
+
+/**
+ * Largest per-pixel step the local light level follows: caps a hole's pull on its
+ * window's mean (a 5 px disk moves it by at most ~5 luma). A light change past it
+ * is left in, so it shows as a global change and becomes the new reference.
+ */
+internal const val LIGHT_MAX_STEP = 40
+
+/** Luma outside this range is clipped: it says nothing about the light. */
+private val UNCLIPPED = 6..249
+
+/** The global light change cur ≈ [gain]·ref + [offset] (exposure, a cloud: a gain, not just an offset). */
+internal class Light(val gain: Float, val offset: Float) {
+    fun of(ref: Int) = gain * ref + offset
+
+    override fun toString() = "light ×${(gain * 100).roundToInt() / 100f}${if (offset.roundToInt() < 0) "" else "+"}${offset.roundToInt()}"
+}
+
+/**
+ * The least-squares [Light] of cur(x, y) on ref(x + dx, y + dy), over every 4th
+ * pixel where neither is clipped. Aligned pairs only: across a misaligned edge the
+ * fit dilutes the gain towards 0. Falls back to a plain mean offset when the
+ * unclipped pixels are too few or too flat to fit a gain.
+ */
+internal fun fitLight(ref: LumaFrame, cur: LumaFrame, dx: Int = 0, dy: Int = 0, radius: Int = MAX_SHIFT): Light {
+    val w = cur.width
+    var n = 0L; var sx = 0L; var sy = 0L; var sxx = 0L; var sxy = 0L
+    for (y in radius until cur.height - radius step 4) {
+        for (x in radius until w - radius step 4) {
+            val r = ref.luma[(y + dy) * w + x + dx].toInt() and 0xFF
+            val c = cur.luma[y * w + x].toInt() and 0xFF
+            if (r !in UNCLIPPED || c !in UNCLIPPED) continue
+            n++; sx += r; sy += c; sxx += r * r; sxy += r * c
+        }
+    }
+    if (n == 0L) return Light(1f, 0f)
+    val det = (n * sxx - sx * sx).toDouble()
+    val gain = if (n < 100 || det <= 0.0) 0.0 else (n * sxy - sx * sy) / det
+    // Too few or too flat to fit a gain (or a nonsense one): the old offset-only model.
+    if (gain !in 0.25..4.0) return Light(1f, ((sy - sx).toDouble() / n).toFloat())
+    return Light(gain.toFloat(), ((sy - gain * sx) / n).toFloat())
+}
+
+/**
+ * The whole-pixel shake (dx, dy) that best lines [cur] up with [ref], so
+ * cur(x, y) ≈ ref(x + dx, y + dy): the least absolute difference, the global
+ * [light] change taken out, over every 4th pixel — the standard block-matching
+ * global motion estimate, enough for a few px of tripod shake.
+ */
+internal fun estimateShift(ref: LumaFrame, cur: LumaFrame, light: Light, radius: Int = MAX_SHIFT): Pair<Int, Int> {
     val w = cur.width
     val h = cur.height
-    var best = Long.MAX_VALUE
+    var best = Float.MAX_VALUE
     var shift = 0 to 0
     for (dy in -radius..radius) {
         for (dx in -radius..radius) {
-            var sad = 0L
+            var sad = 0f
             for (y in radius until h - radius step 4) {
                 for (x in radius until w - radius step 4) {
-                    val v = (cur.luma[y * w + x].toInt() and 0xFF) - offset
-                    sad += abs(v - (ref.luma[(y + dy) * w + x + dx].toInt() and 0xFF))
+                    val v = cur.luma[y * w + x].toInt() and 0xFF
+                    sad += abs(v - light.of(ref.luma[(y + dy) * w + x + dx].toInt() and 0xFF))
                 }
             }
             // Ties (a featureless frame) keep the smaller shift, so no motion wins.
@@ -79,13 +129,19 @@ internal fun estimateShift(ref: LumaFrame, cur: LumaFrame, offset: Int, radius: 
 }
 
 /**
- * Changed-pixel mask of [cur] against [ref]: first the camera shake is aligned
- * away ([estimateShift]), then a pixel's difference is how far it lies outside
- * the [min, max] of the nine shifted ref pixels around it, after taking out the
- * global brightness offset: a sub-pixel shift only slides an edge pixel between
- * its neighbours' values, so it stays inside and never counts (the closest-single-
- * neighbour test left 1 px lines along every edge). The border band the shift
- * uncovers, plus one pixel, never counts.
+ * Changed-pixel mask of [cur] against [ref]. The light is taken out in two
+ * steps: globally ([fitLight], a gain and an offset, fitted again once
+ * [estimateShift] has aligned the camera shake away), then locally — a shadow
+ * or a lamp on part of the target — by subtracting the rest of the difference
+ * averaged over a [LIGHT_WINDOW] box, each pixel's share capped at
+ * [LIGHT_MAX_STEP] and clipped pixels left out. Light is large-scale and a hole
+ * small, so the box mean follows the one and not the other. A pixel's
+ * difference is then how far it lies outside the [min, max] of the nine
+ * shifted, relit ref pixels around it: a sub-pixel shift only slides an edge
+ * pixel between its neighbours' values, so it stays inside and never counts
+ * (the closest-single-neighbour test left 1 px lines along every edge). The
+ * border band the shift uncovers, plus one pixel, never counts. Clipped cur
+ * pixels still count: a hole in the black often shows the lit wall behind at 255.
  */
 internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
     if (ref.width != cur.width || ref.height != cur.height) return null
@@ -93,13 +149,34 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
     val h = cur.height
     val r = ref.luma
     val c = cur.luma
-    var sum = 0L
-    for (i in c.indices) sum += (c[i].toInt() and 0xFF) - (r[i].toInt() and 0xFF)
-    val offset = (sum / c.size).toInt()
-    val (dx, dy) = estimateShift(ref, cur, offset)
+    val (dx, dy) = estimateShift(ref, cur, fitLight(ref, cur))
+    val light = fitLight(ref, cur, dx, dy)
+    val lit = IntArray(r.size) { light.of(r[it].toInt() and 0xFF).roundToInt() }
+    // Integral images of the capped residual and of how many pixels have one, for O(1) box sums.
+    val stride = w + 1
+    val sums = IntArray(stride * (h + 1))
+    val counts = IntArray(stride * (h + 1))
+    for (y in 0 until h) {
+        var rowSum = 0
+        var rowCount = 0
+        for (x in 0 until w) {
+            val rx = x + dx
+            val ry = y + dy
+            val v = c[y * w + x].toInt() and 0xFF
+            if (rx in 0 until w && ry in 0 until h && v in UNCLIPPED && (r[ry * w + rx].toInt() and 0xFF) in UNCLIPPED) {
+                rowSum += (v - lit[ry * w + rx]).coerceIn(-LIGHT_MAX_STEP, LIGHT_MAX_STEP)
+                rowCount++
+            }
+            sums[(y + 1) * stride + x + 1] = sums[y * stride + x + 1] + rowSum
+            counts[(y + 1) * stride + x + 1] = counts[y * stride + x + 1] + rowCount
+        }
+    }
+    val half = LIGHT_WINDOW / 2
     val diff = IntArray(c.size)
     val histogram = IntArray(256)
     for (y in 0 until h) {
+        val top = max(0, y - half) * stride
+        val bottom = min(h, y + half + 1) * stride
         for (x in 0 until w) {
             val rx = x + dx
             val ry = y + dy
@@ -108,17 +185,20 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
                 histogram[0]++
                 continue
             }
-            val v = (c[y * w + x].toInt() and 0xFF) - offset
-            var lo = 255
-            var hi = 0
-            for (ny in max(0, ry - 1)..min(h - 1, ry + 1)) {
-                for (nx in max(0, rx - 1)..min(w - 1, rx + 1)) {
-                    val n = r[ny * w + nx].toInt() and 0xFF
-                    lo = min(lo, n)
-                    hi = max(hi, n)
+            val left = max(0, x - half)
+            val right = min(w, x + half + 1)
+            val n = counts[bottom + right] - counts[top + right] - counts[bottom + left] + counts[top + left]
+            val sum = sums[bottom + right] - sums[top + right] - sums[bottom + left] + sums[top + left]
+            val v = (c[y * w + x].toInt() and 0xFF) - if (n == 0) 0f else sum.toFloat() / n
+            var lo = Int.MAX_VALUE
+            var hi = Int.MIN_VALUE
+            for (ny in ry - 1..ry + 1) {
+                for (nx in rx - 1..rx + 1) {
+                    lo = min(lo, lit[ny * w + nx])
+                    hi = max(hi, lit[ny * w + nx])
                 }
             }
-            val d = (max(lo - v, v - hi)).coerceIn(0, 255)
+            val d = max(lo - v, v - hi).roundToInt().coerceIn(0, 255)
             diff[y * w + x] = d
             histogram[d]++
         }
@@ -127,7 +207,7 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
     var seen = 0
     while (seen + histogram[median] <= c.size / 2) seen += histogram[median++]
     val threshold = max(CHANGE_MIN_DELTA, CHANGE_NOISE_FACTOR * median)
-    return Change(BooleanArray(c.size) { diff[it] >= threshold }, threshold, dx, dy)
+    return Change(BooleanArray(c.size) { diff[it] >= threshold }, threshold, dx, dy, light)
 }
 
 /** A connected region of a change mask; [x], [y] is its bbox's top-left. */
@@ -210,7 +290,7 @@ internal class NewHoleWatch {
             reference = sample
             return verdict(sample, "frame size changed, new reference")
         }
-        val vsRef = "${change.count} px vs reference, threshold ${change.threshold}, shift ${change.dx},${change.dy}"
+        val vsRef = "${change.count} px vs reference, threshold ${change.threshold}, shift ${change.dx},${change.dy}, ${change.light}"
         if (change.count > GLOBAL_CHANGE_SHARE * change.mask.size) {
             reference = sample
             return verdict(sample, "global change ($vsRef, max ${(GLOBAL_CHANGE_SHARE * change.mask.size).toInt()}), new reference")

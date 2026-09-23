@@ -12,12 +12,18 @@ class ContinuousScanTest {
 
     private val size = 120
 
-    /** A target-ish scene: light paper, a dark disk and ring lines, plus sensor noise. */
+    /**
+     * A target-ish scene: light paper, a dark disk and ring lines, plus sensor noise.
+     * [gain] scales the whole scene (exposure, a cloud); [shadow] darkens the left
+     * half by that share, fading out softly across the middle fifth.
+     */
     private fun scene(
         seed: Int,
         shift: Int = 0,
         brightness: Int = 0,
         gradient: Int = 0,
+        gain: Float = 1f,
+        shadow: Float = 0f,
         paint: (x: Int, y: Int) -> Int? = { _, _ -> null },
     ): LumaFrame {
         val rnd = Random(seed)
@@ -33,7 +39,9 @@ class ContinuousScanTest {
                 else -> 200
             }
             val v = paint(i % size, y) ?: base
-            (v + brightness + gradient * (i % size) / size + rnd.nextInt(-3, 4)).coerceIn(0, 255).toByte()
+            val shade = 1f - shadow * ((0.6f * size - i % size) / (0.2f * size)).coerceIn(0f, 1f)
+            val lit = ((v + brightness) * gain * shade).toInt()
+            (lit + gradient * (i % size) / size + rnd.nextInt(-3, 4)).coerceIn(0, 255).toByte()
         }
         return LumaFrame(size, size, luma)
     }
@@ -149,6 +157,44 @@ class ContinuousScanTest {
         val watch = NewHoleWatch()
         val fired = watch.feed(scene(1), scene(2, brightness = 20), scene(3, brightness = 20))
         assertFalse(fired.any { it })
+    }
+
+    // Paper at 250+ clips in the reference; 30 % less light scales every edge's
+    // contrast too, which no single offset models.
+    @Test
+    fun aThirtyPercentGainChangeDoesNotFire() {
+        val watch = NewHoleWatch()
+        val fired = watch.feed(scene(1, brightness = 50), scene(2, brightness = 50, gain = 0.7f), scene(3, brightness = 50, gain = 0.7f))
+        assertFalse(fired.any { it })
+    }
+
+    @Test
+    fun aHoleStillFiresAcrossAThirtyPercentGainChange() {
+        val watch = NewHoleWatch()
+        val (_, _, fired) = watch.feed(
+            scene(1, brightness = 50),
+            scene(2, brightness = 50, gain = 0.7f, paint = hole(55, 50)),
+            scene(3, brightness = 50, gain = 0.7f, paint = hole(55, 50)),
+        )
+        assertTrue(fired, watch.last?.reason)
+    }
+
+    @Test
+    fun aSoftShadowOverHalfTheFrameDoesNotFire() {
+        val watch = NewHoleWatch()
+        val fired = watch.feed(scene(1), scene(2, shadow = 0.5f), scene(3, shadow = 0.5f))
+        assertFalse(fired.any { it })
+    }
+
+    @Test
+    fun aHoleInsideTheShadowStillFires() {
+        val watch = NewHoleWatch()
+        val (_, _, fired) = watch.feed(
+            scene(1),
+            scene(2, shadow = 0.5f, paint = hole(42, 60)),
+            scene(3, shadow = 0.5f, paint = hole(42, 60)),
+        )
+        assertTrue(fired, watch.last?.reason)
     }
 
     @Test
