@@ -31,9 +31,6 @@ internal const val HOLE_MAX_ASPECT = 2f
 /** Round enough: blob area over its bbox area (a disk is ~0.79, a streak far less). */
 internal const val HOLE_MIN_FILL = 0.45f
 
-/** Changed pixels between two samples that still count as "nothing moving". */
-internal const val SETTLED_MAX_PIXELS = 6
-
 /** Largest camera shake / creep (grid px) the compare aligns away. */
 internal const val MAX_SHIFT = 4
 
@@ -83,9 +80,12 @@ internal fun estimateShift(ref: LumaFrame, cur: LumaFrame, offset: Int, radius: 
 
 /**
  * Changed-pixel mask of [cur] against [ref]: first the camera shake is aligned
- * away ([estimateShift]), then a pixel is changed when it differs from all nine
- * shifted ref pixels around it (absorbing the sub-pixel remainder), after taking
- * out the global brightness offset. The border band the shift uncovers never counts.
+ * away ([estimateShift]), then a pixel's difference is how far it lies outside
+ * the [min, max] of the nine shifted ref pixels around it, after taking out the
+ * global brightness offset: a sub-pixel shift only slides an edge pixel between
+ * its neighbours' values, so it stays inside and never counts (the closest-single-
+ * neighbour test left 1 px lines along every edge). The border band the shift
+ * uncovers, plus one pixel, never counts.
  */
 internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
     if (ref.width != cur.width || ref.height != cur.height) return null
@@ -103,19 +103,24 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
         for (x in 0 until w) {
             val rx = x + dx
             val ry = y + dy
-            if (rx !in 0 until w || ry !in 0 until h) {
+            // Needs the whole 3×3 around it: a clipped one has a narrower interval.
+            if (rx !in 1 until w - 1 || ry !in 1 until h - 1) {
                 histogram[0]++
                 continue
             }
             val v = (c[y * w + x].toInt() and 0xFF) - offset
-            var best = 255
+            var lo = 255
+            var hi = 0
             for (ny in max(0, ry - 1)..min(h - 1, ry + 1)) {
                 for (nx in max(0, rx - 1)..min(w - 1, rx + 1)) {
-                    best = min(best, abs(v - (r[ny * w + nx].toInt() and 0xFF)))
+                    val n = r[ny * w + nx].toInt() and 0xFF
+                    lo = min(lo, n)
+                    hi = max(hi, n)
                 }
             }
-            diff[y * w + x] = best
-            histogram[best]++
+            val d = (max(lo - v, v - hi)).coerceIn(0, 255)
+            diff[y * w + x] = d
+            histogram[d]++
         }
     }
     var median = 0
@@ -192,10 +197,13 @@ internal class NewHoleWatch {
             reference = sample
             return verdict(sample, "reference taken")
         }
+        // Settled = no blob of hole size since the previous sample: scattered
+        // sensor-noise pixels never join into one, a hand or a fresh hole does.
         val moving = prev?.let { changeMask(it, sample) }
-        if (moving == null || moving.count > SETTLED_MAX_PIXELS) {
-            val shift = moving?.let { " (shift ${it.dx},${it.dy})" }.orEmpty()
-            val why = "moving: ${moving?.count ?: "?"} px changed since last sample$shift (max $SETTLED_MAX_PIXELS)"
+        val biggest = moving?.let { m -> blobs(m.mask, sample.width).maxByOrNull { it.area } }
+        if (moving == null || (biggest != null && biggest.area >= HOLE_MIN_AREA)) {
+            val what = moving?.let { "${it.count} px changed, biggest blob $biggest, shift ${it.dx},${it.dy}" } ?: "?"
+            val why = "moving since last sample: $what (settled below a $HOLE_MIN_AREA px blob)"
             return verdict(sample, why, outcome = WatchOutcome.MOVING, reference = ref, previous = prev)
         }
         val change = changeMask(ref, sample) ?: run {
@@ -213,7 +221,7 @@ internal class NewHoleWatch {
         val fired = found.isNotEmpty() && found.all { it.holeSized }
         // A still, clean sample becomes the reference, so slow light drift and
         // tripod creep never pile up. Safe for holes: a new one first shows as
-        // "moving" (more than SETTLED_MAX_PIXELS changed), and fires on the next sample.
+        // "moving" (a blob of HOLE_MIN_AREA+ against the previous sample), and fires on the next.
         if (found.isEmpty()) reference = sample
         val why = when {
             found.isEmpty() -> "no blob of $HOLE_MIN_AREA+ px"
@@ -242,6 +250,12 @@ internal class NewHoleWatch {
             outcome, reference, previous, sample,
         )
         return outcome == WatchOutcome.FIRE
+    }
+
+    /** Replay only: the state a recorded verdict started from, so the next [offer] redoes it exactly. */
+    fun seed(reference: LumaFrame, previous: LumaFrame) {
+        this.reference = reference
+        this.previous = previous
     }
 
     /** After a scan: the next sample becomes the new reference. */

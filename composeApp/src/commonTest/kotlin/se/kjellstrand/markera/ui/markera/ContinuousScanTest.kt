@@ -56,7 +56,40 @@ class ContinuousScanTest {
         watch.offer(scene(1))
         // Appears: it moved since the previous sample, so not yet.
         assertFalse(watch.offer(scene(2, paint = hole(55, 50))))
+        // Moving, not "clean": a clean sample would become the reference and swallow the hole.
+        assertEquals(WatchOutcome.MOVING, watch.last?.outcome)
         assertTrue(watch.offer(scene(3, paint = hole(55, 50))))
+    }
+
+    @Test
+    fun aHalfPixelShiftOfSharpEdgesDoesNotFire() {
+        val sharp = scene(1)
+        // Half a pixel to the right: each pixel the mean of itself and its left neighbour.
+        val half = LumaFrame(size, size, ByteArray(size * size) { i ->
+            val left = if (i % size == 0) i else i - 1
+            (((sharp.luma[i].toInt() and 0xFF) + (sharp.luma[left].toInt() and 0xFF)) / 2).toByte()
+        })
+        val watch = NewHoleWatch()
+        val fired = watch.feed(sharp, half, half)
+        assertFalse(fired.any { it })
+        // Clean, not a "global change" the edges tripped.
+        assertTrue(watch.last!!.reason.startsWith("no blob"), watch.last?.reason)
+    }
+
+    @Test
+    fun scatteredSinglePixelNoiseIsSettledAndDoesNotFire() {
+        val prev = scene(2)
+        val rnd = Random(7)
+        val cur = prev.luma.copyOf()
+        repeat(60) {
+            val i = rnd.nextInt(cur.size)
+            val v = (cur[i].toInt() and 0xFF) + if (rnd.nextBoolean()) 40 else -40
+            cur[i] = v.coerceIn(0, 255).toByte()
+        }
+        val watch = NewHoleWatch()
+        val fired = watch.feed(scene(1), prev, LumaFrame(size, size, cur))
+        assertFalse(fired.any { it })
+        assertTrue(watch.last!!.reason.startsWith("no blob"), watch.last?.reason)
     }
 
     @Test

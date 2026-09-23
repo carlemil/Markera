@@ -10,9 +10,9 @@ import kotlin.test.Test
  *
  *     .\gradlew.bat :composeApp:testDebugUnitTest --tests "*ContinuousScanReplayTest" -Dwatch.frames=<dir>
  *
- * A fresh watch is offered ref, prev, cur in order, so the first becomes the
- * reference and the verdict is only approximately the recorded one (the live
- * watch may have promoted a different reference in between). Asserts no outcome;
+ * A fresh watch is [NewHoleWatch.seed]ed with ref and prev and offered cur, so it
+ * redoes exactly the recorded comparison with today's code. (Offering all three
+ * in order would let prev replace ref whenever it compares clean.) Asserts no outcome;
  * fails only when a set cannot be parsed. Skipped without `-Dwatch.frames`.
  */
 class ContinuousScanReplayTest {
@@ -31,11 +31,10 @@ class ContinuousScanReplayTest {
             val line = verdictFile.readText().trimEnd()
             val rotation = line.substringBefore('\t').removePrefix("rotation ").toInt()
             val old = line.substringAfter('\t')
+            val (ref, prev, cur) = listOf("ref", "prev", "cur").map { decodePgm(File(dir, "$n-$it.pgm").readBytes(), rotation) }
             val watch = NewHoleWatch()
-            var fired = false
-            for (name in listOf("ref", "prev", "cur")) {
-                fired = watch.offer(decodePgm(File(dir, "$n-$name.pgm").readBytes(), rotation))
-            }
+            watch.seed(ref, prev)
+            val fired = watch.offer(cur)
             val now = watch.last?.reason.orEmpty().replace('\n', ' ')
             println("$n: recorded \"$old\" → now \"$now\" fired=$fired")
         }
