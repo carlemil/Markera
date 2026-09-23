@@ -39,6 +39,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -97,6 +98,7 @@ fun MarkeraScreen(
     // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
     var showDebug by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
+    var showingContinuousHelp by remember { mutableStateOf(false) }
     // Long press only asks; the dialog's confirm is what removes the hole.
     var pendingDeleteIndex by remember { mutableStateOf<Int?>(null) }
     // Any hand edit of a result pauses the continuous rescan, so an auto-scan
@@ -292,6 +294,7 @@ fun MarkeraScreen(
                     continuousAvailable = frameSource.supportsContinuousScan && detectHoles,
                     continuous = continuous,
                     onToggleContinuous = { continuous = it },
+                    onContinuousHelp = { showingContinuousHelp = true },
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }
@@ -338,6 +341,18 @@ fun MarkeraScreen(
             onDismiss = { showingHelp = false },
         )
     }
+
+    if (showingContinuousHelp) {
+        HelpDialog(
+            title = stringResource(Res.string.help_scan_continuous),
+            sections = listOf(
+                Res.string.help_scan_continuous_how to Res.string.help_scan_continuous_body,
+                Res.string.help_scan_continuous_setup to Res.string.help_scan_continuous_setup_body,
+                Res.string.help_scan_continuous_limits to Res.string.help_scan_continuous_limits_body,
+            ),
+            onDismiss = { showingContinuousHelp = false },
+        )
+    }
 }
 
 /**
@@ -359,6 +374,7 @@ private fun BottomArea(
     continuousAvailable: Boolean,
     continuous: Boolean,
     onToggleContinuous: (Boolean) -> Unit,
+    onContinuousHelp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
@@ -389,6 +405,7 @@ private fun BottomArea(
                         label = stringResource(Res.string.markera_continuous),
                         checked = continuous,
                         onCheckedChange = onToggleContinuous,
+                        onHelp = onContinuousHelp,
                     )
                 }
                 // Without hole detection the button only freezes the frame (and its
@@ -427,7 +444,7 @@ private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Un
 
 /** A labelled switch in the pre-scan column. */
 @Composable
-private fun ScanToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun ScanToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, onHelp: (() -> Unit)? = null) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -438,6 +455,16 @@ private fun ScanToggleRow(label: String, checked: Boolean, onCheckedChange: (Boo
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+        // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
+        if (onHelp != null) {
+            IconButton(onClick = onHelp) {
+                Icon(
+                    Icons.AutoMirrored.Outlined.HelpOutline,
+                    contentDescription = stringResource(Res.string.help),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

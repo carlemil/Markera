@@ -158,7 +158,12 @@
     <string name="help_scan_save">Spara</string>
     <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. ↻-knappen slänger scanningen utan att spara.</string>
     <string name="help_scan_continuous">Kontinuerlig skanning</string>
-    <string name="help_scan_continuous_body">Med telefonen uppställd mot tavlan bevakar appen livebilden och skannar om av sig själv så fort ett nytt hål syns (en person eller skugga som passerar räknas inte), så att poängen följer serien skott för skott. Kameran fortsätter gå medan ett resultat visas, och varje skanning ersätter den förra. Ändrar du en poäng eller flyttar ett hål pausas den tills du sparar eller börjar om.</string>
+    <string name="help_scan_continuous_body">Slå på Kontinuerlig skanning så bevakar appen tavlan genom kameran, ungefär en gång i sekunden. När ett nytt hål syns och bilden har legat still en stund skannar den av sig själv, så att poängen följer serien skott för skott utan att du rör telefonen. Kameran fortsätter gå medan ett resultat visas, och varje skanning ersätter den förra. Ändrar du en poäng eller flyttar ett hål pausas den tills du sparar eller börjar om.</string>
+    <string name="help_scan_continuous_how">Så fungerar det</string>
+    <string name="help_scan_continuous_setup">Så ställer du upp</string>
+    <string name="help_scan_continuous_setup_body">Sätt telefonen i ett stativ eller en hållare så att den inte kan röra sig, och fyll bilden med tavlan. Håll still de första sekunderna: då ställer kameran in skärpa, exponering och färg och låser dem, så att bilden inte ändrar sig själv. Ungefär varje halvminut, när inget händer, mäter den ljuset igen ifall ett moln eller solen har ändrat det.</string>
+    <string name="help_scan_continuous_limits">Bra att veta</string>
+    <string name="help_scan_continuous_limits_body">Bara något i hålstorlek räknas. En person, en hand eller en skugga som passerar, en liten stöt i stativet och ändrat ljus ignoreras, och den väntar tills bilden är stilla igen. Två skott som avlossas tätt hittas i samma skanning. Ett missat hål kan alltid läggas till genom att trycka på det i fotot. Håll skärmen på och telefonen laddad: kameran går hela tiden.</string>
     <string name="help_scan_debug">Felsökning</string>
     <string name="help_scan_debug_body">Visa detektionsdata i menyn visar detektorns råa rutor, sifferrader och linjer, samt den inpassade ringen och centrum.</string>
 

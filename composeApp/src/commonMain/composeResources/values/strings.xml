@@ -158,7 +158,12 @@
     <string name="help_scan_save">Save</string>
     <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. The ↻ button discards the scan without saving.</string>
     <string name="help_scan_continuous">Continuous scan</string>
-    <string name="help_scan_continuous_body">With the phone propped up at the target, the app watches the live picture and rescans by itself as soon as a new hole appears in it (a person or a shadow passing does not count), so the scores follow the series shot by shot. The camera keeps running while a result is shown, and each scan replaces the one before it. Changing a score or moving a hole pauses it until you save or start over.</string>
+    <string name="help_scan_continuous_body">Turn on Continuous scan and the app watches the target through the camera, about once a second. When a new hole appears and the picture has stayed still for a moment, it scans by itself, so the score follows the series shot by shot without you touching the phone. The camera keeps running while a result is shown, and each scan replaces the one before it. Changing a score or moving a hole pauses it until you save or start over.</string>
+    <string name="help_scan_continuous_how">How it works</string>
+    <string name="help_scan_continuous_setup">Setting up</string>
+    <string name="help_scan_continuous_setup_body">Put the phone on a stand or tripod so it cannot move, and fill the picture with the target. Hold still for the first couple of seconds: the camera sets its focus, exposure and colour then and keeps them, so the picture does not change on its own. Every half minute or so, when nothing is happening, it measures the light again, in case a cloud or the sun has changed it.</string>
+    <string name="help_scan_continuous_limits">Good to know</string>
+    <string name="help_scan_continuous_limits_body">Only something hole-sized counts. A person, a hand or a shadow passing, a small bump of the stand and a change in the light are ignored, and it waits until the picture is still again. Two shots fired close together are found in the same scan. A missed hole can always be added by tapping it in the photo. Keep the screen on and the phone charged: the camera runs the whole time.</string>
     <string name="help_scan_debug">Troubleshooting</string>
     <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines, plus the fitted ring and the centre.</string>
 
