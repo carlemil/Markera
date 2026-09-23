@@ -53,7 +53,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -151,22 +153,27 @@ fun MarkeraScreen(
         frameSource.onResumeLive()
     }
 
-    // Sample the live feed; a changed-and-settled scene runs exactly the scan
-    // the button runs. The snapshot-state reads are current on every tick, so
-    // the loop never has to restart. Detection off stops it too: its switch is
-    // hidden then, so nothing else could.
+    // Sample a low-rate luma feed; only a new hole-sized spot on an otherwise
+    // unchanged, still scene runs the scan the button runs. The snapshot-state
+    // reads are current on every tick, so the loop never has to restart.
+    // Detection off stops it too: its switch is hidden then, so nothing else could.
     val watching = continuous && detectHoles && frameSource.supportsContinuousScan
     LaunchedEffect(watching, frameSource) {
         if (!watching) return@LaunchedEffect
-        val watch = ChangeWatch()
-        while (true) {
-            delay(CHANGE_SAMPLE_MS)
-            if (viewModel.uiState.value.phase != ScanPhase.IDLE || edited) continue
-            val sample = frameSource.peekLuma(CHANGE_GRID) ?: continue
-            if (watch.offer(sample)) {
-                watch.reset()
-                onDetectClick()
+        val watch = NewHoleWatch()
+        frameSource.setWatching(true)
+        try {
+            while (true) {
+                delay(CHANGE_SAMPLE_MS)
+                if (viewModel.uiState.value.phase != ScanPhase.IDLE || edited) continue
+                val sample = frameSource.takeLuma() ?: continue
+                if (withContext(Dispatchers.Default) { watch.offer(sample) }) {
+                    watch.reset()
+                    onDetectClick()
+                }
             }
+        } finally {
+            frameSource.setWatching(false)
         }
     }
 

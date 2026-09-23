@@ -28,10 +28,16 @@ interface FrameSource {
     val supportsContinuousScan: Boolean get() = false
 
     /**
-     * A [size]x[size] row-major luma thumbnail of the live feed, for change
-     * detection; null when no frame is available yet.
+     * Turns the low-rate luma feed [takeLuma] reads on or off; only on while a
+     * continuous scan watches, so the normal scan keeps its camera setup.
      */
-    suspend fun peekLuma(size: Int): ByteArray? = null
+    fun setWatching(on: Boolean) = Unit
+
+    /**
+     * The newest luma frame of the live feed since the last call, for change
+     * detection (about [WATCH_GRID] px a side); null when none has arrived.
+     */
+    fun takeLuma(): LumaFrame? = null
 }
 
 @Composable
