@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,12 +62,14 @@ import se.kjellstrand.markera.series.centre
 import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.detectedLabel
 import se.kjellstrand.markera.series.isEdited
+import se.kjellstrand.markera.series.canRestore
 import se.kjellstrand.markera.series.kindText
 import se.kjellstrand.markera.series.moveHole
 import se.kjellstrand.markera.series.nearestHoleIndex
 import se.kjellstrand.markera.series.normalizeTag
 import se.kjellstrand.markera.series.pickInnerTen
 import se.kjellstrand.markera.series.pickRing
+import se.kjellstrand.markera.series.restoreHole
 import se.kjellstrand.markera.series.ring
 import se.kjellstrand.markera.series.withNewHole
 import se.kjellstrand.markera.ui.CaliberDialog
@@ -348,6 +351,16 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             } else {
                                 null
                             },
+                            // Back to the detected position and score; only
+                            // offered while the hole differs from it.
+                            onRestore = if (geometry != null && hole.canRestore()) {
+                                {
+                                    holes.value = holes.value.restoreHole(i, geometry)
+                                    commit()
+                                }
+                            } else {
+                                null
+                            },
                             // Same gate as the photo editing above: no geometry,
                             // no editing.
                             onScoreChange = geometry?.let {
@@ -446,13 +459,15 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
 /**
  * One hole: its letter + what the detector said, the editable score, the
  * distance and how the hole came about. [onScoreChange] gets a picker index
- * (see `pickRing`); null leaves the score box inert.
+ * (see `pickRing`); null leaves the score box inert. [onRestore] puts the hole
+ * back on its detected spot and score; null hides that button.
  */
 @Composable
 private fun HoleRow(
     hole: HoleDto,
     letter: String,
     onDelete: (() -> Unit)?,
+    onRestore: (() -> Unit)?,
     onScoreChange: ((Int) -> Unit)?,
 ) {
     Row(
@@ -521,6 +536,15 @@ private fun HoleRow(
         )
         // Trimmed from the 48 dp default so the text, not the button, sets
         // the row height; the 24 dp icon still fits.
+        if (onRestore != null) {
+            IconButton(onClick = onRestore, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    contentDescription = stringResource(Res.string.detail_restore_hole),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         if (onDelete != null) {
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                 Icon(

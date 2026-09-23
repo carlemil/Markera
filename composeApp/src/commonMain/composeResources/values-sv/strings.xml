@@ -174,7 +174,7 @@
     <string name="help_detail_photo">Bilden</string>
     <string name="help_detail_photo_body">Den scannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge.</string>
     <string name="help_detail_holes">Träffarna</string>
-    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Ändringar sparas direkt; ångra dem i meddelandet längst ned.</string>
+    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Pilen bredvid lägger tillbaka en flyttad eller omsatt träff där detektorn såg den. Ändringar sparas direkt; ångra dem i meddelandet längst ned.</string>
     <string name="help_detail_delete">Radera</string>
     <string name="help_detail_delete_body">Radera i menyn tar bort serien ur appen. Servern behåller serien, dess träffar och tavelfoto tills du raderar kontot.</string>
 
@@ -205,6 +205,7 @@
     <string name="detail_kind_moved">flyttad</string>
     <string name="detail_kind_detected">detekterad</string>
     <string name="detail_delete_hole">Ta bort träff</string>
+    <string name="detail_restore_hole">Återställ träff</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Logga in på Webshooter</string>

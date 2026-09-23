@@ -212,6 +212,24 @@ class SeriesDtosTest {
     }
 
     @Test
+    fun restoreHolePutsTheHoleBackOnTheDetectedSpotAndReSorts() {
+        // 60 mm out from the centre: the detector's own ring 8.
+        val detected = HoleDto(160.0, 100.0, 8, false, 60.0, 8, false, 160.0, 100.0)
+        val untouched = HoleDto(130.0, 100.0, 9, false, 30.0, 9, false, 130.0, 100.0)
+        // That 8 dragged onto the centre and re-scored to an inner X.
+        val holes = listOf(HoleDto(105.0, 100.0, 10, true, 5.0, 8, false, 160.0, 100.0), untouched)
+
+        val restored = holes.restoreHole(0, geometry)
+
+        // Position, score and distance back to the detection, and the restored
+        // hole sorted in behind the untouched 9.
+        assertEquals(untouched, restored.first())
+        assertEquals(detected, restored.last())
+        assertEquals("detekterad", restored.last().kindText("manuell", "inmatad", "flyttad", "detekterad"))
+        assertFalse(restored.last().canRestore())
+    }
+
+    @Test
     fun aHandPlacedHoleScoresTheSameOnTheScanAndInDetail() {
         val centre = CentreEstimate(100f, 100f, CentreMethod.LINE_INTERSECTION)
         val ring = FittedEllipse(100f, 100f, 100f, 100f, 0f)
