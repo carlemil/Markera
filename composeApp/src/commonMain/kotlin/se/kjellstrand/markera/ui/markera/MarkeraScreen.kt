@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -89,12 +91,19 @@ fun MarkeraScreen(
     var showingHelp by remember { mutableStateOf(false) }
     // Long press only asks; the dialog's confirm is what removes the hole.
     var pendingDeleteIndex by remember { mutableStateOf<Int?>(null) }
+    // Any hand edit of a result pauses the continuous rescan, so an auto-scan
+    // cannot wipe work the user just did. Cleared when the frame is left.
+    var edited by remember { mutableStateOf(false) }
     val onSetScore: (Int, Int) -> Unit = { index, pick ->
+        edited = true
         scanController.setScore(viewModel, snapshotVm.snapshot, index, pick)
     }
     // Off = photo + geometry only, no ONNX pass: the user taps the holes in
     // themselves. Session-only, like the debug toggle.
     var detectHoles by remember { mutableStateOf(true) }
+    // Phone on a tripod: rescan by itself whenever the target changes, so the
+    // scores follow the series shot by shot. Session-only, like the toggles above.
+    var continuous by remember { mutableStateOf(false) }
     val onDetectClick: () -> Unit = {
         scanController.startScan(
             frameSource, snapshotVm, viewModel, coroutineScope, errorInference, detectHoles,
@@ -109,16 +118,24 @@ fun MarkeraScreen(
             add = { x, y, reach ->
                 // Read at tap time, so the remembered lambda sees the current caliber.
                 val caliber = recorder?.caliber?.value ?: Caliber.NONE
+                edited = true
                 scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
             },
-            move = { i, x, y -> scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y) },
-            remove = { i -> pendingDeleteIndex = i },
+            move = { i, x, y ->
+                edited = true
+                scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y)
+            },
+            remove = { i ->
+                edited = true
+                pendingDeleteIndex = i
+            },
         )
     }
 
     val onResumeLive: () -> Unit = {
         // Read the pickers before clearResults() wipes them.
         val picks = uiState.topScores
+        edited = false
         snapshotVm.clear()
         viewModel.clearResults()
         // Leaving the frozen frame is what saves the scan, with the edited scores.
@@ -127,10 +144,30 @@ fun MarkeraScreen(
     }
     // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
     val onReset: () -> Unit = {
+        edited = false
         snapshotVm.clear()
         viewModel.clearResults()
         recorder?.clear()
         frameSource.onResumeLive()
+    }
+
+    // Sample the live feed; a changed-and-settled scene runs exactly the scan
+    // the button runs. The snapshot-state reads are current on every tick, so
+    // the loop never has to restart. Detection off stops it too: its switch is
+    // hidden then, so nothing else could.
+    val watching = continuous && detectHoles && frameSource.supportsContinuousScan
+    LaunchedEffect(watching, frameSource) {
+        if (!watching) return@LaunchedEffect
+        val watch = ChangeWatch()
+        while (true) {
+            delay(CHANGE_SAMPLE_MS)
+            if (viewModel.uiState.value.phase != ScanPhase.IDLE || edited) continue
+            val sample = frameSource.peekLuma(CHANGE_GRID) ?: continue
+            if (watch.offer(sample)) {
+                watch.reset()
+                onDetectClick()
+            }
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -171,6 +208,7 @@ fun MarkeraScreen(
                     showDebug = showDebug,
                     onError = viewModel::setError,
                     editing = editing,
+                    keepPreviewAlive = watching,
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                 )
                 BottomArea(
@@ -183,6 +221,9 @@ fun MarkeraScreen(
                     onSetScore = onSetScore,
                     detectHoles = detectHoles,
                     onToggleDetectHoles = { detectHoles = it },
+                    continuousAvailable = frameSource.supportsContinuousScan && detectHoles,
+                    continuous = continuous,
+                    onToggleContinuous = { continuous = it },
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }
@@ -223,6 +264,7 @@ fun MarkeraScreen(
                 Res.string.help_scan_score to Res.string.help_scan_score_body,
                 Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
                 Res.string.help_scan_save to Res.string.help_scan_save_body,
+                Res.string.help_scan_continuous to Res.string.help_scan_continuous_body,
                 Res.string.help_scan_debug to Res.string.help_scan_debug_body,
             ),
             onDismiss = { showingHelp = false },
@@ -246,6 +288,9 @@ private fun BottomArea(
     onSetScore: (index: Int, pick: Int) -> Unit,
     detectHoles: Boolean,
     onToggleDetectHoles: (Boolean) -> Unit,
+    continuousAvailable: Boolean,
+    continuous: Boolean,
+    onToggleContinuous: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
@@ -270,6 +315,14 @@ private fun BottomArea(
                 ScanChips()
                 LiveHint()
                 DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
+                // With hole detection off there is nothing for a rescan to find.
+                if (continuousAvailable) {
+                    ScanToggleRow(
+                        label = stringResource(Res.string.markera_continuous),
+                        checked = continuous,
+                        onCheckedChange = onToggleContinuous,
+                    )
+                }
                 // Without hole detection the button only freezes the frame (and its
                 // ring) for hand marking, so it says that instead of "Detect".
                 PrimaryActionButton(
@@ -301,12 +354,18 @@ private fun ScanChips() {
 /** Off: the scan stops after the geometry and the holes are placed by hand. */
 @Composable
 private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    ScanToggleRow(stringResource(Res.string.markera_detect_holes), checked, onCheckedChange)
+}
+
+/** A labelled switch in the pre-scan column. */
+@Composable
+private fun ScanToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = stringResource(Res.string.markera_detect_holes),
+            text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
