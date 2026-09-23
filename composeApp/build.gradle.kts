@@ -171,6 +171,16 @@ android {
     }
 }
 
+// ContinuousScanReplayTest reads -Dwatch.frames=<dir>; Gradle does not pass -D on
+// to the forked test JVM, so forward it (and show the replay's println output).
+tasks.withType<Test>().configureEach {
+    val frames = providers.systemProperty("watch.frames")
+    if (frames.isPresent) {
+        systemProperty("watch.frames", frames.get())
+        testLogging.showStandardStreams = true
+    }
+}
+
 play {
     serviceAccountCredentials.set(rootProject.file("play-account.json"))
     track.set("internal")

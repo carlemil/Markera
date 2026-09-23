@@ -38,6 +38,13 @@ interface FrameSource {
      * detection (about [WATCH_GRID] px a side); null when none has arrived.
      */
     fun takeLuma(): LumaFrame? = null
+
+    /**
+     * Debug builds: keeps one watch verdict's files (name suffix → bytes, see
+     * [WatchVerdict.recording]) as the next numbered set, for offline replay.
+     * Blocking file IO; a no-op where nothing is kept.
+     */
+    fun recordWatch(files: Map<String, ByteArray>) = Unit
 }
 
 @Composable

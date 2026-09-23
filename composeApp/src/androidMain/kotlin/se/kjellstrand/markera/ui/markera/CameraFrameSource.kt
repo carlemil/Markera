@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -40,6 +41,7 @@ private class CameraFrameSource(
     private val previewView: PreviewView,
     private val imageCapture: ImageCapture,
     private val imageAnalysis: ImageAnalysis,
+    private val watchDir: File,
 ) : FrameSource {
     override val requiresCameraPermission = true
 
@@ -107,6 +109,30 @@ private class CameraFrameSource(
 
     override fun takeLuma(): LumaFrame? = latest.getAndSet(null)
 
+    /**
+     * Writes set `<n>-ref.pgm`, `<n>-prev.pgm`, `<n>-cur.pgm`, `<n>-verdict.txt` to
+     * `filesDir/watch/` (n one past the highest kept, zero-padded) and drops all but
+     * the newest [WATCH_SETS_KEPT] sets. Pull them from a debug build with
+     *
+     *     adb exec-out run-as se.kjellstrand.markera tar c files/watch > watch.tar
+     *
+     * and replay them with ContinuousScanReplayTest (`-Dwatch.frames=<dir>`).
+     */
+    override fun recordWatch(files: Map<String, ByteArray>) {
+        try {
+            watchDir.mkdirs()
+            val kept = watchDir.list().orEmpty().mapNotNull { it.substringBefore('-').toIntOrNull() }.toSet()
+            val n = (kept.maxOrNull() ?: 0) + 1
+            val prefix = n.toString().padStart(5, '0')
+            for ((suffix, bytes) in files) File(watchDir, "$prefix-$suffix").writeBytes(bytes)
+            watchDir.listFiles().orEmpty()
+                .filter { (it.name.substringBefore('-').toIntOrNull() ?: n) <= n - WATCH_SETS_KEPT }
+                .forEach { it.delete() }
+        } catch (e: Exception) {
+            Log.w(TAG, "recording watch set failed", e)
+        }
+    }
+
     /** Keeps about two frames a second, box-averaged down to the watch grid. */
     private fun analyze(image: ImageProxy) {
         image.use {
@@ -121,6 +147,9 @@ private class CameraFrameSource(
 // ponytail: fixed ~2 samples/s off whatever rate the sensor runs at (most phones
 // go no lower than ~5-7 fps); if battery is still bad, unbind the preview between samples.
 private const val ANALYSIS_INTERVAL_MS = 500L
+
+/** Debug recordings of the watch: this many sets stay in `filesDir/watch/`. */
+private const val WATCH_SETS_KEPT = 30
 
 /** The Y plane inside [ImageProxy.getCropRect], box-averaged to about [WATCH_GRID] a side. */
 private fun ImageProxy.lumaFrame(): LumaFrame {
@@ -194,5 +223,5 @@ actual fun rememberFrameSource(): FrameSource {
             )
             .build()
     }
-    return remember { CameraFrameSource(previewView, imageCapture, imageAnalysis) }
+    return remember { CameraFrameSource(previewView, imageCapture, imageAnalysis, File(context.filesDir, "watch")) }
 }

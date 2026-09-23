@@ -195,7 +195,8 @@ internal class NewHoleWatch {
         val moving = prev?.let { changeMask(it, sample) }
         if (moving == null || moving.count > SETTLED_MAX_PIXELS) {
             val shift = moving?.let { " (shift ${it.dx},${it.dy})" }.orEmpty()
-            return verdict(sample, "moving: ${moving?.count ?: "?"} px changed since last sample$shift (max $SETTLED_MAX_PIXELS)")
+            val why = "moving: ${moving?.count ?: "?"} px changed since last sample$shift (max $SETTLED_MAX_PIXELS)"
+            return verdict(sample, why, outcome = WatchOutcome.MOVING, reference = ref, previous = prev)
         }
         val change = changeMask(ref, sample) ?: run {
             reference = sample
@@ -219,13 +220,28 @@ internal class NewHoleWatch {
             fired -> "FIRE: ${found.size} hole(s) ${found.joinToString()}"
             else -> "vetoed by ${found.filterNot { it.holeSized }.joinToString()}"
         }
-        return verdict(sample, "$why\n$vsRef", all, fired)
+        val outcome = when {
+            fired -> WatchOutcome.FIRE
+            found.isEmpty() -> WatchOutcome.OTHER
+            else -> WatchOutcome.VETO
+        }
+        return verdict(sample, "$why\n$vsRef", all, outcome, ref, prev)
     }
 
-    private fun verdict(sample: LumaFrame, reason: String, blobs: List<Blob> = emptyList(), fired: Boolean = false): Boolean {
+    private fun verdict(
+        sample: LumaFrame,
+        reason: String,
+        blobs: List<Blob> = emptyList(),
+        outcome: WatchOutcome = WatchOutcome.OTHER,
+        reference: LumaFrame? = null,
+        previous: LumaFrame? = null,
+    ): Boolean {
         // Single-pixel specks are just sensor noise; cap so the overlay stays cheap.
-        last = WatchVerdict(reason, sample.width, sample.height, sample.rotation, blobs.filter { it.area > 1 }.take(60))
-        return fired
+        last = WatchVerdict(
+            reason, sample.width, sample.height, sample.rotation, blobs.filter { it.area > 1 }.take(60),
+            outcome, reference, previous, sample,
+        )
+        return outcome == WatchOutcome.FIRE
     }
 
     /** After a scan: the next sample becomes the new reference. */
@@ -235,11 +251,63 @@ internal class NewHoleWatch {
     }
 }
 
-/** One [NewHoleWatch.offer] explained, with the changed blobs in frame pixels. */
+/** What a [WatchVerdict] came to; the debug recorder keeps the fires, vetoes and moving streaks. */
+internal enum class WatchOutcome { OTHER, MOVING, FIRE, VETO }
+
+/**
+ * One [NewHoleWatch.offer] explained, with the changed blobs in frame pixels, and
+ * the frames it compared: [reference] and [previous] (null when the offer compared
+ * nothing) against [current], the offered sample.
+ */
 internal class WatchVerdict(
     val reason: String,
     val frameWidth: Int,
     val frameHeight: Int,
     val rotation: Int,
     val blobs: List<Blob>,
+    val outcome: WatchOutcome = WatchOutcome.OTHER,
+    val reference: LumaFrame? = null,
+    val previous: LumaFrame? = null,
+    val current: LumaFrame? = null,
 )
+
+/**
+ * The files [FrameSource.recordWatch] keeps for this verdict, by name suffix: the
+ * three compared frames as PGM plus a one-line "rotation <r>\t<reason>"; null when
+ * the offer compared nothing.
+ */
+internal fun WatchVerdict.recording(): Map<String, ByteArray>? {
+    val ref = reference ?: return null
+    val prev = previous ?: return null
+    val cur = current ?: return null
+    return mapOf(
+        "ref.pgm" to encodePgm(ref),
+        "prev.pgm" to encodePgm(prev),
+        "cur.pgm" to encodePgm(cur),
+        "verdict.txt" to "rotation $rotation\t${reason.replace('\n', ' ')}\n".encodeToByteArray(),
+    )
+}
+
+/** [frame] as a binary PGM (P5, maxval 255): a header, then the raw luma rows. */
+internal fun encodePgm(frame: LumaFrame): ByteArray =
+    "P5\n${frame.width} ${frame.height}\n255\n".encodeToByteArray() + frame.luma
+
+/** The inverse of [encodePgm] (no comments, maxval 255); throws on anything else. */
+internal fun decodePgm(bytes: ByteArray, rotation: Int = 0): LumaFrame {
+    // Four whitespace-separated header tokens, then exactly one whitespace byte.
+    val tokens = mutableListOf<String>()
+    var i = 0
+    while (tokens.size < 4) {
+        while (i < bytes.size && bytes[i].toInt().toChar().isWhitespace()) i++
+        val start = i
+        while (i < bytes.size && !bytes[i].toInt().toChar().isWhitespace()) i++
+        require(i > start) { "PGM header ends early" }
+        tokens += bytes.decodeToString(start, i)
+    }
+    require(tokens[0] == "P5" && tokens[3] == "255") { "not an 8-bit binary PGM: ${tokens[0]} maxval ${tokens[3]}" }
+    val w = tokens[1].toInt()
+    val h = tokens[2].toInt()
+    val data = i + 1
+    require(bytes.size == data + w * h) { "PGM ${w}x$h needs ${w * h} bytes, has ${bytes.size - data}" }
+    return LumaFrame(w, h, bytes.copyOfRange(data, bytes.size), rotation)
+}

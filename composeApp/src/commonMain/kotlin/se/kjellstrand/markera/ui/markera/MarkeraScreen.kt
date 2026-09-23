@@ -172,9 +172,11 @@ fun MarkeraScreen(
         var busy = 0
         var noFrame = 0
         var fires = 0
+        var movingStreak = 0
+        var recorded = 0
         fun report(status: String) {
             if (isDebugBuild) {
-                watchDebug = WatchDebug("tick $ticks · busy $busy · no frame $noFrame · fired $fires\n$status", watch.last)
+                watchDebug = WatchDebug("tick $ticks · busy $busy · no frame $noFrame · fired $fires · rec $recorded\n$status", watch.last)
             }
         }
         frameSource.setWatching(true)
@@ -196,6 +198,18 @@ fun MarkeraScreen(
                 }
                 val fired = withContext(Dispatchers.Default) { watch.offer(sample) }
                 if (fired) fires++
+                // Debug builds: keep the frames behind every fire and veto, and every
+                // 5th sample of a moving streak, for ContinuousScanReplayTest.
+                val verdict = watch.last
+                movingStreak = if (verdict?.outcome == WatchOutcome.MOVING) movingStreak + 1 else 0
+                val keep = verdict?.outcome == WatchOutcome.FIRE || verdict?.outcome == WatchOutcome.VETO ||
+                    (movingStreak > 0 && movingStreak % 5 == 0)
+                if (isDebugBuild && keep && verdict != null) {
+                    val saved = withContext(Dispatchers.Default) {
+                        verdict.recording()?.also(frameSource::recordWatch) != null
+                    }
+                    if (saved) recorded++
+                }
                 report(watch.last?.reason.orEmpty())
                 if (fired) {
                     watch.reset()

@@ -2,7 +2,10 @@ package se.kjellstrand.markera.ui.markera
 
 import kotlin.random.Random
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ContinuousScanTest {
@@ -138,5 +141,26 @@ class ContinuousScanTest {
         assertTrue(watch.offer(scene(3, paint = hole(55, 50))))
         watch.reset()
         repeat(3) { assertFalse(watch.offer(scene(4 + it, paint = hole(55, 50)))) }
+    }
+
+    @Test
+    fun pgmRoundTrips() {
+        val frame = LumaFrame(7, 3, ByteArray(21) { (it * 12 + 3).toByte() })
+        val back = decodePgm(encodePgm(frame))
+        assertEquals(7, back.width)
+        assertEquals(3, back.height)
+        assertContentEquals(frame.luma, back.luma)
+    }
+
+    @Test
+    fun aFireRecordsTheThreeComparedFrames() {
+        val watch = NewHoleWatch()
+        val frames = listOf(scene(1), scene(2, paint = hole(55, 50)), scene(3, paint = hole(55, 50)))
+        assertTrue(watch.feed(*frames.toTypedArray()).last())
+        val files = assertNotNull(watch.last?.recording())
+        for ((suffix, frame) in listOf("ref.pgm", "prev.pgm", "cur.pgm").zip(frames)) {
+            assertContentEquals(frame.luma, decodePgm(files.getValue(suffix)).luma)
+        }
+        assertTrue(files.getValue("verdict.txt").decodeToString().startsWith("rotation 0\tFIRE"))
     }
 }
