@@ -42,6 +42,10 @@
     <!-- Series auto-save -->
     <string name="series_caliber_title">Choose caliber</string>
     <string name="series_caliber_none">None chosen</string>
+    <string name="series_caliber_new_name">New caliber, e.g. 38wc</string>
+    <string name="series_caliber_new_diameter">Bullet diameter (mm)</string>
+    <string name="series_caliber_add">Add</string>
+    <string name="series_caliber_remove">Remove %1$s</string>
     <string name="series_tag_title">Choose tag</string>
     <string name="series_tag_none">No tag</string>
     <string name="series_tag_new">New tag</string>
@@ -150,7 +154,7 @@
     <string name="help_scan_score">Score</string>
     <string name="help_scan_score_body">The score comes from where the hit sits on the target. If the hit is in the right place but the score is slightly off, tap the score box and pick the right score — the hit stays where it is. If you move the hit, the score is recalculated from its new position.</string>
     <string name="help_scan_caliber">Caliber</string>
-    <string name="help_scan_caliber_body">The chip beside the score shows the caliber the series is saved with. Tap it to change — if none is chosen, the app asks when you save. The caliber is shown in the history and can be filtered on in the statistics.</string>
+    <string name="help_scan_caliber_body">The chip beside the score shows the caliber the series is saved with. Tap it to change — if none is chosen, the app asks when you save. The caliber is shown in the history and can be filtered on in the statistics. At the bottom of the list you can add a caliber of your own, with its bullet diameter (it sizes the hit dots); only your own can be removed again.</string>
     <string name="help_scan_save">Save</string>
     <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. The ↻ button discards the scan without saving.</string>
     <string name="help_scan_continuous">Continuous scan</string>

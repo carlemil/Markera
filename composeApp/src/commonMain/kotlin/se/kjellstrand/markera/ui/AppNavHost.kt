@@ -19,11 +19,13 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -32,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -60,6 +63,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -72,12 +76,15 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.AppServices
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.MAX_CALIBER_LABEL_LENGTH
 import se.kjellstrand.markera.series.MAX_TAG_LENGTH
 import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
+import se.kjellstrand.markera.series.isValidCaliberLabel
+import se.kjellstrand.markera.series.parseCaliberDiameter
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.ui.markera.FrameSource
@@ -168,6 +175,8 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
             writeTag = seriesServices.store::writeTag,
             encodeJpeg = ::encodeSeriesJpeg,
             scope = scope,
+            readCustomCalibers = seriesServices.store::readCustomCalibers,
+            writeCustomCalibers = seriesServices.store::writeCustomCalibers,
         ).also { scanController.onSeriesDetected = it::onSeriesDetected }
     }
     DisposableEffect(recorder) { onDispose { recorder.dispose() } }
@@ -315,9 +324,13 @@ fun AppNavHost(
     val caliberDialogOpen by recorder.caliberDialogOpen.collectAsState()
     if (caliberDialogOpen) {
         val caliber by recorder.caliber.collectAsState()
+        val custom by recorder.customCalibers.collectAsState()
         CaliberDialog(
             selected = caliber,
+            custom = custom,
             onSelect = recorder::selectCaliber,
+            onAdd = { label, mm -> recorder.addCaliber(label, mm)?.let(recorder::selectCaliber) },
+            onRemove = recorder::removeCaliber,
             onDismiss = recorder::dismissCaliberDialog,
         )
     }
@@ -339,7 +352,7 @@ fun AppNavHost(
 /**
  * The free-text tag for the next series: the tags already in use as rows, plus a
  * field for a new one. Its own composable rather than a [CaliberDialog] variant —
- * a fixed enum needs no text input.
+ * a caliber needs a diameter as well as a name.
  */
 @Composable
 internal fun TagDialog(
@@ -400,13 +413,26 @@ internal fun TagDialog(
     )
 }
 
-/** Tags the scanned series; shown automatically while the caliber is "-". */
+/**
+ * Tags the scanned series; shown automatically while the caliber is "-". The
+ * built-ins, then the user's own [custom] calibers (only those can be removed),
+ * then a name + diameter pair to add one.
+ */
 @Composable
 internal fun CaliberDialog(
     selected: Caliber,
+    custom: List<Caliber>,
     onSelect: (Caliber) -> Unit,
+    /** The new caliber's name and diameter in mm, both already valid; adding also selects it. */
+    onAdd: (String, Float) -> Unit,
+    onRemove: (Caliber) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var name by remember { mutableStateOf("") }
+    var diameter by remember { mutableStateOf("") }
+    val trimmed = name.trim()
+    val nameOk = isValidCaliberLabel(trimmed) && (Caliber.BUILT_IN + custom).none { it.label == trimmed }
+    val diameterMm = parseCaliberDiameter(diameter)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.series_caliber_title)) },
@@ -418,7 +444,7 @@ internal fun CaliberDialog(
             // Compact rows: the whole row is the tap target, so the radio's 48 dp minimum is off.
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Caliber.entries.forEach { caliber ->
+                    (Caliber.BUILT_IN + custom).forEach { caliber ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -430,9 +456,42 @@ internal fun CaliberDialog(
                             Text(
                                 if (caliber == Caliber.NONE) stringResource(Res.string.series_caliber_none) else caliber.label,
                                 style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp),
+                                modifier = Modifier.padding(start = 8.dp).weight(1f),
                             )
+                            if (caliber in custom) {
+                                IconButton(onClick = { onRemove(caliber) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = stringResource(Res.string.series_caliber_remove, caliber.label),
+                                    )
+                                }
+                            }
                         }
+                    }
+                    OutlinedTextField(
+                        value = name,
+                        // Capped here: a longer label is a 400 from the server.
+                        onValueChange = { if (it.length <= MAX_CALIBER_LABEL_LENGTH) name = it },
+                        label = { Text(stringResource(Res.string.series_caliber_new_name)) },
+                        isError = name.isNotEmpty() && !nameOk,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                    OutlinedTextField(
+                        value = diameter,
+                        onValueChange = { diameter = it },
+                        label = { Text(stringResource(Res.string.series_caliber_new_diameter)) },
+                        isError = diameter.isNotEmpty() && diameterMm == null,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    )
+                    TextButton(
+                        enabled = nameOk && diameterMm != null,
+                        onClick = { diameterMm?.let { onAdd(trimmed, it) } },
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text(stringResource(Res.string.series_caliber_add))
                     }
                 }
             }

@@ -106,7 +106,7 @@ private fun unescapeTag(text: String): String = text
 /** A simple `key=value;...` encoding, just for [BackendTokenStore][se.kjellstrand.markera.series.BackendTokenStore] persistence. */
 fun HistoryFilter.encode(): String {
     val parts = mutableListOf(
-        "calibers=${calibers.joinToString(",") { it.label }}",
+        "calibers=${calibers.joinToString(",") { escapeTag(it.label) }}",
         "tags=${tags.joinToString(",") { escapeTag(it) }}",
         "preset=${preset.name}",
     )
@@ -115,8 +115,8 @@ fun HistoryFilter.encode(): String {
 }
 
 /**
- * Never throws: null or unparsable text, an unknown caliber/preset, all degrade to
- * defaults. Fields are looked up by key, so a string written before `tags` existed
+ * Never throws: null or unparsable text, an unknown preset, all degrade to
+ * defaults; a caliber label is kept as [Caliber.fromLabel] reads it. Fields are looked up by key, so a string written before `tags` existed
  * keeps its calibers and dates and simply means "no tag filter".
  */
 fun decodeHistoryFilter(text: String?): HistoryFilter {
@@ -129,7 +129,8 @@ fun decodeHistoryFilter(text: String?): HistoryFilter {
         val calibers = fields["calibers"]
             ?.split(",")
             ?.filter { it.isNotEmpty() }
-            ?.mapNotNull { label -> Caliber.entries.firstOrNull { it.label == label } }
+            // A label may hold a `,` too; a custom one keeps its label (the diameter plays no part in filtering).
+            ?.map { Caliber.fromLabel(unescapeTag(it)) }
             ?.toSet()
             ?: emptySet()
         val tags = fields["tags"]

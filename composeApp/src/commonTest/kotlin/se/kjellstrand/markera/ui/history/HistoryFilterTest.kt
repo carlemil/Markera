@@ -109,6 +109,16 @@ class HistoryFilterTest {
     }
 
     @Test
+    fun `a custom caliber filter survives the round trip and still matches its series`() {
+        val custom = Caliber("38wc, hb", 9.07f)
+        val filter = HistoryFilter(calibers = setOf(custom, Caliber.MM9))
+        val back = decodeHistoryFilter(filter.encode())
+        assertEquals(filter, back)
+        val kept = listOf(series(1, caliber = "38wc, hb"), series(2, caliber = "45")).filteredBy(back, now)
+        assertEquals(listOf(1L), kept.map { it.id })
+    }
+
+    @Test
     fun `a selected tag keeps only that tag and drops untagged series`() {
         val training = series(1, tag = "träning")
         val competition = series(2, tag = "tävling")

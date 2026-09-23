@@ -495,6 +495,11 @@ fun TargetScanner(
  */
 val LocalSeriesRecorder = staticCompositionLocalOf<SeriesRecorder?> { null }
 
+/** The user's own calibers, so a stored label resolves to its diameter; empty with no recorder. */
+@Composable
+fun customCalibers(): List<Caliber> =
+    LocalSeriesRecorder.current?.customCalibers?.collectAsState()?.value.orEmpty()
+
 /** One sweep lap, shared by the sweep animation and the blip reshuffle. */
 private const val SCAN_SWEEP_MS = 1300
 

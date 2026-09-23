@@ -51,9 +51,19 @@ class SeriesRecorder(
     private val writeTag: suspend (String?) -> Unit,
     private val encodeJpeg: suspend (PlatformImage) -> EncodedImage,
     private val scope: CoroutineScope,
+    private val readCustomCalibers: suspend () -> List<Caliber> = { emptyList() },
+    private val writeCustomCalibers: suspend (List<Caliber>) -> Unit = {},
 ) {
     private val _caliber = MutableStateFlow(Caliber.NONE)
     val caliber: StateFlow<Caliber> = _caliber.asStateFlow()
+
+    /**
+     * The calibers the user added, in the order added. A device preference like the
+     * chosen caliber: kept on this device only (never synced to the server) and it
+     * survives sign-out.
+     */
+    private val _customCalibers = MutableStateFlow<List<Caliber>>(emptyList())
+    val customCalibers: StateFlow<List<Caliber>> = _customCalibers.asStateFlow()
 
     private val _status = MutableStateFlow<SaveStatus>(SaveStatus.Idle)
     val status: StateFlow<SaveStatus> = _status.asStateFlow()
@@ -90,7 +100,12 @@ class SeriesRecorder(
 
     init {
         // The stored value must not clobber a choice made before the read lands.
-        scope.launch { _caliber.compareAndSet(Caliber.NONE, readCaliber()) }
+        scope.launch {
+            // The list first: a stored custom choice needs it for its diameter.
+            val custom = readCustomCalibers()
+            _customCalibers.compareAndSet(emptyList(), custom)
+            _caliber.compareAndSet(Caliber.NONE, Caliber.fromLabel(readCaliber().label, custom))
+        }
         scope.launch { _tag.compareAndSet(null, normalizeTag(readTag())) }
         // A tag is the user's own: signing out forgets it (the store drops its copy in clear()).
         scope.launch {
@@ -136,6 +151,39 @@ class SeriesRecorder(
         _caliber.value = caliber
         _caliberDialogOpen.value = false
         startSave(caliber, persist = true)
+    }
+
+    /**
+     * Adds the user's own caliber to the list; the caller selects it, as tapping it
+     * would. Null (and nothing changes) for a label the server would refuse, one
+     * already in the list, or a diameter outside [CALIBER_DIAMETER_RANGE_MM].
+     */
+    fun addCaliber(label: String, diameterMm: Float): Caliber? {
+        val name = label.trim()
+        val known = Caliber.BUILT_IN + _customCalibers.value
+        if (!isValidCaliberLabel(name) || known.any { it.label == name } || diameterMm !in CALIBER_DIAMETER_RANGE_MM) {
+            return null
+        }
+        val caliber = Caliber(name, diameterMm)
+        persistCustom(_customCalibers.value + caliber)
+        return caliber
+    }
+
+    /**
+     * Drops one of the user's own calibers (a built-in is never in the list). Saved
+     * series keep their label; only the current choice falls back to [Caliber.NONE].
+     */
+    fun removeCaliber(caliber: Caliber) {
+        persistCustom(_customCalibers.value - caliber)
+        if (_caliber.value == caliber) {
+            _caliber.value = Caliber.NONE
+            scope.launch { writeCaliber(Caliber.NONE) }
+        }
+    }
+
+    private fun persistCustom(list: List<Caliber>) {
+        _customCalibers.value = list
+        scope.launch { writeCustomCalibers(list) }
     }
 
     fun openCaliberDialog() {

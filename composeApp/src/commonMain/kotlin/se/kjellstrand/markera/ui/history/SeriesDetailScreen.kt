@@ -86,6 +86,8 @@ import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.TagDialog
 import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
+import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
+import se.kjellstrand.markera.ui.markera.customCalibers
 import se.kjellstrand.markera.ui.markera.TotalBadge
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
@@ -125,8 +127,12 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     // reads and writes the current list.
     val holes = remember(series.id) { mutableStateOf(series.holes) }
     var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
-    // Local like the holes; commit() below saves all three together.
-    var caliber by remember(series.id) { mutableStateOf(Caliber.fromLabel(series.caliber)) }
+    // Local like the holes; commit() below saves all three together. The recorder owns
+    // the user's own calibers (the dialog adds and removes through it), so a custom
+    // label resolves to its diameter here.
+    val recorder = LocalSeriesRecorder.current
+    val custom = customCalibers()
+    var caliber by remember(series.id) { mutableStateOf(Caliber.fromLabel(series.caliber, custom)) }
     var pickingCaliber by remember(series.id) { mutableStateOf(false) }
     // Deliberately not routed through SeriesRecorder — that one owns the
     // *pending scan*, not this series.
@@ -149,7 +155,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     var undoJob by remember { mutableStateOf<Job?>(null) }
     fun restore(to: SeriesEdit) {
         holes.value = to.holes
-        caliber = Caliber.fromLabel(to.caliber)
+        caliber = Caliber.fromLabel(to.caliber, custom)
         tag = to.tag
     }
 
@@ -402,13 +408,18 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
     }
 
     if (pickingCaliber) {
+        val select: (Caliber) -> Unit = {
+            caliber = it
+            pickingCaliber = false
+            commit()
+        }
         CaliberDialog(
             selected = caliber,
-            onSelect = {
-                caliber = it
-                pickingCaliber = false
-                commit()
-            },
+            custom = custom,
+            onSelect = select,
+            // Only the list lives in the recorder: this series, not the next scan, gets the new one.
+            onAdd = { label, mm -> recorder?.addCaliber(label, mm)?.let(select) },
+            onRemove = { recorder?.removeCaliber(it) },
             onDismiss = { pickingCaliber = false },
         )
     }

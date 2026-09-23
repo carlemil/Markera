@@ -23,6 +23,7 @@ private object Keys {
     val userId = longPreferencesKey("user_id")
     val provider = stringPreferencesKey("provider")
     val caliber = stringPreferencesKey("caliber")
+    val customCalibers = stringPreferencesKey("custom_calibers")
     val historyFilter = stringPreferencesKey("history_filter")
     val openDays = stringPreferencesKey("history_open_days")
     val tag = stringPreferencesKey("tag")
@@ -83,6 +84,13 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeCaliber(caliber: Caliber) {
         dataStore.edit { it[Keys.caliber] = caliber.label }
+    }
+
+    override suspend fun readCustomCalibers(): List<Caliber> =
+        decodeCustomCalibers(dataStore.data.first()[Keys.customCalibers])
+
+    override suspend fun writeCustomCalibers(calibers: List<Caliber>) {
+        dataStore.edit { it[Keys.customCalibers] = calibers.encodeCustomCalibers() }
     }
 
     override suspend fun readHistoryFilter(): String? = dataStore.data.first()[Keys.historyFilter]

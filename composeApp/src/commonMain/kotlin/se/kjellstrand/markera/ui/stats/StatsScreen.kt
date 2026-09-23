@@ -112,6 +112,7 @@ import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.AppTopBar
+import se.kjellstrand.markera.ui.markera.customCalibers
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
@@ -570,6 +571,8 @@ private fun TargetCanvas(
     calibers: List<Caliber>,
 ) {
     val textMeasurer = rememberTextMeasurer()
+    // The user's own calibers carry their diameter only on this device.
+    val custom = customCalibers()
     // The layer scales about its top-left corner, so zooming about the pinch
     // centroid is a plain "keep the centroid still" rescale of the pan.
     var zoom by remember { mutableStateOf(1f) }
@@ -654,7 +657,7 @@ private fun TargetCanvas(
         }
 
         plotted.forEach { series ->
-            val caliber = Caliber.fromLabel(series.series.caliber)
+            val caliber = Caliber.fromLabel(series.series.caliber, custom)
             val colour = caliberColour(caliber, calibers).copy(alpha = HIT_DOT_ALPHA)
             // scale is px/mm here, so the caliber's mm radius converts directly.
             val dotRadius = caliber.hitDotRadiusMm() * scale

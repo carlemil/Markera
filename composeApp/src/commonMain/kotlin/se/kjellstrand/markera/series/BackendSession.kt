@@ -18,6 +18,10 @@ interface BackendTokenStore {
     suspend fun readCaliber(): Caliber = Caliber.NONE
     suspend fun writeCaliber(caliber: Caliber) {}
 
+    /** The user's own calibers ([decodeCustomCalibers]-encoded): a device preference, survives [clear]. */
+    suspend fun readCustomCalibers(): List<Caliber> = emptyList()
+    suspend fun writeCustomCalibers(calibers: List<Caliber>) {}
+
     /** The Historik screen's encoded [se.kjellstrand.markera.ui.history.HistoryFilter]; [clear] drops it, it names the user's tags. */
     suspend fun readHistoryFilter(): String? = null
     suspend fun writeHistoryFilter(value: String) {}

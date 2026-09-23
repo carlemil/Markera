@@ -35,6 +35,7 @@ class SeriesRecorderTest {
     private val recorded = mutableListOf<HttpRequestData>()
     private val written = mutableListOf<Caliber>()
     private val writtenTags = mutableListOf<String?>()
+    private val writtenCustom = mutableListOf<List<Caliber>>()
     private val scope = CoroutineScope(Dispatchers.Default)
     private lateinit var session: BackendSessionRepository
     private lateinit var repository: SeriesRepository
@@ -68,6 +69,7 @@ class SeriesRecorderTest {
         gate: CompletableDeferred<Unit>? = null,
         // What the first series POST answers instead of [status].
         firstStatus: HttpStatusCode? = null,
+        storedCustom: List<Caliber> = emptyList(),
     ): SeriesRecorder {
         var posts = 0
         val engine = MockEngine { request ->
@@ -106,7 +108,10 @@ class SeriesRecorderTest {
                 writeTag = { writtenTags += it },
                 encodeJpeg = encodeJpeg,
                 scope = scope,
+                readCustomCalibers = { storedCustom },
+                writeCustomCalibers = { writtenCustom += it },
             ).also {
+                it.customCalibers.first { l -> l == storedCustom }
                 it.caliber.first { c -> c == stored }
                 it.tag.first { t -> t == storedTag }
             }
@@ -121,6 +126,80 @@ class SeriesRecorderTest {
     /** The image upload runs after the status turns Saved, so wait for it too. */
     private fun awaitRequests(n: Int) = runBlocking {
         withTimeout(5_000) { while (recorded.size < n) delay(10) }
+    }
+
+    /** The store writes run on the recorder's scope; wait until [done]. */
+    private fun awaitWrite(done: () -> Boolean) = runBlocking {
+        withTimeout(5_000) { while (!done()) delay(10) }
+    }
+
+    private val wadcutter = Caliber("38wc", 9.07f)
+
+    @Test
+    fun anAddedCaliberIsListedPersistedAndSavesUnderItsLabel() {
+        val recorder = recorder()
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
+
+        val added = recorder.addCaliber(" 38wc ", 9.07f)
+        assertEquals(wadcutter, added)
+        assertEquals(9.07f, added!!.diameterMm)
+        assertEquals(listOf(wadcutter), recorder.customCalibers.value)
+        recorder.selectCaliber(added)
+
+        assertEquals(SaveStatus.Saved(wadcutter), recorder.awaitDone())
+        assertTrue(""""caliber":"38wc"""" in sentBody, sentBody)
+        awaitWrite { writtenCustom.lastOrNull() == listOf(wadcutter) && written.lastOrNull() == wadcutter }
+    }
+
+    @Test
+    fun anInvalidOrDuplicateCaliberIsNotAdded() {
+        val recorder = recorder(storedCustom = listOf(wadcutter))
+
+        assertNull(recorder.addCaliber("", 9f))
+        assertNull(recorder.addCaliber("   ", 9f))
+        assertNull(recorder.addCaliber("a".repeat(17), 9f))
+        assertNull(recorder.addCaliber("38wc;x", 9f))
+        assertNull(recorder.addCaliber("9mm", 9f)) // A built-in.
+        assertNull(recorder.addCaliber("38wc", 9f)) // Already the user's.
+        assertNull(recorder.addCaliber("new", 0.5f))
+        assertNull(recorder.addCaliber("new", 25f))
+
+        assertEquals(listOf(wadcutter), recorder.customCalibers.value)
+        assertTrue(writtenCustom.isEmpty())
+    }
+
+    @Test
+    fun aStoredCustomChoiceComesBackWithItsDiameter() {
+        // The store knows only the label; the recorder resolves it against the list.
+        val recorder = recorder(stored = Caliber.fromLabel("38wc"), storedCustom = listOf(wadcutter))
+
+        assertEquals(9.07f, recorder.caliber.value.diameterMm)
+    }
+
+    @Test
+    fun removingTheSelectedCustomCaliberFallsBackToNone() {
+        val recorder = recorder(stored = wadcutter, storedCustom = listOf(wadcutter))
+
+        recorder.removeCaliber(wadcutter)
+
+        assertEquals(Caliber.NONE, recorder.caliber.value)
+        assertEquals(emptyList(), recorder.customCalibers.value)
+        awaitWrite { writtenCustom.lastOrNull() == emptyList<Caliber>() && written.lastOrNull() == Caliber.NONE }
+    }
+
+    @Test
+    fun removingAnotherCustomCaliberKeepsTheChoice() {
+        val other = Caliber("44wc", 10.9f)
+        val recorder = recorder(stored = Caliber.MM9, storedCustom = listOf(wadcutter, other))
+
+        recorder.removeCaliber(other)
+
+        assertEquals(Caliber.MM9, recorder.caliber.value)
+        assertEquals(listOf(wadcutter), recorder.customCalibers.value)
+        awaitWrite { writtenCustom.lastOrNull() == listOf(wadcutter) }
+        assertTrue(written.isEmpty())
     }
 
     private val sentBody: String get() = (recorded.last().body as TextContent).text
