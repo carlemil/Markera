@@ -16,6 +16,22 @@ internal const val WATCH_GRID = 480
 /** How often the watch loop takes a sample. */
 internal const val CHANGE_SAMPLE_MS = 700L
 
+/**
+ * How often the watch has the camera meter the light again (exposure and white
+ * balance stay locked in between), so a cloud or the sun cannot leave the frame
+ * far off a good exposure for a whole series.
+ */
+internal const val REMETER_INTERVAL_MS = 30_000L
+
+/**
+ * Whether the watch should re-meter now: [REMETER_INTERVAL_MS] since the last
+ * metering and the [last] verdict settled — never while something moves or a
+ * fired scan runs. The reference is kept, so [changeMask]'s light fit bridges
+ * the exposure step.
+ */
+internal fun remeterDue(sinceMeteredMs: Long, last: WatchVerdict?): Boolean =
+    sinceMeteredMs >= REMETER_INTERVAL_MS && last?.outcome != WatchOutcome.MOVING && last?.outcome != WatchOutcome.FIRE
+
 /** Luma step that counts a pixel as changed, at the least. */
 internal const val CHANGE_MIN_DELTA = 20
 

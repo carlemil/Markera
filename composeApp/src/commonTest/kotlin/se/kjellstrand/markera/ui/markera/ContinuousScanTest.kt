@@ -179,6 +179,39 @@ class ContinuousScanTest {
         assertTrue(fired, watch.last?.reason)
     }
 
+    // A re-meter offers nothing while it runs, so the first sample after it
+    // compares an exposure step against the last one before it.
+    @Test
+    fun anExposureStepAcrossAReMeterNeitherFiresNorSticksInMoving() {
+        val watch = NewHoleWatch()
+        watch.feed(scene(1, brightness = 20), scene(2, brightness = 20))
+        for (seed in 3..5) {
+            assertFalse(watch.offer(scene(seed, brightness = 30, gain = 1.15f)), watch.last?.reason)
+            assertTrue(watch.last?.outcome != WatchOutcome.MOVING, watch.last?.reason)
+        }
+    }
+
+    @Test
+    fun aHoleShotDuringAReMeterFiresAfterIt() {
+        val watch = NewHoleWatch()
+        watch.feed(scene(1, brightness = 20), scene(2, brightness = 20))
+        val fired = watch.feed(
+            scene(3, brightness = 30, gain = 1.15f, paint = hole(55, 50)),
+            scene(4, brightness = 30, gain = 1.15f, paint = hole(55, 50)),
+        )
+        assertTrue(fired.any { it }, watch.last?.reason)
+    }
+
+    @Test
+    fun aReMeterIsDueOnlyAfterTheIntervalAndWhenSettled() {
+        fun verdict(outcome: WatchOutcome) = WatchVerdict("", 1, 1, 0, emptyList(), outcome)
+        assertFalse(remeterDue(REMETER_INTERVAL_MS - 1, verdict(WatchOutcome.OTHER)))
+        assertTrue(remeterDue(REMETER_INTERVAL_MS, verdict(WatchOutcome.OTHER)))
+        assertTrue(remeterDue(REMETER_INTERVAL_MS, null))
+        assertFalse(remeterDue(REMETER_INTERVAL_MS, verdict(WatchOutcome.MOVING)))
+        assertFalse(remeterDue(REMETER_INTERVAL_MS, verdict(WatchOutcome.FIRE)))
+    }
+
     @Test
     fun aSoftShadowOverHalfTheFrameDoesNotFire() {
         val watch = NewHoleWatch()

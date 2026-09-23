@@ -35,6 +35,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import android.util.Log
+import kotlinx.coroutines.delay
 
 private const val TAG = "Markera"
 
@@ -52,6 +53,7 @@ fun CameraPreview(
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
     analysis: ImageAnalysis? = null,
+    onCamera: (Camera?) -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -98,7 +100,10 @@ fun CameraPreview(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     useCases,
-                ).also { if (analysis != null) lockWhileWatching(it, handler) }
+                ).also {
+                    if (analysis != null) lockWhileWatching(it, handler)
+                    onCamera(it)
+                }
                 analysis?.resolutionInfo?.let { Log.i(TAG, "Continuous scan: analysis ${it.resolution} crop ${it.cropRect}") }
             } catch (t: Throwable) {
                 Log.e(TAG, "CameraX bind failed", t)
@@ -108,6 +113,7 @@ fun CameraPreview(
 
         onDispose {
             handler.removeCallbacksAndMessages(null)
+            onCamera(null)
             camera?.let { unlock(it) }
             try {
                 ProcessCameraProvider.getInstance(context).get().unbindAll()
@@ -151,15 +157,30 @@ private fun lockWhileWatching(camera: Camera, handler: Handler) {
     camera.cameraControl.startFocusAndMetering(
         FocusMeteringAction.Builder(centre, FocusMeteringAction.FLAG_AF).disableAutoCancel().build(),
     )
-    handler.postDelayed({
-        Log.i(TAG, "Continuous scan: locking AE + AWB")
-        Camera2CameraControl.from(camera.cameraControl).setCaptureRequestOptions(
-            CaptureRequestOptions.Builder()
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, true)
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK, true)
-                .build(),
-        )
-    }, LOCK_AFTER_MS)
+    handler.postDelayed({ lockExposure(camera, true) }, LOCK_AFTER_MS)
+}
+
+/**
+ * Continuous scan, every [REMETER_INTERVAL_MS]: unlocks exposure and white
+ * balance, gives them [LOCK_AFTER_MS] to meter the light again and locks them
+ * anew. Focus is left alone. Cancelled mid-way, it leaves them unlocked: that only
+ * happens when the watch stops, and then the camera is rebound without locks anyway.
+ */
+internal suspend fun remeterExposure(camera: Camera) {
+    lockExposure(camera, false)
+    delay(LOCK_AFTER_MS)
+    lockExposure(camera, true)
+}
+
+@OptIn(ExperimentalCamera2Interop::class)
+private fun lockExposure(camera: Camera, locked: Boolean) {
+    Log.i(TAG, "Continuous scan: ${if (locked) "locking" else "unlocking to re-meter"} AE + AWB")
+    Camera2CameraControl.from(camera.cameraControl).setCaptureRequestOptions(
+        CaptureRequestOptions.Builder()
+            .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, locked)
+            .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK, locked)
+            .build(),
+    )
 }
 
 /** Hands focus, exposure and white balance back to the camera's auto modes. */

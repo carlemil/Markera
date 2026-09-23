@@ -6,6 +6,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.abs
+import kotlin.time.TimeSource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -174,9 +175,11 @@ fun MarkeraScreen(
         var fires = 0
         var movingStreak = 0
         var recorded = 0
+        var remeters = 0
+        var meteredAt = TimeSource.Monotonic.markNow()
         fun report(status: String) {
             if (isDebugBuild) {
-                watchDebug = WatchDebug("tick $ticks · busy $busy · no frame $noFrame · fired $fires · rec $recorded\n$status", watch.last)
+                watchDebug = WatchDebug("tick $ticks · busy $busy · no frame $noFrame · fired $fires · rec $recorded · meter $remeters\n$status", watch.last)
             }
         }
         frameSource.setWatching(true)
@@ -188,6 +191,16 @@ fun MarkeraScreen(
                 if (phase != ScanPhase.IDLE || edited) {
                     busy++
                     report(if (edited) "paused: a result was edited" else "busy: scan phase $phase")
+                    continue
+                }
+                if (remeterDue(meteredAt.elapsedNow().inWholeMilliseconds, watch.last)) {
+                    report("calibrating: metering the light again")
+                    frameSource.remeter()
+                    // Drop the frame taken while it metered. The watch keeps its
+                    // reference and previous sample: the light fit bridges the step.
+                    frameSource.takeLuma()
+                    meteredAt = TimeSource.Monotonic.markNow()
+                    remeters++
                     continue
                 }
                 val sample = frameSource.takeLuma()

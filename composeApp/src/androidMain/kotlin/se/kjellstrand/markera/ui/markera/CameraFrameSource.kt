@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.util.Log
 import android.util.Size
+import androidx.camera.core.Camera
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -49,6 +50,8 @@ private class CameraFrameSource(
     private var analyzing by mutableStateOf(false)
     private val latest = AtomicReference<LumaFrame?>(null)
     private var lastSampleAt = 0L
+    // The bound camera (main thread), for [remeter]; CameraPreview owns its binding.
+    private var camera: Camera? = null
 
     init {
         imageAnalysis.setAnalyzer(Dispatchers.Default.asExecutor(), ::analyze)
@@ -60,6 +63,7 @@ private class CameraFrameSource(
             previewView = previewView,
             imageCapture = imageCapture,
             analysis = if (analyzing) imageAnalysis else null,
+            onCamera = { camera = it },
             onError = onError,
             modifier = modifier,
         )
@@ -108,6 +112,10 @@ private class CameraFrameSource(
     }
 
     override fun takeLuma(): LumaFrame? = latest.getAndSet(null)
+
+    override suspend fun remeter() {
+        camera?.let { remeterExposure(it) }
+    }
 
     /**
      * Writes set `<n>-ref.pgm`, `<n>-prev.pgm`, `<n>-cur.pgm`, `<n>-verdict.txt` to

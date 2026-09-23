@@ -40,6 +40,12 @@ interface FrameSource {
     fun takeLuma(): LumaFrame? = null
 
     /**
+     * While watching: lets exposure and white balance meter the light again, then
+     * locks them anew (focus stays put); returns once they are locked.
+     */
+    suspend fun remeter() = Unit
+
+    /**
      * Debug builds: keeps one watch verdict's files (name suffix → bytes, see
      * [WatchVerdict.recording]) as the next numbered set, for offline replay.
      * Blocking file IO; a no-op where nothing is kept.
