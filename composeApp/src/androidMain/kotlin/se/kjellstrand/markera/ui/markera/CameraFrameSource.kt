@@ -143,7 +143,7 @@ private fun ImageProxy.lumaFrame(): LumaFrame {
         for (x in row.indices) sums[base + x / f] += row[x].toInt() and 0xFF
     }
     val n = f * f
-    return LumaFrame(w, h, ByteArray(sums.size) { (sums[it] / n).toByte() })
+    return LumaFrame(w, h, ByteArray(sums.size) { (sums[it] / n).toByte() }, imageInfo.rotationDegrees)
 }
 
 @Composable

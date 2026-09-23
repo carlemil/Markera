@@ -1,6 +1,11 @@
 package se.kjellstrand.markera.ui.markera
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.abs
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -158,22 +163,48 @@ fun MarkeraScreen(
     // reads are current on every tick, so the loop never has to restart.
     // Detection off stops it too: its switch is hidden then, so nothing else could.
     val watching = continuous && detectHoles && frameSource.supportsContinuousScan
+    // Debug builds only: what the watch loop saw on its last tick, drawn over the viewport.
+    var watchDebug by remember { mutableStateOf<WatchDebug?>(null) }
     LaunchedEffect(watching, frameSource) {
         if (!watching) return@LaunchedEffect
         val watch = NewHoleWatch()
+        var ticks = 0
+        var busy = 0
+        var noFrame = 0
+        var fires = 0
+        fun report(status: String) {
+            if (isDebugBuild) {
+                watchDebug = WatchDebug("tick $ticks · busy $busy · no frame $noFrame · fired $fires\n$status", watch.last)
+            }
+        }
         frameSource.setWatching(true)
         try {
             while (true) {
                 delay(CHANGE_SAMPLE_MS)
-                if (viewModel.uiState.value.phase != ScanPhase.IDLE || edited) continue
-                val sample = frameSource.takeLuma() ?: continue
-                if (withContext(Dispatchers.Default) { watch.offer(sample) }) {
+                ticks++
+                val phase = viewModel.uiState.value.phase
+                if (phase != ScanPhase.IDLE || edited) {
+                    busy++
+                    report(if (edited) "paused: a result was edited" else "busy: scan phase $phase")
+                    continue
+                }
+                val sample = frameSource.takeLuma()
+                if (sample == null) {
+                    noFrame++
+                    report("no luma frame from the camera")
+                    continue
+                }
+                val fired = withContext(Dispatchers.Default) { watch.offer(sample) }
+                if (fired) fires++
+                report(watch.last?.reason.orEmpty())
+                if (fired) {
                     watch.reset()
                     onDetectClick()
                 }
             }
         } finally {
             frameSource.setWatching(false)
+            watchDebug = null
         }
     }
 
@@ -208,16 +239,19 @@ fun MarkeraScreen(
                         },
                     ),
                 )
-                TargetScanner(
-                    frameSource = frameSource,
-                    snapshotVm = snapshotVm,
-                    uiState = uiState,
-                    showDebug = showDebug,
-                    onError = viewModel::setError,
-                    editing = editing,
-                    keepPreviewAlive = watching,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-                )
+                Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+                    TargetScanner(
+                        frameSource = frameSource,
+                        snapshotVm = snapshotVm,
+                        uiState = uiState,
+                        showDebug = showDebug,
+                        onError = viewModel::setError,
+                        editing = editing,
+                        keepPreviewAlive = watching,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    watchDebug?.let { WatchDebugOverlay(it, Modifier.fillMaxSize()) }
+                }
                 BottomArea(
                     isFrozen = isFrozen,
                     processing = processing,
@@ -600,4 +634,62 @@ private fun PillSegment(
 @Composable
 private fun PillCaption(text: String, color: Color) {
     Text(text, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
+}
+
+/** The continuous-scan loop's last tick: counters + status, and the watch's verdict. */
+private class WatchDebug(val text: String, val verdict: WatchVerdict?)
+
+/**
+ * Debug builds: the watch loop's status over the viewport, plus every changed
+ * blob of the last comparison — green hole-sized, red a veto, grey a speck.
+ * Draw-only, so the frozen frame's gestures still reach the scanner beneath.
+ */
+@Composable
+private fun WatchDebugOverlay(debug: WatchDebug, modifier: Modifier) {
+    val v = debug.verdict
+    Box(modifier) {
+        if (v != null) {
+            Canvas(Modifier.fillMaxSize()) {
+                val pad = 4.dp.toPx()
+                val stroke = Stroke(2.dp.toPx())
+                for (b in v.blobs) {
+                    val a = v.upright(b.x, b.y)
+                    val c = v.upright(b.x + b.width, b.y + b.height)
+                    val color = when {
+                        b.area < HOLE_MIN_AREA -> Color.LightGray
+                        b.holeSized -> Color.Green
+                        else -> Color.Red
+                    }
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(minOf(a.x, c.x) * size.width - pad, minOf(a.y, c.y) * size.height - pad),
+                        size = Size(abs(c.x - a.x) * size.width + 2 * pad, abs(c.y - a.y) * size.height + 2 * pad),
+                        style = stroke,
+                    )
+                }
+            }
+        }
+        val frame = v?.let { "\nframe ${it.frameWidth}x${it.frameHeight} rot ${it.rotation}° · ${it.blobs.size} blobs" }.orEmpty()
+        Text(
+            text = debug.text + frame,
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .background(Color.Black.copy(alpha = 0.6f))
+                .padding(4.dp),
+        )
+    }
+}
+
+/** A frame-pixel point turned upright, as 0..1 of the square viewport. */
+private fun WatchVerdict.upright(x: Int, y: Int): Offset {
+    val u = x.toFloat() / frameWidth
+    val w = y.toFloat() / frameHeight
+    return when (rotation) {
+        90 -> Offset(1 - w, u)
+        180 -> Offset(1 - u, 1 - w)
+        270 -> Offset(w, 1 - u)
+        else -> Offset(u, w)
+    }
 }

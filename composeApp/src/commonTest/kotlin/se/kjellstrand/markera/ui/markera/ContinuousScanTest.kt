@@ -14,6 +14,7 @@ class ContinuousScanTest {
         seed: Int,
         shift: Int = 0,
         brightness: Int = 0,
+        gradient: Int = 0,
         paint: (x: Int, y: Int) -> Int? = { _, _ -> null },
     ): LumaFrame {
         val rnd = Random(seed)
@@ -29,7 +30,7 @@ class ContinuousScanTest {
                 else -> 200
             }
             val v = paint(i % size, y) ?: base
-            (v + brightness + rnd.nextInt(-3, 4)).coerceIn(0, 255).toByte()
+            (v + brightness + gradient * (i % size) / size + rnd.nextInt(-3, 4)).coerceIn(0, 255).toByte()
         }
         return LumaFrame(size, size, luma)
     }
@@ -78,6 +79,33 @@ class ContinuousScanTest {
         val watch = NewHoleWatch()
         val fired = watch.feed(scene(1), scene(2, shift = 1), scene(3, shift = 1))
         assertFalse(fired.any { it })
+    }
+
+    @Test
+    fun aThreePixelShakeDoesNotFire() {
+        val watch = NewHoleWatch()
+        val fired = watch.feed(scene(1), scene(2, shift = 3), scene(3, shift = 3), scene(4, shift = -2))
+        assertFalse(fired.any { it })
+    }
+
+    @Test
+    fun aHoleStillFiresAcrossAThreePixelShake() {
+        val watch = NewHoleWatch()
+        val (_, _, fired) = watch.feed(
+            scene(1),
+            scene(2, shift = 3, paint = hole(55, 50)),
+            scene(3, shift = 3, paint = hole(55, 50)),
+        )
+        assertTrue(fired)
+    }
+
+    @Test
+    fun aSlowLightRampDoesNotFireAndAHoleAfterItStillDoes() {
+        val watch = NewHoleWatch()
+        // A one-sided light ramp, a few luma per sample: never one big step.
+        repeat(20) { assertFalse(watch.offer(scene(it, gradient = 3 * it))) }
+        assertFalse(watch.offer(scene(20, gradient = 60, paint = hole(55, 50))))
+        assertTrue(watch.offer(scene(21, gradient = 60, paint = hole(55, 50))))
     }
 
     @Test

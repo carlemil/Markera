@@ -4,7 +4,14 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CaptureRequest
 import android.util.Range
 import android.util.Rational
+import android.os.Handler
+import android.os.Looper
+import androidx.camera.camera2.interop.Camera2CameraControl
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.CaptureRequestOptions
+import androidx.camera.core.Camera
+import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraSelector
@@ -50,6 +57,8 @@ fun CameraPreview(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner, analysis) {
+        val handler = Handler(Looper.getMainLooper())
+        var camera: Camera? = null
         val providerFuture = ProcessCameraProvider.getInstance(context)
         providerFuture.addListener({
             try {
@@ -85,11 +94,11 @@ fun CameraPreview(
                     .apply { analysis?.let { addUseCase(it) } }
                     .build()
                 provider.unbindAll()
-                provider.bindToLifecycle(
+                camera = provider.bindToLifecycle(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     useCases,
-                )
+                ).also { if (analysis != null) lockWhileWatching(it, handler) }
                 analysis?.resolutionInfo?.let { Log.i(TAG, "Continuous scan: analysis ${it.resolution} crop ${it.cropRect}") }
             } catch (t: Throwable) {
                 Log.e(TAG, "CameraX bind failed", t)
@@ -98,6 +107,8 @@ fun CameraPreview(
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
+            handler.removeCallbacksAndMessages(null)
+            camera?.let { unlock(it) }
             try {
                 ProcessCameraProvider.getInstance(context).get().unbindAll()
             } catch (_: Throwable) {
@@ -124,4 +135,36 @@ private fun lowestFpsRange(provider: ProcessCameraProvider): Range<Int>? {
     return Camera2CameraInfo.from(info)
         .getCameraCharacteristic(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)
         ?.minWithOrNull(compareBy<Range<Int>>({ it.upper }, { it.lower }))
+}
+
+/** Time the auto-exposure and white balance get to settle before they are locked. */
+private const val LOCK_AFTER_MS = 1500L
+
+/**
+ * Continuous scan: a still target must not change on its own, so focus once on
+ * the centre and hold it, then lock exposure and white balance once they have
+ * settled. Otherwise the sensor's own hunting reads as "moving" or as a global change.
+ */
+@OptIn(ExperimentalCamera2Interop::class)
+private fun lockWhileWatching(camera: Camera, handler: Handler) {
+    val centre = SurfaceOrientedMeteringPointFactory(1f, 1f).createPoint(0.5f, 0.5f)
+    camera.cameraControl.startFocusAndMetering(
+        FocusMeteringAction.Builder(centre, FocusMeteringAction.FLAG_AF).disableAutoCancel().build(),
+    )
+    handler.postDelayed({
+        Log.i(TAG, "Continuous scan: locking AE + AWB")
+        Camera2CameraControl.from(camera.cameraControl).setCaptureRequestOptions(
+            CaptureRequestOptions.Builder()
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, true)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK, true)
+                .build(),
+        )
+    }, LOCK_AFTER_MS)
+}
+
+/** Hands focus, exposure and white balance back to the camera's auto modes. */
+@OptIn(ExperimentalCamera2Interop::class)
+private fun unlock(camera: Camera) {
+    camera.cameraControl.cancelFocusAndMetering()
+    Camera2CameraControl.from(camera.cameraControl).clearCaptureRequestOptions()
 }
