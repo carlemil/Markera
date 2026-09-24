@@ -200,7 +200,8 @@
     <string name="stats_help_impact_median">The median of all hits\’ x and y separately — less sensitive to the odd flyer than the mean point. Drawn as a × on the target.</string>
     <string name="stats_help_mean_score">The mean of the series\’ total scores.</string>
     <string name="stats_help_colours">Colours and the timeline</string>
-    <string name="stats_help_colours_body">Hits are coloured by caliber, the same colours as the lines in the Trend tab. The bar under the target is the series timeline: it runs from the oldest series on the left to the newest on the right, with a dot per series, and the two knobs narrow the target and the measures down to a selection of them.</string>
+    <string name="stats_help_colours_body">Hits are coloured by caliber, the same colours as the lines in the Trend tab. The bar under the target is the series timeline: it runs from the oldest series on the left to the newest on the right, with a dot per series. Tap the knob to switch it on and the target and the measures show only the series it sits on (filled knob, with its date and time above the bar); tap it again to show every series the filters let through (hollow knob). Drag the knob, or tap elsewhere on the bar, to move it to another series. With the knob on, the camera button in the target\’s top-right corner shows that series\’ photo.</string>
+    <string name="stats_show_photo">Show photo</string>
 
     <!-- Series detail -->
     <string name="detail_title">Series</string>

@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.ui.stats
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -8,8 +9,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,15 +31,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RangeSlider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -52,24 +54,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -84,6 +91,7 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.HIT_DOT_ALPHA
 import se.kjellstrand.markera.series.SeriesDto
+import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.hitDotRadiusMm
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
@@ -108,10 +116,13 @@ import se.kjellstrand.markera.ui.rememberBackendSignIn
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.FilterAltOff
+import androidx.compose.material.icons.filled.HideImage
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.AppTopBar
+import se.kjellstrand.markera.ui.history.PHOTO_MAX_DIM
 import se.kjellstrand.markera.ui.markera.customCalibers
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
 import se.kjellstrand.markera.vision.RING_RADII_MM
@@ -145,8 +156,10 @@ private val MARK_ARM = 5.dp
 private val MARK_HALO = 2.dp
 private val MARK_STROKE = 1.dp
 
-/** The age slider's grab handles: a round knob, squat over the 8 dp bar. */
+/** The timeline's knob: round, squat over the 8 dp bar. */
 private val KNOB = DpSize(20.dp, 20.dp)
+/** The timeline's height, and the reach of a tap on the knob: a finger, not the drawn knob. */
+private val KNOB_TOUCH = 40.dp
 
 /**
  * All saved series with geometry, filtered and drawn on one target: every hit
@@ -195,10 +208,13 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
-    // Tavla-only: which series (by index into `plotted`, oldest..newest) the target and
-    // measurements are narrowed to. Resets to the full range whenever `plotted` itself
-    // changes (a new filter, or a data refresh), same as the age colours it rides on.
-    var selection by remember(plotted) { mutableStateOf(0..plotted.lastIndex.coerceAtLeast(0)) }
+    // Tavla-only: the timeline knob sits on one series (an index into `plotted`, oldest
+    // first, parked on the newest); switched on, the target and measurements show only
+    // that series. Resets whenever `plotted` itself changes (a new filter, or a data
+    // refresh), same as the age colours it rides on.
+    var knob by remember(plotted) { mutableIntStateOf(plotted.lastIndex.coerceAtLeast(0)) }
+    var knobOn by remember(plotted) { mutableStateOf(false) }
+    var showingPhoto by remember { mutableStateOf<SeriesDto?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -271,12 +287,23 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                         )
                     } else if (tab == 0) {
-                        val segment = remember(plotted, selection) {
-                            plotted.subList(selection.first, selection.last + 1)
-                        }
+                        val segment = remember(plotted, knob, knobOn) { knobSelection(plotted, knob, knobOn) }
                         val segmentStats = remember(segment) { segment.statistics() }
-                        TargetCanvas(segment, segmentStats, calibers)
-                        AgeLegend(plotted, selection) { selection = it }
+                        Box {
+                            TargetCanvas(segment, segmentStats, calibers)
+                            // The one series under a switched-on knob, when it has a photo.
+                            val photographed = segment.singleOrNull()?.series?.takeIf { knobOn && it.hasImage }
+                            if (photographed != null) {
+                                // Filled so it reads on both the cream paper and the black.
+                                FilledTonalIconButton(
+                                    onClick = { showingPhoto = photographed },
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+                                ) {
+                                    Icon(Icons.Default.PhotoCamera, stringResource(Res.string.stats_show_photo))
+                                }
+                            }
+                        }
+                        AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
                         MarkerLegend(segment, calibers)
                         segmentStats?.let { MeasurementRows(it) }
                     } else {
@@ -308,6 +335,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
             },
         )
     }
+    showingPhoto?.let { PhotoDialog(it, services) { showingPhoto = null } }
     if (showingHelp) {
         // What every measurement under the target actually means.
         HelpDialog(
@@ -775,76 +803,136 @@ private fun MarkerLegend(plotted: List<PlottedSeries>, calibers: List<Caliber>) 
 }
 
 /**
- * The series timeline, doubling as a two-knob range slider (one series or fewer:
- * nothing to segment, so it's just the plain dotted bar). Dragging the knobs narrows
- * [selection] — an index range into [plotted], oldest first — which the target and
- * measurements above follow.
+ * The series timeline: a bar from the oldest series (left) to the newest (right), a dot
+ * per series ([PlottedSeries.age]), and one knob on series [knob]. Tapping the knob
+ * switches it [on] (the target and measurements above show only that series) or off
+ * (all of [plotted]); dragging it, or tapping elsewhere on the bar, moves it to the
+ * nearest series and switches it on, since moving it means looking at that series.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AgeLegend(plotted: List<PlottedSeries>, selection: IntRange, onSelection: (IntRange) -> Unit) {
+private fun AgeLegend(plotted: List<PlottedSeries>, knob: Int, on: Boolean, onKnob: (index: Int, on: Boolean) -> Unit) {
     if (plotted.isEmpty()) return
+    val stamp = @Composable { s: PlottedSeries ->
+        Text(
+            localStamp(s.series.timestamp),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Off: the span on show; on: the one series (localStamp carries the time of day,
+        // so two series on the same date still read apart).
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (on) Arrangement.Center else Arrangement.SpaceBetween,
         ) {
-            Text(
-                localStamp(plotted[selection.first].series.timestamp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                localStamp(plotted[selection.last].series.timestamp),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (on) {
+                stamp(plotted[knob])
+            } else {
+                stamp(plotted.first())
+                stamp(plotted.last())
+            }
         }
-        if (plotted.size > 1) {
-            val startSource = remember { MutableInteractionSource() }
-            val endSource = remember { MutableInteractionSource() }
-            RangeSlider(
-                value = selection.first.toFloat()..selection.last.toFloat(),
-                onValueChange = { range ->
-                    // Snap to series positions: series count is small, so a plain
-                    // round-to-nearest is enough even where steps == 0 (n == 2).
-                    onSelection(range.start.roundToInt()..range.endInclusive.roundToInt())
+        val track = MaterialTheme.colorScheme.surfaceVariant
+        val dot = MaterialTheme.colorScheme.onSurfaceVariant
+        val accent = MaterialTheme.colorScheme.primary
+        val muted = MaterialTheme.colorScheme.surface
+        val outline = MaterialTheme.colorScheme.outline
+        // The gestures are not restarted per recomposition, so they read these.
+        val current by rememberUpdatedState(knob to on)
+        val count = plotted.size
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(KNOB_TOUCH)
+                .pointerInput(count) {
+                    // The knob's centre travels between the insets, so it never overhangs the bar.
+                    val inset = KNOB.width.toPx() / 2f
+                    fun indexAt(x: Float) = knobIndex(x - inset, size.width - 2f * inset, count)
+                    fun knobX(i: Int) = inset + (size.width - 2f * inset) * (if (count > 1) i.toFloat() / (count - 1) else 0f)
+                    detectTapGestures { at ->
+                        val (k, wasOn) = current
+                        if (abs(at.x - knobX(k)) <= KNOB_TOUCH.toPx() / 2f) {
+                            onKnob(k, !wasOn)
+                        } else {
+                            onKnob(indexAt(at.x), true)
+                        }
+                    }
+                }
+                .pointerInput(count) {
+                    val inset = KNOB.width.toPx() / 2f
+                    fun indexAt(x: Float) = knobIndex(x - inset, size.width - 2f * inset, count)
+                    // Horizontal only, so a vertical swipe over the bar still scrolls the page.
+                    detectHorizontalDragGestures(
+                        onDragStart = { onKnob(indexAt(it.x), true) },
+                    ) { change, _ ->
+                        change.consume()
+                        onKnob(indexAt(change.position.x), true)
+                    }
                 },
-                valueRange = 0f..plotted.lastIndex.toFloat(),
-                steps = (plotted.size - 2).coerceAtLeast(0),
-                startInteractionSource = startSource,
-                endInteractionSource = endSource,
-                // The stock thumb is a tall pill; a round knob the width of the bar's
-                // own height reads as a grab handle without towering over it. Dragging
-                // is the slider's own gesture, so the touch area doesn't shrink with it.
-                startThumb = { SliderDefaults.Thumb(startSource, thumbSize = KNOB) },
-                endThumb = { SliderDefaults.Thumb(endSource, thumbSize = KNOB) },
-                track = { AgeTrack(plotted) },
+        ) {
+            val inset = KNOB.width.toPx() / 2f
+            val span = size.width - 2f * inset
+            val mid = size.height / 2f
+            val barHeight = 8.dp.toPx()
+            drawRoundRect(
+                track,
+                topLeft = Offset(inset, mid - barHeight / 2f),
+                size = Size(span, barHeight),
+                cornerRadius = CornerRadius(barHeight / 2f),
             )
-        } else {
-            AgeTrack(plotted)
+            val dotRadius = 2.dp.toPx()
+            plotted.forEach { s ->
+                drawCircle(dot, radius = dotRadius, center = Offset(inset + span * s.age, mid))
+            }
+            // On: a filled accent knob; off: a hollow one, so the state reads at a glance.
+            val at = Offset(inset + span * plotted[knob].age, mid)
+            drawCircle(if (on) accent else muted, radius = inset, center = at)
+            drawCircle(if (on) accent else outline, radius = inset - 1.dp.toPx(), center = at, style = Stroke(2.dp.toPx()))
         }
     }
 }
 
-/**
- * The bar itself, with a small dot at each series' own position along it
- * ([PlottedSeries.age], oldest left to newest right). Used both standalone (one
- * series) and as the [RangeSlider]'s custom track, whose slot is already inset to the
- * thumbs' travel width — whatever [KNOB] the thumbs are — so `fillMaxWidth()` here
- * lines the dots up exactly under where the knobs snap.
- */
+/** The series index nearest [x] along a bar [width] wide holding [count] evenly spaced series. */
+internal fun knobIndex(x: Float, width: Float, count: Int): Int =
+    if (count <= 1 || width <= 0f) 0 else (x / width * (count - 1)).roundToInt().coerceIn(0, count - 1)
+
+/** What Tavla draws: the knob's one series when it is [on], else every series in [plotted]. */
+internal fun <T> knobSelection(plotted: List<T>, knob: Int, on: Boolean): List<T> =
+    if (on) listOfNotNull(plotted.getOrNull(knob)) else plotted
+
+/** The series' photo, fitted to the dialog; loaded the way the series detail screen does. */
 @Composable
-private fun AgeTrack(plotted: List<PlottedSeries>) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val dot = MaterialTheme.colorScheme.onSurfaceVariant
-    Canvas(modifier = Modifier.fillMaxWidth().height(8.dp)) {
-        drawRoundRect(track, cornerRadius = CornerRadius(4.dp.toPx()))
-        val dotRadius = 2.dp.toPx()
-        plotted.forEach { s ->
-            drawCircle(dot, radius = dotRadius, center = Offset(size.width * s.age, size.height / 2f))
+private fun PhotoDialog(series: SeriesDto, services: SeriesServices, onDismiss: () -> Unit) {
+    var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
+    var failed by remember(series.id) { mutableStateOf(false) }
+    LaunchedEffect(series.id) {
+        // Cache first, then the network; null is a failed download with nothing cached.
+        photo = services.repository.image(series.id)?.let {
+            try {
+                decodeSeriesJpeg(it, PHOTO_MAX_DIM)
+            } catch (_: Exception) {
+                null
+            }
         }
+        failed = photo == null
     }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.help_close)) }
+        },
+        title = { Text(localStamp(series.timestamp)) },
+        text = {
+            val box = Modifier.fillMaxWidth().aspectRatio(1f)
+            val shown = photo
+            when {
+                shown != null -> Image(shown, contentDescription = null, contentScale = ContentScale.Fit, modifier = box)
+                failed -> StateMessage(icon = Icons.Default.HideImage, title = stringResource(Res.string.detail_photo_missing), modifier = box)
+                else -> StateMessage(loading = true, modifier = box)
+            }
+        },
+    )
 }
 
 @Composable

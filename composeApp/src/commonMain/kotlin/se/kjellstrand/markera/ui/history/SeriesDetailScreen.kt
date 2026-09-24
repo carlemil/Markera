@@ -106,7 +106,7 @@ private val DETECTED_COLOR = Color(0xFF9CCC65)
 private val GRAB_RADIUS = 24.dp
 
 /** Plenty for the zoomable photo; the stored frame is ~3000² (36 MB decoded). */
-private const val PHOTO_MAX_DIM = 1536
+internal const val PHOTO_MAX_DIM = 1536
 
 /**
  * One saved series: the scanned photo with a marker per positioned hole, the

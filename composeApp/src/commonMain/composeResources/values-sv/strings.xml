@@ -200,7 +200,8 @@
     <string name="stats_help_impact_median">Medianen av alla träffars x och y var för sig — mindre känslig för enstaka utliggare än medelpunkten. Ritas som ett × på tavlan.</string>
     <string name="stats_help_mean_score">Medelvärdet av seriernas totalpoäng.</string>
     <string name="stats_help_colours">Färger och tidslinjen</string>
-    <string name="stats_help_colours_body">Träffarna färgas efter kaliber, samma färger som linjerna i fliken Trend. Stapeln under tavlan är seriernas tidslinje: den går från den äldsta serien till vänster till den nyaste till höger, med en prick per serie, och de två reglagen smalnar av tavlan och måtten till ett urval av dem.</string>
+    <string name="stats_help_colours_body">Träffarna färgas efter kaliber, samma färger som linjerna i fliken Trend. Stapeln under tavlan är seriernas tidslinje: den går från den äldsta serien till vänster till den nyaste till höger, med en prick per serie. Tryck på reglaget för att slå på det, så visar tavlan och måtten bara serien det står på (fyllt reglage, med datum och tid ovanför stapeln); tryck igen för att visa alla serier som filtren släpper igenom (ihåligt reglage). Dra reglaget, eller tryck någon annanstans på stapeln, för att flytta det till en annan serie. När reglaget är på visar kameraknappen i tavlans övre högra hörn seriens foto.</string>
+    <string name="stats_show_photo">Visa foto</string>
 
     <!-- Series detail -->
     <string name="detail_title">Serie</string>
