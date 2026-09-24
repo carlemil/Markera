@@ -182,6 +182,27 @@ platform :ios do
     UI.success("Removed #{deleted} duplicate screenshot(s)")
   end
 
+  # A screenshot can read COMPLETE yet block submission as "still in progress"
+  # indefinitely (1.8.0, 2026-09-24); replacing just those files clears it.
+  desc "Re-upload named screenshots in place: `fastlane reupload names:03-statistics.png,02-serie.png`."
+  lane :reupload do |options|
+    asc_key
+    names = options[:names].to_s.split(",")
+    UI.user_error!("Pass names:<file.png,...>") if names.empty?
+    version = Spaceship::ConnectAPI::App.find(APP_ID).get_edit_app_store_version(platform: "IOS")
+    version.get_app_store_version_localizations.each do |loc|
+      dir = { "en-US" => "en-US", "sv" => "sv" }[loc.locale] or next
+      loc.get_app_screenshot_sets.each do |set|
+        set.app_screenshots.each_with_index do |shot, position|
+          next unless names.include?(shot.file_name)
+          shot.delete!
+          set.upload_screenshot(path: "screenshots/#{dir}/#{shot.file_name}", position: position)
+          UI.success("#{loc.locale} #{shot.file_name} re-uploaded at position #{position}")
+        end
+      end
+    end
+  end
+
   desc "Push App Store metadata + screenshots to the editable version (no submit)."
   lane :metadata do |options|
     push_listing(submit: false, version: options[:version])
