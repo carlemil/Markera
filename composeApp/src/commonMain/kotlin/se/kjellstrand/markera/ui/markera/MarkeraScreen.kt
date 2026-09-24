@@ -399,17 +399,6 @@ private fun BottomArea(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 ScanChips()
-                LiveHint()
-                DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
-                // With hole detection off there is nothing for a rescan to find.
-                if (continuousAvailable) {
-                    ScanToggleRow(
-                        label = stringResource(Res.string.markera_continuous),
-                        checked = continuous,
-                        onCheckedChange = onToggleContinuous,
-                        onHelp = onContinuousHelp,
-                    )
-                }
                 // Without hole detection the button only freezes the frame (and its
                 // ring) for hand marking, so it says that instead of "Detect".
                 PrimaryActionButton(
@@ -419,6 +408,25 @@ private fun BottomArea(
                     icon = Icons.Default.PhotoCamera,
                     onClick = onScan,
                 )
+                // Only the rows below scroll when the area runs short (a small phone,
+                // the debug build's extra switch): the chips and Detect stay on screen.
+                Column(
+                    modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    LiveHint()
+                    DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
+                    // With hole detection off there is nothing for a rescan to find.
+                    if (continuousAvailable) {
+                        ScanToggleRow(
+                            label = stringResource(Res.string.markera_continuous),
+                            checked = continuous,
+                            onCheckedChange = onToggleContinuous,
+                            onHelp = onContinuousHelp,
+                        )
+                    }
+                }
             }
             else -> ResultsContent(uiState, onResume, onReset, onSetScore, Modifier.fillMaxSize())
         }
@@ -472,23 +480,12 @@ private fun ScanToggleRow(label: String, checked: Boolean, onCheckedChange: (Boo
 
 @Composable
 private fun LiveHint() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            Icons.Default.PhotoCamera,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(32.dp),
-        )
-        Text(
-            text = stringResource(Res.string.markera_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
+    Text(
+        text = stringResource(Res.string.markera_hint),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
