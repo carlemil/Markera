@@ -1,7 +1,10 @@
-Nytt i 1.7.0:
-• Säkrare ringdetektering — 6/7-ringen hittas rätt betydligt oftare
-• Sökaren visar 6 och 7 kring hjälpringen när du fotograferar
-• Tryck på en poängruta för att skriva in poängen direkt
-• Historik grupperas per dag och kan fällas ihop, med filter för kaliber och datum
-• Statistik: flikarna Tavla och Trend, med trendlinjer och spridning över tid
-• Ny app-ikon, och en serie behåller högst fem träffar
+Nytt i 1.8.0:
+• Engelska eller svenska, ljust eller mörkt tema, i nya Inställningar
+• Tagga en serie (träning, tävling…) och filtrera på tagg
+• Lägg till egna kalibrar
+• Logga in med Apple även på Android
+• Tryck på en poäng eller kaliber i en serie för att ändra den, och ångra en flyttad träff
+• Statistik: träffar färgade efter kaliber, en tidslinje genom serierna och fotot ett tryck bort
+• Ring 8 och 9 ritas på fotot
+• Filtret "Idag" och en ny design på seriekorten
+• Många fixar

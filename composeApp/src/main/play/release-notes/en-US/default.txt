@@ -1,7 +1,10 @@
-New in 1.7.0:
-• More reliable ring detection — the 6/7 ring is found correctly much more often
-• The viewfinder shows 6 and 7 around the guide ring while you take the photo
-• Tap a score box to type in the score directly
-• History is grouped by day and can be collapsed, with filters for caliber and date
-• Statistics: Target and Trend tabs, with trend lines and spread over time
-• New app icon, and a series keeps at most five hits
+New in 1.8.0:
+• English or Swedish, light or dark theme, in the new Settings
+• Tag a series (training, competition…) and filter by tag
+• Add your own calibers
+• Sign in with Apple on Android too
+• Tap a score or caliber on a series to change it, and undo a moved hit
+• Statistics: hits coloured by caliber, a timeline to step through series, and the photo one tap away
+• Rings 8 and 9 drawn on the photo
+• A "Today" filter and a new series card design
+• Many fixes
