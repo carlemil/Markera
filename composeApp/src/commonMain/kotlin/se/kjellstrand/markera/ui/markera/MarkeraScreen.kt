@@ -291,7 +291,9 @@ fun MarkeraScreen(
                     onSetScore = onSetScore,
                     detectHoles = detectHoles,
                     onToggleDetectHoles = { detectHoles = it },
-                    continuousAvailable = frameSource.supportsContinuousScan && detectHoles,
+                    // Debug builds only until it is proven on a real range (the switch starts off,
+                    // so hiding it keeps the watch off in release).
+                    continuousAvailable = isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
                     continuous = continuous,
                     onToggleContinuous = { continuous = it },
                     onContinuousHelp = { showingContinuousHelp = true },
@@ -329,13 +331,13 @@ fun MarkeraScreen(
     if (showingHelp) {
         HelpDialog(
             title = stringResource(Res.string.help_scan_title),
-            sections = listOf(
+            sections = listOfNotNull(
                 Res.string.help_scan_scan to Res.string.help_scan_scan_body,
                 Res.string.help_scan_edit to Res.string.help_scan_edit_body,
                 Res.string.help_scan_score to Res.string.help_scan_score_body,
                 Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
                 Res.string.help_scan_save to Res.string.help_scan_save_body,
-                Res.string.help_scan_continuous to Res.string.help_scan_continuous_body,
+                if (isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
                 Res.string.help_scan_debug to Res.string.help_scan_debug_body,
             ),
             onDismiss = { showingHelp = false },

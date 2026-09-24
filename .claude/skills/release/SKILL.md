@@ -22,6 +22,15 @@ Perform the steps in order. Stop and report if any step fails or a prerequisite 
 
 ## Step 1 — Check prerequisites
 
+### 1-pre. Features hidden in release builds
+Before anything else, warn the user about every feature still gated to debug builds, and let them decide whether it ships hidden or gets un-gated first:
+
+```
+grep -rn "isDebugBuild" composeApp/src/commonMain/kotlin
+```
+
+Gates that are developer tools (the debug overlay, watch recording) are expected. Feature gates are not. **Continuous scan** (the "Kontinuerlig skanning" switch, `continuousAvailable` in `MarkeraScreen.kt`) was hidden on 2026-09-24 until it is proven on a real range.
+
 ### 1a. keystore.properties
 Check if `keystore.properties` exists in the project root. If it does **not** exist, stop and tell the user to create it with this format (the `keystore` file is expected at the project root):
 
