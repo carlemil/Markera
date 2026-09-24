@@ -85,7 +85,7 @@ Calibers (task 105): `22lr, 22wmr, 17hmr, 32, 380, 9mm, 38, 357, 40, 10mm, 44, 4
       `server/.env` as `GOOGLE_CLIENT_ID=...`.
 - [x] Apple Developer: "Sign in with Apple" on the iOS bundle id (the fastlane lane enabled it 2026-09-10);
       `APPLE_BUNDLE_ID` set in the Mac's `server/.env`, container rebuilt 2026-09-10.
-- [ ] Apple Developer, for Sign in with Apple **on Android** (task 119): create a **Services ID**
+- [x] (done 2026-09-24: Services ID `se.kjellstrand.markera.web`, key B5DG2Y3YB6, the five vars in the Mac's `server/.env`, container recreated; Apple sign-in on Android user-tested) Apple Developer, for Sign in with Apple **on Android** (task 119): create a **Services ID**
       (e.g. `se.kjellstrand.markera.web`) whose *Primary App ID* is `se.kjellstrand.markera` — that is
       what makes Apple return the same `sub` to Android as to the iPhone; anything else lands the user
       on a second, empty account. Domain `markera.duckdns.org`, Return URL exactly
