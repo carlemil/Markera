@@ -416,15 +416,22 @@ private fun BottomArea(
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     LiveHint()
-                    DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
-                    // With hole detection off there is nothing for a rescan to find.
-                    if (continuousAvailable) {
-                        ScanToggleRow(
-                            label = stringResource(Res.string.markera_continuous),
-                            checked = continuous,
-                            onCheckedChange = onToggleContinuous,
-                            onHelp = onContinuousHelp,
-                        )
+                    // The switches side by side, a divider between them.
+                    Row(
+                        modifier = Modifier.height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    ) {
+                        DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
+                        // With hole detection off there is nothing for a rescan to find.
+                        if (continuousAvailable) {
+                            VerticalDivider()
+                            ScanToggle(
+                                label = stringResource(Res.string.markera_continuous),
+                                checked = continuous,
+                                onCheckedChange = onToggleContinuous,
+                                onHelp = onContinuousHelp,
+                            )
+                        }
                     }
                 }
             }
@@ -449,30 +456,32 @@ private fun ScanChips() {
 /** Off: the scan stops after the geometry and the holes are placed by hand. */
 @Composable
 private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    ScanToggleRow(stringResource(Res.string.markera_detect_holes), checked, onCheckedChange)
+    ScanToggle(stringResource(Res.string.markera_detect_holes), checked, onCheckedChange)
 }
 
-/** A labelled switch in the pre-scan column. */
+/** A switch with its label above it, in the pre-scan row of switches. */
 @Composable
-private fun ScanToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, onHelp: (() -> Unit)? = null) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+private fun ScanToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, onHelp: (() -> Unit)? = null) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-        // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
-        if (onHelp != null) {
-            IconButton(onClick = onHelp) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.HelpOutline,
-                    contentDescription = stringResource(Res.string.help),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+            // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
+            if (onHelp != null) {
+                IconButton(onClick = onHelp) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.HelpOutline,
+                        contentDescription = stringResource(Res.string.help),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
