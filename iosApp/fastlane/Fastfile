@@ -189,6 +189,38 @@ platform :ios do
 
   desc "Metadata + screenshots, attach the newest TestFlight build and submit for review."
   lane :release do
-    push_listing(submit: true)
+    push_listing(submit: false)
+    submit
+  end
+
+  # Apple refuses a submission while freshly uploaded screenshots are still
+  # processing ("Screenshot uploads still in progress", 1.8.0 on 2026-09-24), and
+  # deliver submits straight after uploading them — so wait, then submit alone.
+  desc "Submit the editable version for review, once its screenshots are processed (no uploads)."
+  lane :submit do
+    api_key = asc_key
+    version = Spaceship::ConnectAPI::App.find(APP_ID).get_edit_app_store_version(platform: "IOS")
+    UI.user_error!("No editable App Store version") unless version
+    30.times do
+      pending = version.get_app_store_version_localizations.flat_map(&:get_app_screenshot_sets)
+                       .flat_map(&:app_screenshots).reject(&:complete?)
+      break if pending.empty?
+      UI.message("#{pending.size} screenshot(s) still processing; waiting")
+      sleep(10)
+    end
+    upload_to_app_store(
+      api_key:            api_key,
+      app_version:        version.version_string,
+      skip_binary_upload: true,
+      skip_metadata:      true,
+      skip_screenshots:   true,
+      submit_for_review:  true,
+      automatic_release:  false,
+      submission_information: {
+        add_id_info_uses_idfa:            false,
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false,
+      },
+    )
   end
 end
