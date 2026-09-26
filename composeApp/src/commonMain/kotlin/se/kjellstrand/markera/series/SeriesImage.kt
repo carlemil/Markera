@@ -21,3 +21,10 @@ expect suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage
  * stored `imageWidth`/`imageHeight`, so the decoded size does not matter.
  */
 expect fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap?
+
+/**
+ * A small JPEG of the stored series JPEG [bytes], at most [maxDim] px on the longer side, for
+ * the Historik list: cached beside the full frame so reopening the list decodes kilobytes, not
+ * a 3000² frame per row. Null when [bytes] do not decode.
+ */
+expect fun thumbnailJpeg(bytes: ByteArray, maxDim: Int): ByteArray?

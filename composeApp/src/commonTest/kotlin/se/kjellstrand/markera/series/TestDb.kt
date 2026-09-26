@@ -9,7 +9,10 @@ expect fun testSeriesDb(): MarkeraDb
 class FakeImageCache : ImageCache {
     val files = mutableMapOf<Long, ByteArray>()
     override fun read(id: Long): ByteArray? = files[id]
+    val thumbs = mutableMapOf<Long, ByteArray>()
     override fun write(id: Long, bytes: ByteArray) { files[id] = bytes }
-    override fun delete(id: Long) { files.remove(id) }
-    override fun clear() = files.clear()
+    override fun readThumb(id: Long): ByteArray? = thumbs[id]
+    override fun writeThumb(id: Long, bytes: ByteArray) { thumbs[id] = bytes }
+    override fun delete(id: Long) { files.remove(id); thumbs.remove(id) }
+    override fun clear() { files.clear(); thumbs.clear() }
 }

@@ -39,24 +39,31 @@ class SeriesServices(
     }
 }
 
-/** The cached series JPEGs, one file per id under `cacheDir/series/`. */
+/** The cached series JPEGs under `cacheDir/series/`: `<id>.jpg` and its thumbnail `<id>.thumb.jpg`. */
 class FileImageCache(private val dir: Path) : ImageCache {
 
     private fun file(id: Long) = Path(dir, "$id.jpg")
+    private fun thumb(id: Long) = Path(dir, "$id.thumb.jpg")
 
-    override fun read(id: Long): ByteArray? = runCatching {
-        SystemFileSystem.source(file(id)).buffered().use { it.readByteArray() }
+    override fun read(id: Long) = read(file(id))
+    override fun write(id: Long, bytes: ByteArray) = write(file(id), bytes)
+    override fun readThumb(id: Long) = read(thumb(id))
+    override fun writeThumb(id: Long, bytes: ByteArray) = write(thumb(id), bytes)
+
+    private fun read(path: Path): ByteArray? = runCatching {
+        SystemFileSystem.source(path).buffered().use { it.readByteArray() }
     }.getOrNull()
 
-    override fun write(id: Long, bytes: ByteArray) {
+    private fun write(path: Path, bytes: ByteArray) {
         runCatching {
             SystemFileSystem.createDirectories(dir)
-            SystemFileSystem.sink(file(id)).buffered().use { it.write(bytes) }
+            SystemFileSystem.sink(path).buffered().use { it.write(bytes) }
         }
     }
 
     override fun delete(id: Long) {
         runCatching { SystemFileSystem.delete(file(id), mustExist = false) }
+        runCatching { SystemFileSystem.delete(thumb(id), mustExist = false) }
     }
 
     override fun clear() {

@@ -12,10 +12,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.series.db.MarkeraDb
 
-/** The scanned frames on disk, one JPEG per series id. */
+/** The scanned frames on disk, one JPEG per series id, plus its list thumbnail. */
 interface ImageCache {
     fun read(id: Long): ByteArray?
     fun write(id: Long, bytes: ByteArray)
+    fun readThumb(id: Long): ByteArray?
+    fun writeThumb(id: Long, bytes: ByteArray)
+    /** Removes both the frame and its thumbnail. */
     fun delete(id: Long)
     fun clear()
 }
@@ -177,6 +180,15 @@ class SeriesRepository(
             throw e
         } catch (_: Exception) {
             null
+        }
+    }
+
+    /** The list thumbnail JPEG: the cached one, else cut from [image] once and kept. */
+    suspend fun thumbnail(id: Long, maxDim: Int): ByteArray? {
+        withContext(Dispatchers.Default) { images.readThumb(id) }?.let { return it }
+        val full = image(id) ?: return null
+        return withContext(Dispatchers.Default) {
+            thumbnailJpeg(full, maxDim)?.also { images.writeThumb(id, it) }
         }
     }
 

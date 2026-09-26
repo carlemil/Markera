@@ -64,6 +64,22 @@ actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
     )
 }
 
+actual fun thumbnailJpeg(bytes: ByteArray, maxDim: Int): ByteArray? {
+    if (bytes.isEmpty()) return null
+    val image = UIImage(data = bytes.toNSData())
+    val w = image.width
+    val h = image.height
+    if (w <= 0 || h <= 0) return null
+    val s = minOf(1.0, maxDim.toDouble() / maxOf(w, h))
+    val tw = (w * s).toInt().coerceAtLeast(1).toDouble()
+    val th = (h * s).toInt().coerceAtLeast(1).toDouble()
+    // scale = 1 so the renderer's point size is the pixel size.
+    val format = UIGraphicsImageRendererFormat.defaultFormat().apply { scale = 1.0 }
+    val thumb = UIGraphicsImageRenderer(size = CGSizeMake(tw, th), format = format)
+        .imageWithActions { image.drawInRect(CGRectMake(0.0, 0.0, tw, th)) }
+    return UIImageJPEGRepresentation(thumb, 0.85)?.toByteArray()
+}
+
 private fun ByteArray.toNSData(): NSData = usePinned {
     NSData.create(bytes = it.addressOf(0), length = size.toULong())
 }

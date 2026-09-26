@@ -26,7 +26,31 @@ actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage =
         }
     }
 
-actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
+actual fun thumbnailJpeg(bytes: ByteArray, maxDim: Int): ByteArray? {
+    // Subsampled to within 2× of the target, then one filtered scale to exactly it.
+    val sampled = decodeSampled(bytes, maxDim * 2) ?: return null
+    val s = maxDim.toFloat() / maxOf(sampled.width, sampled.height)
+    val thumb = if (s < 1f) {
+        Bitmap.createScaledBitmap(
+            sampled,
+            (sampled.width * s).toInt().coerceAtLeast(1),
+            (sampled.height * s).toInt().coerceAtLeast(1),
+            true,
+        ).also { sampled.recycle() }
+    } else {
+        sampled
+    }
+    return ByteArrayOutputStream().use { out ->
+        thumb.compress(Bitmap.CompressFormat.JPEG, 85, out)
+        thumb.recycle()
+        out.toByteArray()
+    }
+}
+
+actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? =
+    decodeSampled(bytes, maxDim)?.asImageBitmap()
+
+private fun decodeSampled(bytes: ByteArray, maxDim: Int): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     var sample = 1
@@ -34,5 +58,5 @@ actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
     return BitmapFactory.decodeByteArray(
         bytes, 0, bytes.size,
         BitmapFactory.Options().apply { inSampleSize = sample },
-    )?.asImageBitmap()
+    )
 }

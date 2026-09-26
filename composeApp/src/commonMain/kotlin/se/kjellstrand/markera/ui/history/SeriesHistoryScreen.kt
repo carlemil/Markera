@@ -527,8 +527,8 @@ internal fun SeriesCard(
     if (series.hasImage) {
         LaunchedEffect(series.id) {
             if (thumbnails[series.id] != null) return@LaunchedEffect
-            // Cached on disk after the first fetch, so reopening downloads nothing.
-            val bytes = services.repository.image(series.id) ?: return@LaunchedEffect
+            // A small JPEG cached on disk after the first fetch, so reopening reads kilobytes.
+            val bytes = services.repository.thumbnail(series.id, THUMB_MAX_DIM) ?: return@LaunchedEffect
             decodeSeriesJpeg(bytes, THUMB_MAX_DIM)?.let {
                 thumbnails[series.id] = it
             }
