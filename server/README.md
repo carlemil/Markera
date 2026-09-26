@@ -23,14 +23,15 @@ domain by fetching `/.well-known/apple-developer-domain-association.txt`, served
 `src/main/resources/apple-developer-domain-association.txt` (404 while that file is absent).
 
 API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
-`GET /auth/apple/start?state=` → 302 to Apple, `GET /auth/apple/callback` → 302 to `markera://auth/apple?state=`,
-`POST /auth/apple/claim` `{state, secret}` → `{token, userId}` (`state` is the hex sha256 of `secret`, which
-never leaves the device — any app can catch the deep link, only the one that started the flow can redeem it;
-single use, 60 s),
+`GET /auth/apple/start?state=` → 302 to Apple, `GET /auth/apple/callback` → 302 to
+`markera://auth/apple?state=&nonce=`, `POST /auth/apple/claim` `{state, secret, nonce}` → `{token, userId}`
+(`state` is the hex sha256 of `secret`, which never leaves the device — any app can catch the deep link, only
+the one that started the flow can redeem it; the one-time `nonce` goes only to the browser that signed in, so
+whoever chose the `state` cannot redeem someone else's login either; single use, 60 s),
 `POST /series` / `GET /series` / `PUT /series/{id}` (same body as POST, replaces timestamp, caliber and
 every hole → 204) / `DELETE /series/{id}` (→ 204, 404 if not yours) with
 `Authorization: Bearer <token>`, `DELETE /account` (→ 204; wipes the caller's series, images and sessions,
-so the token stops working), `POST /series/{id}/image` (raw `image/jpeg` body ≤ 5 MB → 204) /
+so the token stops working), `POST /series/{id}/image` (raw `image/jpeg` body ≤ 10 MB → 204) /
 `GET /series/{id}/image`.
 
 `GET /series` returns a plain array, newest first, and pages with `?limit=` (default 50, clamped to 1..200)

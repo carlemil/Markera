@@ -16,7 +16,8 @@ import java.security.SecureRandom
  * and parks the finished session for us to claim.
  *
  * Any app on the phone can register `markera://`, so the deep link carries only [state] — the sha256 of
- * a secret that stays here. An interceptor catches the hash and cannot redeem it.
+ * a secret that stays here — plus the backend's one-time nonce. An interceptor catches both and still
+ * lacks the secret; whoever chose the state (an attacker mailing a start link) lacks the nonce.
  */
 suspend fun signInWithApple(context: Context, session: BackendSessionRepository): BackendAuth {
     val secret = randomSecret()
@@ -33,8 +34,8 @@ suspend fun signInWithApple(context: Context, session: BackendSessionRepository)
         AppleReturn.cancel()
         throw IllegalStateException("No browser to sign in with Apple in", e)
     }
-    returned.await()
-    return session.signInAppleClaim(state, secret)
+    val nonce = returned.await()
+    return session.signInAppleClaim(state, secret, nonce)
 }
 
 /** Where the browser is sent; the backend 302s on to Apple. */
@@ -54,13 +55,14 @@ private fun hex(bytes: ByteArray) = bytes.joinToString("") { "%02x".format(it) }
  */
 object AppleReturn {
     private var state: String? = null
-    private var pending: CompletableDeferred<Unit>? = null
+    private var pending: CompletableDeferred<String>? = null
 
+    /** @return the deep link's nonce, once the browser comes back. */
     @Synchronized
-    fun arm(state: String): CompletableDeferred<Unit> {
+    fun arm(state: String): CompletableDeferred<String> {
         cancel() // an earlier attempt the user walked away from
         this.state = state
-        return CompletableDeferred<Unit>().also { pending = it }
+        return CompletableDeferred<String>().also { pending = it }
     }
 
     /** The browser came back. @return true when the intent was the sign-in we armed. */
@@ -70,8 +72,9 @@ object AppleReturn {
         if (uri == null || uri.getQueryParameter("state") != state) return false
         clear()
         // The backend sets `error` when the user backed out at Apple's page.
-        if (uri.getQueryParameter("error") != null) waiting.completeExceptionally(SignInCancelledException())
-        else waiting.complete(Unit)
+        val nonce = uri.getQueryParameter("nonce")
+        if (uri.getQueryParameter("error") != null || nonce == null) waiting.completeExceptionally(SignInCancelledException())
+        else waiting.complete(nonce)
         return true
     }
 

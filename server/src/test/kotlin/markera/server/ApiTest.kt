@@ -707,6 +707,12 @@ class ApiTest {
     }
 
     @Test
+    fun signInBodiesOverTheAuthCapAre413() = apiTest { client ->
+        val huge = TextContent("""{"subject":"${"a".repeat(MAX_AUTH_BYTES)}"}""", ContentType.Application.Json)
+        assertEquals(HttpStatusCode.PayloadTooLarge, client.post("/auth/dev") { setBody(huge) }.status)
+    }
+
+    @Test
     fun seriesBodyOverOneMegabyteIs413() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("me")
         val id = client.createSeries(me.token)

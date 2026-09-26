@@ -27,6 +27,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
 import java.io.File
@@ -86,6 +88,9 @@ const val MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 // A series JSON is a few KB; 50 holes with every field is still far below this.
 const val MAX_SERIES_BYTES = 1024 * 1024
+
+// Sign-in bodies: an ID token is ~1-2 KB, a claim ~200 bytes. They are open to anyone, so kept tight.
+const val MAX_AUTH_BYTES = 16 * 1024
 
 /** More holes than any series has; a cap so one request cannot store an unbounded list. */
 const val MAX_HOLES = 50
@@ -181,9 +186,12 @@ data class IdTokenRequest(val idToken: String)
 @Serializable
 data class DevAuthRequest(val subject: String)
 
-/** The app redeeming the login the Apple callback parked: [secret] is the pre-image of `state`. */
+/**
+ * The app redeeming the login the Apple callback parked: [secret] is the pre-image of `state`, [nonce]
+ * what the callback's deep link carried. An app too old to send one gets a 401, not a 400.
+ */
 @Serializable
-data class AppleClaimRequest(val state: String, val secret: String)
+data class AppleClaimRequest(val state: String, val secret: String, val nonce: String = "")
 
 @Serializable
 data class AuthResponse(val token: String, val userId: Long)
@@ -196,6 +204,9 @@ data class ErrorResponse(val error: String)
 
 fun main() {
     val config = Config.fromEnv()
+    // The admin pages read and delete every user's photos: never behind .env.example's placeholder.
+    check(config.adminPassword != "change-me") { "ADMIN_PASSWORD is still the .env.example placeholder" }
+    if ((config.adminPassword?.length ?: 16) < 16) System.err.println("WARNING: ADMIN_PASSWORD is shorter than 16 characters")
     val db = Db(config.dbPath)
     embeddedServer(Netty, port = config.port, host = "0.0.0.0") { markeraModule(config, db) }.start(wait = true)
 }
@@ -268,25 +279,29 @@ fun Application.markeraModule(
                 return@get
             }
             val identity = try {
-                identifyAppleCode(code)
+                // Blocking HTTP to Apple: off the request thread.
+                withContext(Dispatchers.IO) { identifyAppleCode(code) }
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.Unauthorized, ErrorResponse(e.message ?: "apple sign-in failed"))
+                // The details (Apple's error codes, key problems) are for the log, not the browser.
+                call.application.environment.log.warn("apple sign-in failed", e)
+                call.respond(HttpStatusCode.Unauthorized, ErrorResponse("apple sign-in failed"))
                 return@get
             }
             val userId = db.upsertUser("apple", identity.subject, identity.name)
-            pendingLogins.park(state, AuthResponse(db.createSession(userId), userId))
-            call.respondRedirect("$APPLE_DEEP_LINK?state=$state")
+            // The session itself is minted at claim time, so an unclaimed login leaves nothing behind.
+            val nonce = pendingLogins.park(state, userId)
+            call.respondRedirect("$APPLE_DEEP_LINK?state=$state&nonce=$nonce")
         }
 
         post("/auth/apple/claim") {
             if (appleWeb == null) return@post appleWebUnavailable()
-            val req = call.receive<AppleClaimRequest>()
-            val auth = pendingLogins.claim(req.state, req.secret)
-            if (auth == null) {
+            val req = receiveCapped<AppleClaimRequest>(MAX_AUTH_BYTES) ?: return@post
+            val userId = pendingLogins.claim(req.state, req.secret, req.nonce)
+            if (userId == null) {
                 call.respond(HttpStatusCode.Unauthorized, ErrorResponse("unknown or expired login"))
                 return@post
             }
-            call.respond(auth)
+            call.respond(AuthResponse(db.createSession(userId), userId))
         }
 
         // Apple verifies the domain by fetching this; the blob is a public token, so it is committed.
@@ -297,7 +312,7 @@ fun Application.markeraModule(
         }
         if (config.devAuth) {
             post("/auth/dev") {
-                val subject = call.receive<DevAuthRequest>().subject
+                val subject = receiveCapped<DevAuthRequest>(MAX_AUTH_BYTES)?.subject ?: return@post
                 issueSession(db, "dev", Identity(subject, subject))
             }
         }
@@ -431,17 +446,18 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
     return true
 }
 
+internal suspend fun RoutingContext.receiveSeries(): SeriesRequest? = receiveCapped(MAX_SERIES_BYTES)
+
 /**
- * The series body, capped at [MAX_SERIES_BYTES] by its declared length (411 without one, 413 over it; null then).
+ * A JSON body capped at [max] bytes by its declared length (411 without one, 413 over it; null then).
  * Netty never reads past `Content-Length`, so a false one cannot sneak a bigger body through.
  */
-internal suspend fun RoutingContext.receiveSeries(): SeriesRequest? {
+internal suspend inline fun <reified T : Any> RoutingContext.receiveCapped(max: Int): T? {
     val declared = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
     when {
         declared == null -> call.respond(HttpStatusCode.LengthRequired, ErrorResponse("Content-Length required"))
-        declared > MAX_SERIES_BYTES ->
-            call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("series must be at most $MAX_SERIES_BYTES bytes"))
-        else -> return call.receive<SeriesRequest>()
+        declared > max -> call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("body must be at most $max bytes"))
+        else -> return call.receive<T>()
     }
     return null
 }
@@ -475,8 +491,9 @@ private suspend fun RoutingContext.providerAuth(db: Db, provider: String, verifi
         call.respond(HttpStatusCode.ServiceUnavailable, ErrorResponse("$provider sign-in is not configured"))
         return
     }
+    val idToken = receiveCapped<IdTokenRequest>(MAX_AUTH_BYTES)?.idToken ?: return
     val identity = try {
-        verifier.identity(call.receive<IdTokenRequest>().idToken)
+        verifier.identity(idToken)
     } catch (e: JWTVerificationException) {
         call.respond(HttpStatusCode.Unauthorized, ErrorResponse(e.message ?: "invalid id token"))
         return

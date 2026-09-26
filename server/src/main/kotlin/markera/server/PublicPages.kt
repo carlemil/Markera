@@ -76,12 +76,13 @@ fun privacyPage(contactEmail: String?): String {
         "Integritetspolicy – Markera / Privacy policy – Markera",
         """<h1>Integritetspolicy – Markera</h1>
 <p>Personuppgiftsansvarig är appens utvecklare, Carl-Emil Kjellstrand, Sverige. Kontakt: $svContact.</p>
-<p>Gäller från: 2026-09-15.</p>
+<p>Gäller från: 2026-09-26.</p>
 <h2 style="font-size:16px">Vad som lagras</h2>
-<p>Ingenting lagras på servern om du använder appen utan att logga in. Loggar du in med Google lagras:</p>
+<p>Ingenting lagras på servern om du använder appen utan att logga in. Loggar du in med Google eller Apple lagras:</p>
 <ul>
-<li><strong>Konto:</strong> Google-kontots identifierare (<code>sub</code> i inloggningstoken) och ett
-visningsnamn (namnet från Google, eller delen före @ i e-postadressen om namn saknas; själva adressen lagras aldrig). Inget lösenord ses eller lagras.</li>
+<li><strong>Konto:</strong> Google- eller Apple-kontots identifierare (<code>sub</code> i inloggningstoken) och
+ett visningsnamn (namnet från Google, eller delen före @ i e-postadressen om namn saknas; själva adressen
+lagras aldrig; Apple lämnar varken namn eller adress). Inget lösenord ses eller lagras.</li>
 <li><strong>Sparade serier:</strong> tidpunkt, kaliber och varje detekterad träffs position och poäng.</li>
 <li><strong>Tavelfotot</strong> för varje sparad serie (en beskuren kvadratisk bild från kameran; den kan
 visa det som skrivits på tavlan).</li>
@@ -93,7 +94,7 @@ visa det som skrivits på tavlan).</li>
 sparar en serie.</p>
 <h2 style="font-size:16px">Delning, lagringsplats och lagringstid</h2>
 <p>Ingen analys, ingen reklam, inga spårnings-SDK:er, ingen försäljning eller delning av uppgifter med
-tredje part. Googles inloggningstjänst används enbart för att verifiera vem du är.</p>
+tredje part. Googles och Apples inloggningstjänster används enbart för att verifiera vem du är.</p>
 <p>Uppgifterna ligger på utvecklarens egen server i Sverige och överförs över HTTPS. De sparas tills du
 raderar kontot.</p>
 <h2 style="font-size:16px">Radering och dina rättigheter</h2>
@@ -107,15 +108,15 @@ lämnas till Integritetsskyddsmyndigheten (IMY) i Sverige.</p>
 
 <h2>Privacy policy – Markera</h2>
 <p>The controller is the app's developer, Carl-Emil Kjellstrand, Sweden. Contact: $enContact.</p>
-<p>Effective date: 2026-09-15.</p>
+<p>Effective date: 2026-09-26.</p>
 <h2 style="font-size:16px">What is stored</h2>
-<p>Nothing is stored on the server if you use the app without signing in. When you sign in with Google,
-the following is stored:</p>
+<p>Nothing is stored on the server if you use the app without signing in. When you sign in with Google or
+Apple, the following is stored:</p>
 <ul>
-<li><strong>Account:</strong> the Google account's identifier (the token's <code>sub</code>) and a display
-name (the Google name, or the part of the e-mail address before the @ when no name is available; the address itself is never
-stored). No password is ever seen or
-stored.</li>
+<li><strong>Account:</strong> the Google or Apple account's identifier (the token's <code>sub</code>) and a
+display name (the Google name, or the part of the e-mail address before the @ when no name is available;
+the address itself is never stored; Apple provides neither a name nor an address). No password is ever seen
+or stored.</li>
 <li><strong>Saved series:</strong> time, caliber, and each detected hole's position and score.</li>
 <li><strong>The target photo</strong> of each saved series (a cropped square frame from the camera; it may
 show whatever was written on the target).</li>
@@ -126,7 +127,7 @@ show whatever was written on the target).</li>
 ML Kit) run locally. Camera frames are not sent anywhere unless you save a series.</p>
 <h2 style="font-size:16px">Sharing, location and retention</h2>
 <p>No analytics, no advertising, no tracking SDKs, no sale or sharing of data with third parties. Google's
-sign-in service is used only to verify who you are.</p>
+and Apple's sign-in services are used only to verify who you are.</p>
 <p>The data lives on the developer's own server in Sweden and is transferred over HTTPS. It is kept until
 you delete the account.</p>
 <h2 style="font-size:16px">Deletion and your rights</h2>

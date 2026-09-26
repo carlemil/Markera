@@ -212,7 +212,8 @@ The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
 **Sign in with Apple**: Apple has no Android SDK, so `AppleSignIn.kt` opens the browser at the
 backend's `/auth/apple/start?state=`, which mediates the whole OAuth flow and parks the session for
 `POST /auth/apple/claim` (`state` = hex sha256 of a secret that stays on the device, so catching the
-`markera://auth/apple` deep link buys nothing). Needs the five `APPLE_*`/`PUBLIC_URL` vars on the
+`markera://auth/apple` deep link buys nothing; the claim also needs the one-time `nonce` that only that deep
+link carries, so an attacker who mails someone a start link for their own `state` cannot redeem it). Needs the five `APPLE_*`/`PUBLIC_URL` vars on the
 server; without them that route answers 503 and only Google works. No account linking — Apple and
 Google are separate users. Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple in

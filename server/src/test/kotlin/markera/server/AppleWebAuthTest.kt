@@ -71,10 +71,14 @@ class AppleWebAuthTest {
     private suspend fun HttpClient.callback(state: String = STATE, code: String = "apple-code") =
         get("/auth/apple/callback?code=$code&state=$state")
 
-    private suspend fun HttpClient.claim(state: String, secret: String) =
+    /** Runs the callback and returns the nonce its deep link carried. */
+    private suspend fun HttpClient.signIn(state: String = STATE): String =
+        assertNotNull(Url(assertNotNull(callback(state).headers[HttpHeaders.Location])).parameters["nonce"])
+
+    private suspend fun HttpClient.claim(state: String, secret: String, nonce: String) =
         post("/auth/apple/claim") {
             contentType(ContentType.Application.Json)
-            setBody(AppleClaimRequest(state, secret))
+            setBody(AppleClaimRequest(state, secret, nonce))
         }
 
     @Test
@@ -101,37 +105,63 @@ class AppleWebAuthTest {
     fun callbackParksASessionTheAppThenClaims() = appleTest { client ->
         val redirect = client.callback()
         assertEquals(HttpStatusCode.Found, redirect.status)
-        assertEquals("$APPLE_DEEP_LINK?state=$STATE", redirect.headers[HttpHeaders.Location])
+        val location = assertNotNull(redirect.headers[HttpHeaders.Location])
+        assertTrue(location.startsWith("$APPLE_DEEP_LINK?state=$STATE&nonce="), location)
+        val nonce = assertNotNull(Url(location).parameters["nonce"])
+        assertTrue(APPLE_STATE_SHAPE.matches(nonce), nonce)
 
-        val auth: AuthResponse = client.claim(STATE, SECRET).body()
+        val auth: AuthResponse = client.claim(STATE, SECRET, nonce).body()
         // The token is a real session: it reads the (empty) series list.
         assertEquals(HttpStatusCode.OK, client.get("/series") { bearerAuth(auth.token) }.status)
     }
 
     @Test
     fun aClaimWorksOnlyOnce() = appleTest { client ->
-        client.callback()
-        assertEquals(HttpStatusCode.OK, client.claim(STATE, SECRET).status)
-        assertEquals(HttpStatusCode.Unauthorized, client.claim(STATE, SECRET).status)
+        val nonce = client.signIn()
+        assertEquals(HttpStatusCode.OK, client.claim(STATE, SECRET, nonce).status)
+        assertEquals(HttpStatusCode.Unauthorized, client.claim(STATE, SECRET, nonce).status)
+    }
+
+    /**
+     * The attacker chose the secret, mailed the victim a real start link for its state, and the victim
+     * signed in. Without the nonce, which went only to the victim's browser, the login stays unclaimable.
+     */
+    @Test
+    fun whoeverChoseTheStateCannotClaimAnotherPersonsLogin() = appleTest { client ->
+        val victimsNonce = client.signIn()
+        assertEquals(HttpStatusCode.Unauthorized, client.claim(STATE, SECRET, "").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.claim(STATE, SECRET, "0".repeat(64)).status)
+        // Nor does a wrong guess burn it for the device that holds the nonce.
+        assertEquals(HttpStatusCode.OK, client.claim(STATE, SECRET, victimsNonce).status)
+    }
+
+    @Test
+    fun anAppTooOldToSendANonceIsUnauthorizedNotMalformed() = appleTest { client ->
+        client.signIn()
+        val response = client.post("/auth/apple/claim") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"state":"$STATE","secret":"$SECRET"}""")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 
     @Test
     fun theWrongSecretCannotClaimSomeoneElsesLogin() = appleTest { client ->
-        client.callback()
-        assertEquals(HttpStatusCode.Unauthorized, client.claim(STATE, "b".repeat(64)).status)
+        val nonce = client.signIn()
+        assertEquals(HttpStatusCode.Unauthorized, client.claim(STATE, "b".repeat(64), nonce).status)
         // The real owner can still claim it: a guess must not burn the login.
-        assertEquals(HttpStatusCode.OK, client.claim(STATE, SECRET).status)
+        assertEquals(HttpStatusCode.OK, client.claim(STATE, SECRET, nonce).status)
     }
 
     @Test
     fun anUnknownStateIsUnauthorized() = appleTest { client ->
-        assertEquals(HttpStatusCode.Unauthorized, client.claim(sha256("nobody"), "nobody").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.claim(sha256("nobody"), "nobody", "").status)
     }
 
     @Test
     fun theSameAppleUserKeepsTheSameAccount() = appleTest { client ->
-        val first: AuthResponse = client.callback().let { client.claim(STATE, SECRET).body() }
-        val second: AuthResponse = client.callback().let { client.claim(STATE, SECRET).body() }
+        val first: AuthResponse = client.claim(STATE, SECRET, client.signIn()).body()
+        val second: AuthResponse = client.claim(STATE, SECRET, client.signIn()).body()
         assertEquals(first.userId, second.userId)
     }
 
@@ -151,7 +181,7 @@ class AppleWebAuthTest {
     fun unconfiguredRoutesAnswer503() = appleTest(appleWeb = null) { client ->
         assertEquals(HttpStatusCode.ServiceUnavailable, client.get("/auth/apple/start?state=$STATE").status)
         assertEquals(HttpStatusCode.ServiceUnavailable, client.callback().status)
-        assertEquals(HttpStatusCode.ServiceUnavailable, client.claim(STATE, SECRET).status)
+        assertEquals(HttpStatusCode.ServiceUnavailable, client.claim(STATE, SECRET, "").status)
     }
 
     @Test
@@ -168,7 +198,7 @@ class AppleWebAuthTest {
     @Test
     fun anExpiredParkedLoginCannotBeClaimed() {
         val expired = PendingLogins(ttlMillis = -1)
-        expired.park(STATE, AuthResponse("token", 1))
-        assertEquals(null, expired.claim(STATE, SECRET))
+        val nonce = expired.park(STATE, 1)
+        assertEquals(null, expired.claim(STATE, SECRET, nonce))
     }
 }

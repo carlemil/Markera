@@ -68,8 +68,8 @@ class BackendSessionRepository(
         publish("apple", api.authApple(idToken))
 
     /** The browser flow's ending (Android). Stores exactly what iOS's native [signInApple] would. */
-    suspend fun signInAppleClaim(state: String, secret: String): BackendAuth =
-        publish("apple", api.claimApple(state, secret))
+    suspend fun signInAppleClaim(state: String, secret: String, nonce: String): BackendAuth =
+        publish("apple", api.claimApple(state, secret, nonce))
 
     suspend fun signInDev(subject: String): BackendAuth =
         publish("dev", api.authDev(subject))
