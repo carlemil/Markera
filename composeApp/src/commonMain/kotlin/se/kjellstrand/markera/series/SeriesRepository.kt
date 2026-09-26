@@ -154,7 +154,7 @@ class SeriesRepository(
     }
 
     /**
-     * Sends [user]'s outbox in order. A network failure or 5xx stops it (the rest waits for the next
+     * Sends [user]'s outbox in order. A network failure, 5xx or 429 stops it (the rest waits for the next
      * refresh); a 4xx other than 401 can never succeed, so that row is dropped rather than block the rest.
      */
     private suspend fun drainOutbox(user: String) {
@@ -168,7 +168,9 @@ class SeriesRepository(
                     images.write(id, bytes)
                 }
             } catch (e: SeriesApiException) {
-                if (e.isUnauthorized || e.status >= 500) throw e
+                // Over today's quota: the rest waits, but the refresh itself still goes through.
+                if (e.status == 429) return
+                if (e.isUnauthorized || e.isRetryable) throw e
                 println("Markera: outbox row ${row.id} refused (${e.status}), dropped")
             }
             q.outboxDone(row.id)

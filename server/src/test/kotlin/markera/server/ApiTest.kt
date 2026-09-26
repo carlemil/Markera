@@ -32,6 +32,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ApiTest {
@@ -1493,6 +1494,35 @@ class ApiTest {
             setBody(series().copy(clientId = "x".repeat(65)))
         }
         assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun overTheDailyQuotaANewSeriesIs429ButARetryStillGetsItsId() = apiTest { client ->
+        val token = client.devAuth("alice").token
+        val first = client.createSeries(token, series().copy(clientId = "scan-1"))
+        // The rest of today's quota, straight into the table.
+        sql { st ->
+            st.executeUpdate(
+                """WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ${MAX_SERIES_PER_DAY - 1})
+                   INSERT INTO series(user_id, timestamp, caliber, created_at, updated_at)
+                   SELECT 1, 't', '9mm', datetime('now'), datetime('now') FROM n"""
+            )
+        }
+        val over = client.post("/series") { bearerAuth(token); contentType(ContentType.Application.Json); setBody(series()) }
+        assertEquals(HttpStatusCode.TooManyRequests, over.status)
+        assertEquals(first, client.createSeries(token, series().copy(clientId = "scan-1")))
+        // Someone else's quota is their own.
+        client.createSeries(client.devAuth("bob").token)
+        assertEquals(MAX_SERIES_PER_DAY + 1, seriesCount())
+    }
+
+    @Test
+    fun pingIsFalseOnceTheDatabaseIsClosed() {
+        val file = File.createTempFile("markera-health", ".db").also { it.delete(); it.deleteOnExit() }
+        val db = Db(file.path)
+        assertTrue(db.ping())
+        db.close()
+        assertFalse(db.ping())
     }
 
     @Test

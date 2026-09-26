@@ -96,6 +96,12 @@ const val MAX_AUTH_BYTES = 16 * 1024
 const val MAX_HOLES = 50
 
 /**
+ * Series one user may create per 24 h; each can carry a [MAX_IMAGE_BYTES] image, so this also caps the disk
+ * one account can fill in a day (~3 GB). A busy range day is a few dozen.
+ */
+const val MAX_SERIES_PER_DAY = 300
+
+/**
  * The shape of a caliber label. The app's `Caliber` enum owns the vocabulary; the server only keeps what it stores
  * short and plain, so a new caliber in the app needs no server release.
  */
@@ -239,7 +245,13 @@ fun Application.markeraModule(
     val pendingLogins = PendingLogins()
 
     routing {
-        get("/health") { call.respondText("""{"status":"ok"}""", ContentType.Application.Json) }
+        get("/health") {
+            if (db.ping()) {
+                call.respondText("""{"status":"ok"}""", ContentType.Application.Json)
+            } else {
+                call.respondText("""{"status":"db"}""", ContentType.Application.Json, HttpStatusCode.ServiceUnavailable)
+            }
+        }
 
         // Public, unauthenticated: the account-deletion instructions Google Play requires a URL for.
         get("/delete-account") { call.respondText(deleteAccountPage(config.contactEmail), ContentType.Text.Html) }
@@ -321,6 +333,10 @@ fun Application.markeraModule(
             val userId = authenticate(db) ?: return@post
             val req = receiveSeries() ?: return@post
             if (invalid(req)) return@post
+            if (db.overDailyQuota(userId, req.clientId)) {
+                call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("at most $MAX_SERIES_PER_DAY series a day"))
+                return@post
+            }
             val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry, req.normalisedTag(), req.clientId)
             call.respond(HttpStatusCode.Created, IdResponse(id))
         }

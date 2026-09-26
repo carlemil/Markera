@@ -36,6 +36,9 @@ fun createSeriesHttpClient(engine: HttpClientEngine): HttpClient = HttpClient(en
 /** Non-2xx from the Markera backend; [message] is the server's `{"error": ...}` when present. */
 class SeriesApiException(val status: Int, message: String) : Exception(message) {
     val isUnauthorized: Boolean get() = status == 401
+
+    /** Worth sending again later: the server failed (5xx) or is over the daily quota (429). */
+    val isRetryable: Boolean get() = status >= 500 || status == 429
 }
 
 // No default values: kotlinx-serialization omits defaulted fields.

@@ -241,6 +241,19 @@ class SeriesRepositoryTest {
     }
 
     @Test
+    fun overTheDailyQuotaTheOutboxWaitsButTheRefreshGoesThrough() = runBlocking {
+        val db = testSeriesDb()
+        val repo = repo(db = db) { request ->
+            if (request.method == HttpMethod.Get) json("[]") else json("""{"error":"quota"}""", HttpStatusCode.TooManyRequests)
+        }
+        repo.enqueue(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList()), null)
+
+        assertNull(repo.refresh())
+
+        assertEquals(1, db.seriesQueries.outboxFor("1").executeAsList().size)
+    }
+
+    @Test
     fun aCachedThumbnailIsServedWithoutTouchingTheFullImage() = runBlocking {
         val repo = repo { error("no request expected") }
         images.writeThumb(9, byteArrayOf(1, 2))

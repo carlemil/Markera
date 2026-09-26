@@ -22,7 +22,7 @@ second, empty account; its Return URL must be exactly `$PUBLIC_URL/auth/apple/ca
 domain by fetching `/.well-known/apple-developer-domain-association.txt`, served from
 `src/main/resources/apple-developer-domain-association.txt` (404 while that file is absent).
 
-API: `GET /health`, `POST /auth/{google,apple,dev}` → `{token, userId}`,
+API: `GET /health` (runs `SELECT 1`; 503 when the database does not answer), `POST /auth/{google,apple,dev}` → `{token, userId}`,
 `GET /auth/apple/start?state=` → 302 to Apple, `GET /auth/apple/callback` → 302 to
 `markera://auth/apple?state=&nonce=`, `POST /auth/apple/claim` `{state, secret, nonce}` → `{token, userId}`
 (`state` is the hex sha256 of `secret`, which never leaves the device — any app can catch the deep link, only
@@ -32,7 +32,8 @@ whoever chose the `state` cannot redeem someone else's login either; single use,
 every hole → 204) / `DELETE /series/{id}` (→ 204, 404 if not yours) with
 `Authorization: Bearer <token>`, `DELETE /account` (→ 204; wipes the caller's series, images and sessions,
 so the token stops working), `POST /series/{id}/image` (raw `image/jpeg` body ≤ 10 MB → 204) /
-`GET /series/{id}/image`.
+`GET /series/{id}/image`. `POST /series` answers 429 once a user has created 300 series in 24 h (a
+retry of a stored `clientId` still gets its id); the app keeps a 429 in its outbox for later.
 
 `GET /series` returns a plain array, newest first, and pages with `?limit=` (default 50, clamped to 1..200)
 and `?before=<series id>` (only ids below it). Page by passing the last id of the previous page.

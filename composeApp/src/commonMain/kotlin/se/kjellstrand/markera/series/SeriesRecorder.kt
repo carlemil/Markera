@@ -260,7 +260,7 @@ class SeriesRecorder(
                     }
                     // Offline or a server hiccup: into the outbox, which the next refresh sends, so
                     // the next scan replacing [pending] loses nothing.
-                    e !is SeriesApiException || e.status >= 500 -> {
+                    e !is SeriesApiException || e.isRetryable -> {
                         repository.enqueue(request, image?.let { encodeOrNull(it) })
                         queued = true
                         if (pending === p) pending = null
@@ -288,7 +288,7 @@ class SeriesRecorder(
                 throw e
             } catch (e: Exception) {
                 println("Markera: series image upload failed: $e")
-                if (e !is SeriesApiException || e.status >= 500) {
+                if (e !is SeriesApiException || e.isRetryable) {
                     repository.enqueue(request, encoded, seriesId = id)
                     queued = true
                 }

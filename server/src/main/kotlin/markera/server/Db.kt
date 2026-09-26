@@ -33,6 +33,9 @@ class Db(dbPath: String) : AutoCloseable {
         conn = DriverManager.getConnection("jdbc:sqlite:$dbPath")
         conn.createStatement().use { st ->
             st.executeUpdate("PRAGMA foreign_keys = ON")
+        }
+        // One transaction: a migration cut short (the holes rebuild drops a table) rolls back whole.
+        transaction { conn.createStatement().use { st ->
             st.executeUpdate(
                 """CREATE TABLE IF NOT EXISTS users (
                      id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,7 +149,7 @@ class Db(dbPath: String) : AutoCloseable {
             if ("deleted" !in holeColumns && "detected_ring" in holeColumns) {
                 st.executeUpdate("ALTER TABLE holes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
             }
-        }
+        } }
     }
 
     @Synchronized
@@ -437,7 +440,7 @@ class Db(dbPath: String) : AutoCloseable {
 
     /** Drops the user, their sessions and every series; returns the deleted series ids so the caller can drop images. */
     @Synchronized
-    fun deleteAccount(userId: Long): List<Long> {
+    fun deleteAccount(userId: Long): List<Long> = transaction {
         val ids = mutableListOf<Long>()
         conn.prepareStatement("SELECT id FROM series WHERE user_id = ?").use { st ->
             st.setLong(1, userId)
@@ -447,8 +450,33 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
         execute("DELETE FROM users WHERE id = ?", userId)
-        return ids
+        ids
     }
+
+    /**
+     * True when [userId] has created [MAX_SERIES_PER_DAY] series in the last 24 h and [clientId] is not one
+     * of them already (a retry of a stored series always gets its id back).
+     */
+    @Synchronized
+    fun overDailyQuota(userId: Long, clientId: String?): Boolean {
+        if (clientId != null) {
+            conn.prepareStatement("SELECT 1 FROM series WHERE user_id = ? AND client_id = ?").use {
+                it.setLong(1, userId)
+                it.setString(2, clientId)
+                it.executeQuery().use { rs -> if (rs.next()) return false }
+            }
+        }
+        conn.prepareStatement("SELECT COUNT(*) FROM series WHERE user_id = ? AND created_at >= datetime('now', '-1 day')").use {
+            it.setLong(1, userId)
+            it.executeQuery().use { rs -> rs.next(); return rs.getInt(1) >= MAX_SERIES_PER_DAY }
+        }
+    }
+
+    /** The database answers: what /health reports. */
+    @Synchronized
+    fun ping(): Boolean = runCatching {
+        conn.createStatement().use { it.executeQuery("SELECT 1").use { rs -> rs.next() } }
+    }.getOrDefault(false)
 
     private fun execute(sql: String, id: Long) =
         conn.prepareStatement(sql).use { it.setLong(1, id); it.executeUpdate() }
