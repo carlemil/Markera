@@ -35,7 +35,13 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import se.kjellstrand.markera.ui.LocalToast
+import se.kjellstrand.markera.vision.CentreMethod
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Icon
@@ -123,19 +129,28 @@ fun MarkeraScreen(
     // keeps a mis-tap next to a marked hole from doubling it), drag moves one,
     // long press removes one. Each edit re-publishes the pending series.
     val recorder = LocalSeriesRecorder.current
+    val toast = LocalToast.current
+    val haptics = LocalHapticFeedback.current
+    val seriesFull = stringResource(Res.string.markera_series_full)
     val editing = remember(scanController) {
         HoleEditing(
             add = { x, y, reach ->
-                // Read at tap time, so the remembered lambda sees the current caliber.
-                val caliber = recorder?.caliber?.value ?: Caliber.NONE
-                edited = true
-                scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
+                // A sixth tap would be dropped without a word: say why instead.
+                if (viewModel.uiState.value.scores.size >= SCORE_PICKER_COUNT) {
+                    toast(seriesFull)
+                } else {
+                    // Read at tap time, so the remembered lambda sees the current caliber.
+                    val caliber = recorder?.caliber?.value ?: Caliber.NONE
+                    edited = true
+                    scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
+                }
             },
             move = { i, x, y ->
                 edited = true
                 scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y)
             },
             remove = { i ->
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 edited = true
                 pendingDeleteIndex = i
             },
@@ -153,13 +168,16 @@ fun MarkeraScreen(
         frameSource.onResumeLive()
     }
     // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
-    val onReset: () -> Unit = {
+    val discard: () -> Unit = {
         edited = false
         snapshotVm.clear()
         viewModel.clearResults()
         recorder?.clear()
         frameSource.onResumeLive()
     }
+    // Hand edits are work: throwing them away asks first.
+    var confirmingReset by remember { mutableStateOf(false) }
+    val onReset: () -> Unit = { if (edited) confirmingReset = true else discard() }
 
     // Sample a low-rate luma feed; only a new hole-sized spot on an otherwise
     // unchanged, still scene runs the scan the button runs. The snapshot-state
@@ -280,6 +298,18 @@ fun MarkeraScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
                     watchDebug?.let { WatchDebugOverlay(it, Modifier.fillMaxSize()) }
+                    // Over the photo, below the top bar it used to cover.
+                    uiState.error?.let { msg ->
+                        Text(
+                            text = msg,
+                            color = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(16.dp)
+                                .background(MaterialTheme.colorScheme.error, MaterialTheme.shapes.small)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
                 }
                 BottomArea(
                     isFrozen = isFrozen,
@@ -301,20 +331,26 @@ fun MarkeraScreen(
                 )
             }
         }
-
-        uiState.error?.let { msg ->
-            Text(
-                text = msg,
-                color = Color.White,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(16.dp)
-                    .background(MaterialTheme.colorScheme.error)
-                    .padding(8.dp),
-            )
-        }
-
     }
+    }
+
+    if (confirmingReset) {
+        AlertDialog(
+            onDismissRequest = { confirmingReset = false },
+            title = { Text(stringResource(Res.string.markera_reset_title)) },
+            text = { Text(stringResource(Res.string.markera_reset_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingReset = false
+                    discard()
+                }) { Text(stringResource(Res.string.markera_reset_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingReset = false }) {
+                    Text(stringResource(Res.string.history_delete_cancel))
+                }
+            },
+        )
     }
 
     // `removeHit` ignores an out-of-range index, so no extra guard is needed here.
@@ -338,7 +374,8 @@ fun MarkeraScreen(
                 Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
                 Res.string.help_scan_save to Res.string.help_scan_save_body,
                 if (isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
-                Res.string.help_scan_debug to Res.string.help_scan_debug_body,
+                // Its menu entry exists in debug builds only.
+                if (isDebugBuild) Res.string.help_scan_debug to Res.string.help_scan_debug_body else null,
             ),
             onDismiss = { showingHelp = false },
         )
@@ -505,6 +542,26 @@ private fun ResultsContent(
     onSetScore: (index: Int, pick: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // No ring or centre: nothing was scored and nothing can be, so say so and offer only a rescan.
+    if (uiState.ring == null || uiState.centre?.method.let { it == null || it == CentreMethod.NONE }) {
+        Column(
+            modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
+        ) {
+            Text(
+                text = stringResource(Res.string.markera_no_ring),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+            PrimaryActionButton(
+                text = stringResource(Res.string.markera_rescan),
+                icon = Icons.Default.PhotoCamera,
+                onClick = onReset,
+            )
+        }
+        return
+    }
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
     val manual = uiState.scores.map { it.manual }
     Column(modifier) {
@@ -525,11 +582,19 @@ private fun ResultsContent(
                     editableCount = uiState.scores.size,
                     manual = manual,
                 )
+                // The photo's gestures have no other visible cue.
+                Text(
+                    text = stringResource(Res.string.markera_edit_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
         Row(
             Modifier.fillMaxWidth().padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            // Wide apart: Reset throws the scan away, Save keeps it.
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SecondaryActionButton(

@@ -7,6 +7,13 @@
     <string name="markera_resume_live">Spara</string>
     <string name="markera_reset">Återställ</string>
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
+    <string name="markera_no_ring">Hittade inte 6/7-ringen, så inget räknades. Skanna igen med hela svarta fältet och siffrorna i bild.</string>
+    <string name="markera_rescan">Skanna igen</string>
+    <string name="markera_edit_hint">Tryck i bilden för att lägga till · dra för att flytta · håll inne för att ta bort</string>
+    <string name="markera_series_full">En serie är fem träffar. Håll inne en för att ta bort den först.</string>
+    <string name="markera_reset_title">Släng ändringarna?</string>
+    <string name="markera_reset_message">De ändrade poängen slängs och inget sparas.</string>
+    <string name="markera_reset_confirm">Släng</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
     <string name="markera_analyzing">Analyserar träffar…</string>
     <string name="markera_detect_holes">Detektera hål</string>
