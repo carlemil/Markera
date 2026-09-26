@@ -47,6 +47,8 @@ class Db(dbPath: String) : AutoCloseable {
                 buildList { while (rs.next()) add(rs.getString("name")) }
             }
             if ("name" !in columns) st.executeUpdate("ALTER TABLE users ADD COLUMN name TEXT")
+            // Names once fell back to the whole e-mail address; keep only what precedes the '@'.
+            st.executeUpdate("UPDATE users SET name = substr(name, 1, instr(name, '@') - 1) WHERE instr(name, '@') > 0")
             st.executeUpdate(
                 """CREATE TABLE IF NOT EXISTS sessions (
                      token TEXT PRIMARY KEY,

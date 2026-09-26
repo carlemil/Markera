@@ -9,7 +9,7 @@ import java.net.URI
 import java.security.interfaces.RSAPublicKey
 import java.util.concurrent.TimeUnit
 
-/** Who the provider says the caller is. Google tokens carry `name` and `email`, Apple's only `email`. */
+/** Who the provider says the caller is. [name] is the `name` claim, else the part of `email` before the `@`. */
 data class Identity(val subject: String, val name: String?)
 
 /** Verifies an RS256 provider ID token against a JWKS and returns its `sub` plus a display name. */
@@ -34,8 +34,9 @@ class TokenVerifier(
             .withClaimPresence("sub") // without it `verified.subject` is null and the login a 500
             .build()
             .verify(idToken)
-        val name = listOf("name", "email")
-            .firstNotNullOfOrNull { verified.getClaim(it).asString()?.ifBlank { null } }
+        // Never the full address: only its local part is kept, and only when there is no name.
+        val name = verified.getClaim("name").asString()?.ifBlank { null }
+            ?: verified.getClaim("email").asString()?.substringBefore('@')?.ifBlank { null }
         return Identity(verified.subject, name)
     }
 }

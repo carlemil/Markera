@@ -81,7 +81,7 @@ fun privacyPage(contactEmail: String?): String {
 <p>Ingenting lagras på servern om du använder appen utan att logga in. Loggar du in med Google lagras:</p>
 <ul>
 <li><strong>Konto:</strong> Google-kontots identifierare (<code>sub</code> i inloggningstoken) och ett
-visningsnamn (namnet från Google, eller e-postadressen om namn saknas). Inget lösenord ses eller lagras.</li>
+visningsnamn (namnet från Google, eller delen före @ i e-postadressen om namn saknas; själva adressen lagras aldrig). Inget lösenord ses eller lagras.</li>
 <li><strong>Sparade serier:</strong> tidpunkt, kaliber och varje detekterad träffs position och poäng.</li>
 <li><strong>Tavelfotot</strong> för varje sparad serie (en beskuren kvadratisk bild från kameran; den kan
 visa det som skrivits på tavlan).</li>
@@ -113,7 +113,8 @@ lämnas till Integritetsskyddsmyndigheten (IMY) i Sverige.</p>
 the following is stored:</p>
 <ul>
 <li><strong>Account:</strong> the Google account's identifier (the token's <code>sub</code>) and a display
-name (the Google name, or the e-mail address when no name is available). No password is ever seen or
+name (the Google name, or the part of the e-mail address before the @ when no name is available; the address itself is never
+stored). No password is ever seen or
 stored.</li>
 <li><strong>Saved series:</strong> time, caliber, and each detected hole's position and score.</li>
 <li><strong>The target photo</strong> of each saved series (a cropped square frame from the camera; it may

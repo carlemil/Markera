@@ -61,12 +61,13 @@ class TokenVerifierTest {
     }
 
     @Test
-    fun nameComesFromTheNameClaimThenEmail() {
+    fun nameComesFromTheNameClaimThenTheEmailLocalPart() {
         val google = token(name = "Ada Lovelace", email = "ada@example.com")
         assertEquals(Identity("subject-123", "Ada Lovelace"), verifier.identity(google))
-        // Apple sends no name.
-        assertEquals(Identity("subject-123", "ada@example.com"), verifier.identity(token(email = "ada@example.com")))
-        assertEquals(Identity("subject-123", "ada@example.com"), verifier.identity(token(name = " ", email = "ada@example.com")))
+        // Apple sends no name; the full address is never kept.
+        assertEquals(Identity("subject-123", "ada"), verifier.identity(token(email = "ada@example.com")))
+        assertEquals(Identity("subject-123", "ada"), verifier.identity(token(name = " ", email = "ada@example.com")))
+        assertEquals(Identity("subject-123", null), verifier.identity(token(email = "@example.com")))
     }
 
     @Test
