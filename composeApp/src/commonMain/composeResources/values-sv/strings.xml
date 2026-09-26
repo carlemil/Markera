@@ -121,6 +121,8 @@
     <string name="stats_group_caliber">Kaliber</string>
     <string name="stats_group_tag">Tagg</string>
     <string name="stats_group_date">Datum</string>
+    <string name="filter_clear">Rensa filter</string>
+    <string name="stats_no_geometry">Ingen av dina serier har en ring att rita mot. Skanna en där 6/7-ringen hittas.</string>
     <string name="stats_group_metric">Mått</string>
     <string name="stats_group_bucket">Gruppering</string>
     <!-- Trend chips: short forms of the measurement rows -->

@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -78,7 +76,6 @@ import se.kjellstrand.markera.series.localTime
 import se.kjellstrand.markera.series.scorePicks
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
-import se.kjellstrand.markera.series.utcDay
 import se.kjellstrand.markera.ui.AppChip
 import se.kjellstrand.markera.ui.MenuItem
 import se.kjellstrand.markera.ui.StateMessage
@@ -94,6 +91,7 @@ import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.markera.ScoreMiniRow
 import se.kjellstrand.markera.ui.stats.DateRangeDialog
+import se.kjellstrand.markera.ui.FilterBar
 import se.kjellstrand.markera.ui.stats.SectionHeader
 import se.kjellstrand.markera.ui.markera.TotalBadge
 
@@ -246,7 +244,7 @@ fun SeriesHistoryScreen(
                 )
 
                 else -> Column(modifier = Modifier.fillMaxSize()) {
-                    HistoryFilterRow(
+                    FilterBar(
                         calibers = series.calibersPresent(),
                         tags = series.tagsPresent(),
                         filter = filter,
@@ -384,98 +382,6 @@ internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
             }
         },
     )
-}
-
-/**
- * The caliber and tag (multi-select) and date (Statistik's single-select) chip rows.
- * A caliber or tag the user picked earlier still gets a chip even once it drops out
- * of [calibers]/[tags] (a filter no longer matched by any cached series), so it stays
- * deselectable.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun HistoryFilterRow(
-    calibers: List<Caliber>,
-    tags: List<String>,
-    filter: HistoryFilter,
-    onFilter: (HistoryFilter) -> Unit,
-    onPickDates: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val offered = (calibers + filter.calibers).distinct().sortedBy { it.ordinal }
-    // Titled rules between the groups, as on Statistik — three chip rows in a
-    // column are otherwise one undifferentiated block. 4 dp, so each title sits
-    // with the chips it names.
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionHeader(stringResource(Res.string.stats_group_caliber))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AppChip(
-                selected = filter.calibers.isEmpty(),
-                onClick = { onFilter(filter.copy(calibers = emptySet())) },
-                label = stringResource(Res.string.stats_caliber_all),
-            )
-            offered.forEach { c ->
-                AppChip(
-                    selected = c in filter.calibers,
-                    onClick = {
-                        val next = if (c in filter.calibers) filter.calibers - c else filter.calibers + c
-                        onFilter(filter.copy(calibers = next))
-                    },
-                    label = if (c == Caliber.NONE) "–" else c.label,
-                )
-            }
-        }
-        // No tag anywhere in the series (and none selected) means no row at all.
-        val offeredTags = (tags + filter.tags).distinct().sorted()
-        if (offeredTags.isNotEmpty()) {
-            SectionHeader(stringResource(Res.string.stats_group_tag))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppChip(
-                    selected = filter.tags.isEmpty(),
-                    onClick = { onFilter(filter.copy(tags = emptySet())) },
-                    label = stringResource(Res.string.stats_caliber_all),
-                )
-                offeredTags.forEach { tag ->
-                    AppChip(
-                        selected = tag in filter.tags,
-                        onClick = {
-                            val next = if (tag in filter.tags) filter.tags - tag else filter.tags + tag
-                            onFilter(filter.copy(tags = next))
-                        },
-                        label = tag,
-                    )
-                }
-            }
-        }
-        SectionHeader(stringResource(Res.string.stats_group_date))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val presetChip = @Composable { value: DatePreset, label: StringResource ->
-                AppChip(
-                    selected = filter.preset == value,
-                    onClick = { onFilter(filter.copy(preset = value)) },
-                    label = stringResource(label),
-                )
-            }
-            presetChip(DatePreset.ALL, Res.string.stats_date_all)
-            AppChip(
-                selected = filter.preset == DatePreset.CUSTOM,
-                onClick = onPickDates,
-                label = if (filter.preset == DatePreset.CUSTOM && filter.customRange != null) {
-                    stringResource(
-                        Res.string.stats_date_range,
-                        utcDay(filter.customRange.first),
-                        utcDay(filter.customRange.second),
-                    )
-                } else {
-                    stringResource(Res.string.stats_date_custom)
-                },
-            )
-            presetChip(DatePreset.TODAY, Res.string.stats_date_today)
-            presetChip(DatePreset.WEEK, Res.string.stats_date_week)
-            presetChip(DatePreset.MONTH, Res.string.stats_date_month)
-            presetChip(DatePreset.YEAR, Res.string.stats_date_year)
-        }
-    }
 }
 
 /**

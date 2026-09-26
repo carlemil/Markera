@@ -122,6 +122,12 @@ import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.AppTopBar
+import se.kjellstrand.markera.ui.FilterBar
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import se.kjellstrand.markera.ui.history.HistoryFilter
+import se.kjellstrand.markera.ui.history.decodeHistoryFilter
+import se.kjellstrand.markera.ui.history.encode
 import se.kjellstrand.markera.ui.history.PHOTO_MAX_DIM
 import se.kjellstrand.markera.ui.markera.customCalibers
 import se.kjellstrand.markera.vision.INNER_TEN_RADIUS_MM
@@ -179,13 +185,20 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     // Every caliber on any plottable series: a caliber's colour is its slot here,
     // whatever the filter keeps.
     val calibers = remember(series) { series.calibersWithGeometry() }
+    val tagsWithGeometry = remember(series) { series.tagsWithGeometry() }
 
-    var selectedCalibers by remember { mutableStateOf(emptySet<Caliber>()) }
-    // Multi-select like Historik's tag chips; empty = no tag filtering at all.
-    var tags by remember { mutableStateOf(emptySet<String>()) }
-    var preset by remember { mutableStateOf(DatePreset.ALL) }
-    // Custom window as the picker hands it over: UTC start-of-day millis.
-    var customRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+    // The one filter Historik uses too, stored the same way: filtering either screen filters both.
+    var selection by remember { mutableStateOf(HistoryFilter()) }
+    var selectionLoaded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        selection = decodeHistoryFilter(services.store.readHistoryFilter())
+        selectionLoaded = true
+    }
+    fun onSelection(new: HistoryFilter) {
+        selection = new
+        if (selectionLoaded) scope.launch { services.store.writeHistoryFilter(new.encode()) }
+    }
     var pickingDates by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
     // 0 = the target with the hit cloud, 1 = the measurements charted over time.
@@ -202,9 +215,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
         loading = false
     }
 
-    val filter = remember(selectedCalibers, tags, preset, customRange) {
-        val (from, to) = preset.window(customRange, Clock.System.now())
-        StatsFilter(calibers = selectedCalibers, from = from, to = to, tags = tags)
+    val filter = remember(selection) {
+        val (from, to) = selection.preset.window(selection.customRange, Clock.System.now())
+        StatsFilter(calibers = selection.calibers, from = from, to = to, tags = selection.tags)
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
@@ -268,22 +281,24 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // Hoisted above the tabs in state, drawn below them: one row, both tabs.
-                    FilterRow(
+                    FilterBar(
                         calibers = calibers,
-                        selectedCalibers = selectedCalibers,
-                        onCalibers = { selectedCalibers = it },
-                        tags = series.tagsWithGeometry(),
-                        selectedTags = tags,
-                        onTags = { tags = it },
-                        preset = preset,
-                        customRange = customRange,
-                        onPreset = { preset = it },
+                        tags = tagsWithGeometry,
+                        filter = selection,
+                        onFilter = ::onSelection,
                         onPickDates = { pickingDates = true },
                     )
                     if (stats == null) {
                         StateMessage(
                             icon = Icons.Default.FilterAltOff,
-                            title = stringResource(Res.string.stats_empty),
+                            // Nothing has a ring to plot against at all, whatever the filter.
+                            title = stringResource(
+                                if (series.none { it.geometry != null }) {
+                                    Res.string.stats_no_geometry
+                                } else {
+                                    Res.string.stats_empty
+                                },
+                            ),
                             modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                         )
                     } else if (tab == 0) {
@@ -315,7 +330,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             bucket = bucket,
                             onBucket = { bucket = it },
                             // One caliber filtered in leaves nothing to split.
-                            splitOffered = selectedCalibers.size != 1 && calibers.size >= 2,
+                            splitOffered = selection.calibers.size != 1 && calibers.size >= 2,
                             split = splitByCaliber,
                             onSplit = { splitByCaliber = it },
                         )
@@ -329,8 +344,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
         DateRangeDialog(
             onDismiss = { pickingDates = false },
             onPicked = { start, end ->
-                customRange = start to end
-                preset = DatePreset.CUSTOM
+                onSelection(selection.copy(customRange = start to end, preset = DatePreset.CUSTOM))
                 pickingDates = false
             },
         )
@@ -370,95 +384,6 @@ private fun List<SeriesDto>.calibersWithGeometry(): List<Caliber> =
 /** The same for tags, alphabetical; an untagged series contributes none. */
 private fun List<SeriesDto>.tagsWithGeometry(): List<String> =
     filter { it.geometry != null }.mapNotNull { it.tag }.distinct().sorted()
-
-@OptIn(ExperimentalLayoutApi::class, ExperimentalTime::class)
-@Composable
-private fun FilterRow(
-    calibers: List<Caliber>,
-    selectedCalibers: Set<Caliber>,
-    onCalibers: (Set<Caliber>) -> Unit,
-    tags: List<String>,
-    selectedTags: Set<String>,
-    onTags: (Set<String>) -> Unit,
-    preset: DatePreset,
-    customRange: Pair<Long, Long>?,
-    onPreset: (DatePreset) -> Unit,
-    onPickDates: () -> Unit,
-) {
-    // One child of the caller's 16 dp column, so only the filter rows sit tight.
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionHeader(stringResource(Res.string.stats_group_caliber))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AppChip(
-                selected = selectedCalibers.isEmpty(),
-                onClick = { onCalibers(emptySet()) },
-                label = stringResource(Res.string.stats_caliber_all),
-            )
-            // A caliber picked before a refresh dropped its last series stays deselectable.
-            (calibers + selectedCalibers).distinct().sortedBy { it.ordinal }.forEach {
-                AppChip(
-                    selected = it in selectedCalibers,
-                    onClick = {
-                        onCalibers(if (it in selectedCalibers) selectedCalibers - it else selectedCalibers + it)
-                    },
-                    label = it.label,
-                )
-            }
-        }
-        // No tag on any plottable series (and none selected) means no section at all.
-        // A tag picked before a refresh dropped its last series still gets a chip, so
-        // the filter stays deselectable.
-        val offeredTags = (tags + selectedTags).distinct().sorted()
-        if (offeredTags.isNotEmpty()) {
-            SectionHeader(stringResource(Res.string.stats_group_tag))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppChip(
-                    selected = selectedTags.isEmpty(),
-                    onClick = { onTags(emptySet()) },
-                    label = stringResource(Res.string.stats_caliber_all),
-                )
-                offeredTags.forEach { tag ->
-                    AppChip(
-                        selected = tag in selectedTags,
-                        onClick = {
-                            onTags(if (tag in selectedTags) selectedTags - tag else selectedTags + tag)
-                        },
-                        label = tag,
-                    )
-                }
-            }
-        }
-        SectionHeader(stringResource(Res.string.stats_group_date))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val presetChip = @Composable { value: DatePreset, label: StringResource ->
-                AppChip(
-                    selected = preset == value,
-                    onClick = { onPreset(value) },
-                    label = stringResource(label),
-                )
-            }
-            presetChip(DatePreset.ALL, Res.string.stats_date_all)
-            // "Välj…" right after "Alla", so the custom range is one tap away on every width.
-            AppChip(
-                selected = preset == DatePreset.CUSTOM,
-                onClick = onPickDates,
-                label = if (preset == DatePreset.CUSTOM && customRange != null) {
-                    stringResource(
-                        Res.string.stats_date_range,
-                        utcDay(customRange.first),
-                        utcDay(customRange.second),
-                    )
-                } else {
-                    stringResource(Res.string.stats_date_custom)
-                },
-            )
-            presetChip(DatePreset.TODAY, Res.string.stats_date_today)
-            presetChip(DatePreset.WEEK, Res.string.stats_date_week)
-            presetChip(DatePreset.MONTH, Res.string.stats_date_month)
-            presetChip(DatePreset.YEAR, Res.string.stats_date_year)
-        }
-    }
-}
 
 /** The Trend tab: which row, how the x axis buckets series, one line or one per caliber. */
 @OptIn(ExperimentalLayoutApi::class)
