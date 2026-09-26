@@ -53,18 +53,26 @@ class SeriesRepository(
 
     private val lock = Mutex()
 
-    /** Held only to skip a [refresh] asked for while one is already running. */
+    /** Held while a [refresh] runs, so one asked for meanwhile joins it instead of starting another. */
     private val refreshing = Mutex()
+
+    /** What the last finished [refresh] returned, for the callers that joined it. */
+    private var lastRefresh: Throwable? = null
 
     /**
      * Publishes the cached rows, then merges the server's delta into them.
      * @return null when the server part succeeded, else what went wrong — the
-     * cached rows stay published either way.
+     * cached rows stay published either way. Asked for while one runs, it waits
+     * for that one and returns its outcome (a screen opened during the start-up
+     * full load keeps its spinner until the rows are really there).
      */
     suspend fun refresh(): Throwable? {
-        if (!refreshing.tryLock()) return null
+        if (!refreshing.tryLock()) {
+            refreshing.withLock { }
+            return lastRefresh
+        }
         return try {
-            withContext(Dispatchers.Default) { lock.withLock { refreshLocked() } }
+            withContext(Dispatchers.Default) { lock.withLock { refreshLocked() } }.also { lastRefresh = it }
         } finally {
             refreshing.unlock()
         }
@@ -78,6 +86,8 @@ class SeriesRepository(
         val since = stamp?.takeIf { it.user_id == user }?.last_sync
         reload()
         try {
+            // First, so what it sends comes back in the load below like any other series.
+            drainOutbox(user)
             if (since == null) fullLoad(user) else applyDelta(api.listSeriesSince(since), user)
             reload()
             return null
@@ -129,6 +139,40 @@ class SeriesRepository(
             reload()
         }
         id
+    }
+
+    /**
+     * Keeps a committed series the server did not take (offline, 5xx) for the next [refresh] to send,
+     * so the next scan can never be what loses it. [seriesId] set means the POST went through and only
+     * [image] is left to upload. Signed out, there is no one to keep it for.
+     */
+    suspend fun enqueue(req: SeriesRequest, image: EncodedImage?, seriesId: Long? = null) {
+        val user = session.auth.value?.userId?.toString() ?: return
+        withContext(Dispatchers.Default) {
+            q.enqueue(user, seriesJson.encodeToString(req), seriesId, image?.bytes, image?.width?.toLong(), image?.height?.toLong())
+        }
+    }
+
+    /**
+     * Sends [user]'s outbox in order. A network failure or 5xx stops it (the rest waits for the next
+     * refresh); a 4xx other than 401 can never succeed, so that row is dropped rather than block the rest.
+     */
+    private suspend fun drainOutbox(user: String) {
+        for (row in q.outboxFor(user).executeAsList()) {
+            try {
+                val id = row.series_id ?: api.postSeries(seriesJson.decodeFromString<SeriesRequest>(row.request))
+                    .also { q.outboxPosted(it, row.id) }
+                val bytes = row.image
+                if (bytes != null && row.image_width != null && row.image_height != null) {
+                    api.postSeriesImage(id, bytes, row.image_width.toInt(), row.image_height.toInt())
+                    images.write(id, bytes)
+                }
+            } catch (e: SeriesApiException) {
+                if (e.isUnauthorized || e.status >= 500) throw e
+                println("Markera: outbox row ${row.id} refused (${e.status}), dropped")
+            }
+            q.outboxDone(row.id)
+        }
     }
 
     /** The scanned frame for [id]: uploaded, then cached so it is never downloaded back. */

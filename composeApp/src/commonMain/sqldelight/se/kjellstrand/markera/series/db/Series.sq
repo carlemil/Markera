@@ -13,6 +13,19 @@ CREATE TABLE sync (
     last_sync TEXT NOT NULL
 );
 
+-- Committed series the server has not taken yet (offline, 5xx), kept until a refresh sends them, so
+-- the next scan can never be what loses one. `series_id` is set once the POST went through and only
+-- the photo is left; `request` is the SeriesRequest JSON (its clientId makes a re-POST harmless).
+CREATE TABLE outbox (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    request TEXT NOT NULL,
+    series_id INTEGER,
+    image BLOB,
+    image_width INTEGER,
+    image_height INTEGER
+);
+
 selectAll:
 SELECT id, json FROM series ORDER BY timestamp DESC;
 
@@ -33,3 +46,15 @@ INSERT OR REPLACE INTO sync(user_id, last_sync) VALUES (?, ?);
 
 clearSync:
 DELETE FROM sync;
+
+enqueue:
+INSERT INTO outbox(user_id, request, series_id, image, image_width, image_height) VALUES (?, ?, ?, ?, ?, ?);
+
+outboxFor:
+SELECT * FROM outbox WHERE user_id = ? ORDER BY id;
+
+outboxPosted:
+UPDATE outbox SET series_id = ? WHERE id = ?;
+
+outboxDone:
+DELETE FROM outbox WHERE id = ?;

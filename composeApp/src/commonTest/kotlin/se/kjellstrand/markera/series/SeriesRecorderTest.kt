@@ -5,6 +5,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
@@ -76,6 +77,9 @@ class SeriesRecorderTest {
             recorded += request
             if (request.url.encodedPath.endsWith("/image")) {
                 respond("", imageStatus)
+            } else if (request.method == HttpMethod.Get) {
+                // A refresh (the outbox is drained by one): an empty account.
+                respond("[]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
             } else {
                 val n = ++posts
                 if (n == 1) gate?.await()
@@ -120,7 +124,7 @@ class SeriesRecorderTest {
 
     /** The recorder saves off-thread; wait for a terminal status. */
     private fun SeriesRecorder.awaitDone(): SaveStatus = runBlocking {
-        status.first { it is SaveStatus.Saved || it is SaveStatus.Failed }
+        status.first { it is SaveStatus.Saved || it is SaveStatus.Failed || it == SaveStatus.Queued }
     }
 
     /** The image upload runs after the status turns Saved, so wait for it too. */
@@ -204,7 +208,7 @@ class SeriesRecorderTest {
 
     private val sentBody: String get() = (recorded.last().body as TextContent).text
 
-    private val seriesPosts get() = recorded.filter { it.url.encodedPath == "/series" }
+    private val seriesPosts get() = recorded.filter { it.method == HttpMethod.Post && it.url.encodedPath == "/series" }
 
     private fun clientIds() = seriesPosts.map {
         Regex(""""clientId":"([^"]+)"""").find((it.body as TextContent).text)!!.groupValues[1]
@@ -349,13 +353,51 @@ class SeriesRecorderTest {
     }
 
     @Test
-    fun serverErrorReportsFailed() {
-        val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.InternalServerError)
+    fun aRefusedSeriesReportsFailed() {
+        val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.BadRequest)
 
         recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
         assertIs<SaveStatus.Failed>(recorder.awaitDone())
+    }
+
+    @Test
+    fun aServerErrorQueuesTheSeries() {
+        val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.InternalServerError)
+
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        assertEquals(SaveStatus.Queued, recorder.awaitDone())
+    }
+
+    /** Offline at the range: the failed series must outlive the next scan and go up once the server answers. */
+    @Test
+    fun aQueuedSeriesSurvivesTheNextScanAndGoesUpWithItsPhoto() {
+        val recorder = recorder(
+            stored = Caliber.LR22,
+            firstStatus = HttpStatusCode.ServiceUnavailable,
+            encodeJpeg = { encoded },
+        )
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        assertEquals(SaveStatus.Queued, recorder.awaitDone())
+
+        // The next scan replaces the pending series; the first one is in the outbox by now.
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        runBlocking {
+            withTimeout(5_000) {
+                while (recorded.none { it.url.encodedPath == "/series/3/image" }) delay(10)
+            }
+        }
+        // Three POSTs, two series: the outbox re-sent the first one under its own clientId.
+        val ids = clientIds()
+        assertEquals(3, ids.size)
+        assertEquals(ids[0], ids[2])
+        assertEquals(2, ids.toSet().size)
     }
 
     @Test
@@ -565,7 +607,7 @@ class SeriesRecorderTest {
 
     @Test
     fun aRetryAfterAFailedSaveKeepsItsClientId() {
-        val recorder = recorder(stored = Caliber.LR22, firstStatus = HttpStatusCode.InternalServerError)
+        val recorder = recorder(stored = Caliber.LR22, firstStatus = HttpStatusCode.Conflict)
         recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
         assertIs<SaveStatus.Failed>(recorder.awaitDone())

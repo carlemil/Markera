@@ -148,12 +148,15 @@ class SeriesApi(
         client.delete("$base/series/$id") { auth() }.throwIfError()
     }
 
-    /** Wipes the caller's account server-side; the session token stops working. */
-    /** Signs this token out on the server, so it stops working at once rather than idling out. */
-    suspend fun revokeSession() {
-        client.delete("$base/auth/session") { auth() }.throwIfError()
+    /**
+     * Signs [token] out on the server, so it stops working at once rather than idling out. Explicit,
+     * not [tokenProvider]: the caller has already forgotten it locally.
+     */
+    suspend fun revokeSession(token: String) {
+        client.delete("$base/auth/session") { header(HttpHeaders.Authorization, "Bearer $token") }.throwIfError()
     }
 
+    /** Wipes the caller's account server-side; the session token stops working. */
     suspend fun deleteAccount() {
         client.delete("$base/account") { auth() }.throwIfError()
     }

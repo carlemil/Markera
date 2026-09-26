@@ -207,6 +207,40 @@ class SeriesRepositoryTest {
     }
 
     @Test
+    fun theOutboxDropsARefusedRowSendsTheRestAndStopsWhenOffline() = runBlocking {
+        val db = testSeriesDb()
+        var postStatus = HttpStatusCode.BadRequest
+        val repo = repo(db = db) { request ->
+            when {
+                request.method == HttpMethod.Get -> json("[]")
+                request.url.encodedPath.endsWith("/image") -> respond("", HttpStatusCode.NoContent)
+                else -> json("""{"id":5}""", postStatus).also { postStatus = HttpStatusCode.Created }
+            }
+        }
+        val req = SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList())
+        repo.enqueue(req, null)
+        repo.enqueue(req.copy(caliber = "22lr"), EncodedImage(byteArrayOf(1), 10, 10))
+
+        assertNull(repo.refresh())
+
+        // The 400 is gone for good, the second went up with its photo, and nothing is left.
+        assertEquals(listOf("/series", "/series", "/series/5/image"), recorded.filter { it.method == HttpMethod.Post }.map { it.url.encodedPath })
+        assertEquals(listOf<Byte>(1), images.files[5]?.toList())
+        assertTrue(db.seriesQueries.outboxFor("1").executeAsList().isEmpty())
+    }
+
+    @Test
+    fun anOfflineRefreshKeepsTheOutbox() = runBlocking {
+        val db = testSeriesDb()
+        val repo = repo(db = db) { json("""{"error":"down"}""", HttpStatusCode.ServiceUnavailable) }
+        repo.enqueue(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList()), null)
+
+        assertNotNull(repo.refresh())
+
+        assertEquals(1, db.seriesQueries.outboxFor("1").executeAsList().size)
+    }
+
+    @Test
     fun aCachedThumbnailIsServedWithoutTouchingTheFullImage() = runBlocking {
         val repo = repo { error("no request expected") }
         images.writeThumb(9, byteArrayOf(1, 2))
@@ -295,18 +329,23 @@ class SeriesRepositoryTest {
     }
 
     @Test
-    fun aRefreshAskedForDuringAnotherIsSkipped() = runBlocking {
+    fun aRefreshAskedForDuringAnotherJoinsItAndSharesItsOutcome() = runBlocking {
         val gate = CompletableDeferred<Unit>()
         val repo = repo {
             gate.await()
-            json("[]")
+            json("""{"error":"down"}""", HttpStatusCode.ServiceUnavailable)
         }
         val first = async { repo.refresh() }
         awaitRequests(1)
 
-        assertNull(repo.refresh())
+        val second = async { repo.refresh() }
+        delay(100)
+        // Still waiting on the first one, not reporting a success it has not had.
+        assertTrue(second.isActive)
         gate.complete(Unit)
-        assertNull(first.await())
+
+        assertNotNull(first.await())
+        assertNotNull(second.await())
         assertEquals(1, recorded.size)
     }
 }

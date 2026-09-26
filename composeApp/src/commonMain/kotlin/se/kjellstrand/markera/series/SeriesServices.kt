@@ -54,11 +54,14 @@ class FileImageCache(private val dir: Path) : ImageCache {
         SystemFileSystem.source(path).buffered().use { it.readByteArray() }
     }.getOrNull()
 
+    /** Through a temp file and a rename, so a write cut short never leaves a truncated JPEG that reads back as cached. */
     private fun write(path: Path, bytes: ByteArray) {
+        val tmp = Path(dir, "${path.name}.tmp")
         runCatching {
             SystemFileSystem.createDirectories(dir)
-            SystemFileSystem.sink(path).buffered().use { it.write(bytes) }
-        }
+            SystemFileSystem.sink(tmp).buffered().use { it.write(bytes) }
+            SystemFileSystem.atomicMove(tmp, path)
+        }.onFailure { runCatching { SystemFileSystem.delete(tmp, mustExist = false) } }
     }
 
     override fun delete(id: Long) {

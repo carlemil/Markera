@@ -1,0 +1,11 @@
+-- v2 -> v3: the outbox for series the server has not taken yet (see Series.sq).
+
+CREATE TABLE outbox (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    request TEXT NOT NULL,
+    series_id INTEGER,
+    image BLOB,
+    image_width INTEGER,
+    image_height INTEGER
+);

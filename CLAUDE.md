@@ -197,7 +197,9 @@ back and deletes the tombstones (no stamp yet → a full paged load); it returns
 instead of throwing, so offline keeps the cached rows. Writes go to the server first, the
 cache after; `SeriesRecorder` saves through it and hands the uploaded JPEG straight to the
 image cache (`cacheDir/series/<id>.jpg`, the `ImageCache` interface), so History never
-re-downloads what the phone just took. History/Statistik/Detail read the flow (Detail looks
+re-downloads what the phone just took. A save that fails offline or on a 5xx (or a photo upload that
+does) goes to the SQLDelight `outbox` table (`SaveStatus.Queued`), which the next `refresh()` sends
+first; a 4xx stays `Failed`. History/Statistik/Detail read the flow (Detail looks
 its series up by id); `refresh()` runs at startup, on those screens opening, and after
 sign-in. Sign-out, account deletion and a different user `clear()` both tables and the
 image dir. JVM-tested in `SeriesRepositoryTest` (in-memory SQLite + `ktor-client-mock`).

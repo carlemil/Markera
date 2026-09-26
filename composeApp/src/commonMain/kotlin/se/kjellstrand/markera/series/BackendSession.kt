@@ -74,19 +74,22 @@ class BackendSessionRepository(
     suspend fun signInDev(subject: String): BackendAuth =
         publish("dev", api.authDev(subject))
 
+    /**
+     * Signed out locally first, so leaving the screen mid-call (which cancels this) or being offline can
+     * never leave the user signed in; the server-side revoke after it is best effort.
+     */
     suspend fun signOut() {
-        // Best effort, and while the token is still set (the api reads it from here): offline, or the 401
-        // after deleteAccount, must still sign out locally.
-        if (currentToken != null) {
+        val token = currentToken
+        _auth.value = null
+        store.clear()
+        if (token != null) {
             try {
-                api.revokeSession()
+                api.revokeSession(token)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
             }
         }
-        _auth.value = null
-        store.clear()
     }
 
     private suspend fun publish(provider: String, response: BackendAuthResponse): BackendAuth {

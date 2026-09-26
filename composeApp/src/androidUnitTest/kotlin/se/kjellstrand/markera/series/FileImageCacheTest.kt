@@ -27,6 +27,15 @@ class FileImageCacheTest {
     }
 
     @Test
+    fun aRewriteReplacesTheFileAndLeavesNoTempBehind() {
+        cache.write(4, byteArrayOf(1, 2, 3))
+        cache.write(4, byteArrayOf(9))
+
+        assertEquals(listOf<Byte>(9), cache.read(4)?.toList())
+        assertEquals(setOf("4.jpg"), dir.list()!!.toSet())
+    }
+
+    @Test
     fun clearRemovesThumbnailsToo() {
         cache.write(1, byteArrayOf(1))
         cache.writeThumb(1, byteArrayOf(2))

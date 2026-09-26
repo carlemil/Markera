@@ -54,6 +54,7 @@
     <string name="series_tag_suggest_competition">Competition</string>
     <string name="series_status_saved">Saved</string>
     <string name="series_status_failed">Could not save: %1$s</string>
+    <string name="series_status_queued">Saved on the phone, uploads when you are back online</string>
     <string name="session_expired">Signed out: sign in again to save series</string>
 
     <!-- Series history -->

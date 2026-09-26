@@ -21,6 +21,9 @@ sealed interface SaveStatus {
     data object NeedsCaliber : SaveStatus
     data object Saving : SaveStatus
     data class Saved(val caliber: Caliber) : SaveStatus
+
+    /** The server could not be reached: kept on the phone, sent by a later refresh. */
+    data object Queued : SaveStatus
     data class Failed(val error: Throwable) : SaveStatus
 }
 
@@ -91,6 +94,9 @@ class SeriesRecorder(
 
     /** The one whose POST is running: a second save of it (the chip tapped mid-save) is refused. */
     private var inFlight: Pending? = null
+
+    /** Something went to the outbox; the next successful save triggers the refresh that sends it. */
+    private var queued = false
 
     /**
      * Every save is its own child of this: a rescan or the next scan never cancels a
@@ -246,13 +252,22 @@ class SeriesRecorder(
                 throw e // dispose() cancelled us; the screen is gone.
             } catch (e: Exception) {
                 if (inFlight === p) inFlight = null
-                if (e is SeriesApiException && e.isUnauthorized) {
-                    // The repository signed out and toasts it; a Failed would be a second toast.
-                    pending = null
-                    _status.value = SaveStatus.Idle
-                } else {
-                    // Still pending: the chip retries it.
-                    _status.value = SaveStatus.Failed(e)
+                when {
+                    e is SeriesApiException && e.isUnauthorized -> {
+                        // The repository signed out and toasts it; a Failed would be a second toast.
+                        pending = null
+                        _status.value = SaveStatus.Idle
+                    }
+                    // Offline or a server hiccup: into the outbox, which the next refresh sends, so
+                    // the next scan replacing [pending] loses nothing.
+                    e !is SeriesApiException || e.status >= 500 -> {
+                        repository.enqueue(request, image?.let { encodeOrNull(it) })
+                        queued = true
+                        if (pending === p) pending = null
+                        _status.value = SaveStatus.Queued
+                    }
+                    // Refused (a 4xx): retrying the same body cannot help. Still pending for the chip.
+                    else -> _status.value = SaveStatus.Failed(e)
                 }
                 return@launch
             }
@@ -260,17 +275,33 @@ class SeriesRecorder(
             // A series scanned while this one was posting stays pending.
             if (pending === p) pending = null
             _status.value = SaveStatus.Saved(caliber)
-            // The snapshot is a bonus: a failed encode or upload never
-            // downgrades an already-saved series.
-            if (image == null) return@launch
+            // The server is reachable again: send what an earlier failure left behind.
+            if (queued) {
+                queued = false
+                scope.launch { repository.refresh() }
+            }
+            // The snapshot never downgrades an already-saved series; a failed upload waits in the outbox.
+            val encoded = image?.let { encodeOrNull(it) } ?: return@launch
             try {
-                val encoded = encodeJpeg(image)
                 repository.uploadImage(id, encoded.bytes, encoded.width, encoded.height)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 println("Markera: series image upload failed: $e")
+                if (e !is SeriesApiException || e.status >= 500) {
+                    repository.enqueue(request, encoded, seriesId = id)
+                    queued = true
+                }
             }
         }
+    }
+
+    private suspend fun encodeOrNull(image: PlatformImage): EncodedImage? = try {
+        encodeJpeg(image)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        println("Markera: series image encode failed: $e")
+        null
     }
 }

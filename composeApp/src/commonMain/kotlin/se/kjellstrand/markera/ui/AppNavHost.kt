@@ -227,12 +227,14 @@ fun AppNavHost(
     // The only save feedback, for both screens: one toast per outcome. Collected
     // (not read from the current value), so a recomposition never repeats it.
     val savedText = stringResource(Res.string.series_status_saved)
+    val queuedText = stringResource(Res.string.series_status_queued)
     val signInText = stringResource(Res.string.home_sign_in)
     val expiredText = stringResource(Res.string.session_expired)
     LaunchedEffect(recorder) {
         recorder.status.collect { status ->
             val message = when (status) {
                 is SaveStatus.Saved -> savedText
+                SaveStatus.Queued -> queuedText
                 is SaveStatus.Failed -> status.error.userMessage()
                     ?.let { getString(Res.string.series_status_failed, getString(it)) }
                     ?: return@collect
@@ -681,10 +683,9 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = {
-                    scope.launch {
-                        seriesServices.session.signOut()
-                        seriesServices.repository.clear()
-                    }
+                    // Side by side: wiping the cache must not wait on the (best-effort) server revoke.
+                    scope.launch { seriesServices.session.signOut() }
+                    scope.launch { seriesServices.repository.clear() }
                 }) {
                     Text(stringResource(Res.string.home_sign_out))
                 }
