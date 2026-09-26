@@ -94,6 +94,15 @@ class RingProbeTest {
     }
 
     @Test
+    fun `a probe pushed off the frame gives no ellipse`() {
+        // The frame cut at x = 1170, inside the right-hand rim (~1180).
+        val cut = 1170
+        val cropped = ByteArray(cut * h) { gray[(it / cut) * w + it % cut] }
+        val result = assertNotNull(fit67RingByProbes(cropped, cut, h, digitsOff(listOf(-30.0, 30.0, 30.0, -30.0)), centre))
+        assertNull(result.ellipse)
+    }
+
+    @Test
     fun `fit67Ring takes the probe ellipse when it sits on the rim`() {
         val fit = assertNotNull(fit67Ring(gray, w, h, digitsOff(listOf(-30.0, 30.0, 30.0, -30.0)), centre))
         println("fit67Ring = $fit")
@@ -112,21 +121,42 @@ class RingProbeTest {
     }
 
     @Test
-    fun `four points on a rotated ellipse give that ellipse back`() {
+    fun `conjugate points on a rotated ellipse give that ellipse back`() {
         val truth = FittedEllipse(512f, 430f, 300f, 220f, 0.3f)
         val c = cos(0.3)
         val s = sin(0.3)
-        val params = doubleArrayOf(10.0, 100.0, 200.0, 290.0).map { it * PI / 180 }
+        // Parameters t, t+180, t+90, t+270 (left, right, top, bottom): two conjugate diameters.
+        val params = doubleArrayOf(190.0, 10.0, 280.0, 100.0).map { it * PI / 180 }
         val xs = DoubleArray(4) { 512 + 300 * cos(params[it]) * c - 220 * sin(params[it]) * s }
         val ys = DoubleArray(4) { 430 + 300 * cos(params[it]) * s + 220 * sin(params[it]) * c }
-        // Frame rotated a quarter turn from the major axis: the axes must swap back.
-        val e = assertNotNull(ellipseThroughFour(xs, ys, 0.3 - PI / 2))
-        println("fit = $e")
+        val e = assertNotNull(ellipseFromConjugates(xs, ys))
         assertEquals(truth.cx, e.cx, 0.01f)
         assertEquals(truth.cy, e.cy, 0.01f)
         assertEquals(truth.semiMajor, e.semiMajor, 0.01f)
         assertEquals(truth.semiMinor, e.semiMinor, 0.01f)
         assertEquals(truth.rotationRad, e.rotationRad, 1e-4f)
+    }
+
+    @Test
+    fun `a tilt diagonal to the digit rows still scores every ring to the millimetre`() {
+        // Target seen at 5 px/mm, foreshortened along an axis at phi to the digit rows.
+        // The old fit kept the ellipse axes on the rows: 2.6 mm off at phi=45, m=0.95.
+        for (phiDeg in listOf(0.0, 22.5, 45.0, 70.0)) for (m in listOf(0.95, 0.9, 0.8)) {
+            val phi = phiDeg * PI / 180
+            val c = cos(phi)
+            val s = sin(phi)
+            val a11 = 5 * (c * c + m * s * s)
+            val a12 = 5 * (1 - m) * c * s
+            val a22 = 5 * (s * s + m * c * c)
+            fun img(x: Double, y: Double) = doubleArrayOf(700 + a11 * x + a12 * y, 700 + a12 * x + a22 * y)
+            val probes = listOf(img(-100.0, 0.0), img(100.0, 0.0), img(0.0, -100.0), img(0.0, 100.0))
+            val e = assertNotNull(ellipseFromConjugates(DoubleArray(4) { probes[it][0] }, DoubleArray(4) { probes[it][1] }))
+            val centre = CentreEstimate(700f, 700f, CentreMethod.LINE_INTERSECTION)
+            for (r in listOf(12.5, 50.0, 100.0)) for (deg in 0 until 360 step 5) {
+                val p = img(r * cos(deg * PI / 180), r * sin(deg * PI / 180))
+                assertEquals(r, distanceMm(p[0].toFloat(), p[1].toFloat(), centre, e), 0.05, "phi=$phiDeg m=$m r=$r at $deg")
+            }
+        }
     }
 
     @Test

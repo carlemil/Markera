@@ -178,7 +178,11 @@ fun fit67RingByProbes(
             frac?.toFloat() ?: Float.NaN, iterations,
         )
     }
-    return RingProbeResult(probes, ellipseThroughFour(finalX, finalY, atan2(hs * h.dy, hs * h.dx).toDouble()))
+    // A disk even partly off the frame reads a share of the pixels it can see, not the rim: no ring.
+    val inFrame = (0 until 4).all {
+        finalX[it] - rho >= 0 && finalX[it] + rho <= width - 1 && finalY[it] - rho >= 0 && finalY[it] + rho <= height - 1
+    }
+    return RingProbeResult(probes, if (inFrame) ellipseFromConjugates(finalX, finalY) else null)
 }
 
 /**
@@ -258,55 +262,35 @@ private fun edgeOffset(fraction: Double): Double {
 }
 
 /**
- * The ellipse with axes along [theta] through four points: in the rotated frame
- * solve `A*u^2 + C*v^2 + D*u + E*v = 1` exactly, centre `(-D/2A, -E/2C)`,
- * semi-axes `sqrt(G/A)`, `sqrt(G/C)` with `G = 1 + A*u0^2 + C*v0^2`. Null for a
- * hyperbola (A or C <= 0) or a singular system.
+ * The 6/7 ellipse from the four probes, ordered left, right, top, bottom along the
+ * two digit rows. The rows are the target's two perpendicular diameters, so under
+ * the (locally affine) camera view `p = (right - left) / 2` and `q = (bottom - top) / 2`
+ * are the images of the 100 mm target vectors (1, 0) and (0, 1) — conjugate
+ * semi-diameters of the ring. The ring is then `[p q]` applied to the unit
+ * circle: its semi-axes are the singular values of `[p q]`, its major axis the
+ * top eigenvector of `[p q][p q]^T`, whatever way the tilt runs relative to the
+ * rows. Centred on the probes' mean (scoring uses the digit centre regardless).
+ * Null when p and q are (near) parallel.
  */
-internal fun ellipseThroughFour(xs: DoubleArray, ys: DoubleArray, theta: Double): FittedEllipse? {
-    // Centred and scaled to ~1 so the elimination is well conditioned.
-    val ox = xs.average()
-    val oy = ys.average()
-    val c = cos(theta)
-    val sn = sin(theta)
-    val u = DoubleArray(4) { (xs[it] - ox) * c + (ys[it] - oy) * sn }
-    val v = DoubleArray(4) { -(xs[it] - ox) * sn + (ys[it] - oy) * c }
-    val scale = max(u.maxOf { abs(it) }, v.maxOf { abs(it) })
-    if (scale <= 0) return null
-    val m = Array(4) {
-        val a = u[it] / scale
-        val b = v[it] / scale
-        doubleArrayOf(a * a, b * b, a, b, 1.0)
-    }
-    for (col in 0 until 4) {
-        val p = (col until 4).maxBy { abs(m[it][col]) }
-        if (abs(m[p][col]) < 1e-9) return null
-        val tmp = m[col]
-        m[col] = m[p]
-        m[p] = tmp
-        for (r in col + 1 until 4) {
-            val f = m[r][col] / m[col][col]
-            for (k in col..4) m[r][k] -= f * m[col][k]
-        }
-    }
-    val sol = DoubleArray(4)
-    for (r in 3 downTo 0) {
-        var acc = m[r][4]
-        for (k in r + 1 until 4) acc -= m[r][k] * sol[k]
-        sol[r] = acc / m[r][r]
-    }
-    val (a, cc, d, e) = sol
-    if (a <= 0 || cc <= 0) return null
-    val u0 = -d / (2 * a)
-    val v0 = -e / (2 * cc)
-    val g = 1 + a * u0 * u0 + cc * v0 * v0
-    val au = (sqrt(g / a) * scale).toFloat()
-    val av = (sqrt(g / cc) * scale).toFloat()
-    val x0 = (ox + (u0 * c - v0 * sn) * scale).toFloat()
-    val y0 = (oy + (u0 * sn + v0 * c) * scale).toFloat()
-    return if (au >= av) {
-        FittedEllipse(x0, y0, au, av, theta.toFloat())
-    } else {
-        FittedEllipse(x0, y0, av, au, (theta + PI / 2).toFloat())
-    }
+internal fun ellipseFromConjugates(xs: DoubleArray, ys: DoubleArray): FittedEllipse? {
+    val px = (xs[1] - xs[0]) / 2
+    val py = (ys[1] - ys[0]) / 2
+    val qx = (xs[3] - xs[2]) / 2
+    val qy = (ys[3] - ys[2]) / 2
+    // [p q][p q]^T = [[a, b], [b, d]]
+    val a = px * px + qx * qx
+    val b = px * py + qx * qy
+    val d = py * py + qy * qy
+    val mid = (a + d) / 2
+    val spread = sqrt((a - d) * (a - d) / 4 + b * b)
+    val major = mid + spread
+    val minor = mid - spread
+    if (minor <= major * 1e-6) return null
+    return FittedEllipse(
+        cx = xs.average().toFloat(),
+        cy = ys.average().toFloat(),
+        semiMajor = sqrt(major).toFloat(),
+        semiMinor = sqrt(minor).toFloat(),
+        rotationRad = (atan2(2 * b, a - d) / 2).toFloat(),
+    )
 }
