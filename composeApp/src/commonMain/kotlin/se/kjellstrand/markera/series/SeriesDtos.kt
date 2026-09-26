@@ -148,8 +148,16 @@ fun SeriesDto.total(): Int = holes.sumOf { it.ring }
 
 /** The hits highest first as picker indices, an inner ten as [SCORE_PICKER_INNER_TEN] ("X"). */
 fun SeriesDto.scorePicks(): List<Int> =
+    pickOrder().map { if (it.innerTen) SCORE_PICKER_INNER_TEN else it.ring }
+
+/** Per [scorePicks] entry, in the same order: did the user place, retype or move that hole? */
+fun SeriesDto.scorePicksByHand(): List<Boolean> = pickOrder().map { it.byHand() }
+
+private fun SeriesDto.pickOrder(): List<HoleDto> =
     holes.sortedWith(compareByDescending<HoleDto> { it.ring }.thenByDescending { it.innerTen })
-        .map { if (it.innerTen) SCORE_PICKER_INNER_TEN else it.ring }
+
+/** Not the detector's untouched hole: placed or typed by hand, rescored, or dragged. */
+fun HoleDto.byHand(): Boolean = detectedRing == null || isEdited() || wasMoved()
 
 /**
  * Hole positions travel as raw source-image pixels; the server just stores them.

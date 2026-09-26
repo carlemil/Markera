@@ -294,4 +294,25 @@ class SeriesDtosTest {
         assertEquals(46, series.total())
         assertEquals(listOf(SCORE_PICKER_INNER_TEN, 10, 9, 9, 8), series.scorePicks())
     }
+
+    @Test
+    fun scorePicksByHandFlagsPlacedRetypedAndMovedHolesInPickOrder() {
+        val series = SeriesDto(
+            id = 1,
+            timestamp = "2026-09-06T10:00:00Z",
+            caliber = "9mm",
+            holes = listOf(
+                // Untouched detection.
+                HoleDto(1.0, 1.0, 9, false, 30.0, detectedRing = 9, detectedInnerTen = false, detectedX = 1.0, detectedY = 1.0),
+                // Placed by hand: no detection at all.
+                HoleDto(2.0, 2.0, 8, false, 50.0),
+                // Retyped: detector said 9, user says 10.
+                HoleDto(3.0, 3.0, 10, false, 20.0, detectedRing = 9, detectedInnerTen = false, detectedX = 3.0, detectedY = 3.0),
+                // Dragged off the detected spot, same score.
+                HoleDto(4.0, 4.0, 7, false, 70.0, detectedRing = 7, detectedInnerTen = false, detectedX = 5.0, detectedY = 5.0),
+            ),
+        )
+        assertEquals(listOf(10, 9, 8, 7), series.scorePicks())
+        assertEquals(listOf(true, false, true, true), series.scorePicksByHand())
+    }
 }

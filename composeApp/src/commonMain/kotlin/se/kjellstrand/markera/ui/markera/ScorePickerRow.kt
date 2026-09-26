@@ -187,9 +187,16 @@ fun ScorePickerHorizontalRow(
 
 /** Read-only hits as small score boxes, for lists (Historik, a locked competition lane). */
 @Composable
-fun ScoreMiniRow(values: List<Int>, modifier: Modifier = Modifier) {
+fun ScoreMiniRow(
+    values: List<Int>,
+    modifier: Modifier = Modifier,
+    /** Per box: a hole the user placed, retyped or moved, drawn orange. */
+    manual: List<Boolean> = emptyList(),
+) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        values.forEach { ScoreBox(value = it, onValueChange = null, compact = true) }
+        values.forEachIndexed { i, v ->
+            ScoreBox(value = v, onValueChange = null, compact = true, manual = manual.getOrElse(i) { false })
+        }
     }
 }
 

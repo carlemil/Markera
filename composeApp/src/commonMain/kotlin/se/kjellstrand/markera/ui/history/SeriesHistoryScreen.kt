@@ -78,6 +78,7 @@ import se.kjellstrand.markera.series.exportSeriesZip
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.localTime
 import se.kjellstrand.markera.series.scorePicks
+import se.kjellstrand.markera.series.scorePicksByHand
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
 import se.kjellstrand.markera.ui.AppChip
@@ -485,7 +486,8 @@ internal fun SeriesCard(
                     fontWeight = FontWeight.Bold,
                 )
                 // Display only: the card itself opens the Serie page, where these are edited.
-                if (series.holes.isNotEmpty()) ScoreMiniRow(series.scorePicks())
+                // Orange like the photo's hand-placed marker: what the user changed.
+                if (series.holes.isNotEmpty()) ScoreMiniRow(series.scorePicks(), manual = series.scorePicksByHand())
                 TotalBadge(series.total(), series.caliber, series.tag, compact = true)
             }
         }
