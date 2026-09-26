@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.ui.geometry.Offset
@@ -499,26 +501,28 @@ private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Un
 /** A switch with its label above it, in the pre-scan row of switches. */
 @Composable
 private fun ScanToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, onHelp: (() -> Unit)? = null) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
-            // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
-            if (onHelp != null) {
-                IconButton(onClick = onHelp) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.HelpOutline,
-                        contentDescription = stringResource(Res.string.help),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+    Row(verticalAlignment = Alignment.Bottom) {
+        // Label and switch are one control: tapping either toggles, and it is read out as one.
+        Column(
+            Modifier.toggleable(checked, role = Role.Switch, onValueChange = onCheckedChange),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Switch(checked = checked, onCheckedChange = null)
+        }
+        // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
+        if (onHelp != null) {
+            IconButton(onClick = onHelp) {
+                Icon(
+                    Icons.AutoMirrored.Outlined.HelpOutline,
+                    contentDescription = stringResource(Res.string.help),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

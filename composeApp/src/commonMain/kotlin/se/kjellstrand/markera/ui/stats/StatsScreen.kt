@@ -70,6 +70,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -530,11 +536,14 @@ private fun TargetCanvas(
     // centroid is a plain "keep the centroid still" rescale of the pan.
     var zoom by remember { mutableStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
+    // The numbers are spelled out in the measurement rows below; this names the picture.
+    val description = stringResource(Res.string.stats_target_description, stats?.hitCount ?: 0, plotted.size)
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clipToBounds()
+            .semantics { contentDescription = description }
             .pointerInput(Unit) {
                 detectTapGestures(onDoubleTap = { zoom = 1f; pan = Offset.Zero })
             }
@@ -766,10 +775,21 @@ private fun AgeLegend(plotted: List<PlottedSeries>, knob: Int, on: Boolean, onKn
         // The gestures are not restarted per recomposition, so they read these.
         val current by rememberUpdatedState(knob to on)
         val count = plotted.size
+        val timeline = stringResource(Res.string.stats_timeline)
+        val knobStamp = localStamp(plotted[knob].series.timestamp)
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(KNOB_TOUCH)
+                // A slider to a screen reader: swipe up/down steps through the series.
+                .semantics {
+                    contentDescription = timeline
+                    stateDescription = knobStamp
+                    progressBarRangeInfo = ProgressBarRangeInfo(
+                        knob.toFloat(), 0f..(count - 1).coerceAtLeast(0).toFloat(), (count - 2).coerceAtLeast(0),
+                    )
+                    setProgress { v -> onKnob(v.roundToInt().coerceIn(0, count - 1), true); true }
+                }
                 .pointerInput(count) {
                     // The knob's centre travels between the insets, so it never overhangs the bar.
                     val inset = KNOB.width.toPx() / 2f

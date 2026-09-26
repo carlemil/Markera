@@ -123,6 +123,10 @@
     <string name="stats_group_date">Datum</string>
     <string name="filter_clear">Rensa filter</string>
     <string name="stats_no_geometry">Ingen av dina serier har en ring att rita mot. Skanna en där 6/7-ringen hittas.</string>
+    <string name="stats_target_description">Tavla med %1$d träffar från %2$d serier</string>
+    <string name="stats_timeline">Serietidslinje</string>
+    <string name="state_expanded">Utfälld</string>
+    <string name="state_collapsed">Hopfälld</string>
     <string name="stats_group_metric">Mått</string>
     <string name="stats_group_bucket">Gruppering</string>
     <!-- Trend chips: short forms of the measurement rows -->

@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -539,7 +540,7 @@ private fun HoleRow(
                 ?.let { stringResource(Res.string.detail_mm, it.roundToInt()) }
                 ?: stringResource(Res.string.detail_no_distance),
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.widthIn(min = 64.dp),
         )
         Text(
             text = hole.kindText(
@@ -552,10 +553,10 @@ private fun HoleRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        // Trimmed from the 48 dp default so the text, not the button, sets
-        // the row height; the 24 dp icon still fits.
+        // Trimmed from the 48 dp default so the text, not the button, sets the row
+        // height; Compose still extends the touch target to 48 dp.
         if (onRestore != null) {
-            IconButton(onClick = onRestore, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onRestore, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Undo,
                     contentDescription = stringResource(Res.string.detail_restore_hole),
@@ -564,7 +565,7 @@ private fun HoleRow(
             }
         }
         if (onDelete != null) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(Res.string.detail_delete_hole),

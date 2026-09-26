@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,19 +68,23 @@ internal fun ScoreBox(
     compact: Boolean = false,
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    val pickLabel = stringResource(Res.string.score_pick_title)
     val accent = if (manual) MANUAL_HIT_COLOR else MaterialTheme.colorScheme.primary
     val shape = if (compact) MINI_SHAPE else MaterialTheme.shapes.medium
     Box(
         modifier = modifier
-            .width(if (compact) MINI_ITEM_WIDTH else PICKER_ITEM_WIDTH)
-            .height(if (compact) MINI_ITEM_HEIGHT else PICKER_ITEM_HEIGHT)
+            // Minimums, not fixed sizes: a large system font grows the box instead of clipping.
+            .defaultMinSize(
+                minWidth = if (compact) MINI_ITEM_WIDTH else PICKER_ITEM_WIDTH,
+                minHeight = if (compact) MINI_ITEM_HEIGHT else PICKER_ITEM_HEIGHT,
+            )
             .background(accent.copy(alpha = 0.14f), shape)
             .border(if (compact) 1.5.dp else 2.dp, accent, shape)
             .then(
                 if (onValueChange == null) {
                     Modifier
                 } else {
-                    Modifier.clickable { showDialog = true }
+                    Modifier.clickable(role = Role.Button, onClickLabel = pickLabel) { showDialog = true }
                 },
             ),
         contentAlignment = Alignment.Center,

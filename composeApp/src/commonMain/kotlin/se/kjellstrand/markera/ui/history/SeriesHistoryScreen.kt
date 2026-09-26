@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -391,10 +393,13 @@ internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Composable
 private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) {
     val angle by animateFloatAsState(if (expanded) 180f else 0f)
+    val expandedText = stringResource(Res.string.state_expanded)
+    val collapsedText = stringResource(Res.string.state_collapsed)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)
+            .semantics { stateDescription = if (expanded) expandedText else collapsedText }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -444,7 +449,11 @@ internal fun SeriesCard(
         shape = MaterialTheme.shapes.large,
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongPress),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongPress,
+                onLongClickLabel = stringResource(Res.string.history_delete_confirm),
+            ),
     ) {
         Row(
             modifier = Modifier

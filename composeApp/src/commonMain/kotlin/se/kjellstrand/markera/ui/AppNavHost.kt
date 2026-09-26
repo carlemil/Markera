@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -392,11 +394,11 @@ internal fun TagDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onSelect(tag) }
-                                .padding(vertical = 6.dp),
+                                .selectable(tag == selected, role = Role.RadioButton) { onSelect(tag) }
+                                .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RadioButton(selected = tag == selected, onClick = { onSelect(tag) })
+                            RadioButton(selected = tag == selected, onClick = null)
                             Text(
                                 tag ?: stringResource(Res.string.series_tag_none),
                                 style = MaterialTheme.typography.bodyLarge,
@@ -453,18 +455,18 @@ internal fun CaliberDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onSelect(caliber) }
-                                .padding(vertical = 6.dp),
+                                .selectable(caliber == selected, role = Role.RadioButton) { onSelect(caliber) }
+                                .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RadioButton(selected = caliber == selected, onClick = { onSelect(caliber) })
+                            RadioButton(selected = caliber == selected, onClick = null)
                             Text(
                                 if (caliber == Caliber.NONE) stringResource(Res.string.series_caliber_none) else caliber.label,
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(start = 8.dp).weight(1f),
                             )
                             if (caliber in custom) {
-                                IconButton(onClick = { onRemove(caliber) }, modifier = Modifier.size(32.dp)) {
+                                IconButton(onClick = { onRemove(caliber) }, modifier = Modifier.size(40.dp)) {
                                     Icon(
                                         Icons.Default.Delete,
                                         contentDescription = stringResource(Res.string.series_caliber_remove, caliber.label),

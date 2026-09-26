@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.settings
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -137,10 +139,11 @@ fun SettingsScreen(settings: AppSettings, onBack: () -> Unit) {
 @Composable
 private fun Choice(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        // One focusable radio row: the label and the button are the same control.
+        modifier = Modifier.fillMaxWidth().selectable(selected, onClick = onClick, role = Role.RadioButton),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        RadioButton(selected = selected, onClick = null)
         Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }

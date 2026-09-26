@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.markera
 
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -83,7 +84,8 @@ fun DetectionOverlay(
         val scale = min(size.width / imageWidth, size.height / imageHeight)
         val offsetX = (size.width - imageWidth * scale) / 2f
         val offsetY = (size.height - imageHeight * scale) / 2f
-        val labelSize = (28f * scale).coerceIn(44f, 128f)
+        // Bounds in dp, not px: 44 px was 11 dp on a 640 dpi phone but 29 dp on a 240 dpi one.
+        val labelSize = (28f * scale).coerceIn(12.dp.toPx(), 32.dp.toPx())
 
         // 6/7 boundary ellipse: drawn at its own fitted centre — it is the fit.
         // Debug only: it is a diagnostic for judging that fit, and the user
