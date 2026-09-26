@@ -28,6 +28,19 @@ private val MarkeraDarkColors = darkColorScheme(
     surfaceVariant = MarkeraSurfaceVariant,
     onSurfaceVariant = MarkeraOnSurfaceVariant,
     outlineVariant = MarkeraOutlineVariant,
+    outline = MarkeraOutline,
+    surfaceContainerLowest = MarkeraSurfaceContainerLowest,
+    surfaceContainerLow = MarkeraSurfaceContainerLow,
+    surfaceContainer = MarkeraSurfaceContainer,
+    surfaceContainerHigh = MarkeraSurfaceContainerHigh,
+    surfaceContainerHighest = MarkeraSurfaceContainerHighest,
+    surfaceBright = MarkeraSurfaceContainerHighest,
+    surfaceDim = MarkeraBackground,
+    inverseSurface = MarkeraOnSurface,
+    inverseOnSurface = MarkeraSurface,
+    inversePrimary = MarkeraGreenLight,
+    tertiary = MarkeraGreenDim,
+    onTertiary = Color.Black,
 )
 
 private val MarkeraLightColors = lightColorScheme(
@@ -46,6 +59,19 @@ private val MarkeraLightColors = lightColorScheme(
     surfaceVariant = MarkeraLightSurfaceVariant,
     onSurfaceVariant = MarkeraLightOnSurfaceVariant,
     outlineVariant = MarkeraLightOutlineVariant,
+    outline = MarkeraLightOutline,
+    surfaceContainerLowest = MarkeraLightSurfaceContainerLowest,
+    surfaceContainerLow = MarkeraLightSurfaceContainerLow,
+    surfaceContainer = MarkeraLightSurfaceContainer,
+    surfaceContainerHigh = MarkeraLightSurfaceContainerHigh,
+    surfaceContainerHighest = MarkeraLightSurfaceContainerHighest,
+    surfaceBright = MarkeraLightSurface,
+    surfaceDim = MarkeraLightSurfaceContainerHighest,
+    inverseSurface = MarkeraLightOnSurface,
+    inverseOnSurface = MarkeraLightBackground,
+    inversePrimary = MarkeraGreen,
+    tertiary = MarkeraGreenLight,
+    onTertiary = Color.White,
 )
 
 // One corner scale: chips/boxes small or medium, cards and dialogs large.

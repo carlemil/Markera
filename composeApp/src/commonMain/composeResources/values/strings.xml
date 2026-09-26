@@ -39,6 +39,8 @@
     <string name="home_sign_in">Sign in to save series</string>
     <string name="home_signed_in">Signed in with %1$s</string>
     <string name="home_sign_out">Sign out</string>
+    <string name="snackbar_sign_in">Sign in</string>
+    <string name="home_signed_out">Signed out</string>
     <string name="home_delete_account">Delete account</string>
     <string name="home_delete_account_title">Delete the account?</string>
     <string name="home_delete_account_message">All saved series and photos are permanently removed. This cannot be undone.</string>
@@ -127,6 +129,7 @@
     <string name="stats_timeline">Series timeline</string>
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>
+    <string name="refresh_offline">Couldn’t reach the server — showing saved series.</string>
     <string name="stats_group_metric">Measure</string>
     <string name="stats_group_bucket">Grouping</string>
     <!-- Trend chips: short forms of the measurement rows -->
@@ -157,7 +160,7 @@
     <string name="help_home_stats">Statistics</string>
     <string name="help_home_stats_body">Shot pattern and measures over time, filtered by caliber and date.</string>
     <string name="help_home_account">Account</string>
-    <string name="help_home_account_body">Sign in with Google to save series. The series are stored on Markera\’s server and can be deleted at any time with Delete account.</string>
+    <string name="help_home_account_body">Sign in with Google or Apple to save series. The series are stored on Markera\’s server and can be deleted at any time with Delete account.</string>
 
     <!-- Help: scan screen -->
     <string name="help_scan_title">How to scan</string>

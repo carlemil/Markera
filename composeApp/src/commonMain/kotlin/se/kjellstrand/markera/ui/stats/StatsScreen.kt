@@ -1,5 +1,8 @@
 package se.kjellstrand.markera.ui.stats
 
+import org.jetbrains.compose.resources.getString
+import se.kjellstrand.markera.ui.LocalToast
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -178,7 +181,7 @@ private val KNOB_TOUCH = 40.dp
  * un-projected to target millimetres, coloured by caliber, with the group
  * measurements underneath. The maths lives in `series/stats/`; this only draws.
  */
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> Unit = {}) {
     val auth by services.session.auth.collectAsState()
@@ -187,6 +190,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var error by remember { mutableStateOf<StringResource?>(null) }
     var reload by remember { mutableIntStateOf(0) }
     val (signingIn, signIn) = rememberBackendSignIn(services)
+    val toast = LocalToast.current
 
     // Every caliber on any plottable series: a caliber's colour is its slot here,
     // whatever the filter keeps.
@@ -219,6 +223,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
         loading = true
         error = services.repository.refresh()?.userMessage()
         loading = false
+        // With rows cached the screen still shows them, so say they may be stale.
+        if (error != null && services.repository.series.value.isNotEmpty()) toast(getString(Res.string.refresh_offline))
     }
 
     val filter = remember(selection) {
@@ -279,7 +285,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                     onAction = onMarkera,
                 )
 
-                else -> Column(
+                else -> PullToRefreshBox(isRefreshing = loading, onRefresh = { reload++ }, modifier = Modifier.fillMaxSize()) {
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
@@ -341,6 +348,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             onSplit = { splitByCaliber = it },
                         )
                     }
+                }
                 }
             }
         }

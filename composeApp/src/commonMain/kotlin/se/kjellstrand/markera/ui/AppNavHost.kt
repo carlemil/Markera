@@ -1,5 +1,8 @@
 package se.kjellstrand.markera.ui
 
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
@@ -55,7 +58,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -227,7 +229,26 @@ fun AppNavHost(
     val scope = rememberCoroutineScope()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val toast: (String) -> Unit = { msg -> scope.launch { snackbarHostState.showSnackbar(msg) } }
+    // A new message replaces the one on screen instead of queueing behind it.
+    val toast: (String) -> Unit = { msg ->
+        snackbarHostState.currentSnackbarData?.dismiss()
+        scope.launch { snackbarHostState.showSnackbar(msg) }
+    }
+    // Not rememberBackendSignIn: LocalToast is only provided further down.
+    val signIn = rememberSignIn(seriesServices.session)
+    val signInFromToast: () -> Unit = {
+        scope.launch {
+            try {
+                signIn()
+                seriesServices.repository.refresh()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                t.userMessage()?.let { toast(getString(it)) }
+            }
+        }
+    }
+    val signInAction = stringResource(Res.string.snackbar_sign_in)
 
     // The only save feedback, for both screens: one toast per outcome. Collected
     // (not read from the current value), so a recomposition never repeats it.
@@ -243,7 +264,15 @@ fun AppNavHost(
                 is SaveStatus.Failed -> status.error.userMessage()
                     ?.let { getString(Res.string.series_status_failed, getString(it)) }
                     ?: return@collect
-                SaveStatus.SignedOut -> signInText
+                SaveStatus.SignedOut -> {
+                    // Nothing was saved: offer the way to fix that right there.
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(signInText, actionLabel = signInAction)
+                        if (result == SnackbarResult.ActionPerformed) signInFromToast()
+                    }
+                    return@collect
+                }
                 else -> return@collect
             }
             toast(message)
@@ -521,10 +550,13 @@ private fun HomeScreen(
     var showingHelp by remember { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         // No top bar here, so the menu floats in the top-left corner.
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // Centred while it fits, scrolled when it doesn't (a small phone, a large font).
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
                     .padding(24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -555,7 +587,6 @@ private fun HomeScreen(
                         series = latest,
                         ordinal = remember(cached) { cached.dayOrdinals() }[latest.id] ?: 1,
                         services = seriesServices,
-                        thumbnails = remember { mutableStateMapOf() },
                         onClick = { onOpenSeries(latest) },
                     )
                 }
@@ -660,7 +691,9 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                             busy = false
                         }
                     }
-                }) { Text(stringResource(Res.string.home_delete_account_confirm)) }
+                }) {
+                    Text(stringResource(Res.string.home_delete_account_confirm), color = MaterialTheme.colorScheme.error)
+                }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) {
@@ -686,11 +719,14 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            val signedOut = stringResource(Res.string.home_signed_out)
+            // Kept apart: a slip from Sign out should not land on Delete account.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                 TextButton(onClick = {
                     // Side by side: wiping the cache must not wait on the (best-effort) server revoke.
                     scope.launch { seriesServices.session.signOut() }
                     scope.launch { seriesServices.repository.clear() }
+                    toast(signedOut)
                 }) {
                     Text(stringResource(Res.string.home_sign_out))
                 }

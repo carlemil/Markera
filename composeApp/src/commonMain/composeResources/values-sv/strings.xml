@@ -20,7 +20,7 @@
     <string name="markera_continuous">Kontinuerlig skanning</string>
     <string name="markera_toggle_debug">Visa detektionsdata</string>
     <string name="markera_back">Tillbaka</string>
-    <string name="markera_scanning">SCANNAR TAVLAN…</string>
+    <string name="markera_scanning">SKANNAR TAVLAN…</string>
     <string name="score_pick_title">Poäng</string>
     <string name="menu">Meny</string>
     <string name="settings">Inställningar</string>
@@ -39,6 +39,8 @@
     <string name="home_sign_in">Logga in för att spara serier</string>
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
+    <string name="snackbar_sign_in">Logga in</string>
+    <string name="home_signed_out">Utloggad</string>
     <string name="home_delete_account">Radera konto</string>
     <string name="home_delete_account_title">Radera kontot?</string>
     <string name="home_delete_account_message">Alla sparade serier och bilder tas bort permanent. Det går inte att ångra.</string>
@@ -127,6 +129,7 @@
     <string name="stats_timeline">Serietidslinje</string>
     <string name="state_expanded">Utfälld</string>
     <string name="state_collapsed">Hopfälld</string>
+    <string name="refresh_offline">Nådde inte servern — visar sparade serier.</string>
     <string name="stats_group_metric">Mått</string>
     <string name="stats_group_bucket">Gruppering</string>
     <!-- Trend chips: short forms of the measurement rows -->
@@ -151,17 +154,17 @@
     <string name="help_home_how">Så fungerar det</string>
     <string name="help_home_how_body">Fotografera en precisionstavla så hittar Markera träffarna, ringarna och centrum och räknar poängen för serien.</string>
     <string name="help_home_marking">Markera</string>
-    <string name="help_home_marking_body">Öppnar kameran. Rikta mot tavlan och tryck för att scanna.</string>
+    <string name="help_home_marking_body">Öppnar kameran. Rikta mot tavlan och tryck för att skanna.</string>
     <string name="help_home_history">Historik</string>
     <string name="help_home_history_body">Alla sparade serier med bild, kaliber och poäng.</string>
     <string name="help_home_stats">Statistik</string>
     <string name="help_home_stats_body">Träffbild och mått över tid, filtrerat på kaliber och datum.</string>
     <string name="help_home_account">Konto</string>
-    <string name="help_home_account_body">Logga in med Google för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto.</string>
+    <string name="help_home_account_body">Logga in med Google eller Apple för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto.</string>
 
     <!-- Hjälp: scannerskärmen -->
-    <string name="help_scan_title">Så scannar du</string>
-    <string name="help_scan_scan">Scanna</string>
+    <string name="help_scan_title">Så skannar du</string>
+    <string name="help_scan_scan">Skanna</string>
     <string name="help_scan_scan_body">Fyll rutan med tavlan och tryck på Detektera. Markera hittar träffarna, ringarna och centrum och räknar poängen.</string>
     <string name="help_scan_edit">Justera träffar</string>
     <string name="help_scan_edit_body">Tryck på en missad träff i bilden för att lägga till den. Dra en träff för att flytta den. Håll inne en träff för att ta bort den — du får bekräfta först. Nyp för att zooma.</string>
@@ -170,7 +173,7 @@
     <string name="help_scan_caliber">Kaliber</string>
     <string name="help_scan_caliber_body">Brickan bredvid poängen visar vilken kaliber serien sparas med. Tryck på den för att byta — har du ingen vald frågar appen när du sparar. Kalibern visas i historiken och går att filtrera på i statistiken. Längst ner i listan kan du lägga till en egen kaliber med dess kuldiameter (den styr träffprickarnas storlek); bara dina egna går att ta bort igen.</string>
     <string name="help_scan_save">Spara</string>
-    <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. ↻-knappen slänger scanningen utan att spara.</string>
+    <string name="help_scan_save_body">Sparar serien med bild till ditt konto. Du behöver vara inloggad. ↻-knappen slänger skanningen utan att spara.</string>
     <string name="help_scan_continuous">Kontinuerlig skanning</string>
     <string name="help_scan_continuous_body">Slå på Kontinuerlig skanning så bevakar appen tavlan genom kameran, ungefär en gång i sekunden. När ett nytt hål syns och bilden har legat still en stund skannar den av sig själv, så att poängen följer serien skott för skott utan att du rör telefonen. Kameran fortsätter gå medan ett resultat visas, och varje skanning ersätter den förra. Ändrar du en poäng eller flyttar ett hål pausas den tills du sparar eller börjar om.</string>
     <string name="help_scan_continuous_how">Så fungerar det</string>
@@ -195,7 +198,7 @@
     <!-- Hjälp: seriedetaljen -->
     <string name="help_detail_title">Om serien</string>
     <string name="help_detail_photo">Bilden</string>
-    <string name="help_detail_photo_body">Den scannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge.</string>
+    <string name="help_detail_photo_body">Den skannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge.</string>
     <string name="help_detail_holes">Träffarna</string>
     <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Pilen bredvid lägger tillbaka en flyttad eller omsatt träff där detektorn såg den. Ändringar sparas direkt; ångra dem i meddelandet längst ned.</string>
     <string name="help_detail_delete">Radera</string>

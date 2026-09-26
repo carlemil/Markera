@@ -1,5 +1,8 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.core.animateFloatAsState
@@ -46,7 +49,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -101,7 +103,7 @@ import se.kjellstrand.markera.ui.markera.TotalBadge
 private const val THUMB_MAX_DIM = 384
 
 /** The cached series, newest first; opening asks the backend for a delta. */
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SeriesHistoryScreen(
     services: SeriesServices,
@@ -126,9 +128,6 @@ fun SeriesHistoryScreen(
     var expanded by rememberSaveable { mutableStateOf(emptySet<String>()) }
     var expandedLoaded by remember { mutableStateOf(false) }
     var pickingDates by remember { mutableStateOf(false) }
-    // Thumbnails are small and few; one map for the screen beats a real image
-    // loader (no Coil in this app).
-    val thumbnails = remember { mutableStateMapOf<Long, ImageBitmap>() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val toast = LocalToast.current
@@ -138,6 +137,8 @@ fun SeriesHistoryScreen(
         loading = true
         error = services.repository.refresh()?.userMessage()
         loading = false
+        // With rows cached the screen still shows them, so say they may be stale.
+        if (error != null && services.repository.series.value.isNotEmpty()) toast(getString(Res.string.refresh_offline))
     }
 
     LaunchedEffect(Unit) {
@@ -245,7 +246,8 @@ fun SeriesHistoryScreen(
                     onAction = onMarkera,
                 )
 
-                else -> Column(modifier = Modifier.fillMaxSize()) {
+                else -> PullToRefreshBox(isRefreshing = loading, onRefresh = { reload++ }, modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     FilterBar(
                         calibers = series.calibersPresent(),
                         tags = series.tagsPresent(),
@@ -280,7 +282,6 @@ fun SeriesHistoryScreen(
                                             series = item,
                                             ordinal = ordinals[item.id] ?: 1,
                                             services = services,
-                                            thumbnails = thumbnails,
                                             onClick = { onOpen(item) },
                                             onLongPress = { pending = item },
                                         )
@@ -289,6 +290,7 @@ fun SeriesHistoryScreen(
                             }
                         }
                     }
+                }
                 }
             }
         }
@@ -326,7 +328,6 @@ fun SeriesHistoryScreen(
                 scope.launch {
                     try {
                         services.repository.delete(target.id)
-                        thumbnails.remove(target.id)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (_: Throwable) {
@@ -430,20 +431,16 @@ internal fun SeriesCard(
     /** Which series of its day this was, counted from the first one shot. */
     ordinal: Int,
     services: SeriesServices,
-    thumbnails: MutableMap<Long, ImageBitmap>,
     onClick: () -> Unit,
     /** Null (Home) = no long-press delete. */
     onLongPress: (() -> Unit)? = null,
 ) {
-    if (series.hasImage) {
-        LaunchedEffect(series.id) {
-            if (thumbnails[series.id] != null) return@LaunchedEffect
-            // A small JPEG cached on disk after the first fetch, so reopening reads kilobytes.
-            val bytes = services.repository.thumbnail(series.id, THUMB_MAX_DIM) ?: return@LaunchedEffect
-            decodeSeriesJpeg(bytes, THUMB_MAX_DIM)?.let {
-                thumbnails[series.id] = it
-            }
-        }
+    // Held by the card, so a card scrolled out of the list lets its bitmap go; coming
+    // back decodes the small JPEG cached on disk after the first fetch (kilobytes).
+    val thumbnail by produceState<ImageBitmap?>(null, series.id, series.hasImage) {
+        if (!series.hasImage) return@produceState
+        val bytes = services.repository.thumbnail(series.id, THUMB_MAX_DIM) ?: return@produceState
+        value = decodeSeriesJpeg(bytes, THUMB_MAX_DIM)
     }
     OutlinedCard(
         shape = MaterialTheme.shapes.large,
@@ -466,7 +463,7 @@ internal fun SeriesCard(
                 // follows that height, so the photo is square whatever the text needs.
                 // Flush with the card edge; the card's own shape clips the corners.
                 Box(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)) {
-                    thumbnails[series.id]?.let {
+                    thumbnail?.let {
                         Image(
                             bitmap = it,
                             contentDescription = null,
