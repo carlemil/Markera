@@ -20,7 +20,7 @@ expect suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage
  * every display path subsamples. Hole markers are placed from the series'
  * stored `imageWidth`/`imageHeight`, so the decoded size does not matter.
  */
-expect fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap?
+expect suspend fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap?
 
 /**
  * A small JPEG of the stored series JPEG [bytes], at most [maxDim] px on the longer side, for

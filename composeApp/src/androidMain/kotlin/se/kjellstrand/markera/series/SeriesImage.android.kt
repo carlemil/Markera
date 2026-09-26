@@ -48,8 +48,9 @@ actual fun thumbnailJpeg(bytes: ByteArray, maxDim: Int): ByteArray? {
     }
 }
 
-actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? =
+actual suspend fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? = withContext(Dispatchers.Default) {
     decodeSampled(bytes, maxDim)?.asImageBitmap()
+}
 
 private fun decodeSampled(bytes: ByteArray, maxDim: Int): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

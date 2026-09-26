@@ -213,7 +213,7 @@ private class PhotoCaptureDelegate(
         // The JPEG carries an EXIF orientation; upright() bakes it into pixels.
         // The callback runs on a background queue and UIImage drawing wants main.
         dispatch_async(dispatch_get_main_queue()) {
-            onPhoto(data?.let { UIImage(data = it) }?.upright())
+            onPhoto(data?.let { UIImage.imageWithData(it) }?.upright())
         }
     }
 }
@@ -275,7 +275,7 @@ private class PickerDelegate(
             // The completion runs on a background queue; UIImage drawing and
             // Compose state both want the main thread.
             dispatch_async(dispatch_get_main_queue()) {
-                onPicked(data?.let { UIImage(data = it) }?.upright())
+                onPicked(data?.let { UIImage.imageWithData(it) }?.upright())
             }
         }
     }

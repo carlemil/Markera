@@ -48,7 +48,10 @@ actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage = withCo
     EncodedImage(data.toByteArray(), w, h)
 }
 
-actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
+actual suspend fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? =
+    withContext(Dispatchers.Default) { decodeNow(bytes, maxDim) }
+
+private fun decodeNow(bytes: ByteArray, maxDim: Int): ImageBitmap? {
     if (bytes.isEmpty()) return null
     // ponytail: full decode, then one downscaling draw (peak memory ~ the full
     // frame as ARGB). Swap in CGImageSourceCreateThumbnailAtIndex if that bites.

@@ -19,9 +19,12 @@ actual class HoleDetector actual constructor(
 
     // Loading by path lets the native runtime read the model file directly,
     // keeping the ~40 MB model off the Java heap (readBytes() of the asset
-    // peaked at 2-3x the model size and OOMed small heaps).
-    private val session: OrtSession = buildSessionOptions().use { env.createSession(modelPath, it) }
-    private val inputName: String = session.inputNames.first()
+    // peaked at 2-3x the model size and OOMed small heaps). Built on the first
+    // detect(), on Dispatchers.Default: creating it takes seconds, and the
+    // controller is constructed while composing on the main thread.
+    private val sessionLazy = lazy { buildSessionOptions().use { env.createSession(modelPath, it) } }
+    private val session: OrtSession by sessionLazy
+    private val inputName: String by lazy { session.inputNames.first() }
     private val inputShape: LongArray = longArrayOf(1L, 3L, inputSize.toLong(), inputSize.toLong())
 
     actual suspend fun detect(inputChw: FloatArray): List<RawDetection> = withContext(Dispatchers.Default) {
@@ -38,7 +41,7 @@ actual class HoleDetector actual constructor(
     }
 
     actual fun close() {
-        session.close()
+        if (sessionLazy.isInitialized()) session.close()
     }
 
     private companion object {

@@ -177,7 +177,10 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
             scope = scope,
             readCustomCalibers = seriesServices.store::readCustomCalibers,
             writeCustomCalibers = seriesServices.store::writeCustomCalibers,
-        ).also { scanController.onSeriesDetected = it::onSeriesDetected }
+        ).also {
+            scanController.onSeriesDetected = it::onSeriesDetected
+            scanController.onScanStarted = it::clear
+        }
     }
     DisposableEffect(recorder) { onDispose { recorder.dispose() } }
 

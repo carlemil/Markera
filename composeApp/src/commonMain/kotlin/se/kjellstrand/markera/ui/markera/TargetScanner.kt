@@ -120,6 +120,9 @@ class TargetScanController(
      */
     var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?) -> Unit)? = null
 
+    /** Called as a scan claims the detector, before anything of it is published. */
+    var onScanStarted: (() -> Unit)? = null
+
     fun close() {
         closeRequested.store(true)
         // Idle: claim the guard for good (no scan can start again) and close
@@ -151,6 +154,9 @@ class TargetScanController(
     ): Boolean {
         // Claim the detector; reject re-entry until this pass finishes.
         if (!detecting.compareAndSet(false, true)) return false
+        // A scan that ends up scoring nothing (no ring, no holes) must not leave the
+        // previous series pending for the next commit to save with these pickers.
+        onScanStarted?.invoke()
         viewModel.startDetect()
         scope.launch {
             try {
@@ -170,6 +176,10 @@ class TargetScanController(
                 snapshotVm.set(snapshot)
                 runPipeline(snapshot, viewModel, detectHoles)
             } catch (e: CancellationException) {
+                // The screen left mid-pass: the activity-scoped view models outlive it, and a
+                // phase stuck at HOLES would greet its return with a spinner and no scan button.
+                snapshotVm.clear()
+                viewModel.clearResults()
                 throw e
             } catch (t: Throwable) {
                 println("$TAG: snapshot inference failed " + t.stackTraceToString())
