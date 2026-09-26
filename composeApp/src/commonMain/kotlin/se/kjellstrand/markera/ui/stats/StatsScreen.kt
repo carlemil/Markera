@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.stats
 
+import androidx.compose.ui.text.style.TextAlign
 import org.jetbrains.compose.resources.getString
 import se.kjellstrand.markera.ui.LocalToast
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -331,6 +332,14 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                                 }
                             }
                         }
+                        // The target's gestures have no other visible cue.
+                        Text(
+                            stringResource(Res.string.stats_target_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                         AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
                         MarkerLegend(segment, calibers)
                         segmentStats?.let { MeasurementRows(it) }
