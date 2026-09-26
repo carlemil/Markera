@@ -3,6 +3,7 @@
 package se.kjellstrand.markera.series
 
 import androidx.compose.ui.graphics.ImageBitmap
+import kotlin.math.roundToInt
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -51,7 +52,7 @@ actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
     if (bytes.isEmpty()) return null
     // ponytail: full decode, then one downscaling draw (peak memory ~ the full
     // frame as ARGB). Swap in CGImageSourceCreateThumbnailAtIndex if that bites.
-    val image = UIImage(data = bytes.toNSData())
+    val image = UIImage.imageWithData(bytes.toNSData()) ?: return null
     val w = image.width
     val h = image.height
     if (w <= 0 || h <= 0) return null
@@ -66,13 +67,13 @@ actual fun decodeSeriesJpeg(bytes: ByteArray, maxDim: Int): ImageBitmap? {
 
 actual fun thumbnailJpeg(bytes: ByteArray, maxDim: Int): ByteArray? {
     if (bytes.isEmpty()) return null
-    val image = UIImage(data = bytes.toNSData())
+    val image = UIImage.imageWithData(bytes.toNSData()) ?: return null
     val w = image.width
     val h = image.height
     if (w <= 0 || h <= 0) return null
     val s = minOf(1.0, maxDim.toDouble() / maxOf(w, h))
-    val tw = (w * s).toInt().coerceAtLeast(1).toDouble()
-    val th = (h * s).toInt().coerceAtLeast(1).toDouble()
+    val tw = (w * s).roundToInt().coerceAtLeast(1).toDouble()
+    val th = (h * s).roundToInt().coerceAtLeast(1).toDouble()
     // scale = 1 so the renderer's point size is the pixel size.
     val format = UIGraphicsImageRendererFormat.defaultFormat().apply { scale = 1.0 }
     val thumb = UIGraphicsImageRenderer(size = CGSizeMake(tw, th), format = format)

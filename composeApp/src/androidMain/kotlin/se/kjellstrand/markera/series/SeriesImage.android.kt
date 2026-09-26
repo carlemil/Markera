@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import java.io.ByteArrayOutputStream
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.vision.PlatformImage
@@ -33,8 +34,8 @@ actual fun thumbnailJpeg(bytes: ByteArray, maxDim: Int): ByteArray? {
     val thumb = if (s < 1f) {
         Bitmap.createScaledBitmap(
             sampled,
-            (sampled.width * s).toInt().coerceAtLeast(1),
-            (sampled.height * s).toInt().coerceAtLeast(1),
+            (sampled.width * s).roundToInt().coerceAtLeast(1),
+            (sampled.height * s).roundToInt().coerceAtLeast(1),
             true,
         ).also { sampled.recycle() }
     } else {

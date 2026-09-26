@@ -207,6 +207,29 @@ class SeriesRepositoryTest {
     }
 
     @Test
+    fun aCachedThumbnailIsServedWithoutTouchingTheFullImage() = runBlocking {
+        val repo = repo { error("no request expected") }
+        images.writeThumb(9, byteArrayOf(1, 2))
+
+        assertEquals(listOf<Byte>(1, 2), repo.thumbnail(9, 384)?.toList())
+        assertTrue(recorded.isEmpty())
+        assertNull(images.files[9])
+    }
+
+    @Test
+    fun deleteAndClearTakeTheThumbnailsToo() = runBlocking {
+        val repo = repo { json("", HttpStatusCode.NoContent) }
+        images.writeThumb(1, byteArrayOf(7))
+        images.writeThumb(2, byteArrayOf(8))
+
+        repo.delete(1)
+        assertNull(images.thumbs[1])
+
+        repo.clear()
+        assertTrue(images.thumbs.isEmpty())
+    }
+
+    @Test
     fun saveCachesThePostedSeriesWithoutAnotherFetch() = runBlocking {
         val repo = repo { json("""{"id":7}""", HttpStatusCode.Created) }
 
