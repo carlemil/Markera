@@ -94,12 +94,15 @@ class RingProbeTest {
     }
 
     @Test
-    fun `a probe pushed off the frame gives no ellipse`() {
-        // The frame cut at x = 1170, inside the right-hand rim (~1180).
+    fun `a probe off the frame is mirrored from its partner across the centre`() {
+        // The frame cut at x = 1170, inside the right-hand rim (~1180): the left probe stands in for it.
         val cut = 1170
         val cropped = ByteArray(cut * h) { gray[(it / cut) * w + it % cut] }
         val result = assertNotNull(fit67RingByProbes(cropped, cut, h, digitsOff(listOf(-30.0, 30.0, 30.0, -30.0)), centre))
-        assertNull(result.ellipse)
+        val e = assertNotNull(result.ellipse)
+        // The digit centre sits 6 px right of the disk's, so the mirror is that much long: within 2%.
+        assertTrue(abs(e.semiMajor - a) / a <= 0.02, "semiMajor ${e.semiMajor}")
+        assertTrue(abs(e.semiMinor - b) / b <= 0.02, "semiMinor ${e.semiMinor}")
     }
 
     @Test

@@ -190,4 +190,5 @@ play {
 dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

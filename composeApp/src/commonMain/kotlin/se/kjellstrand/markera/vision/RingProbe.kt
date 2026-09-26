@@ -178,11 +178,20 @@ fun fit67RingByProbes(
             frac?.toFloat() ?: Float.NaN, iterations,
         )
     }
-    // A disk even partly off the frame reads a share of the pixels it can see, not the rim: no ring.
-    val inFrame = (0 until 4).all {
+    // A disk even partly off the frame reads a share of the pixels it can see, not the rim. Its partner
+    // across the centre measures the same semi-diameter, so it is mirrored through the digit centre;
+    // with both of a pair off there is no ring.
+    val inFrame = BooleanArray(4) {
         finalX[it] - rho >= 0 && finalX[it] + rho <= width - 1 && finalY[it] - rho >= 0 && finalY[it] + rho <= height - 1
     }
-    return RingProbeResult(probes, if (inFrame) ellipseFromConjugates(finalX, finalY) else null)
+    for (i in 0 until 4) {
+        val partner = i xor 1
+        if (inFrame[i]) continue
+        if (!inFrame[partner]) return RingProbeResult(probes, null)
+        finalX[i] = 2 * cx - finalX[partner]
+        finalY[i] = 2 * cy - finalY[partner]
+    }
+    return RingProbeResult(probes, ellipseFromConjugates(finalX, finalY))
 }
 
 /**
