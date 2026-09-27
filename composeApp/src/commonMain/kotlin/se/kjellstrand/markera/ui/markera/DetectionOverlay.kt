@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.markera
 
+import se.kjellstrand.markera.vision.byHand
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
@@ -75,7 +76,7 @@ fun DetectionOverlay(
     showDebug: Boolean = false,
     scoreColor: Color = Color(0xFFFFFFFF),
     holeColor: Color = MarkeraGreen,
-    /** Holes the user tapped in by hand, marker and label. */
+    /** Holes the user placed, moved or retyped (see [byHand]), marker and label. */
     manualColor: Color = MANUAL_HIT_COLOR,
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -137,7 +138,7 @@ fun DetectionOverlay(
         } else if (scores.isNotEmpty()) {
             scores.forEach { hit ->
                 drawCircle(
-                    color = (if (hit.manual) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
+                    color = (if (hit.byHand) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
                     radius = dotRadius,
                     center = Offset(hit.centerXpx * scale + offsetX, hit.centerYpx * scale + offsetY),
                 )
@@ -163,7 +164,7 @@ fun DetectionOverlay(
                 val layout = textMeasurer.measure(
                     letters.getOrElse(i) { holeLetter(i) },
                     TextStyle(
-                        color = if (hit.manual) manualColor else holeColor,
+                        color = if (hit.byHand) manualColor else holeColor,
                         fontSize = letterSize.toSp(),
                         shadow = Shadow(Color.Black, Offset(0f, 1f), blurRadius = 5f),
                     ),
@@ -202,7 +203,7 @@ fun DetectionOverlay(
                 val layout = textMeasurer.measure(
                     label,
                     TextStyle(
-                        color = if (hit.manual) manualColor else scoreColor,
+                        color = if (hit.byHand) manualColor else scoreColor,
                         fontSize = labelSize.toSp(),
                         fontWeight = FontWeight.Bold,
                         shadow = Shadow(Color.Black, Offset(0f, 2f), blurRadius = 6f),

@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.markera
 
+import se.kjellstrand.markera.vision.byHand
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.Canvas
@@ -567,7 +568,8 @@ private fun ResultsContent(
         return
     }
     val total = uiState.topScores.sumOf { if (it == SCORE_PICKER_INNER_TEN) 10 else it }
-    val manual = uiState.scores.map { it.manual }
+    // Orange for every hole the user placed, moved or retyped, as on the photo.
+    val manual = uiState.scores.map { it.byHand }
     Column(modifier) {
         // Badge + boxes centred while they fit, scrolled when they don't;
         // the action bar below never scrolls away.

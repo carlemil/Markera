@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.history
 
+import se.kjellstrand.markera.series.byHand
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -531,8 +532,8 @@ private fun HoleRow(
         ScoreBox(
             value = if (hole.innerTen) SCORE_PICKER_INNER_TEN else hole.ring,
             onValueChange = onScoreChange,
-            // Same test as asHitScore's orange marker, so box and marker agree.
-            manual = hole.detectedRing == null && hole.x != null,
+            // Same test as asHitScore's orange marker and the Historik card, so all agree.
+            manual = hole.byHand(),
         )
         Text(
             // Whole millimetres only — no decimals anywhere in this UI.
@@ -584,5 +585,5 @@ private fun HoleDto.asHitScore(): HitScore? {
     val hx = x?.toFloat() ?: return null
     val hy = y?.toFloat() ?: return null
     // No box is stored, so the label hangs a typical hole-radius above the centre.
-    return HitScore(hx, hy, hy - 10f, distanceMm ?: 0.0, ring, innerTen, manual = detectedRing == null)
+    return HitScore(hx, hy, hy - 10f, distanceMm ?: 0.0, ring, innerTen, manual = byHand())
 }

@@ -64,6 +64,12 @@ data class HitScore(
 )
 
 /**
+ * Not the detector's untouched hole: placed by hand, or dragged or retyped
+ * (both keep the detector's version in [original]). Drawn orange everywhere.
+ */
+val HitScore.byHand: Boolean get() = manual || original != null
+
+/**
  * Offset from the digit-row [centre] to the point [x],[y] (source-image px) in
  * target mm, un-projected through the 6/7 [ring] ellipse: rotate so the major
  * axis is +x, stretch the minor-axis component by `semiMajor / semiMinor` to
