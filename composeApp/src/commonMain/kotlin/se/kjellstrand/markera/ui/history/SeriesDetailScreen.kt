@@ -1,7 +1,7 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.ui.text.style.TextOverflow
 import se.kjellstrand.markera.series.byHand
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -494,8 +494,6 @@ private fun HoleRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        // 12, not 16: the score box is 4 dp wider than the text cell it
-        // replaced, and the kind column ("detekterad") must not wrap.
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -535,25 +533,30 @@ private fun HoleRow(
             // Same test as asHitScore's orange marker and the Historik card, so all agree.
             manual = hole.byHand(),
         )
-        Text(
-            // Whole millimetres only — no decimals anywhere in this UI.
-            text = hole.distanceMm
-                ?.let { stringResource(Res.string.detail_mm, it.roundToInt()) }
-                ?: stringResource(Res.string.detail_no_distance),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.widthIn(min = 64.dp),
-        )
-        Text(
-            text = hole.kindText(
-                manual = stringResource(Res.string.detail_kind_manual),
-                typed = stringResource(Res.string.detail_kind_typed),
-                moved = stringResource(Res.string.detail_kind_moved),
-                detected = stringResource(Res.string.detail_kind_detected),
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
+        // Distance over kind: side by side the kind column was left ~32 dp and
+        // "4 → 10, moved" broke over four lines. Stacked, both share the free width.
+        Column(Modifier.weight(1f)) {
+            Text(
+                // Whole millimetres only — no decimals anywhere in this UI.
+                text = hole.distanceMm
+                    ?.let { stringResource(Res.string.detail_mm, it.roundToInt()) }
+                    ?: stringResource(Res.string.detail_no_distance),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+            )
+            Text(
+                text = hole.kindText(
+                    manual = stringResource(Res.string.detail_kind_manual),
+                    typed = stringResource(Res.string.detail_kind_typed),
+                    moved = stringResource(Res.string.detail_kind_moved),
+                    detected = stringResource(Res.string.detail_kind_detected),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         // Trimmed from the 48 dp default so the text, not the button, sets the row
         // height; Compose still extends the touch target to 48 dp.
         if (onRestore != null) {
