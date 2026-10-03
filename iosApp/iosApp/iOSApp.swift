@@ -8,6 +8,10 @@ struct iOSApp: App {
     static let holeModel = Bundle.main.path(forResource: "best", ofType: "onnx")
         .flatMap { OrtHoleModel(modelPath: $0) }
 
+    init() {
+        SentryReporter.start()
+    }
+
     var body: some Scene {
         WindowGroup { ComposeView().ignoresSafeArea() }
     }

@@ -96,9 +96,9 @@ används bara för att utvecklaren ska kunna svara dig om förslaget. Förslaget
 utvecklaren via Gmail (Google). Förslag som skickats inloggad raderas med kontot; övriga raderas på begäran
 till kontaktadressen ovan.</p>
 <h2 style="font-size:16px">Felrapporter</h2>
-<p>Android-appen skickar en felrapport till Sentry (Functional Software, Inc.) när den kraschar eller när
+<p>Appen skickar en felrapport till Sentry (Functional Software, Inc.) när den kraschar eller när
 något går fel, till exempel en inloggning som misslyckas. Rapporten innehåller felet, appens version,
-telefonmodell och Android-version samt de senaste stegen i appen. Den innehåller inte ditt namn, din
+telefonmodell och systemversion samt de senaste stegen i appen. Den innehåller inte ditt namn, din
 e-postadress, ditt konto-id, några foton eller serier, och IP-adressen lagras inte. Rapporterna används bara
 för att hitta och rätta fel och raderas automatiskt efter Sentrys lagringstid (högst 90 dagar).</p>
 <h2 style="font-size:16px">Sådant som bara sker i telefonen</h2>
@@ -142,9 +142,9 @@ stored. The address is optional and used only so the developer can reply to you 
 suggestion is also e-mailed to the developer through Gmail (Google). Suggestions sent while signed in are
 deleted with the account; others are deleted on request to the contact address above.</p>
 <h2 style="font-size:16px">Error reports</h2>
-<p>The Android app sends an error report to Sentry (Functional Software, Inc.) when it crashes or when
+<p>The app sends an error report to Sentry (Functional Software, Inc.) when it crashes or when
 something goes wrong, such as a sign-in that fails. The report holds the error, the app version, the phone
-model and Android version, and the last few steps taken in the app. It does not hold your name, e-mail
+model and system version, and the last few steps taken in the app. It does not hold your name, e-mail
 address, account id, any photos or series, and the IP address is not stored. The reports are used only to
 find and fix faults and are deleted automatically after Sentry's retention period (at most 90 days).</p>
 <h2 style="font-size:16px">Processing that happens only on the phone</h2>

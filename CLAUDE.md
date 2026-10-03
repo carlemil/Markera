@@ -228,7 +228,9 @@ Release production), token in NSUserDefaults, share via `UIActivityViewControlle
 `ErrorLog` (commonMain) is the remote log: `breadcrumb(category, message)` leaves a trail,
 `report(where, error, details)` sends a handled failure with that trail. Android wires it to
 **Sentry** (`SentryErrorSink.kt`, started by hand in `MarkeraApplication`, which also catches
-crashes/ANRs); iOS has no sink yet and only prints. `Throwable.userMessage()` reports every
+crashes/ANRs). iOS: `iosApp/iosApp/SentryReporter.swift` starts Sentry Cocoa (SPM) and implements
+`NativeErrorReporter` (`iosMain/diag/IosErrorReporting.kt`, strings only), DSN from
+`MARKERA_SENTRY_DSN` in `Local.xcconfig` (write `https:/$()/…`, since `//` starts a comment). `Throwable.userMessage()` reports every
 toasted failure except IOExceptions (offline is not a bug), so new error paths that toast are
 covered for free; sign-in leaves breadcrumbs per step. Never log tokens, names or e-mail.
 DSN: `markera.sentry.dsn` in `local.properties` (empty = Sentry off). The Sentry Gradle plugin

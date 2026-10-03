@@ -2,3 +2,6 @@
 // and App Store builds; the simulator builds without it.
 DEVELOPMENT_TEAM = BSZST7M33J
 CODE_SIGN_STYLE = Automatic
+// Sentry DSN; leave empty to keep error reporting off. An xcconfig treats // as a
+// comment, so write the scheme as https:/$()/key@host/project.
+MARKERA_SENTRY_DSN =
