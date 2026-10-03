@@ -1,49 +1,36 @@
 import Foundation
 import ComposeApp
-import OnnxRuntimeBindings
 
-/// The Kotlin `HoleModel` bridge, backed by ONNX Runtime.
+/// The Kotlin `HoleModel` bridge, backed by ONNX Runtime through `OrtRunner.c`.
 /// Input is the `[1, 3, inputSize, inputSize]` fp32 tensor as raw bytes, the
 /// return value the `[1, 300, 6]` fp32 output; an empty `Data` means "no rows".
+///
+/// The session runs without ORT's CPU arena and memory pattern: with them an
+/// inference at 1536 px left the app at 1.3 GB and the next one peaked at 2.5 GB,
+/// which iOS answers by killing the app (MemTest.swift has the probe).
 final class OrtHoleModel: NSObject, HoleModel {
-    private let env: ORTEnv
-    private let session: ORTSession
-    private let inputName: String
-    private let outputName: String
+    private let ort: OpaquePointer
 
-    init?(modelPath: String) {
-        do {
-            let env = try ORTEnv(loggingLevel: ORTLoggingLevel.warning)
-            let options = try ORTSessionOptions()
-            try options.setIntraOpNumThreads(4)
-            let session = try ORTSession(env: env, modelPath: modelPath, sessionOptions: options)
-            self.env = env
-            self.session = session
-            self.inputName = try session.inputNames()[0]
-            self.outputName = try session.outputNames()[0]
-        } catch {
-            print("OrtHoleModel: \(modelPath): \(error)")
+    /// `lean: false` is the arena + memory pattern default, kept for MemTest to compare.
+    init?(modelPath: String, lean: Bool = true) {
+        guard let ort = markera_ort_open(modelPath, 4, lean ? 1 : 0) else {
+            print("OrtHoleModel: \(modelPath): \(String(cString: markera_ort_last_error()))")
             return nil
         }
+        self.ort = ort
         super.init()
     }
 
     func run(input: Data, inputSize: Int32) -> Data {
-        do {
-            let value = try ORTValue(
-                tensorData: NSMutableData(data: input),
-                elementType: ORTTensorElementDataType.float,
-                shape: [1, 3, NSNumber(value: inputSize), NSNumber(value: inputSize)])
-            let outputs = try session.run(
-                withInputs: [inputName: value],
-                outputNames: [outputName],
-                runOptions: nil)
-            guard let out = try outputs[outputName]?.tensorData() else { return Data() }
-            // tensorData() can alias memory owned by the ORTValue, so copy.
-            return Data(bytes: out.bytes, count: out.length)
-        } catch {
-            print("OrtHoleModel.run: \(error)")
+        var out: UnsafeMutablePointer<Float>? = nil
+        let count = input.withUnsafeBytes { bytes in
+            markera_ort_run(ort, bytes.bindMemory(to: Float.self).baseAddress, inputSize, &out)
+        }
+        defer { markera_ort_free(out) }
+        guard count >= 0, let out = out else {
+            print("OrtHoleModel.run: \(String(cString: markera_ort_last_error()))")
             return Data()
         }
+        return Data(bytes: out, count: count * MemoryLayout<Float>.size)
     }
 }

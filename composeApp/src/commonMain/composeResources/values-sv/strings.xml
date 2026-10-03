@@ -29,6 +29,15 @@
     <string name="settings_system">Följ systemet</string>
     <string name="settings_theme_light">Ljust</string>
     <string name="settings_theme_dark">Mörkt</string>
+    <string name="suggestion">Förslag</string>
+    <string name="suggestion_intro">En idé, ett önskemål eller något som inte fungerar? Det går direkt till utvecklaren.</string>
+    <string name="suggestion_title">Rubrik</string>
+    <string name="suggestion_description">Beskrivning</string>
+    <string name="suggestion_email">Din e-post (frivilligt)</string>
+    <string name="suggestion_email_hint">Bara om du vill ha svar om förslaget.</string>
+    <string name="suggestion_email_invalid">Det ser inte ut som en e-postadress.</string>
+    <string name="suggestion_send">Skicka</string>
+    <string name="suggestion_sent">Tack! Ditt förslag är skickat.</string>
 
     <!-- Home -->
     <string name="home_free_marking">Markera</string>
@@ -43,7 +52,10 @@
     <string name="home_signed_out">Utloggad</string>
     <string name="home_delete_account">Radera konto</string>
     <string name="home_delete_account_title">Radera kontot?</string>
-    <string name="home_delete_account_message">Alla sparade serier och bilder tas bort permanent. Det går inte att ångra.</string>
+    <string name="home_delete_account_message">Kontot och all dess data raderas permanent: alla sparade serier, träffarna i dem, tavelbilderna och statistiken som bygger på dem, samt eventuella förslag du har skickat. Det går inte att ångra och ingenting kan återställas efteråt.</string>
+    <string name="home_delete_account_phrase">radera mig</string>
+    <string name="home_delete_account_prompt">Skriv ”%1$s” för att bekräfta.</string>
+    <string name="home_delete_account_input_label">Bekräftelse</string>
     <string name="home_delete_account_confirm">Radera</string>
     <string name="home_delete_account_cancel">Avbryt</string>
     <string name="home_delete_account_failed">Kunde inte radera kontot</string>

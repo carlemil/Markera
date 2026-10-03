@@ -19,6 +19,8 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.49.1.0")
     implementation("com.auth0:java-jwt:4.5.0")
     implementation("com.auth0:jwks-rsa:0.22.2")
+    // Jakarta Mail (API + the Angus implementation): the suggestion box's SMTP.
+    implementation("org.eclipse.angus:angus-mail:2.0.5")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.18")
 
     testImplementation(kotlin("test"))

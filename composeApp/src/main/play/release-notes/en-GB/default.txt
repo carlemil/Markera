@@ -1,10 +1,3 @@
-New in 1.8.0:
-• English or Swedish, light or dark theme, in the new Settings
-• Tag a series (training, competition…) and filter by tag
-• Add your own calibres
-• Sign in with Apple on Android too
-• Tap a score or calibre on a series to change it, and undo a moved hit
-• Statistics: hits coloured by calibre, a timeline to step through series, and the photo one tap away
-• Rings 8 and 9 drawn on the photo
-• A "Today" filter and a new series card design
-• Many fixes
+New in 1.9.1:
+• Hit detection uses far less memory on iPhone, which fixes the app closing during a scan on smaller phones
+• Better error reports from scanning, so problems can be fixed faster

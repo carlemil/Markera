@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import kotlinx.coroutines.CompletableDeferred
 import se.kjellstrand.markera.BuildConfig
+import se.kjellstrand.markera.diag.ErrorLog
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -23,6 +24,7 @@ suspend fun signInWithApple(context: Context, session: BackendSessionRepository)
     val secret = randomSecret()
     val state = sha256Hex(secret)
     val returned = AppleReturn.arm(state)
+    ErrorLog.breadcrumb("signin", "apple: opening the browser")
     try {
         // ponytail: plain ACTION_VIEW, not a Custom Tab — androidx.browser is not on the classpath and a
         // chrome tab would buy only cosmetics.
@@ -35,7 +37,8 @@ suspend fun signInWithApple(context: Context, session: BackendSessionRepository)
         throw IllegalStateException("No browser to sign in with Apple in", e)
     }
     val nonce = returned.await()
-    return session.signInAppleClaim(state, secret, nonce)
+    ErrorLog.breadcrumb("signin", "apple: back from the browser, claiming the session")
+    return session.signInAppleClaim(state, secret, nonce).also { ErrorLog.breadcrumb("signin", "apple: signed in") }
 }
 
 /** Where the browser is sent; the backend 302s on to Apple. */

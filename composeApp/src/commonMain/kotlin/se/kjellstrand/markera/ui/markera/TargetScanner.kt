@@ -60,6 +60,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.diag.ErrorLog
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
@@ -163,8 +164,9 @@ class TargetScanController(
                 // The still takes ~0.5 s, so the live preview stays up until it
                 // lands — what the user framed is what gets analysed.
                 val started = TimeSource.Monotonic.markNow()
+                ErrorLog.breadcrumb("scan", "capture started")
                 val frame = frameSource.capture()
-                println("$TAG: capture ${started.elapsedNow()}")
+                ErrorLog.breadcrumb("scan", "capture ${frame?.let { "${it.width}x${it.height}" } ?: "failed"} ${started.elapsedNow()}")
                 if (frame == null) {
                     viewModel.setError(errorMessage)
                     return@launch
@@ -183,6 +185,7 @@ class TargetScanController(
                 throw e
             } catch (t: Throwable) {
                 println("$TAG: snapshot inference failed " + t.stackTraceToString())
+                ErrorLog.report("scan", t)
                 viewModel.setError(errorMessage)
             } finally {
                 detecting.store(false)
@@ -294,7 +297,7 @@ class TargetScanController(
         // conversion and probes are CPU-bound, so off-main.
         val ocrStarted = TimeSource.Monotonic.markNow()
         val digits = digitDetector.detect(snapshot)
-        println("$TAG: digit OCR ${ocrStarted.elapsedNow()}")
+        ErrorLog.breadcrumb("scan", "digit OCR: ${digits.size} digits ${ocrStarted.elapsedNow()}")
         val centre = estimateCentre(digits, snapshot.width, snapshot.height)
         val ring = if (centre.method != CentreMethod.NONE) {
             val gray = withContext(Dispatchers.Default) { snapshot.toGrayscale() }
@@ -302,7 +305,7 @@ class TargetScanController(
             val fit = withContext(Dispatchers.Default) {
                 fit67Ring(gray, snapshot.width, snapshot.height, digits, centre)
             }
-            println("$TAG: ring ${if (fit != null) "probes" else "none"} ${ringStarted.elapsedNow()}")
+            ErrorLog.breadcrumb("scan", "ring ${if (fit != null) "found" else "none"} ${ringStarted.elapsedNow()}")
             fit
         } else {
             null
@@ -315,17 +318,22 @@ class TargetScanController(
         // what returns the phase to IDLE, which is what makes the frozen frame
         // editable — so hand-placed holes score against the ring just found.
         if (!detectHoles) {
-            println("$TAG: holes skipped (detection off)")
+            ErrorLog.breadcrumb("scan", "holes skipped (detection off)")
             viewModel.onHolesDetected(emptyList(), emptyList())
             return
         }
 
         // Phase 2 — holes: the slow ONNX pass, with the spinner up. The
         // raw frame goes straight to the model — only the input letterbox.
+        // The last breadcrumb before an out-of-memory kill says which step was running.
+        ErrorLog.breadcrumb("scan", "hole detection: letterboxing ${snapshot.width}x${snapshot.height} to ${detector.inputSize}")
         val input = withContext(Dispatchers.Default) {
             snapshot.toModelInput(detector.inputSize)
         }
+        ErrorLog.breadcrumb("scan", "hole detection: inference started")
+        val holesStarted = TimeSource.Monotonic.markNow()
         val raws = detector.detect(input)
+        ErrorLog.breadcrumb("scan", "hole detection: ${raws.size} raw boxes ${holesStarted.elapsedNow()}")
         val detections = postProcess(raws, detector.inputSize, snapshot.width, snapshot.height)
         // Score each hole against the digit centre and the 6/7 ring.
         val scores = if (centre.method != CentreMethod.NONE && ring != null) {

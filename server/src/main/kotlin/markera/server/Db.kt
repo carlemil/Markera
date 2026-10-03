@@ -149,6 +149,20 @@ class Db(dbPath: String) : AutoCloseable {
             if ("deleted" !in holeColumns && "detected_ring" in holeColumns) {
                 st.executeUpdate("ALTER TABLE holes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
             }
+            // The app's suggestion box. user_id is null for a signed-out sender; mailed_at stays null while the
+            // mail has not gone out (no SMTP configured, or it failed).
+            st.executeUpdate(
+                """CREATE TABLE IF NOT EXISTS suggestions (
+                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     user_id INTEGER REFERENCES users(id),
+                     title TEXT NOT NULL,
+                     description TEXT NOT NULL,
+                     email TEXT,
+                     platform TEXT,
+                     app_version TEXT,
+                     created_at TEXT NOT NULL,
+                     mailed_at TEXT)"""
+            )
         } }
     }
 
@@ -449,6 +463,8 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM holes WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
+        // They may carry the user's e-mail address: gone with the account, like everything else of theirs.
+        execute("DELETE FROM suggestions WHERE user_id = ?", userId)
         execute("DELETE FROM users WHERE id = ?", userId)
         ids
     }
@@ -470,6 +486,64 @@ class Db(dbPath: String) : AutoCloseable {
             it.setLong(1, userId)
             it.executeQuery().use { rs -> rs.next(); return rs.getInt(1) >= MAX_SERIES_PER_DAY }
         }
+    }
+
+    /** @return the new suggestion's id. [req] is already normalised and validated. */
+    @Synchronized
+    fun insertSuggestion(userId: Long?, req: SuggestionRequest): Long =
+        conn.prepareStatement(
+            """INSERT INTO suggestions(user_id, title, description, email, platform, app_version, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, datetime('now'))""",
+            Statement.RETURN_GENERATED_KEYS,
+        ).use { st ->
+            st.setObject(1, userId)
+            st.setString(2, req.title)
+            st.setString(3, req.description)
+            st.setString(4, req.email)
+            st.setString(5, req.platform)
+            st.setString(6, req.appVersion)
+            st.executeUpdate()
+            st.generatedKeys.use { rs -> rs.next(); rs.getLong(1) }
+        }
+
+    @Synchronized
+    fun suggestionMailed(id: Long) = execute("UPDATE suggestions SET mailed_at = datetime('now') WHERE id = ?", id)
+
+    /** Suggestions from everyone in the last 24 h: what [MAX_SUGGESTIONS_PER_DAY] caps. */
+    @Synchronized
+    fun suggestionsLastDay(): Int = conn.createStatement().use { st ->
+        st.executeQuery("SELECT COUNT(*) FROM suggestions WHERE created_at >= datetime('now', '-1 day')")
+            .use { rs -> rs.next(); rs.getInt(1) }
+    }
+
+    @Synchronized
+    fun getSuggestion(id: Long): SuggestionRow? = querySuggestions(id).firstOrNull()
+
+    /** Newest first. */
+    @Synchronized
+    fun listSuggestions(): List<SuggestionRow> = querySuggestions(null)
+
+    private fun querySuggestions(id: Long?): List<SuggestionRow> {
+        val rows = mutableListOf<SuggestionRow>()
+        conn.prepareStatement(
+            """SELECT s.id, s.user_id, u.name, s.title, s.description, s.email, s.platform, s.app_version,
+                      s.created_at, s.mailed_at
+               FROM suggestions s LEFT JOIN users u ON u.id = s.user_id
+               ${if (id == null) "" else "WHERE s.id = ?"}
+               ORDER BY s.id DESC"""
+        ).use { st ->
+            if (id != null) st.setLong(1, id)
+            st.executeQuery().use { rs ->
+                while (rs.next()) {
+                    rows += SuggestionRow(
+                        rs.getLong(1), rs.getLong(2).takeIf { !rs.wasNull() }, rs.getString(3), rs.getString(4),
+                        rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                        rs.getString(10),
+                    )
+                }
+            }
+        }
+        return rows
     }
 
     /** The database answers: what /health reports. */

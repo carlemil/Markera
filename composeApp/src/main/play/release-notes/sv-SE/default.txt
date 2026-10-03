@@ -1,10 +1,3 @@
-Nytt i 1.8.0:
-• Engelska eller svenska, ljust eller mörkt tema, i nya Inställningar
-• Tagga en serie (träning, tävling…) och filtrera på tagg
-• Lägg till egna kalibrar
-• Logga in med Apple även på Android
-• Tryck på en poäng eller kaliber i en serie för att ändra den, och ångra en flyttad träff
-• Statistik: träffar färgade efter kaliber, en tidslinje genom serierna och fotot ett tryck bort
-• Ring 8 och 9 ritas på fotot
-• Filtret "Idag" och en ny design på seriekorten
-• Många fixar
+Nytt i 1.9.1:
+• Träffdetekteringen använder mycket mindre minne på iPhone, vilket rättar att appen stängdes under en skanning på mindre telefoner
+• Bättre felrapporter från skanningen, så att problem kan rättas snabbare

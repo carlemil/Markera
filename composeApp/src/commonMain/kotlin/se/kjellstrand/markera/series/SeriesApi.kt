@@ -54,6 +54,19 @@ private data class AppleClaimRequest(val state: String, val secret: String, val 
 @Serializable
 private data class IdResponse(val id: Long)
 
+/**
+ * The suggestion box's `POST /suggestions`. [email] is only there when the sender wants a reply; [platform]
+ * and [appVersion] say which build it is about. Nulls are omitted ([seriesJson] has `explicitNulls = false`).
+ */
+@Serializable
+data class SuggestionRequest(
+    val title: String,
+    val description: String,
+    val email: String?,
+    val platform: String?,
+    val appVersion: String?,
+)
+
 /** The server's error body, `{"error": ...}`. */
 @Serializable
 private data class ServerError(val error: String? = null)
@@ -111,6 +124,13 @@ class SeriesApi(
      */
     suspend fun claimApple(state: String, secret: String, nonce: String): BackendAuthResponse =
         postJson("/auth/apple/claim", AppleClaimRequest(state, secret, nonce), authorized = false).parseOrThrow()
+
+    /**
+     * Sends a suggestion to the developer. Works signed out too; when signed in the token rides along so the
+     * server can link it to the account. @return the id the server stored it under.
+     */
+    suspend fun postSuggestion(req: SuggestionRequest): Long =
+        postJson("/suggestions", req, authorized = true).parseOrThrow<IdResponse>().id
 
     suspend fun authDev(subject: String): BackendAuthResponse =
         postJson("/auth/dev", DevAuthRequest(subject), authorized = false).parseOrThrow()

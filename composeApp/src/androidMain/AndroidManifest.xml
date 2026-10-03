@@ -18,6 +18,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Markera">
+        <!-- Sentry is started by hand in MarkeraApplication (DSN from BuildConfig), not by its provider. -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

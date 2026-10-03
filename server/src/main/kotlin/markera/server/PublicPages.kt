@@ -76,9 +76,10 @@ fun privacyPage(contactEmail: String?): String {
         "Integritetspolicy – Markera / Privacy policy – Markera",
         """<h1>Integritetspolicy – Markera</h1>
 <p>Personuppgiftsansvarig är appens utvecklare, Carl-Emil Kjellstrand, Sverige. Kontakt: $svContact.</p>
-<p>Gäller från: 2026-09-26.</p>
+<p>Gäller från: 2026-10-03.</p>
 <h2 style="font-size:16px">Vad som lagras</h2>
-<p>Ingenting lagras på servern om du använder appen utan att logga in. Loggar du in med Google eller Apple lagras:</p>
+<p>Ingenting lagras på servern om du använder appen utan att logga in, utom förslag du själv skickar (se
+nedan). Loggar du in med Google eller Apple lagras:</p>
 <ul>
 <li><strong>Konto:</strong> Google- eller Apple-kontots identifierare (<code>sub</code> i inloggningstoken) och
 ett visningsnamn (namnet från Google, eller delen före @ i e-postadressen om namn saknas; själva adressen
@@ -88,13 +89,25 @@ lagras aldrig; Apple lämnar varken namn eller adress). Inget lösenord ses elle
 visa det som skrivits på tavlan).</li>
 <li><strong>Sessioner</strong> (inloggningstoken) så att appen förblir inloggad.</li>
 </ul>
+<h2 style="font-size:16px">Förslag</h2>
+<p>Skickar du ett förslag från appens meny (<strong>Förslag</strong>) lagras rubriken, texten, appens plattform
+och version, ditt konto-id om du är inloggad, och e-postadressen om du anger en. Adressen är frivillig och
+används bara för att utvecklaren ska kunna svara dig om förslaget. Förslaget skickas också som e-post till
+utvecklaren via Gmail (Google). Förslag som skickats inloggad raderas med kontot; övriga raderas på begäran
+till kontaktadressen ovan.</p>
+<h2 style="font-size:16px">Felrapporter</h2>
+<p>Appen skickar en felrapport till Sentry (Functional Software, Inc.) när den kraschar eller när
+något går fel, till exempel en inloggning som misslyckas. Rapporten innehåller felet, appens version,
+telefonmodell och systemversion samt de senaste stegen i appen. Den innehåller inte ditt namn, din
+e-postadress, ditt konto-id, några foton eller serier, och IP-adressen lagras inte. Rapporterna används bara
+för att hitta och rätta fel och raderas automatiskt efter Sentrys lagringstid (högst 90 dagar).</p>
 <h2 style="font-size:16px">Sådant som bara sker i telefonen</h2>
 <p>Träffdetekteringen (ett neuralt nätverk som körs på enheten) och avläsningen av ringsiffrorna
 (textigenkänning på enheten, Google ML Kit) sker lokalt. Kamerabilder skickas ingenstans om du inte
 sparar en serie.</p>
 <h2 style="font-size:16px">Delning, lagringsplats och lagringstid</h2>
-<p>Ingen analys, ingen reklam, inga spårnings-SDK:er, ingen försäljning eller delning av uppgifter med
-tredje part. Googles och Apples inloggningstjänster används enbart för att verifiera vem du är.</p>
+<p>Ingen analys, ingen reklam, inga spårnings-SDK:er och ingen försäljning av uppgifter. Utöver felrapporterna
+ovan delas inga uppgifter med tredje part. Googles och Apples inloggningstjänster används enbart för att verifiera vem du är.</p>
 <p>Uppgifterna ligger på utvecklarens egen server i Sverige och överförs över HTTPS. De sparas tills du
 raderar kontot.</p>
 <h2 style="font-size:16px">Radering och dina rättigheter</h2>
@@ -108,10 +121,10 @@ lämnas till Integritetsskyddsmyndigheten (IMY) i Sverige.</p>
 
 <h2>Privacy policy – Markera</h2>
 <p>The controller is the app's developer, Carl-Emil Kjellstrand, Sweden. Contact: $enContact.</p>
-<p>Effective date: 2026-09-26.</p>
+<p>Effective date: 2026-10-03.</p>
 <h2 style="font-size:16px">What is stored</h2>
-<p>Nothing is stored on the server if you use the app without signing in. When you sign in with Google or
-Apple, the following is stored:</p>
+<p>Nothing is stored on the server if you use the app without signing in, apart from suggestions you choose
+to send (see below). When you sign in with Google or Apple, the following is stored:</p>
 <ul>
 <li><strong>Account:</strong> the Google or Apple account's identifier (the token's <code>sub</code>) and a
 display name (the Google name, or the part of the e-mail address before the @ when no name is available;
@@ -122,11 +135,24 @@ or stored.</li>
 show whatever was written on the target).</li>
 <li><strong>Session tokens</strong> so the app stays signed in.</li>
 </ul>
+<h2 style="font-size:16px">Suggestions</h2>
+<p>When you send a suggestion from the app's menu (<strong>Suggestion</strong>), its title, text, the app's
+platform and version, your account id if you are signed in, and the e-mail address if you give one are
+stored. The address is optional and used only so the developer can reply to you about the suggestion. The
+suggestion is also e-mailed to the developer through Gmail (Google). Suggestions sent while signed in are
+deleted with the account; others are deleted on request to the contact address above.</p>
+<h2 style="font-size:16px">Error reports</h2>
+<p>The app sends an error report to Sentry (Functional Software, Inc.) when it crashes or when
+something goes wrong, such as a sign-in that fails. The report holds the error, the app version, the phone
+model and system version, and the last few steps taken in the app. It does not hold your name, e-mail
+address, account id, any photos or series, and the IP address is not stored. The reports are used only to
+find and fix faults and are deleted automatically after Sentry's retention period (at most 90 days).</p>
 <h2 style="font-size:16px">Processing that happens only on the phone</h2>
 <p>Hole detection (an on-device neural network) and ring-digit reading (on-device text recognition, Google
 ML Kit) run locally. Camera frames are not sent anywhere unless you save a series.</p>
 <h2 style="font-size:16px">Sharing, location and retention</h2>
-<p>No analytics, no advertising, no tracking SDKs, no sale or sharing of data with third parties. Google's
+<p>No analytics, no advertising, no tracking SDKs and no sale of data. Apart from the error reports above,
+no data is shared with third parties. Google's
 and Apple's sign-in services are used only to verify who you are.</p>
 <p>The data lives on the developer's own server in Sweden and is transferred over HTTPS. It is kept until
 you delete the account.</p>

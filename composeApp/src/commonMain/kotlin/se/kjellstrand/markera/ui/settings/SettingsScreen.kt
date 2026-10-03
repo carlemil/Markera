@@ -108,7 +108,7 @@ fun SettingsScreen(settings: AppSettings, onBack: () -> Unit) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            // Settings must not offer Settings: the menu holds only Back.
+            // Settings must not offer Settings: the menu holds only the suggestion box.
             CompositionLocalProvider(LocalOpenSettings provides null) {
                 AppTopBar(title = stringResource(Res.string.settings), onBack = onBack)
             }

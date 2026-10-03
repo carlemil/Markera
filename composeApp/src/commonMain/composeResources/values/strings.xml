@@ -29,6 +29,15 @@
     <string name="settings_system">Follow the system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="suggestion">Suggestion</string>
+    <string name="suggestion_intro">An idea, a wish, or something that doesn't work? It goes straight to the developer.</string>
+    <string name="suggestion_title">Title</string>
+    <string name="suggestion_description">Description</string>
+    <string name="suggestion_email">Your e-mail (optional)</string>
+    <string name="suggestion_email_hint">Only if you want a reply about the suggestion.</string>
+    <string name="suggestion_email_invalid">That doesn't look like an e-mail address.</string>
+    <string name="suggestion_send">Send</string>
+    <string name="suggestion_sent">Thanks! Your suggestion has been sent.</string>
 
     <!-- Home -->
     <string name="home_free_marking">Mark</string>
@@ -43,7 +52,10 @@
     <string name="home_signed_out">Signed out</string>
     <string name="home_delete_account">Delete account</string>
     <string name="home_delete_account_title">Delete the account?</string>
-    <string name="home_delete_account_message">All saved series and photos are permanently removed. This cannot be undone.</string>
+    <string name="home_delete_account_message">Your account and all its data are permanently deleted: every saved series, the hits in them, the target photos and the statistics built from them, plus any suggestions you have sent. This cannot be undone, and nothing can be recovered afterwards.</string>
+    <string name="home_delete_account_phrase">delete me</string>
+    <string name="home_delete_account_prompt">Type “%1$s” to confirm.</string>
+    <string name="home_delete_account_input_label">Confirmation</string>
     <string name="home_delete_account_confirm">Delete</string>
     <string name="home_delete_account_cancel">Cancel</string>
     <string name="home_delete_account_failed">Could not delete the account</string>
