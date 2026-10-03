@@ -1,8 +1,3 @@
-New in 1.9.0:
-• Suggestion box in the menu: send ideas and bug reports from the app
-• Series are saved when you are offline and sent later
-• Hits you placed, retyped or moved show in orange
-• The scan screen says when no ring was found and asks before discarding edits
-• One compact filter bar for History and Statistics
-• Better accessibility and large-text support
-• Anonymous error reports help us fix problems faster
+New in 1.9.1:
+• Hit detection uses far less memory on iPhone, which fixes the app closing during a scan on smaller phones
+• Better error reports from scanning, so problems can be fixed faster
