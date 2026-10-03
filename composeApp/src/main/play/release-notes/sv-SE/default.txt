@@ -1,10 +1,8 @@
-Nytt i 1.8.0:
-• Engelska eller svenska, ljust eller mörkt tema, i nya Inställningar
-• Tagga en serie (träning, tävling…) och filtrera på tagg
-• Lägg till egna kalibrar
-• Logga in med Apple även på Android
-• Tryck på en poäng eller kaliber i en serie för att ändra den, och ångra en flyttad träff
-• Statistik: träffar färgade efter kaliber, en tidslinje genom serierna och fotot ett tryck bort
-• Ring 8 och 9 ritas på fotot
-• Filtret "Idag" och en ny design på seriekorten
-• Många fixar
+Nytt i 1.9.0:
+• Förslagslåda i menyn: skicka idéer och felrapporter från appen
+• Serier sparas när du är offline och skickas senare
+• Träffar du placerat, skrivit om eller flyttat visas i orange
+• Skanningsskärmen säger när ingen ring hittades och frågar innan ändringar kastas
+• En kompakt filterrad för Historik och Statistik
+• Bättre tillgänglighet och stöd för stor text
+• Anonyma felrapporter hjälper oss att rätta fel snabbare
