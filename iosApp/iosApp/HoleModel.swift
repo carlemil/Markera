@@ -10,6 +10,10 @@ final class OrtHoleModel: NSObject, HoleModel {
     private let session: ORTSession
     private let inputName: String
     private let outputName: String
+    /// Hands the CPU arena's memory back after every run. Without it ORT keeps the
+    /// ~1.2 GB an inference at 1536 px needs, and the next run grows on top of that
+    /// until iOS kills the app (measured with MemTest: 1.6 GB, then 2.5 GB).
+    private let runOptions: ORTRunOptions?
 
     init?(modelPath: String) {
         do {
@@ -21,6 +25,9 @@ final class OrtHoleModel: NSObject, HoleModel {
             self.session = session
             self.inputName = try session.inputNames()[0]
             self.outputName = try session.outputNames()[0]
+            let runOptions = try ORTRunOptions()
+            try runOptions.addConfigEntry(withKey: "memory.enable_memory_arena_shrinkage", value: "cpu:0")
+            self.runOptions = runOptions
         } catch {
             print("OrtHoleModel: \(modelPath): \(error)")
             return nil
@@ -29,6 +36,12 @@ final class OrtHoleModel: NSObject, HoleModel {
     }
 
     func run(input: Data, inputSize: Int32) -> Data {
+        // Called on a Kotlin worker thread, which has no autorelease pool of its own:
+        // without this one the tensors (and the 28 MB input copy) outlive the call.
+        autoreleasepool { runInPool(input: input, inputSize: inputSize) }
+    }
+
+    private func runInPool(input: Data, inputSize: Int32) -> Data {
         do {
             let value = try ORTValue(
                 tensorData: NSMutableData(data: input),
@@ -37,7 +50,7 @@ final class OrtHoleModel: NSObject, HoleModel {
             let outputs = try session.run(
                 withInputs: [inputName: value],
                 outputNames: [outputName],
-                runOptions: nil)
+                runOptions: runOptions)
             guard let out = try outputs[outputName]?.tensorData() else { return Data() }
             // tensorData() can alias memory owned by the ORTValue, so copy.
             return Data(bytes: out.bytes, count: out.length)
