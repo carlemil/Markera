@@ -26,9 +26,11 @@ import org.jetbrains.compose.resources.stringResource
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import se.kjellstrand.markera.BuildConfig
+import se.kjellstrand.markera.diag.ErrorLog
 
 /** The providers the Android chooser offers. Google stays: every account made before this card is Google-keyed. */
 private enum class Provider { GOOGLE, APPLE }
@@ -50,14 +52,23 @@ suspend fun signInWithProvider(context: Context, session: BackendSessionReposito
         .setFilterByAuthorizedAccounts(false)
         .setAutoSelectEnabled(false)
         .build()
+    ErrorLog.breadcrumb("signin", "google: asking Credential Manager")
     val response = try {
         CredentialManager.create(context)
             .getCredential(context, GetCredentialRequest(listOf(option)))
     } catch (e: GetCredentialCancellationException) {
+        ErrorLog.breadcrumb("signin", "google: cancelled")
         throw SignInCancelledException()
+    } catch (e: GetCredentialException) {
+        // `type` is a string constant, so it survives R8 where the class name does not; it tells
+        // "no Google account on the phone" (TYPE_NO_CREDENTIAL) from a misconfigured OAuth client.
+        ErrorLog.breadcrumb("signin", "google: Credential Manager failed type=${e.type} message=${e.errorMessage}")
+        throw e
     }
+    ErrorLog.breadcrumb("signin", "google: got credential type=${response.credential.type}")
     val idToken = GoogleIdTokenCredential.createFrom(response.credential.data).idToken
-    return session.signInGoogle(idToken)
+    ErrorLog.breadcrumb("signin", "google: exchanging the id token with the backend")
+    return session.signInGoogle(idToken).also { ErrorLog.breadcrumb("signin", "google: signed in") }
 }
 
 @Composable

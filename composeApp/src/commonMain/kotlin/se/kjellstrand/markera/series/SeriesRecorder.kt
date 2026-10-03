@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series
 
+import se.kjellstrand.markera.diag.ErrorLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -287,7 +288,8 @@ class SeriesRecorder(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                println("Markera: series image upload failed: $e")
+                if (e is SeriesApiException && !e.isRetryable) ErrorLog.report("image-upload", e, mapOf("status" to e.status.toString()))
+                else ErrorLog.breadcrumb("series", "image upload failed, queued: $e")
                 if (e !is SeriesApiException || e.isRetryable) {
                     repository.enqueue(request, encoded, seriesId = id)
                     queued = true
@@ -301,7 +303,7 @@ class SeriesRecorder(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        println("Markera: series image encode failed: $e")
+        ErrorLog.report("image-encode", e)
         null
     }
 }

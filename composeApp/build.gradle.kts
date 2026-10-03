@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.triplet.play)
+    alias(libs.plugins.sentry)
 }
 
 kotlin {
@@ -73,6 +74,7 @@ kotlin {
             implementation(libs.androidx.credentials.play.services.auth)
             implementation(libs.googleid)
             implementation(libs.sqldelight.android.driver)
+            implementation(libs.sentry.android)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -99,10 +101,13 @@ val backendUrl = (project.findProperty("markera.backend.url") as String?)
 // Google OAuth *Web* client id, used as `serverClientId` for Credential Manager.
 // Not in version control: put `markera.google.client.id=...` in local.properties.
 // Empty means "not configured" — sign-in then fails loudly.
-val googleClientId: String = rootProject.file("local.properties").takeIf { it.exists() }
+val localProps: Properties? = rootProject.file("local.properties").takeIf { it.exists() }
     ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
-    ?.getProperty("markera.google.client.id")
-    ?: ""
+val googleClientId: String = localProps?.getProperty("markera.google.client.id") ?: ""
+
+// Sentry error reporting (see `diag/ErrorLog.kt`). `markera.sentry.dsn=...` in local.properties;
+// empty means "not configured" and the SDK is never started.
+val sentryDsn: String = localProps?.getProperty("markera.sentry.dsn") ?: ""
 
 // Release (upload) signing: `keystore.properties` + `keystore` at the repo root, both
 // gitignored (see PLAN.md task 26). Absent → the release build stays unsigned.
@@ -131,6 +136,7 @@ android {
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+        buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
     }
 
     buildFeatures { buildConfig = true }
@@ -179,6 +185,23 @@ tasks.withType<Test>().configureEach {
         systemProperty("watch.frames", frames.get())
         testLogging.showStandardStreams = true
     }
+}
+
+// Only here to give Sentry the R8 mapping, so release stack traces are readable. Every release
+// build is stamped with a mapping UUID; the upload itself needs `sentry.properties` at the repo
+// root (gitignored: auth.token, defaults.org, defaults.project). Without it nothing is uploaded,
+// and the mapping can still be sent later with `sentry-cli upload-proguard --uuid <uuid>`.
+// The SDK itself is the plain dependency above, started by hand in MarkeraApplication.
+sentry {
+    val configured = rootProject.file("sentry.properties").exists()
+    includeProguardMapping.set(true)
+    autoUploadProguardMapping.set(configured)
+    uploadNativeSymbols.set(false)
+    includeSourceContext.set(false)
+    includeDependenciesReport.set(false)
+    tracingInstrumentation.enabled.set(false)
+    autoInstallation.enabled.set(false)
+    telemetry.set(false)
 }
 
 play {

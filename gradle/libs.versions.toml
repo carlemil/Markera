@@ -21,6 +21,8 @@ credentials = "1.5.0"
 googleid = "1.1.1"
 sqldelight = "2.1.0"
 playPublisher = "4.0.0"
+sentry = "8.59.0"
+sentryGradle = "6.23.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +60,7 @@ sqldelight-runtime = { group = "app.cash.sqldelight", name = "runtime", version.
 sqldelight-android-driver = { group = "app.cash.sqldelight", name = "android-driver", version.ref = "sqldelight" }
 sqldelight-sqlite-driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
 sqldelight-native-driver = { group = "app.cash.sqldelight", name = "native-driver", version.ref = "sqldelight" }
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -66,4 +69,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentryGradle" }
 triplet-play = { id = "com.github.triplet.play", version.ref = "playPublisher" }

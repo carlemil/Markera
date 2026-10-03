@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.series
 
+import se.kjellstrand.markera.diag.ErrorLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -171,7 +172,7 @@ class SeriesRepository(
                 // Over today's quota: the rest waits, but the refresh itself still goes through.
                 if (e.status == 429) return
                 if (e.isUnauthorized || e.isRetryable) throw e
-                println("Markera: outbox row ${row.id} refused (${e.status}), dropped")
+                ErrorLog.report("outbox-dropped", e, mapOf("status" to e.status.toString()))
             }
             q.outboxDone(row.id)
         }
