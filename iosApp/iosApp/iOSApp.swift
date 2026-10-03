@@ -10,6 +10,9 @@ struct iOSApp: App {
 
     init() {
         SentryReporter.start()
+        #if DEBUG
+        MemTest.runIfRequested()
+        #endif
     }
 
     var body: some Scene {
