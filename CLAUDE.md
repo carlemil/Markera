@@ -138,6 +138,12 @@ records the earlier ring methods (their code was removed).
 
 - `HoleDetector` uses the **default CPU execution provider, not XNNPACK** — XNNPACK's
   fp16 path crashed natively in `OrtSession.run` and was slower on-device.
+- iOS runs the model through the ORT **C API** (`iosApp/iosApp/OrtRunner.c`, bridged to
+  `OrtHoleModel`) with the **CPU arena and memory pattern off**: the Objective-C wrapper cannot
+  switch them off, and with them an inference at 1536 px left the app at 1.3 GB and the next
+  peaked at 2.5 GB (iOS kills the app). Lean, it peaks at about 1.3 GB and settles near 0.6 GB.
+  `MemTest.swift` (DEBUG, `SIMCTL_CHILD_MARKERA_MEMTEST=1 xcrun simctl launch --console-pty …`,
+  `=arena` for ORT's defaults) prints the footprint per inference.
 - The native `OrtSession.run` **can't be aborted**. `uiState.phase` is bridged from a
   StateFlow via `collectAsState` and lags a frame, so detection is guarded by a
   synchronous `AtomicBoolean` (set on the main thread before launch) to prevent
