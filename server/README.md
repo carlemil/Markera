@@ -12,6 +12,15 @@ Env vars: `PORT` (8080), `DB_PATH` (`./data/markera.db`), `IMAGES_DIR` (`<DB_PAT
 with user `admin` and this password; blank/unset leaves them unregistered),
 `TZ` (the zone the admin pages show timestamps in; compose sets `Europe/Stockholm`).
 
+Suggestion box: `POST /suggestions` `{title, description, email?, platform?, appVersion?}` → 201 `{id}`. Open to
+signed-out users (a valid Bearer token only links the suggestion to its user; a stale one is ignored). Title
+≤ 120 and description ≤ 5000 characters, both required; `email` optional but must look like an address. At most
+50 a day from everyone together (then 429). Each is stored (`/admin/suggestions`, deleted with the sender's
+account) and, with `SMTP_HOST`, `SMTP_USER` and `SMTP_PASSWORD` set, mailed to `SUGGESTIONS_TO` (default
+`CONTACT_EMAIL`, then `SMTP_USER`) from `SMTP_FROM` (default `SMTP_USER`) with Reply-To = the sender's
+address. `SMTP_PORT` defaults to 587 (STARTTLS); 465 is implicit TLS. A failed mail is logged, the suggestion
+still answers 201 and shows as "not mailed" on the admin page. Gmail needs an app password.
+
 Sign in with Apple from a browser (how **Android** reaches it — Apple ships no Android SDK, and the flow's
 client secret must never live in an APK) needs five more, all of them or none:
 `APPLE_SERVICES_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (the `.p8` on one line, PEM header

@@ -107,6 +107,7 @@ import se.kjellstrand.markera.ui.settings.SettingsScreen
 import se.kjellstrand.markera.ui.settings.SystemBarsForTheme
 import se.kjellstrand.markera.ui.settings.ThemeMode
 import se.kjellstrand.markera.ui.stats.StatsScreen
+import se.kjellstrand.markera.ui.suggestion.SuggestionScreen
 import se.kjellstrand.markera.ui.theme.MarkeraTheme
 
 /** Shows a short message; the host lives in [AppNavHost], above every screen. */
@@ -122,6 +123,7 @@ sealed interface Screen {
     data object History : Screen
     data object Statistics : Screen
     data object Settings : Screen
+    data object Suggestion : Screen
 
     /** One saved series, editable. Carries the DTO the history row already has. */
     data class SeriesDetail(val series: SeriesDto) : Screen
@@ -303,6 +305,7 @@ fun AppNavHost(
         LocalSnackbar provides snackbarHostState,
         LocalMenuHost provides menuHost,
         LocalOpenSettings provides { push(Screen.Settings) },
+        LocalOpenSuggestion provides { push(Screen.Suggestion) },
     ) {
     Box(Modifier.fillMaxSize()) {
     when (val screen = current) {
@@ -338,6 +341,8 @@ fun AppNavHost(
         )
 
         Screen.Settings -> SettingsScreen(settings = settings, onBack = pop)
+
+        Screen.Suggestion -> SuggestionScreen(api = seriesServices.api, onBack = pop)
 
         is Screen.SeriesDetail -> SeriesDetailScreen(
             initial = screen.series,
@@ -669,12 +674,29 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
     var confirmDelete by remember { mutableStateOf(false) }
 
     if (confirmDelete) {
+        // Scoped to the open dialog: it starts empty every time the dialog is shown.
+        var typed by remember { mutableStateOf("") }
+        val phrase = stringResource(Res.string.home_delete_account_phrase)
+        val confirmed = typed.trim().equals(phrase, ignoreCase = true)
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text(stringResource(Res.string.home_delete_account_title)) },
-            text = { Text(stringResource(Res.string.home_delete_account_message)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(Res.string.home_delete_account_message))
+                    Text(stringResource(Res.string.home_delete_account_prompt, phrase))
+                    OutlinedTextField(
+                        value = typed,
+                        onValueChange = { typed = it },
+                        label = { Text(stringResource(Res.string.home_delete_account_input_label)) },
+                        placeholder = { Text(phrase) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(enabled = confirmed, onClick = {
                     confirmDelete = false
                     busy = true
                     scope.launch {
@@ -692,7 +714,11 @@ private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
                         }
                     }
                 }) {
-                    Text(stringResource(Res.string.home_delete_account_confirm), color = MaterialTheme.colorScheme.error)
+                    Text(
+                        stringResource(Res.string.home_delete_account_confirm),
+                        color = if (confirmed) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    )
                 }
             },
             dismissButton = {

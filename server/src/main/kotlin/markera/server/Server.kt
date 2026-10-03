@@ -50,6 +50,10 @@ data class Config(
     val contactEmail: String? = null,
     /** Sign in with Apple from a browser — how Android reaches it. Null leaves the browser routes answering 503. */
     val appleWeb: AppleWebConfig? = null,
+    /** Mails each suggestion from the app's suggestion box; null stores them for `/admin/suggestions` only. */
+    val smtp: SmtpConfig? = null,
+    /** This server's public origin; only used to link the admin page from a suggestion mail. */
+    val publicUrl: String? = null,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -68,6 +72,7 @@ data class Config(
 
         fun fromEnv(): Config {
             val dbPath = System.getenv("DB_PATH")?.ifBlank { null } ?: "./data/markera.db"
+            val contactEmail = System.getenv("CONTACT_EMAIL")?.ifBlank { null }
             return Config(
                 port = System.getenv("PORT")?.toIntOrNull() ?: 8080,
                 dbPath = dbPath,
@@ -76,8 +81,10 @@ data class Config(
                 devAuth = System.getenv("DEV_AUTH") == "true",
                 imagesDir = System.getenv("IMAGES_DIR")?.ifBlank { null } ?: defaultImagesDir(dbPath),
                 adminPassword = System.getenv("ADMIN_PASSWORD")?.ifBlank { null },
-                contactEmail = System.getenv("CONTACT_EMAIL")?.ifBlank { null },
+                contactEmail = contactEmail,
                 appleWeb = appleWebFromEnv(),
+                smtp = SmtpConfig.fromEnv(contactEmail),
+                publicUrl = System.getenv("PUBLIC_URL")?.ifBlank { null },
             )
         }
     }
@@ -213,6 +220,7 @@ fun main() {
     // The admin pages read and delete every user's photos: never behind .env.example's placeholder.
     check(config.adminPassword != "change-me") { "ADMIN_PASSWORD is still the .env.example placeholder" }
     if ((config.adminPassword?.length ?: 16) < 16) System.err.println("WARNING: ADMIN_PASSWORD is shorter than 16 characters")
+    if (config.smtp == null) System.err.println("NOTE: SMTP_* not set - suggestions are stored but not mailed")
     val db = Db(config.dbPath)
     embeddedServer(Netty, port = config.port, host = "0.0.0.0") { markeraModule(config, db) }.start(wait = true)
 }
@@ -225,6 +233,8 @@ fun Application.markeraModule(
      * verification against Apple's JWKS); tests substitute it, since neither is reachable from one.
      */
     appleCodeIdentity: ((String) -> Identity)? = null,
+    /** Where suggestions are mailed; tests substitute a recorder. Null stores them without mailing. */
+    mailer: Mailer? = config.smtp?.let(::SmtpMailer),
 ) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
@@ -328,6 +338,9 @@ fun Application.markeraModule(
                 issueSession(db, "dev", Identity(subject, subject))
             }
         }
+
+        // The app's suggestion box; open to signed-out users too (see postSuggestion).
+        post("/suggestions") { postSuggestion(db, mailer, config.publicUrl) }
 
         post("/series") {
             val userId = authenticate(db) ?: return@post

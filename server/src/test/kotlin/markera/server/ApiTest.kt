@@ -52,6 +52,7 @@ class ApiTest {
         devAuth: Boolean = true,
         adminPassword: String? = null,
         contactEmail: String? = null,
+        mailer: Mailer? = null,
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
@@ -61,6 +62,7 @@ class ApiTest {
                 markeraModule(
                     Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword, contactEmail),
                     Db(dbFile.path),
+                    mailer = mailer,
                 )
             }
             val client = createClient { install(ClientContentNegotiation) { json() } }
@@ -1534,5 +1536,115 @@ class ApiTest {
             val id = db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", series().holes, clientId = "c")
             assertEquals(id, db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", series().holes, clientId = "c"))
         }
+    }
+
+    private suspend fun HttpClient.suggest(body: SuggestionRequest, token: String? = null) =
+        post("/suggestions") {
+            token?.let { bearerAuth(it) }
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+
+    @Test
+    fun aSignedOutSuggestionIsStoredAndMailedWithReplyToTheSender() {
+        val sent = mutableListOf<Mail>()
+        apiTest(adminPassword = ADMIN_PW, mailer = { sent += it }) { client ->
+            val response = client.suggest(
+                SuggestionRequest(
+                    title = "  Dark\nmode ",
+                    description = "Please add <b>it</b>.\nThanks",
+                    email = " me@example.com ",
+                    platform = "android",
+                    appVersion = "1.8.0",
+                )
+            )
+            assertEquals(HttpStatusCode.Created, response.status)
+            val id = response.body<IdResponse>().id
+
+            val mail = sent.single()
+            assertEquals("Markera suggestion: Dark mode", mail.subject)
+            assertEquals("me@example.com", mail.replyTo)
+            assertTrue(mail.body.startsWith("Please add <b>it</b>.\nThanks\n"), mail.body)
+            assertTrue("not signed in" in mail.body, mail.body)
+            assertTrue("android 1.8.0" in mail.body, mail.body)
+            assertTrue("#$id" in mail.body, mail.body)
+
+            val page = client.admin("/admin/suggestions").bodyAsText()
+            assertTrue("Dark mode" in page, page)
+            assertTrue("&lt;b&gt;it&lt;/b&gt;" in page, page) // escaped, never markup
+            assertTrue("mailto:me@example.com" in page, page)
+            assertTrue("not mailed" !in page, page)
+            assertTrue("suggestions (1)" in client.admin("/admin").bodyAsText())
+        }
+    }
+
+    @Test
+    fun aSignedInSuggestionNamesItsUserAndLeavesNoReplyToWithoutAnEmail() {
+        val sent = mutableListOf<Mail>()
+        apiTest(mailer = { sent += it }) { client ->
+            val me = client.devAuth("alice")
+            assertEquals(HttpStatusCode.Created, client.suggest(SuggestionRequest("T", "D"), me.token).status)
+            assertEquals(null, sent.single().replyTo)
+            assertTrue("user ${me.userId} (alice)" in sent.single().body, sent.single().body)
+            // A stale token is no reason to lose the suggestion: it is stored anonymously.
+            assertEquals(HttpStatusCode.Created, client.suggest(SuggestionRequest("T", "D"), "stale").status)
+            assertTrue("not signed in" in sent.last().body)
+        }
+    }
+
+    @Test
+    fun aSuggestionWhoseMailFailsIsStillStoredAndAccepted() = apiTest(
+        adminPassword = ADMIN_PW,
+        mailer = { error("smtp down") },
+    ) { client ->
+        assertEquals(HttpStatusCode.Created, client.suggest(SuggestionRequest("T", "D")).status)
+        assertTrue("not mailed" in client.admin("/admin/suggestions").bodyAsText())
+    }
+
+    @Test
+    fun suggestionsWithoutATitleDescriptionOrAValidEmailAreRejected() {
+        val sent = mutableListOf<Mail>()
+        apiTest(mailer = { sent += it }) { client ->
+            for (bad in listOf(
+                SuggestionRequest(" ", "D"),
+                SuggestionRequest("T", "\n "),
+                SuggestionRequest("x".repeat(MAX_SUGGESTION_TITLE + 1), "D"),
+                SuggestionRequest("T", "x".repeat(MAX_SUGGESTION_DESCRIPTION + 1)),
+                SuggestionRequest("T", "D", email = "not an address"),
+                SuggestionRequest("T", "D", email = "a@b.c\r\nBcc: x@y.z"),
+                SuggestionRequest("T", "D", platform = "<script>"),
+            )) {
+                assertEquals(HttpStatusCode.BadRequest, client.suggest(bad).status, bad.toString())
+            }
+            assertTrue(sent.isEmpty())
+            // A blank e-mail is no e-mail.
+            assertEquals(HttpStatusCode.Created, client.suggest(SuggestionRequest("T", "D", email = " ")).status)
+            assertEquals(null, sent.single().replyTo)
+        }
+    }
+
+    @Test
+    fun suggestionsAreCappedPerDayForEveryoneTogether() = apiTest { client ->
+        client.get("/health") // starts the module, which creates the schema
+        sql { st ->
+            repeat(MAX_SUGGESTIONS_PER_DAY) {
+                st.executeUpdate(
+                    "INSERT INTO suggestions(title, description, created_at) VALUES ('t', 'd', datetime('now'))"
+                )
+            }
+        }
+        assertEquals(HttpStatusCode.TooManyRequests, client.suggest(SuggestionRequest("T", "D")).status)
+    }
+
+    @Test
+    fun deletingTheAccountDeletesItsSuggestions() = apiTest { client ->
+        val me = client.devAuth("me")
+        client.suggest(SuggestionRequest("mine", "D", email = "me@example.com"), me.token)
+        client.suggest(SuggestionRequest("anonymous", "D"))
+        assertEquals(HttpStatusCode.NoContent, client.delete("/account") { bearerAuth(me.token) }.status)
+        val left = sql { st ->
+            st.executeQuery("SELECT group_concat(title) FROM suggestions").use { it.next(); it.getString(1) }
+        }
+        assertEquals("anonymous", left)
     }
 }

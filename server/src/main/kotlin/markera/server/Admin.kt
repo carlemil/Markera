@@ -42,7 +42,37 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 href = "/admin/users/${u.id}",
             )
         }
-        respondHtml(page("Users", table(listOf("id", "provider", "subject", "name", "series"), rows)))
+        val suggestions = db.listSuggestions().size
+        respondHtml(
+            page(
+                "Users",
+                """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
+                    table(listOf("id", "provider", "subject", "name", "series"), rows),
+            )
+        )
+    }
+
+    // The suggestion box, newest first: the record of every suggestion, including any whose mail never went out.
+    get("/admin/suggestions") {
+        if (unauthorized(password)) return@get
+        val rows = db.listSuggestions().joinToString("") { s ->
+            row(
+                s.id,
+                time(s.createdAt),
+                """<strong>${esc(s.title)}</strong><div class="text">${esc(s.description)}</div>""",
+                s.email?.let { """<a href="mailto:${esc(it)}">${esc(it)}</a>""" },
+                s.userId?.let { """<a href="/admin/users/$it">${esc(s.userName ?: "user $it")}</a>""" },
+                esc(listOfNotNull(s.platform, s.appVersion).joinToString(" ")),
+                s.mailedAt?.let { time(it) } ?: "<em>not mailed</em>",
+            )
+        }
+        respondHtml(
+            page(
+                "Suggestions",
+                """<a href="/admin">&larr; users</a>""" +
+                    table(listOf("id", "received", "suggestion", "e-mail", "user", "app", "mailed"), rows),
+            )
+        )
     }
 
     get("/admin/users/{id}") {
@@ -378,6 +408,7 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 .hit.gone{border-style:dashed;cursor:default}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
+.text{white-space:pre-wrap;max-width:640px;margin-top:4px}
 .note{color:#a8b39a}
 #msg{margin-left:8px}
 </style></head><body><h1>${esc(title)}</h1>$body</body></html>"""

@@ -223,6 +223,18 @@ the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple
 is set (Debug), backend URL from `MarkeraBackendUrl` (Debug `http://127.0.0.1:8091`,
 Release production), token in NSUserDefaults, share via `UIActivityViewController`.
 
+### Error reporting (`diag/`)
+
+`ErrorLog` (commonMain) is the remote log: `breadcrumb(category, message)` leaves a trail,
+`report(where, error, details)` sends a handled failure with that trail. Android wires it to
+**Sentry** (`SentryErrorSink.kt`, started by hand in `MarkeraApplication`, which also catches
+crashes/ANRs); iOS has no sink yet and only prints. `Throwable.userMessage()` reports every
+toasted failure except IOExceptions (offline is not a bug), so new error paths that toast are
+covered for free; sign-in leaves breadcrumbs per step. Never log tokens, names or e-mail.
+DSN: `markera.sentry.dsn` in `local.properties` (empty = Sentry off). The Sentry Gradle plugin
+is there only to upload the R8 mapping, and only when `sentry.properties` (gitignored:
+`auth.token`, `defaults.org`, `defaults.project`) exists at the repo root.
+
 ### UI
 
 `MarkeraScreen` (commonMain) is the scan screen: top bar (with a debug-overlay
@@ -236,8 +248,11 @@ drawn orange, `manual = true`, so it saves with no `detected*` values.
 Every screen but Home uses the one `AppTopBar` (`ui/AppTopBar.kt`): back button (left of the menu
 button, whenever the screen has a back), menu button, then title; back is that button plus system back.
 Top-bar actions go in the one `AppMenu` (FieldShootingTimer's speed dial; `ui/AppMenu.kt`,
-drawn by `MenuOverlay` at the nav root), which always ends with Settings (`ui/settings/`:
+drawn by `MenuOverlay` at the nav root), which always ends with Suggestion and Settings (`ui/settings/`:
 language + light/dark theme, applied in `MarkeraApp`; a language change re-keys the tree).
+Suggestion (`ui/suggestion/`, `LocalOpenSuggestion`) is the suggestion box: title + description required,
+e-mail optional → `SeriesApi.postSuggestion` → the server's `POST /suggestions` (open to signed-out users),
+which stores it (`/admin/suggestions`) and mails it via `SMTP_*` to `SUGGESTIONS_TO` with Reply-To = the sender.
 Every UI string lives in `composeResources`: English is the default `values/strings.xml`,
 Swedish is `values-sv/` — add each new key to both (iOS: `CFBundleLocalizations` in
 `project.yml` + `sv.lproj/InfoPlist.strings`). Caliber labels stay untranslated (stored values).

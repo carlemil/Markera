@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -78,6 +79,9 @@ val LocalMenuHost = staticCompositionLocalOf<MenuHost?> { null }
 /** Every menu ends with the settings cogwheel; null (no nav host) leaves it out. */
 val LocalOpenSettings = staticCompositionLocalOf<(() -> Unit)?> { null }
 
+/** Every menu offers the suggestion box, just above Settings; null leaves it out (the box itself). */
+val LocalOpenSuggestion = staticCompositionLocalOf<(() -> Unit)?> { null }
+
 private val MenuButtonSize = 38.dp
 private val MenuItemSpacing = 10.dp
 private val MenuRowSpacing = 18.dp
@@ -85,7 +89,7 @@ private val MenuTopOffset = 52.dp
 
 /**
  * The one menu button every top bar carries (same speed dial as FieldShootingTimer's):
- * tapping it slides [items] plus Settings down from beneath it, each a round icon
+ * tapping it slides [items] plus Suggestion and Settings down from beneath it, each a round icon
  * button with its label on the screen-middle side, over a scrim that closes it.
  */
 @Composable
@@ -93,6 +97,8 @@ fun AppMenu(items: List<MenuItem>, modifier: Modifier = Modifier) {
     val host = LocalMenuHost.current
     val openSettings = LocalOpenSettings.current
     val settingsLabel = stringResource(Res.string.settings)
+    val openSuggestion = LocalOpenSuggestion.current
+    val suggestionLabel = stringResource(Res.string.suggestion)
     var bounds by remember { mutableStateOf(Rect.Zero) }
     MenuButton(
         icon = Icons.Default.Menu,
@@ -104,6 +110,7 @@ fun AppMenu(items: List<MenuItem>, modifier: Modifier = Modifier) {
         host ?: return@MenuButton
         host.anchor = bounds
         host.items = items + listOfNotNull(
+            openSuggestion?.let { MenuItem(Icons.Outlined.Lightbulb, suggestionLabel, onClick = it) },
             openSettings?.let { MenuItem(Icons.Default.Settings, settingsLabel, onClick = it) },
         )
         host.open = true

@@ -89,6 +89,30 @@ class SeriesApiTest {
     }
 
     @Test
+    fun postSuggestionWorksSignedOutAndLeavesOutAMissingEmail() = runBlocking {
+        val api = api(token = null) { json("""{"id":3}""", HttpStatusCode.Created) }
+
+        assertEquals(3L, api.postSuggestion(SuggestionRequest("T", "D", null, "android", "1.8.0")))
+
+        val request = recorded.single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertEquals("http://host:8080/suggestions", request.url.toString())
+        assertNull(request.headers[HttpHeaders.Authorization])
+        assertTrue(""""email"""" !in sentBody, sentBody)
+        assertTrue(""""title":"T"""" in sentBody && """"description":"D"""" in sentBody, sentBody)
+    }
+
+    @Test
+    fun postSuggestionSendsTheTokenWhenSignedIn() = runBlocking {
+        val api = api(token = "tok") { json("""{"id":4}""", HttpStatusCode.Created) }
+
+        api.postSuggestion(SuggestionRequest("T", "D", "me@example.com", "ios", null))
+
+        assertEquals("Bearer tok", recorded.single().headers[HttpHeaders.Authorization])
+        assertTrue(""""email":"me@example.com"""" in sentBody, sentBody)
+    }
+
+    @Test
     fun unauthorizedCarriesServerErrorMessage() {
         val api = api(token = "stale") {
             json("""{"error":"invalid session token"}""", HttpStatusCode.Unauthorized)
