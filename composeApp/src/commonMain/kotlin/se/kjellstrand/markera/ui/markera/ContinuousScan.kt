@@ -90,17 +90,19 @@ internal class Light(val gain: Float, val offset: Float) {
 }
 
 /**
- * The least-squares [Light] of cur(x, y) on ref(x + dx, y + dy), over every 4th
+ * The least-squares [Light] of cur(x, y) on ref at [align]'s shift, over every 4th
  * pixel where neither is clipped. Aligned pairs only: across a misaligned edge the
  * fit dilutes the gain towards 0. Falls back to a plain mean offset when the
  * unclipped pixels are too few or too flat to fit a gain.
  */
-internal fun fitLight(ref: LumaFrame, cur: LumaFrame, dx: Int = 0, dy: Int = 0, radius: Int = MAX_SHIFT): Light {
+internal fun fitLight(ref: LumaFrame, cur: LumaFrame, align: Alignment = Alignment(cur.width, cur.height, 0, 0)): Light {
     val w = cur.width
+    val radius = MAX_SHIFT + TILE_SHIFT
     var n = 0L; var sx = 0L; var sy = 0L; var sxx = 0L; var sxy = 0L
     for (y in radius until cur.height - radius step 4) {
         for (x in radius until w - radius step 4) {
-            val r = ref.luma[(y + dy) * w + x + dx].toInt() and 0xFF
+            val t = align.tile(x, y)
+            val r = ref.luma[(y + align.dys[t]) * w + x + align.dxs[t]].toInt() and 0xFF
             val c = cur.luma[y * w + x].toInt() and 0xFF
             if (r !in UNCLIPPED || c !in UNCLIPPED) continue
             n++; sx += r; sy += c; sxx += r * r; sxy += r * c
@@ -112,6 +114,89 @@ internal fun fitLight(ref: LumaFrame, cur: LumaFrame, dx: Int = 0, dy: Int = 0, 
     // Too few or too flat to fit a gain (or a nonsense one): the old offset-only model.
     if (gain !in 0.25..4.0) return Light(1f, ((sy - sx).toDouble() / n).toFloat())
     return Light(gain.toFloat(), ((sy - gain * sx) / n).toFloat())
+}
+
+/** The grid is split into [TILES]×[TILES] tiles for the per-tile alignment. */
+internal const val TILES = 6
+
+/** How far (grid px) a tile's own shift may stray from the global one. */
+internal const val TILE_SHIFT = 2
+
+/**
+ * Per-tile whole-pixel shifts, so cur(x, y) ≈ ref(x + dx, y + dy) with (dx, dy)
+ * the shift of the tile holding (x, y). One global shift cannot follow a slight
+ * turn, keystone or paper flex: at the 600 px grid a 0.5° turn already moves the
+ * corners ~2.6 px each way against the centre. Within a tile (100 px there) the
+ * same turn spreads under a pixel, which the 3×3 interval compare absorbs.
+ * Seams are hard: each pixel takes its own tile's shift.
+ */
+internal class Alignment(private val w: Int, private val h: Int, val dxs: IntArray, val dys: IntArray) {
+    constructor(w: Int, h: Int, dx: Int, dy: Int) : this(w, h, IntArray(TILES * TILES) { dx }, IntArray(TILES * TILES) { dy })
+
+    private val cols = IntArray(w) { it * TILES / w }
+    private val rows = IntArray(h) { it * TILES / h * TILES }
+
+    fun tile(x: Int, y: Int) = rows[y] + cols[x]
+}
+
+/**
+ * Refines the global ([dx], [dy]) per tile: each textured tile takes the shift
+ * within ±[TILE_SHIFT] of it with the least absolute difference (every 2nd pixel,
+ * the [light] taken out); a flat tile keeps the global shift, since it has nothing
+ * to align on and any shift fits it equally. Textured = at least a quarter tile
+ * side's worth of edge samples, an edge being a central difference of
+ * [CHANGE_MIN_DELTA]+ across or down: that is half of one edge crossing the tile
+ * (a crossing edge leaves ~side/2 samples), while a weaker step could not show up
+ * as a changed pixel anyway, and noise alone never reaches it.
+ */
+internal fun estimateTiles(ref: LumaFrame, cur: LumaFrame, light: Light, dx: Int, dy: Int): Alignment {
+    val w = cur.width
+    val h = cur.height
+    val c = cur.luma
+    val margin = MAX_SHIFT + TILE_SHIFT
+    val lit = IntArray(256) { light.of(it).roundToInt() }
+    val r = ref.luma
+    val dxs = IntArray(TILES * TILES) { dx }
+    val dys = IntArray(TILES * TILES) { dy }
+    for (ty in 0 until TILES) {
+        val y0 = max(margin, ty * h / TILES)
+        val y1 = min(h - margin, (ty + 1) * h / TILES)
+        for (tx in 0 until TILES) {
+            val x0 = max(margin, tx * w / TILES)
+            val x1 = min(w - margin, (tx + 1) * w / TILES)
+            var edges = 0
+            for (y in y0 until y1 step 2) {
+                for (x in x0 until x1 step 2) {
+                    val i = y * w + x
+                    val gx = abs((c[i + 1].toInt() and 0xFF) - (c[i - 1].toInt() and 0xFF))
+                    val gy = abs((c[i + w].toInt() and 0xFF) - (c[i - w].toInt() and 0xFF))
+                    if (max(gx, gy) >= CHANGE_MIN_DELTA) edges++
+                }
+            }
+            if (edges < (x1 - x0) / 4) continue
+            var best = Int.MAX_VALUE
+            for (sy in dy - TILE_SHIFT..dy + TILE_SHIFT) {
+                for (sx in dx - TILE_SHIFT..dx + TILE_SHIFT) {
+                    var sad = 0
+                    for (y in y0 until y1 step 2) {
+                        val row = y * w
+                        val refRow = (y + sy) * w + sx
+                        for (x in x0 until x1 step 2) {
+                            sad += abs((c[row + x].toInt() and 0xFF) - lit[r[refRow + x].toInt() and 0xFF])
+                        }
+                    }
+                    val t = ty * TILES + tx
+                    // Ties (along a straight edge) keep the shift closest to the global one.
+                    if (sad < best || (sad == best && abs(sx - dx) + abs(sy - dy) < abs(dxs[t] - dx) + abs(dys[t] - dy))) {
+                        best = sad
+                        dxs[t] = sx
+                        dys[t] = sy
+                    }
+                }
+            }
+        }
+    }
+    return Alignment(w, h, dxs, dys)
 }
 
 /**
@@ -147,8 +232,8 @@ internal fun estimateShift(ref: LumaFrame, cur: LumaFrame, light: Light, radius:
 /**
  * Changed-pixel mask of [cur] against [ref]. The light is taken out in two
  * steps: globally ([fitLight], a gain and an offset, fitted again once
- * [estimateShift] has aligned the camera shake away), then locally — a shadow
- * or a lamp on part of the target — by subtracting the rest of the difference
+ * [estimateShift] and then [estimateTiles] per tile have aligned the camera
+ * shake and any slight turn away), then locally — a shadow or a lamp on part of the target — by subtracting the rest of the difference
  * averaged over a [LIGHT_WINDOW] box, each pixel's share capped at
  * [LIGHT_MAX_STEP] and clipped pixels left out. Light is large-scale and a hole
  * small, so the box mean follows the one and not the other. A pixel's
@@ -166,8 +251,10 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
     val r = ref.luma
     val c = cur.luma
     val (dx, dy) = estimateShift(ref, cur, fitLight(ref, cur))
-    val light = fitLight(ref, cur, dx, dy)
-    val lit = IntArray(r.size) { light.of(r[it].toInt() and 0xFF).roundToInt() }
+    val align = estimateTiles(ref, cur, fitLight(ref, cur, Alignment(w, h, dx, dy)), dx, dy)
+    val light = fitLight(ref, cur, align)
+    val levels = IntArray(256) { light.of(it).roundToInt() }
+    val lit = IntArray(r.size) { levels[r[it].toInt() and 0xFF] }
     // Integral images of the capped residual and of how many pixels have one, for O(1) box sums.
     val stride = w + 1
     val sums = IntArray(stride * (h + 1))
@@ -176,8 +263,9 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
         var rowSum = 0
         var rowCount = 0
         for (x in 0 until w) {
-            val rx = x + dx
-            val ry = y + dy
+            val t = align.tile(x, y)
+            val rx = x + align.dxs[t]
+            val ry = y + align.dys[t]
             val v = c[y * w + x].toInt() and 0xFF
             if (rx in 0 until w && ry in 0 until h && v in UNCLIPPED && (r[ry * w + rx].toInt() and 0xFF) in UNCLIPPED) {
                 rowSum += (v - lit[ry * w + rx]).coerceIn(-LIGHT_MAX_STEP, LIGHT_MAX_STEP)
@@ -194,8 +282,9 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
         val top = max(0, y - half) * stride
         val bottom = min(h, y + half + 1) * stride
         for (x in 0 until w) {
-            val rx = x + dx
-            val ry = y + dy
+            val t = align.tile(x, y)
+            val rx = x + align.dxs[t]
+            val ry = y + align.dys[t]
             // Needs the whole 3×3 around it: a clipped one has a narrower interval.
             if (rx !in 1 until w - 1 || ry !in 1 until h - 1) {
                 histogram[0]++

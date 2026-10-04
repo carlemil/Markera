@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
+import kotlin.math.abs
+import kotlin.math.max
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -253,6 +255,59 @@ class ContinuousScanTest {
         assertTrue(watch.offer(scene(3, paint = hole(55, 50))))
         watch.reset()
         repeat(3) { assertFalse(watch.offer(scene(4 + it, paint = hole(55, 50)))) }
+    }
+
+    /**
+     * A [big]² frame at the real watch grid: grid lines every 50 px over light
+     * paper plus an off-centre black disk with light rings, anti-aliased, turned
+     * [degrees] about the frame centre, plus sensor noise. At 600 px a 0.5° turn
+     * moves the corners ~2.6 px each way while the centre stays: no one shift fits.
+     */
+    private val big = 600
+
+    private fun turned(seed: Int, degrees: Double, paint: (x: Int, y: Int) -> Int? = { _, _ -> null }): LumaFrame {
+        val rnd = Random(seed)
+        val a = degrees * kotlin.math.PI / 180
+        val cos = kotlin.math.cos(a)
+        val sin = kotlin.math.sin(a)
+        fun cover(dist: Double) = (2.0 - dist).coerceIn(0.0, 1.0) // a ~3 px line, 1 px ramps
+        val luma = ByteArray(big * big) { i ->
+            val px = i % big
+            val py = i / big
+            val cx = px - big / 2.0
+            val cy = py - big / 2.0
+            val u = cos * cx - sin * cy + big / 2.0
+            val v = sin * cx + cos * cy + big / 2.0
+            val gu = abs((u + 25).mod(50.0) - 25)
+            val gv = abs((v + 25).mod(50.0) - 25)
+            val paper = 200 - 140 * max(cover(gu), cover(gv))
+            val d = kotlin.math.hypot(u - 260, v - 320)
+            val inDisk = (120.5 - d).coerceIn(0.0, 1.0)
+            val ring = max(cover(abs(d - 40)), cover(abs(d - 80)))
+            val disk = 40 + 160 * ring
+            val value = paint(px, py) ?: (inDisk * disk + (1 - inDisk) * paper).toInt()
+            (value + rnd.nextInt(-3, 4)).coerceIn(0, 255).toByte()
+        }
+        return LumaFrame(big, big, luma)
+    }
+
+    @Test
+    fun aHalfDegreeTurnOfTheFrameDoesNotFire() {
+        val watch = NewHoleWatch()
+        val fired = watch.feed(turned(1, 0.0), turned(2, 0.5), turned(3, 0.5))
+        assertFalse(fired.any { it })
+        assertTrue(watch.last!!.reason.startsWith("no blob"), watch.last?.reason)
+    }
+
+    @Test
+    fun aHoleStillFiresAcrossAHalfDegreeTurn() {
+        val watch = NewHoleWatch()
+        val hole = hole(525, 75, r = 4, luma = 30)
+        val (_, _, fired) = watch.feed(turned(1, 0.0), turned(2, 0.5, hole), turned(3, 0.5, hole))
+        assertTrue(fired, watch.last?.reason)
+        val found = watch.last!!.blobs.filter { it.area >= HOLE_MIN_AREA }
+        assertEquals(1, found.size, watch.last?.reason)
+        assertTrue(525 - found[0].x in 0 until found[0].width && 75 - found[0].y in 0 until found[0].height, "${found[0]} at ${found[0].x},${found[0].y}")
     }
 
     @Test
