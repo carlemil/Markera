@@ -12,18 +12,15 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import se.kjellstrand.markera.ui.StateMessage
-import se.kjellstrand.markera.ui.stats.SectionHeader
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Check
@@ -63,15 +60,15 @@ import se.kjellstrand.markera.ui.markera.CameraPermissionPrompt
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.MarkeraSnapshotViewModel
 import se.kjellstrand.markera.ui.markera.MarkeraViewModelImpl
-import se.kjellstrand.markera.ui.markera.PrimaryActionButton
-import se.kjellstrand.markera.ui.markera.SecondaryActionButton
+import se.kjellstrand.markera.ui.PrimaryActionButton
+import se.kjellstrand.markera.ui.SecondaryActionButton
 import se.kjellstrand.markera.ui.markera.ScanPhase
 import se.kjellstrand.markera.ui.markera.ScorePickerHorizontalRow
 import se.kjellstrand.markera.ui.markera.ScoreMiniRow
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanner
-import se.kjellstrand.markera.ui.markera.TotalBadge
+import se.kjellstrand.markera.ui.TotalBadge
 import se.kjellstrand.markera.ui.markera.rememberCameraPermission
 import se.kjellstrand.markera.webshooter.MarkingLogic
 import se.kjellstrand.markera.webshooter.ShotMapping
@@ -649,162 +646,3 @@ private fun NotActiveContent(onRetry: () -> Unit) {
     }
 }
 
-// ---- Station summary ------------------------------------------------------
-
-@Composable
-private fun StationSummaryContent(
-    state: WizardUiState,
-    onGoToLane: (Int) -> Unit,
-    onNextStation: () -> Unit,
-) {
-    val context = state.context ?: return
-    val station = state.station ?: return
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SectionHeader(stringResource(Res.string.wizard_station_summary, state.stationIndex + 1))
-        var registered = 0
-        context.lanes.forEachIndexed { index, entry ->
-            val result = MarkingLogic.resultFor(entry.signup, station.sortorder)
-            val scored = MarkingLogic.isScored(result)
-            if (scored) registered++
-            Surface(
-                onClick = { onGoToLane(index) },
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.small,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = entry.lane.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.width(36.dp),
-                    )
-                    Text(
-                        text = entry.signup.user?.fullname ?: stringResource(Res.string.wizard_unknown_name),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = result?.takeIf { scored }?.points?.toString() ?: "–",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = result?.takeIf { scored }?.hits?.let { stringResource(Res.string.wizard_x_count, it) } ?: "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(32.dp),
-                    )
-                    if (scored) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-            }
-        }
-        Text(
-            text = stringResource(Res.string.wizard_registered_count, registered, context.lanes.size),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-        if (!state.isLastStation) {
-            PrimaryActionButton(
-                text = stringResource(Res.string.wizard_next_station, state.stationIndex + 2),
-                icon = Icons.Default.ChevronRight,
-                onClick = onNextStation,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-        } else {
-            FinishSummary(state)
-        }
-    }
-}
-
-/** Final standings after the last series (only when everything is registered). */
-@Composable
-private fun FinishSummary(state: WizardUiState) {
-    if (state.summaryLoading) {
-        CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-        return
-    }
-    val summary = state.summary ?: return
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(Res.string.wizard_final_done),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        if (summary.standings.isNotEmpty()) {
-            SectionHeader(stringResource(Res.string.wizard_standings))
-            summary.standings.forEach { standing ->
-                Surface(
-                    color = if (standing.tied) {
-                        MaterialTheme.colorScheme.tertiaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = standing.placement?.toString() ?: "",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.width(28.dp),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = standing.name ?: stringResource(Res.string.wizard_unknown_name),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            val sub = if (standing.tied) {
-                                stringResource(Res.string.wizard_tied)
-                            } else {
-                                listOfNotNull(
-                                    standing.lane?.let { stringResource(Res.string.wizard_standing_lane, it) },
-                                    standing.club,
-                                ).joinToString(" · ")
-                            }
-                            if (sub.isNotEmpty()) {
-                                Text(
-                                    text = sub,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        Text(
-                            text = "${standing.points}",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = stringResource(Res.string.wizard_x_count, standing.hits),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}

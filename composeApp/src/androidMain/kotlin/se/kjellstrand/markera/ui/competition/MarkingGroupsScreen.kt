@@ -42,8 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import se.kjellstrand.markera.ui.markera.PrimaryActionButton
-import se.kjellstrand.markera.ui.markera.SecondaryActionButton
+import se.kjellstrand.markera.ui.PrimaryActionButton
+import se.kjellstrand.markera.ui.SecondaryActionButton
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
 import se.kjellstrand.markera.webshooter.api.dto.MarkingGroupDto

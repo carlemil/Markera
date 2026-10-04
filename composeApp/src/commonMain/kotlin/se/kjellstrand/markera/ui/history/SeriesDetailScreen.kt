@@ -90,7 +90,7 @@ import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.customCalibers
-import se.kjellstrand.markera.ui.markera.TotalBadge
+import se.kjellstrand.markera.ui.TotalBadge
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.ui.markera.ScoreBox

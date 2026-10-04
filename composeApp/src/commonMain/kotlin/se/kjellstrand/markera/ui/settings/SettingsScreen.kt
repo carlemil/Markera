@@ -39,7 +39,7 @@ import se.kjellstrand.markera.series.BackendTokenStore
 import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.LocalOpenSettings
 import androidx.compose.runtime.CompositionLocalProvider
-import se.kjellstrand.markera.ui.stats.SectionHeader
+import se.kjellstrand.markera.ui.SectionHeader
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 

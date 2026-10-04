@@ -1,54 +1,17 @@
 package se.kjellstrand.markera.ui
 
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.ui.semantics.Role
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -66,11 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -78,26 +36,17 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.AppServices
-import se.kjellstrand.markera.series.BackendAuth
-import se.kjellstrand.markera.series.Caliber
-import se.kjellstrand.markera.series.MAX_CALIBER_LABEL_LENGTH
-import se.kjellstrand.markera.series.MAX_TAG_LENGTH
 import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
-import se.kjellstrand.markera.series.isValidCaliberLabel
-import se.kjellstrand.markera.series.parseCaliberDiameter
-import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.history.SeriesDetailScreen
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
-import se.kjellstrand.markera.ui.history.SeriesCard
-import se.kjellstrand.markera.ui.history.dayOrdinals
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
@@ -391,252 +340,6 @@ fun AppNavHost(
 }
 
 /**
- * The free-text tag for the next series: the tags already in use as rows, plus a
- * field for a new one. Its own composable rather than a [CaliberDialog] variant —
- * a caliber needs a diameter as well as a name.
- */
-@Composable
-internal fun TagDialog(
-    selected: String?,
-    known: List<String>,
-    /** Null clears the tag. */
-    onSelect: (String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var typed by remember { mutableStateOf("") }
-    // No tags of the user's own yet: suggest two, in the UI language — once picked they are just tags.
-    val offered = known.ifEmpty {
-        listOf(stringResource(Res.string.series_tag_suggest_practice), stringResource(Res.string.series_tag_suggest_competition))
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.series_tag_title)) },
-        confirmButton = {
-            TextButton(enabled = typed.isNotBlank(), onClick = { onSelect(typed) }) {
-                Text(stringResource(Res.string.series_tag_use))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_cancel)) }
-        },
-        text = {
-            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    // The leading null is the "clear it" row: untagged has exactly one
-                    // representation, and it is null all the way to the server.
-                    (listOf(null) + offered).forEach { tag ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(tag == selected, role = Role.RadioButton) { onSelect(tag) }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = tag == selected, onClick = null)
-                            Text(
-                                tag ?: stringResource(Res.string.series_tag_none),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-                    OutlinedTextField(
-                        value = typed,
-                        // Capped here: a longer tag is a 400 from the server.
-                        onValueChange = { if (it.length <= MAX_TAG_LENGTH) typed = it },
-                        label = { Text(stringResource(Res.string.series_tag_new)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    )
-                }
-            }
-        },
-    )
-}
-
-/**
- * Tags the scanned series; shown automatically while the caliber is "-". The
- * built-ins, then the user's own [custom] calibers (only those can be removed),
- * then a name + diameter pair to add one.
- */
-@Composable
-internal fun CaliberDialog(
-    selected: Caliber,
-    custom: List<Caliber>,
-    onSelect: (Caliber) -> Unit,
-    /** The new caliber's name and diameter in mm, both already valid; adding also selects it. */
-    onAdd: (String, Float) -> Unit,
-    onRemove: (Caliber) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf("") }
-    var diameter by remember { mutableStateOf("") }
-    val trimmed = name.trim()
-    val nameOk = isValidCaliberLabel(trimmed) && (Caliber.BUILT_IN + custom).none { it.label == trimmed }
-    val diameterMm = parseCaliberDiameter(diameter)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.series_caliber_title)) },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_cancel)) }
-        },
-        text = {
-            // Compact rows: the whole row is the tap target, so the radio's 48 dp minimum is off.
-            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    (Caliber.BUILT_IN + custom).forEach { caliber ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(caliber == selected, role = Role.RadioButton) { onSelect(caliber) }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = caliber == selected, onClick = null)
-                            Text(
-                                if (caliber == Caliber.NONE) stringResource(Res.string.series_caliber_none) else caliber.label,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 8.dp).weight(1f),
-                            )
-                            if (caliber in custom) {
-                                IconButton(onClick = { onRemove(caliber) }, modifier = Modifier.size(40.dp)) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = stringResource(Res.string.series_caliber_remove, caliber.label),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    OutlinedTextField(
-                        value = name,
-                        // Capped here: a longer label is a 400 from the server.
-                        onValueChange = { if (it.length <= MAX_CALIBER_LABEL_LENGTH) name = it },
-                        label = { Text(stringResource(Res.string.series_caliber_new_name)) },
-                        isError = name.isNotEmpty() && !nameOk,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    )
-                    OutlinedTextField(
-                        value = diameter,
-                        onValueChange = { diameter = it },
-                        label = { Text(stringResource(Res.string.series_caliber_new_diameter)) },
-                        isError = diameter.isNotEmpty() && diameterMm == null,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                    TextButton(
-                        enabled = nameOk && diameterMm != null,
-                        onClick = { diameterMm?.let { onAdd(trimmed, it) } },
-                        modifier = Modifier.align(Alignment.End),
-                    ) {
-                        Text(stringResource(Res.string.series_caliber_add))
-                    }
-                }
-            }
-        },
-    )
-}
-
-/** Start screen: free marking (standalone scanner) or competition marking. */
-@Composable
-private fun HomeScreen(
-    onFreeMarking: () -> Unit,
-    /** Null hides the button: the platform supplied no competition flow. */
-    onCompetition: (() -> Unit)?,
-    onHistory: () -> Unit,
-    onOpenSeries: (SeriesDto) -> Unit,
-    onStatistics: () -> Unit,
-    backendAuth: BackendAuth?,
-    seriesServices: SeriesServices,
-) {
-    var showingHelp by remember { mutableStateOf(false) }
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        // No top bar here, so the menu floats in the top-left corner.
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            // Centred while it fits, scrolled when it doesn't (a small phone, a large font).
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .heightIn(min = maxHeight)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(Res.string.app_name),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.height(48.dp))
-                Button(onClick = onFreeMarking, modifier = Modifier.fillMaxWidth().height(72.dp)) {
-                    Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(28.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(Res.string.home_free_marking), style = MaterialTheme.typography.titleLarge)
-                }
-                // Signed out or nothing saved yet: the cache is empty and the card just isn't there.
-                val cached by seriesServices.repository.series.collectAsState()
-                val latest = cached.firstOrNull() // Series.sq orders by timestamp DESC
-                if (latest != null) {
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        stringResource(Res.string.home_latest_series, localStamp(latest.timestamp).take(10)),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    )
-                    SeriesCard(
-                        series = latest,
-                        ordinal = remember(cached) { cached.dayOrdinals() }[latest.id] ?: 1,
-                        services = seriesServices,
-                        onClick = { onOpenSeries(latest) },
-                    )
-                }
-                Spacer(Modifier.height(24.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeButton(Icons.Default.History, stringResource(Res.string.home_history), onHistory)
-                    HomeButton(Icons.Default.BarChart, stringResource(Res.string.home_stats), onStatistics)
-                    if (onCompetition != null) {
-                        HomeButton(Icons.Default.EmojiEvents, stringResource(Res.string.home_competition), onCompetition)
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                AccountRow(backendAuth, seriesServices)
-            }
-            AppMenu(
-                items = listOf(
-                    MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) {
-                        showingHelp = true
-                    },
-                ),
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
-                    // + the menu's own 4 dp = 16 dp from the edges.
-                    .padding(12.dp),
-            )
-        }
-    }
-
-    if (showingHelp) {
-        HelpDialog(
-            title = stringResource(Res.string.help_home_title),
-            sections = listOf(
-                Res.string.help_home_how to Res.string.help_home_how_body,
-                Res.string.help_home_marking to Res.string.help_home_marking_body,
-                Res.string.help_home_history to Res.string.help_home_history_body,
-                Res.string.help_home_stats to Res.string.help_home_stats_body,
-                Res.string.help_home_account to Res.string.help_home_account_body,
-            ),
-            onDismiss = { showingHelp = false },
-        )
-    }
-}
-
-/**
  * Backend sign-in as (busy, start): Home's account row and the signed-out states of
  * Historik/Statistik share it. A failure is toasted.
  */
@@ -664,116 +367,3 @@ internal fun rememberBackendSignIn(services: SeriesServices): Pair<Boolean, () -
     }
 }
 
-/** Markera-backend account: sign in to save scanned series, or sign out. */
-@Composable
-private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
-    val (signingIn, signIn) = rememberBackendSignIn(seriesServices)
-    val toast = LocalToast.current
-    val scope = rememberCoroutineScope()
-    var busy by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
-
-    if (confirmDelete) {
-        // Scoped to the open dialog: it starts empty every time the dialog is shown.
-        var typed by remember { mutableStateOf("") }
-        val phrase = stringResource(Res.string.home_delete_account_phrase)
-        val confirmed = typed.trim().equals(phrase, ignoreCase = true)
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(Res.string.home_delete_account_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(Res.string.home_delete_account_message))
-                    Text(stringResource(Res.string.home_delete_account_prompt, phrase))
-                    OutlinedTextField(
-                        value = typed,
-                        onValueChange = { typed = it },
-                        label = { Text(stringResource(Res.string.home_delete_account_input_label)) },
-                        placeholder = { Text(phrase) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(enabled = confirmed, onClick = {
-                    confirmDelete = false
-                    busy = true
-                    scope.launch {
-                        try {
-                            seriesServices.api.deleteAccount()
-                            seriesServices.session.signOut()
-                            seriesServices.repository.clear()
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (_: Throwable) {
-                            // Stay signed in; the account is still there.
-                            toast(getString(Res.string.home_delete_account_failed))
-                        } finally {
-                            busy = false
-                        }
-                    }
-                }) {
-                    Text(
-                        stringResource(Res.string.home_delete_account_confirm),
-                        color = if (confirmed) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(Res.string.home_delete_account_cancel))
-                }
-            },
-        )
-    }
-
-    if (busy || signingIn) {
-        CircularProgressIndicator(Modifier.size(24.dp))
-        return
-    }
-    if (auth == null) {
-        TextButton(onClick = signIn) {
-            Text(stringResource(Res.string.home_sign_in))
-        }
-    } else {
-        // Column, not one row: three items side by side clip on a narrow phone.
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                stringResource(Res.string.home_signed_in, auth.provider.replaceFirstChar { it.uppercase() }),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val signedOut = stringResource(Res.string.home_signed_out)
-            // Kept apart: a slip from Sign out should not land on Delete account.
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                TextButton(onClick = {
-                    // Side by side: wiping the cache must not wait on the (best-effort) server revoke.
-                    scope.launch { seriesServices.session.signOut() }
-                    scope.launch { seriesServices.repository.clear() }
-                    toast(signedOut)
-                }) {
-                    Text(stringResource(Res.string.home_sign_out))
-                }
-                TextButton(onClick = { confirmDelete = true }) {
-                    Text(
-                        stringResource(Res.string.home_delete_account),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** One of Home's equal-width list buttons; icon above the label so three fit in Swedish. */
-@Composable
-private fun RowScope.HomeButton(icon: ImageVector, label: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.weight(1f)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null)
-            Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}

@@ -2,27 +2,19 @@ package se.kjellstrand.markera.ui.history
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -34,16 +26,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,9 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -70,18 +54,11 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
-import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
-import se.kjellstrand.markera.series.decodeSeriesJpeg
 import se.kjellstrand.markera.series.exportSeriesZip
-import se.kjellstrand.markera.series.localStamp
-import se.kjellstrand.markera.series.localTime
-import se.kjellstrand.markera.series.scorePicks
-import se.kjellstrand.markera.series.scorePicksByHand
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.total
-import se.kjellstrand.markera.ui.AppChip
 import se.kjellstrand.markera.ui.MenuItem
 import se.kjellstrand.markera.ui.StateMessage
 import se.kjellstrand.markera.ui.userMessage
@@ -94,14 +71,10 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.ui.AppTopBar
-import se.kjellstrand.markera.ui.markera.ScoreMiniRow
-import se.kjellstrand.markera.ui.stats.DateRangeDialog
+import se.kjellstrand.markera.ui.DateRangeDialog
 import se.kjellstrand.markera.ui.FilterBar
-import se.kjellstrand.markera.ui.stats.SectionHeader
-import se.kjellstrand.markera.ui.markera.TotalBadge
+import se.kjellstrand.markera.ui.SectionHeader
 
-/** The list thumbnail is ~115 dp square; the stored frame is ~3000², so subsample hard. */
-private const val THUMB_MAX_DIM = 384
 
 /** The cached series, newest first; opening asks the backend for a delta. */
 @OptIn(ExperimentalTime::class, ExperimentalMaterial3Api::class)
@@ -340,54 +313,6 @@ fun SeriesHistoryScreen(
     }
 }
 
-/** The delete confirmation, shared by the history list and the detail screen. */
-@Composable
-internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.history_delete_title)) },
-        text = {
-            Text(
-                stringResource(
-                    Res.string.history_delete_message,
-                    localStamp(series.timestamp),
-                    series.total(),
-                ),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(Res.string.history_delete_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.history_delete_cancel))
-            }
-        },
-    )
-}
-
-/** The same confirmation for removing a single hole, on the scan and detail screens. */
-@Composable
-internal fun DeleteHoleDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.hole_delete_title)) },
-        text = { Text(stringResource(Res.string.hole_delete_message)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(Res.string.hole_delete_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.history_delete_cancel))
-            }
-        },
-    )
-}
-
 /**
  * A day's header — `⌄ 2026-09-15      3 serier · 87 poäng` — the day in the shared
  * `SectionHeader` style. The whole row folds the day's cards in and out.
@@ -426,70 +351,3 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
     }
 }
 
-@Composable
-internal fun SeriesCard(
-    series: SeriesDto,
-    /** Which series of its day this was, counted from the first one shot. */
-    ordinal: Int,
-    services: SeriesServices,
-    onClick: () -> Unit,
-    /** Null (Home) = no long-press delete. */
-    onLongPress: (() -> Unit)? = null,
-) {
-    // Held by the card, so a card scrolled out of the list lets its bitmap go; coming
-    // back decodes the small JPEG cached on disk after the first fetch (kilobytes).
-    val thumbnail by produceState<ImageBitmap?>(null, series.id, series.hasImage) {
-        if (!series.hasImage) return@produceState
-        val bytes = services.repository.thumbnail(series.id, THUMB_MAX_DIM) ?: return@produceState
-        value = decodeSeriesJpeg(bytes, THUMB_MAX_DIM)
-    }
-    OutlinedCard(
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongPress,
-                onLongClickLabel = stringResource(Res.string.history_delete_confirm),
-            ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-        ) {
-            if (series.hasImage) {
-                // The Box owns the slot so the row height comes from the text column, not
-                // the bitmap, and nothing reflows when the async decode lands. Its width
-                // follows that height, so the photo is square whatever the text needs.
-                // Flush with the card edge; the card's own shape clips the corners.
-                Box(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true)) {
-                    thumbnail?.let {
-                        Image(
-                            bitmap = it,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.matchParentSize(),
-                        )
-                    }
-                }
-            }
-            Column(
-                Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // The day itself is the group header above this card.
-                Text(
-                    stringResource(Res.string.history_card_title, localTime(series.timestamp), ordinal),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                // Display only: the card itself opens the Serie page, where these are edited.
-                // Orange like the photo's hand-placed marker: what the user changed.
-                if (series.holes.isNotEmpty()) ScoreMiniRow(series.scorePicks(), manual = series.scorePicksByHand())
-                TotalBadge(series.total(), series.caliber, series.tag, compact = true)
-            }
-        }
-    }
-}

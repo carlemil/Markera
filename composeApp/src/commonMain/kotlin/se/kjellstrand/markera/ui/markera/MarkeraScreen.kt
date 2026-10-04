@@ -10,17 +10,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.abs
 import kotlin.time.TimeSource
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,14 +36,12 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.vision.CentreMethod
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,8 +60,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +77,9 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Tune
 import se.kjellstrand.markera.ui.HelpDialog
 import se.kjellstrand.markera.ui.history.DeleteHoleDialog
+import se.kjellstrand.markera.ui.TotalBadge
+import se.kjellstrand.markera.ui.PrimaryActionButton
+import se.kjellstrand.markera.ui.SecondaryActionButton
 
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
@@ -618,106 +614,6 @@ private fun ResultsContent(
     }
 }
 
-@Composable
-fun PrimaryActionButton(
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(text)
-    }
-}
-
-/**
- * [PrimaryActionButton]'s icon-only outlined sibling, left of it; [text] is the
- * accessibility label. The primary beside it takes the rest of the row (`weight(1f)`).
- */
-@Composable
-fun SecondaryActionButton(
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedIconButton(onClick = onClick, modifier = modifier) {
-        Icon(icon, contentDescription = text)
-    }
-}
-
-/**
- * The scored total with the pending series' caliber and tag, tappable to open the
- * recorder's dialogs. The scan screen and the wizard's Confirm step use this.
- */
-@Composable
-fun TotalBadge(total: Int) {
-    val recorder = LocalSeriesRecorder.current
-        ?: return TotalBadge(total, caliber = null, tag = null)
-    val caliber by recorder.caliber.collectAsState()
-    val tag by recorder.tag.collectAsState()
-    TotalBadge(total, caliber.label, tag, recorder::openCaliberDialog, recorder::openTagDialog)
-}
-
-/**
- * The one result header: caliber | tag | total in one pill, shared by the scan
- * screen, wizard, Serie page and Historik. A null [caliber] leaves only the total;
- * a null click leaves that segment untappable; [compact] is the list-row size.
- */
-@Composable
-fun TotalBadge(
-    total: Int,
-    caliber: String?,
-    tag: String?,
-    onCaliberClick: (() -> Unit)? = null,
-    onTagClick: (() -> Unit)? = null,
-    compact: Boolean = false,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = if (compact) MaterialTheme.shapes.small else MaterialTheme.shapes.medium,
-    ) {
-        Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-            if (caliber != null) {
-                PillSegment(
-                    caliber.takeUnless { it.isBlank() || it == Caliber.NONE.label } ?: "–", onCaliberClick, compact,
-                    caption = if (compact) stringResource(Res.string.badge_caliber_short) else null,
-                )
-                VerticalDivider()
-                // Capped: a 32-character tag must not push the total off the row.
-                PillSegment(
-                    tag?.takeUnless { it.isBlank() } ?: "–", onTagClick, compact, if (compact) 96.dp else 120.dp,
-                    caption = if (compact) stringResource(Res.string.badge_tag_short) else null,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = if (compact) 10.dp else 16.dp, vertical = if (compact) 2.dp else 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Only Historik's compact rows label the segments.
-                    if (compact) PillCaption(
-                        stringResource(Res.string.badge_total_short),
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                    )
-                    Text(
-                        text = total.toString(),
-                        style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-    }
-}
-
 /** The caliber the next series is tagged with; tap to change it. Filled once one is set. */
 @Composable
 private fun CaliberChip(recorder: SeriesRecorder) {
@@ -731,42 +627,6 @@ private fun CaliberChip(recorder: SeriesRecorder) {
 private fun TagChip(recorder: SeriesRecorder) {
     val tag by recorder.tag.collectAsState()
     AppChip(tag != null, recorder::openTagDialog, tag ?: "–", Modifier.widthIn(max = 120.dp))
-}
-
-/** A caliber or tag section of the [TotalBadge] pill; tappable when [onClick] is set. */
-@Composable
-private fun PillSegment(
-    label: String,
-    onClick: (() -> Unit)?,
-    compact: Boolean,
-    maxWidth: Dp = Dp.Unspecified,
-    caption: String? = null,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .widthIn(max = maxWidth)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = if (compact) 8.dp else 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (caption != null) PillCaption(caption, MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                text = label,
-                style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-/** The short label above a [TotalBadge] segment's value. */
-@Composable
-private fun PillCaption(text: String, color: Color) {
-    Text(text, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
 }
 
 /** The continuous-scan loop's last tick: counters + status, and the watch's verdict. */
