@@ -210,6 +210,7 @@ upload yourself (signing uses the build keychain from `iosApp/fastlane/.env`):
 
 ```
 sh scripts/mac.sh 'bash scripts/mac-beta.sh'     # archive + TestFlight
+sh scripts/sentry-dsyms.sh                    # that archive's dSYMs -> Sentry (needs sentry.properties)
 ```
 
 Once App Store Connect has processed the build (`sh scripts/mac.sh 'cd iosApp && fastlane latest'`

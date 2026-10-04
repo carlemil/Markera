@@ -241,7 +241,8 @@ toasted failure except IOExceptions (offline is not a bug), so new error paths t
 covered for free; sign-in leaves breadcrumbs per step. Never log tokens, names or e-mail.
 DSN: `markera.sentry.dsn` in `local.properties` (empty = Sentry off). The Sentry Gradle plugin
 is there only to upload the R8 mapping, and only when `sentry.properties` (gitignored:
-`auth.token`, `defaults.org`, `defaults.project`) exists at the repo root.
+`auth.token`, `defaults.org`, `defaults.project`) exists at the repo root. iOS dSYMs go up with
+`sh scripts/sentry-dsyms.sh` after `mac-beta.sh` (it fetches the archive's dSYM zip from the Mac).
 
 ### UI
 
