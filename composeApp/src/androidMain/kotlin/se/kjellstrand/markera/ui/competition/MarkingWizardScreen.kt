@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import se.kjellstrand.markera.ui.StateMessage
 import se.kjellstrand.markera.ui.stats.SectionHeader
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -45,20 +46,19 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 import kotlin.random.Random
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.series.isoUtcMillis
 import se.kjellstrand.markera.ui.markera.CameraPermissionPrompt
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.MarkeraSnapshotViewModel
@@ -100,11 +100,7 @@ fun MarkingWizardScreen(
             sessionRepository = services.sessionRepository,
             competitionId = competitionId,
             groupGuid = groupGuid,
-            nowIso = {
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                    .apply { timeZone = TimeZone.getTimeZone("UTC") }
-                    .format(Date())
-            },
+            nowIso = { isoUtcMillis() },
             clientNonce = {
                 "mv2-${System.currentTimeMillis()}-${Random.nextLong().toString(36).takeLast(8)}"
             },
@@ -125,14 +121,20 @@ fun MarkingWizardScreen(
     val errorInference = stringResource(Res.string.markera_error_inference)
 
     val recorder = LocalSeriesRecorder.current
+    // The shots as the user confirmed them in the wizard's own pickers (not the
+    // detector's topScores): what personal history keeps, like free marking's commit.
+    var confirmedShots by remember { mutableStateOf<List<Int>?>(null) }
+    LaunchedEffect(state.step) {
+        (state.step as? LaneStep.Confirm)?.let { confirmedShots = it.shots }
+    }
     // Back to a live viewfinder; [save] the scan we are leaving behind (moving
     // on to another lane) or drop it (a rescan of this one).
     val resetScanner = { save: Boolean ->
-        // Read the pickers before clearResults() wipes them.
-        val picks = markeraState.topScores
+        val picks = confirmedShots
+        confirmedShots = null
         snapshotVm.clear()
         markeraVm.clearResults()
-        if (save) recorder?.commit(picks) else recorder?.clear()
+        if (save && picks != null) recorder?.commit(picks) else recorder?.clear()
         frameSource.onResumeLive()
     }
     val startScan = {
@@ -165,11 +167,10 @@ fun MarkingWizardScreen(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         ) {
-            val stationCount = state.context?.stations?.size ?: 0
             AppTopBar(
                 title = groupName,
-                subtitle = state.station?.let {
-                    stringResource(Res.string.wizard_series, it.sortorder, stationCount)
+                subtitle = state.seriesPosition?.let { (n, of) ->
+                    stringResource(Res.string.wizard_series, n, of)
                 },
                 onBack = onExit,
             )
@@ -185,6 +186,13 @@ fun MarkingWizardScreen(
                 )
 
                 state.notActive -> NotActiveContent(onRetry = wizardVm::load)
+
+                state.noStations -> StateMessage(
+                    icon = Icons.Default.EventBusy,
+                    title = stringResource(Res.string.wizard_no_stations),
+                    actionLabel = stringResource(Res.string.retry),
+                    onAction = wizardVm::load,
+                )
 
                 state.unsupportedShots != null -> Box(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -288,6 +296,8 @@ private fun LaneStrip(state: WizardUiState, onLaneClick: (Int) -> Unit) {
             }
             Surface(
                 onClick = { onLaneClick(index) },
+                // A save in flight belongs to this lane; leaving waits for it.
+                enabled = state.step !is LaneStep.Saving,
                 color = containerColor,
                 shape = MaterialTheme.shapes.small,
                 modifier = if (current) {
@@ -587,7 +597,7 @@ private fun ResumeHintBanner(
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = stringResource(Res.string.wizard_resume_hint, hint.stationSortorder, hint.lane),
+                text = stringResource(Res.string.wizard_resume_hint, hint.stationIndex + 1, hint.lane),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -656,7 +666,7 @@ private fun StationSummaryContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SectionHeader(stringResource(Res.string.wizard_station_summary, station.sortorder))
+        SectionHeader(stringResource(Res.string.wizard_station_summary, state.stationIndex + 1))
         var registered = 0
         context.lanes.forEachIndexed { index, entry ->
             val result = MarkingLogic.resultFor(entry.signup, station.sortorder)
@@ -713,9 +723,8 @@ private fun StationSummaryContent(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         if (!state.isLastStation) {
-            val next = context.stations.getOrNull(state.stationIndex + 1)
             PrimaryActionButton(
-                text = stringResource(Res.string.wizard_next_station, next?.sortorder ?: station.sortorder + 1),
+                text = stringResource(Res.string.wizard_next_station, state.stationIndex + 2),
                 icon = Icons.Default.ChevronRight,
                 onClick = onNextStation,
                 modifier = Modifier.align(Alignment.CenterHorizontally),

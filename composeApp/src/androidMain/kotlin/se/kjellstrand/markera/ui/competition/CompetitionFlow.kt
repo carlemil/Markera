@@ -1,23 +1,26 @@
 package se.kjellstrand.markera.ui.competition
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.platform.LocalContext
+import se.kjellstrand.markera.BuildConfig
 import se.kjellstrand.markera.ui.CompetitionHost
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.webshooter.WebshooterServices
 
 /**
- * The webshooter marking flow: login → competitions → groups → wizard. Hidden
- * until it is ready (PLAN "wizard-edit follow-up").
+ * The webshooter marking flow: login → competitions → groups → wizard. Debug
+ * builds only until it is ready (PLAN "wizard-edit follow-up").
  */
-const val SHOW_COMPETITION = false
+val SHOW_COMPETITION = BuildConfig.DEBUG
 
 /** Null when the flow is off, and then the nav host shows no competition card. */
 @Composable
@@ -46,6 +49,7 @@ private sealed interface Step {
     ) : Step
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun CompetitionFlow(
     services: WebshooterServices,
@@ -67,6 +71,12 @@ private fun CompetitionFlow(
     }
     val push: (Step) -> Unit = { stack = stack + it }
     val pop: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) else onExit() }
+
+    // A dead token (refresh refused) or a logout clears the session: back to Login.
+    val session by services.sessionRepository.session.collectAsState()
+    LaunchedEffect(session) {
+        if (session == null && stack.last() != Step.Login) stack = listOf(Step.Login)
+    }
 
     // The innermost enabled handler wins, so this pops the flow before the nav
     // host's own handler pops the flow off its stack.

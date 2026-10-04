@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.webshooter.WebshooterServices
@@ -41,9 +41,8 @@ fun LoginScreen(
     onLoggedIn: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val viewModel: LoginViewModel = viewModel(key = "webshooter-login") {
-        LoginViewModel(services.sessionRepository)
-    }
+    val viewModel = remember { LoginViewModel(services.sessionRepository) }
+    DisposableEffect(viewModel) { onDispose { viewModel.dispose() } }
     val uiState by viewModel.uiState.collectAsState()
     val session by services.sessionRepository.session.collectAsState()
 

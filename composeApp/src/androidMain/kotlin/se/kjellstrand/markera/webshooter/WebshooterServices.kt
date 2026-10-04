@@ -2,6 +2,7 @@ package se.kjellstrand.markera.webshooter
 
 import android.content.Context
 import io.ktor.client.engine.okhttp.OkHttp
+import se.kjellstrand.markera.BuildConfig
 import se.kjellstrand.markera.webshooter.api.WebshooterApi
 import se.kjellstrand.markera.webshooter.api.createWebshooterHttpClient
 import se.kjellstrand.markera.webshooter.auth.DataStoreTokenStore
@@ -19,7 +20,12 @@ class WebshooterServices(context: Context) {
     init {
         val client = createWebshooterHttpClient(OkHttp.create())
         lateinit var session: SessionRepository
-        val api = WebshooterApi(client, tokenProvider = { session.currentToken })
+        val api = WebshooterApi(
+            client,
+            baseUrl = BuildConfig.WEBSHOOTER_URL,
+            clientSecret = BuildConfig.WEBSHOOTER_SECRET,
+            tokenProvider = { session.currentToken },
+        )
         session = SessionRepository(api, DataStoreTokenStore(context))
         sessionRepository = session
         scoringRepository = ScoringRepository(api, session)

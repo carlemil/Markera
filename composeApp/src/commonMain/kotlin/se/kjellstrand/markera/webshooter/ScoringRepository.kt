@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.webshooter
 
 import se.kjellstrand.markera.webshooter.api.WebshooterApi
+import se.kjellstrand.markera.webshooter.api.dto.CompetitionSummaryDto
 import se.kjellstrand.markera.webshooter.api.dto.CompetitionsPage
 import se.kjellstrand.markera.webshooter.api.dto.ResultDto
 import se.kjellstrand.markera.webshooter.api.dto.ScoringTargetsResponse
@@ -20,6 +21,17 @@ class ScoringRepository(
 
     suspend fun competitions(search: String = "", page: Int = 1): CompetitionsPage =
         sessionRepository.withAuth { api.competitions(search, page) }.competitions
+
+    /** Every page of [competitions], in order. */
+    suspend fun allCompetitions(search: String = ""): List<CompetitionSummaryDto> {
+        val all = mutableListOf<CompetitionSummaryDto>()
+        var page = 1
+        do {
+            val current = competitions(search, page)
+            all += current.data
+        } while (page++ < current.lastPage)
+        return all
+    }
 
     suspend fun scoringTargets(competitionId: Int): ScoringTargetsResponse =
         sessionRepository.withAuth { api.scoringTargets(competitionId) }

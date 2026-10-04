@@ -62,8 +62,9 @@ class SessionRepository(
 
     /**
      * Single-flight refresh: concurrent 401s wait on the same attempt. Returns
-     * true when a new token is in place. On failure the session is cleared
-     * (caller should route to login).
+     * true when a new token is in place. Only a 400/401 from the token endpoint
+     * (the token is dead) clears the session, which routes the flow to login;
+     * any other failure (offline, 5xx) keeps the session and is rethrown.
      */
     suspend fun refresh(): Boolean {
         val before = _session.value?.accessToken ?: return false
@@ -80,7 +81,8 @@ class SessionRepository(
                 _session.value = updated
                 store.write(updated)
                 true
-            } catch (_: Exception) {
+            } catch (e: WebshooterApiException) {
+                if (e.status != 400 && e.status != 401) throw e
                 _session.value = null
                 store.clear()
                 false

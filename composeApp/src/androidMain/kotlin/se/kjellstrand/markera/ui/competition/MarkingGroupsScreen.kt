@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.ui.markera.PrimaryActionButton
 import se.kjellstrand.markera.ui.markera.SecondaryActionButton
@@ -60,9 +60,11 @@ fun MarkingGroupsScreen(
     onBack: () -> Unit,
     onOpenGroup: (MarkingGroupDto) -> Unit,
 ) {
-    val viewModel: MarkingGroupsViewModel = viewModel(key = "marking-groups-$competitionId") {
+    // Recreated (so reloaded) on every visit, e.g. back from the wizard.
+    val viewModel = remember(competitionId) {
         MarkingGroupsViewModel(services.scoringRepository, competitionId)
     }
+    DisposableEffect(viewModel) { onDispose { viewModel.dispose() } }
     val uiState by viewModel.uiState.collectAsState()
     // Which complete group is asking "gå in ändå?"; null = none.
     var confirmingGroupId by remember { mutableStateOf<Int?>(null) }

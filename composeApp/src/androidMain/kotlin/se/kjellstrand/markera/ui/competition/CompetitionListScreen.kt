@@ -25,12 +25,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.*
@@ -44,9 +45,8 @@ fun CompetitionListScreen(
     onLoggedOut: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
-    val viewModel: CompetitionListViewModel = viewModel(key = "webshooter-competitions") {
-        CompetitionListViewModel(services.scoringRepository)
-    }
+    val viewModel = remember { CompetitionListViewModel(services.scoringRepository) }
+    DisposableEffect(viewModel) { onDispose { viewModel.dispose() } }
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
 

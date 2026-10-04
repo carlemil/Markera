@@ -3,6 +3,7 @@ package se.kjellstrand.markera.ui.competition
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -55,7 +56,6 @@ sealed interface LaneStep {
 data class ResumeHint(
     val stationIndex: Int,
     val laneIndex: Int,
-    val stationSortorder: Int,
     val lane: Int,
 )
 
@@ -64,6 +64,8 @@ data class WizardUiState(
     val loadError: Boolean = false,
     /** The patrol is not activated for mobile scoring. */
     val notActive: Boolean = false,
+    /** The competition has no (non-removed) stations, so there is nothing to mark. */
+    val noStations: Boolean = false,
     /** Non-null when a station's shot count isn't supported by the pickers. */
     val unsupportedShots: Int? = null,
     val context: MarkingContext? = null,
@@ -82,6 +84,14 @@ data class WizardUiState(
     val station: StationDto? get() = context?.stations?.getOrNull(stationIndex)
     val laneEntry: LaneEntry? get() = context?.lanes?.getOrNull(laneIndex)
     val isLastStation: Boolean get() = context?.let { stationIndex >= it.stations.size - 1 } ?: false
+
+    /** "Series N of M": the station's 1-based position in the list, not its sortorder. */
+    val seriesPosition: Pair<Int, Int>?
+        get() = context?.takeIf { station != null }?.let { (stationIndex + 1) to it.stations.size }
+
+    /** Still on the (station, lane) an async result was started for. */
+    fun isAt(stationIndex: Int, laneIndex: Int): Boolean =
+        this.stationIndex == stationIndex && this.laneIndex == laneIndex
 }
 
 /**
@@ -131,12 +141,14 @@ class MarkingWizardViewModel(
                 // here means the server accepted the group. An empty lane list
                 // (no signups in range) still gets the not-active treatment.
                 val notActive = context.lanes.isEmpty()
+                val noStations = context.stations.isEmpty()
                 val unsupported = context.stations
                     .firstOrNull { it.shots != SUPPORTED_SHOTS }?.shots
-                if (notActive || unsupported != null) {
+                if (notActive || noStations || unsupported != null) {
                     _uiState.value = WizardUiState(
                         loading = false,
                         notActive = notActive,
+                        noStations = noStations,
                         unsupportedShots = unsupported,
                         context = context,
                     )
@@ -158,8 +170,8 @@ class MarkingWizardViewModel(
             } catch (e: WebshooterApiException) {
                 _uiState.value = WizardUiState(
                     loading = false,
-                    notActive = e.isNoActivePatrol || e.status == 403,
-                    loadError = !(e.isNoActivePatrol || e.status == 403),
+                    notActive = e.isNotActive,
+                    loadError = !e.isNotActive,
                 )
             } catch (_: Exception) {
                 _uiState.value = WizardUiState(loading = false, loadError = true)
@@ -197,7 +209,7 @@ class MarkingWizardViewModel(
                 )
                 if (holder != null) {
                     _uiState.update { cur ->
-                        if (cur.laneIndex == st.laneIndex && cur.step is LaneStep.Entering) {
+                        if (cur.isAt(st.stationIndex, st.laneIndex) && cur.step is LaneStep.Entering) {
                             cur.copy(step = LaneStep.ClaimedByOther(holder))
                         } else {
                             cur
@@ -218,14 +230,7 @@ class MarkingWizardViewModel(
     }
 
     /** Best-effort release when the user leaves the wizard. */
-    fun onLeave() {
-        val st = _uiState.value
-        val entry = st.laneEntry ?: return
-        val station = st.station ?: return
-        if (st.step is LaneStep.Entering || st.step is LaneStep.Confirm) {
-            releaseClaim(entry, station.sortorder)
-        }
-    }
+    fun onLeave() = leaveCurrentLane()
 
     /** Tear down: release the current claim and stop all coroutines. */
     fun dispose() {
@@ -272,14 +277,23 @@ class MarkingWizardViewModel(
 
     // ---- Save ------------------------------------------------------------
 
+    /** The running save (and its "saved" dwell); navigating away cancels it. */
+    private var saveJob: Job? = null
+
     fun save() {
         val st = _uiState.value
         val confirm = st.step as? LaneStep.Confirm ?: return
         val context = st.context ?: return
         val entry = st.laneEntry ?: return
         val station = st.station ?: return
+        val si = st.stationIndex
+        val li = st.laneIndex
+        // A result for a lane the user has left must not touch the one on screen.
+        fun updateIfStill(f: (WizardUiState) -> WizardUiState) =
+            _uiState.update { if (it.isAt(si, li)) f(it) else it }
         _uiState.update { it.copy(step = LaneStep.Saving, saveError = false, duplicateBy = null) }
-        scope.launch {
+        saveJob?.cancel()
+        saveJob = scope.launch {
             try {
                 val updated = scoringRepository.save(
                     context = context,
@@ -290,27 +304,33 @@ class MarkingWizardViewModel(
                     nowIso = nowIso(),
                     clientNonce = clientNonce(),
                 )
+                // The server has it, wherever the user is now.
                 mergeResult(entry.lane, updated)
                 releaseClaim(entry, station.sortorder)
+                if (!_uiState.value.isAt(si, li)) return@launch
                 _uiState.update {
                     it.copy(step = LaneStep.Saved(entry.lane, updated.points, updated.hits))
                 }
                 delay(SAVED_DWELL_MS)
-                advanceAfterSave()
+                // Done: advancing must not cancel this job through leaveCurrentLane.
+                saveJob = null
+                if (_uiState.value.isAt(si, li) && _uiState.value.step is LaneStep.Saved) {
+                    advanceAfterSave()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: WebshooterApiException) {
                 if (e.isDuplicateResult) {
                     // Someone else registered first: keep their result, show who.
-                    _uiState.update {
+                    updateIfStill {
                         it.copy(duplicateBy = e.error?.scoredByName.orEmpty(), step = confirm)
                     }
                     refreshStatus()
                 } else {
-                    _uiState.update { it.copy(step = confirm, saveError = true) }
+                    updateIfStill { it.copy(step = confirm, saveError = true) }
                 }
             } catch (_: Exception) {
-                _uiState.update { it.copy(step = confirm, saveError = true) }
+                updateIfStill { it.copy(step = confirm, saveError = true) }
             }
         }
     }
@@ -362,11 +382,14 @@ class MarkingWizardViewModel(
         }
     }
 
+    /** Cancels a running save and gives up the lane's claim (also mid-save). */
     private fun leaveCurrentLane() {
+        saveJob?.cancel()
+        saveJob = null
         val st = _uiState.value
         val entry = st.laneEntry ?: return
         val station = st.station ?: return
-        if (st.step is LaneStep.Entering || st.step is LaneStep.Confirm) {
+        if (st.step is LaneStep.Entering || st.step is LaneStep.Confirm || st.step is LaneStep.Saving) {
             releaseClaim(entry, station.sortorder)
         }
     }
@@ -382,6 +405,7 @@ class MarkingWizardViewModel(
         val st = _uiState.value
         val context = st.context ?: return
         if (st.stationIndex >= context.stations.size - 1) return
+        leaveCurrentLane()
         scope.launch { scoringRepository.requestPublish(context) }
         val newStationIndex = st.stationIndex + 1
         val station = context.stations[newStationIndex]
@@ -398,6 +422,7 @@ class MarkingWizardViewModel(
 
     /** Back from the summary into the current station's lanes. */
     fun backToLanes(index: Int = _uiState.value.laneIndex) {
+        leaveCurrentLane()
         _uiState.update { it.copy(laneIndex = index) }
         enterCurrentLane()
     }
@@ -479,7 +504,6 @@ class MarkingWizardViewModel(
             ResumeHint(
                 stationIndex = si,
                 laneIndex = li,
-                stationSortorder = context.stations[si].sortorder,
                 lane = context.lanes[li].lane,
             )
         }

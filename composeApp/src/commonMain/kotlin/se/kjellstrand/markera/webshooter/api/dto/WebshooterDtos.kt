@@ -166,7 +166,7 @@ data class StationDto(
     val sortorder: Int,
     val shots: Int = 5,
     @SerialName("station_nr") val stationNr: Int? = null,
-    val removed: Boolean? = null,
+    val removed: LenientBoolean? = null,
 )
 
 @Serializable

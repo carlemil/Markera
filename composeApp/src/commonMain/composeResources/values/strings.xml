@@ -300,6 +300,7 @@
     <string name="wizard_resume_go">Jump there</string>
     <string name="wizard_resume_stay">Stay here</string>
     <string name="wizard_not_active">The squad is not active</string>
+    <string name="wizard_no_stations">Nothing to mark: this competition has no series</string>
     <string name="wizard_not_active_hint">Ask the competition admin to activate the squad from the roll-call view, or call the squad to activate it automatically.</string>
     <string name="retry">Try again</string>
     <string name="dialog_cancel">Cancel</string>

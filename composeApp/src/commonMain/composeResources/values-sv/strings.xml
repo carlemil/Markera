@@ -300,6 +300,7 @@
     <string name="wizard_resume_go">Hoppa dit</string>
     <string name="wizard_resume_stay">Stanna kvar här</string>
     <string name="wizard_not_active">Skjutlaget är inte aktivt</string>
+    <string name="wizard_no_stations">Inget att markera: tävlingen har inga serier</string>
     <string name="wizard_not_active_hint">Be tävlingsadmin att aktivera skjutlaget från uppropsvyn, eller ropa upp skjutlaget för att aktivera automatiskt.</string>
     <string name="retry">Försök igen</string>
     <string name="dialog_cancel">Avbryt</string>

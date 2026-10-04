@@ -33,11 +33,9 @@ import se.kjellstrand.markera.webshooter.api.dto.SummaryResponse
 import se.kjellstrand.markera.webshooter.api.dto.TokenResponse
 import se.kjellstrand.markera.webshooter.api.dto.UserResponse
 
-const val WEBSHOOTER_BASE_URL = "https://test.webshooter.se/api/v4.1.9/"
-
-// The password-grant client shipped by the web SPA (public, embedded in its page).
+// The password-grant client shipped by the web SPA (public, embedded in its page);
+// its secret and the base URL come from Gradle properties (BuildConfig on Android).
 private const val OAUTH_CLIENT_ID = 1
-private const val OAUTH_CLIENT_SECRET = "52FphTYzOrmuqH30ltL7LrBzhSEURIJiMFNp6Qt0"
 
 val webshooterJson: Json = Json {
     ignoreUnknownKeys = true
@@ -59,6 +57,9 @@ class WebshooterApiException(
     val isUnauthorized: Boolean get() = status == 401
     val isDuplicateResult: Boolean get() = error?.error == "duplicate_result"
     val isNoActivePatrol: Boolean get() = error?.error == "no_active_patrol"
+
+    /** Mobile scoring is off for this competition/patrol (no active patrol, or a bare 403). */
+    val isNotActive: Boolean get() = isNoActivePatrol || status == 403
 }
 
 // No default values: kotlinx-serialization omits defaulted fields
@@ -80,7 +81,8 @@ private data class LoginRequest(
  */
 class WebshooterApi(
     private val client: HttpClient,
-    private val baseUrl: String = WEBSHOOTER_BASE_URL,
+    private val baseUrl: String,
+    private val clientSecret: String,
     private val tokenProvider: () -> String? = { null },
 ) {
 
@@ -115,7 +117,7 @@ class WebshooterApi(
                 LoginRequest(
                     grantType = "password",
                     clientId = OAUTH_CLIENT_ID,
-                    clientSecret = OAUTH_CLIENT_SECRET,
+                    clientSecret = clientSecret,
                     username = email,
                     email = email,
                     password = password,

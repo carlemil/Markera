@@ -44,3 +44,10 @@ fun exportStamp(
     val t = now.toLocalDateTime(zone)
     return "${t.year.pad(4)}${t.monthNumber.pad()}${t.dayOfMonth.pad()}-${t.hour.pad()}${t.minute.pad()}"
 }
+
+/** `yyyy-MM-ddTHH:mm:ss.SSSZ` in UTC, JavaScript's `toISOString` (what webshooter's web client sends). */
+fun isoUtcMillis(now: Instant = Clock.System.now()): String {
+    val t = now.toLocalDateTime(TimeZone.UTC)
+    return "${t.year.pad(4)}-${t.monthNumber.pad()}-${t.dayOfMonth.pad()}T" +
+        "${t.hour.pad()}:${t.minute.pad()}:${t.second.pad()}.${(t.nanosecond / 1_000_000).pad(3)}Z"
+}

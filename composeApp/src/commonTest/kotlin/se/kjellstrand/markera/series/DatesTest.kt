@@ -42,4 +42,10 @@ class DatesTest {
             exportStamp(Instant.parse("2026-09-01T10:05:00Z"), TimeZone.UTC),
         )
     }
+
+    @Test
+    fun `isoUtcMillis is toISOString with three fraction digits`() {
+        assertEquals("2026-08-15T12:00:00.000Z", isoUtcMillis(Instant.parse("2026-08-15T14:00:00+02:00")))
+        assertEquals("2026-08-15T12:00:00.120Z", isoUtcMillis(Instant.parse("2026-08-15T12:00:00.1209Z")))
+    }
 }

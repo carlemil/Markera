@@ -98,6 +98,13 @@ sqldelight {
 val backendUrl = (project.findProperty("markera.backend.url") as String?)
     ?: "https://markera.duckdns.org"
 
+// webshooter.se (the competition flow): API base URL and the web SPA's public OAuth client
+// secret. Override with -Pmarkera.webshooter.url=... / -Pmarkera.webshooter.secret=...
+val webshooterUrl = (project.findProperty("markera.webshooter.url") as String?)
+    ?: "https://test.webshooter.se/api/v4.1.9/"
+val webshooterSecret = (project.findProperty("markera.webshooter.secret") as String?)
+    ?: "52FphTYzOrmuqH30ltL7LrBzhSEURIJiMFNp6Qt0"
+
 // Google OAuth *Web* client id, used as `serverClientId` for Credential Manager.
 // Not in version control: put `markera.google.client.id=...` in local.properties.
 // Empty means "not configured" — sign-in then fails loudly.
@@ -137,6 +144,8 @@ android {
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
+        buildConfigField("String", "WEBSHOOTER_URL", "\"$webshooterUrl\"")
+        buildConfigField("String", "WEBSHOOTER_SECRET", "\"$webshooterSecret\"")
     }
 
     buildFeatures { buildConfig = true }

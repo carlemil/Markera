@@ -1,8 +1,10 @@
 package se.kjellstrand.markera.ui.competition
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +17,12 @@ import se.kjellstrand.markera.webshooter.api.dto.CompetitionSummaryDto
 import se.kjellstrand.markera.webshooter.api.dto.ScoringTargetsResponse
 import se.kjellstrand.markera.webshooter.auth.SessionRepository
 
+/*
+ * The competition view models share MarkingWizardViewModel's lifetime pattern:
+ * plain classes created with remember and torn down via dispose(), not androidx
+ * ViewModels, so their work dies with the screen and a revisit reloads.
+ */
+
 data class LoginUiState(
     val loading: Boolean = false,
     val failed: Boolean = false,
@@ -22,7 +30,10 @@ data class LoginUiState(
 
 class LoginViewModel(
     private val sessionRepository: SessionRepository,
-) : ViewModel() {
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+) {
+
+    fun dispose() = scope.cancel()
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -31,7 +42,7 @@ class LoginViewModel(
     fun login(email: String, password: String) {
         if (_uiState.value.loading) return
         _uiState.value = LoginUiState(loading = true)
-        viewModelScope.launch {
+        scope.launch {
             try {
                 sessionRepository.login(email.trim(), password)
                 _uiState.value = LoginUiState()
@@ -52,7 +63,10 @@ data class CompetitionListUiState(
 
 class CompetitionListViewModel(
     private val scoringRepository: ScoringRepository,
-) : ViewModel() {
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+) {
+
+    fun dispose() = scope.cancel()
 
     private val _uiState = MutableStateFlow(CompetitionListUiState())
     val uiState: StateFlow<CompetitionListUiState> = _uiState.asStateFlow()
@@ -70,13 +84,13 @@ class CompetitionListViewModel(
 
     fun load(debounceMs: Long = 0) {
         loadJob?.cancel()
-        loadJob = viewModelScope.launch {
+        loadJob = scope.launch {
             if (debounceMs > 0) delay(debounceMs)
             _uiState.update { it.copy(loading = true, error = false) }
             try {
-                val page = scoringRepository.competitions(search = _uiState.value.search)
+                val all = scoringRepository.allCompetitions(search = _uiState.value.search)
                 // Only competitions still open for marking — avslutade are hidden.
-                val current = page.data.filterNot { it.isCompleted }
+                val current = all.filterNot { it.isCompleted }
                 _uiState.update { it.copy(loading = false, competitions = current) }
             } catch (_: Exception) {
                 _uiState.update { it.copy(loading = false, error = true) }
@@ -96,7 +110,10 @@ data class MarkingGroupsUiState(
 class MarkingGroupsViewModel(
     private val scoringRepository: ScoringRepository,
     private val competitionId: Int,
-) : ViewModel() {
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+) {
+
+    fun dispose() = scope.cancel()
 
     private val _uiState = MutableStateFlow(MarkingGroupsUiState())
     val uiState: StateFlow<MarkingGroupsUiState> = _uiState.asStateFlow()
@@ -106,7 +123,7 @@ class MarkingGroupsViewModel(
     }
 
     fun load() {
-        viewModelScope.launch {
+        scope.launch {
             _uiState.value = MarkingGroupsUiState(loading = true)
             try {
                 val targets = scoringRepository.scoringTargets(competitionId)
@@ -114,8 +131,8 @@ class MarkingGroupsViewModel(
             } catch (e: WebshooterApiException) {
                 _uiState.value = MarkingGroupsUiState(
                     loading = false,
-                    error = !e.isNoActivePatrol && e.status != 403,
-                    notEnabled = e.isNoActivePatrol || e.status == 403,
+                    error = !e.isNotActive,
+                    notEnabled = e.isNotActive,
                 )
             } catch (_: Exception) {
                 _uiState.value = MarkingGroupsUiState(loading = false, error = true)
