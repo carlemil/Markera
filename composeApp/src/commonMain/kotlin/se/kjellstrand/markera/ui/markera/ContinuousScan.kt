@@ -61,7 +61,7 @@ internal const val GLOBAL_CHANGE_SHARE = 0.01f
 class LumaFrame(val width: Int, val height: Int, val luma: ByteArray, val rotation: Int = 0)
 
 /** A [changeMask] result: the mask, the luma step it was cut at, the shift it aligned away and the [light] it took out. */
-internal class Change(val mask: BooleanArray, val threshold: Int, val dx: Int, val dy: Int, val light: Light) {
+internal class Change(val mask: BooleanArray, val threshold: Int, val dx: Int, val dy: Int, val light: Light, val align: Alignment) {
     val count = mask.count { it }
 }
 
@@ -312,7 +312,50 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
     var seen = 0
     while (seen + histogram[median] <= c.size / 2) seen += histogram[median++]
     val threshold = max(CHANGE_MIN_DELTA, CHANGE_NOISE_FACTOR * median)
-    return Change(BooleanArray(c.size) { diff[it] >= threshold }, threshold, dx, dy, light)
+    return Change(BooleanArray(c.size) { diff[it] >= threshold }, threshold, dx, dy, light, align)
+}
+
+/** How many still, clean samples the reference averages. */
+internal const val REFERENCE_SAMPLES = 3
+
+/**
+ * Running mean of same-grid frames: the analyzer [add]s every frame it gets and
+ * the watch [take]s their mean as one sample (n frames, about √n less noise).
+ * A frame of another size starts the mean over. Not thread-safe.
+ */
+internal class FrameMean {
+    private var sums: IntArray? = null
+    private var count = 0
+    private var width = 0
+    private var height = 0
+    private var rotation = 0
+
+    fun add(frame: LumaFrame) {
+        var s = sums
+        if (s == null || frame.width != width || frame.height != height) {
+            s = IntArray(frame.width * frame.height)
+            sums = s
+            count = 0
+            width = frame.width
+            height = frame.height
+        }
+        rotation = frame.rotation
+        val luma = frame.luma
+        for (i in s.indices) s[i] += luma[i].toInt() and 0xFF
+        count++
+    }
+
+    /** The mean (rounded) of the frames added since the last take, or null when none were. */
+    fun take(): LumaFrame? {
+        val s = sums ?: return null
+        val n = count
+        sums = null
+        return LumaFrame(width, height, ByteArray(s.size) { ((s[it] + n / 2) / n).toByte() }, rotation)
+    }
+
+    fun clear() {
+        sums = null
+    }
 }
 
 /** A connected region of a change mask; [x], [y] is its bbox's top-left. */
@@ -370,6 +413,30 @@ internal class NewHoleWatch {
     private var reference: LumaFrame? = null
     private var previous: LumaFrame? = null
 
+    /** The last still, clean samples, oldest first; [reference] is their mean. */
+    private val history = ArrayDeque<LumaFrame>()
+
+    /**
+     * Makes [sample] the reference, or — given the clean [change] it compared
+     * with against the reference — the mean of it and the previous
+     * [REFERENCE_SAMPLES] - 1 still, clean ones (about √3 less noise). The older
+     * ones are first moved onto [sample] by that change's own tile shifts, so
+     * creep or a slight turn never blurs the mean. They are not relit: a gain
+     * fitted on noisy frames is biased low (noise in the regressor), and relighting
+     * by it would flatten the reference a little more every rebase; the light
+     * drift between still samples is far below that. Without a change (a new
+     * scene, reference or framing) the history starts over: a mean must not
+     * straddle that.
+     */
+    private fun rebase(sample: LumaFrame, change: Change? = null) {
+        val moved = if (change == null) emptyList() else history.map { it.movedOnto(change) }
+        history.clear()
+        history.addAll(moved)
+        history.addLast(sample)
+        while (history.size > REFERENCE_SAMPLES) history.removeFirst()
+        reference = if (history.size == 1) sample else FrameMean().apply { history.forEach(::add) }.take()
+    }
+
     /** Why the last [offer] did or did not fire (the debug overlay shows it). */
     var last: WatchVerdict? = null
         private set
@@ -379,7 +446,7 @@ internal class NewHoleWatch {
         val prev = previous
         previous = sample
         if (ref == null) {
-            reference = sample
+            rebase(sample)
             return verdict(sample, "reference taken")
         }
         // Settled = no blob of hole size since the previous sample: scattered
@@ -392,12 +459,12 @@ internal class NewHoleWatch {
             return verdict(sample, why, outcome = WatchOutcome.MOVING, reference = ref, previous = prev)
         }
         val change = changeMask(ref, sample) ?: run {
-            reference = sample
+            rebase(sample)
             return verdict(sample, "frame size changed, new reference")
         }
         val vsRef = "${change.count} px vs reference, threshold ${change.threshold}, shift ${change.dx},${change.dy}, ${change.light}"
         if (change.count > GLOBAL_CHANGE_SHARE * change.mask.size) {
-            reference = sample
+            rebase(sample)
             return verdict(sample, "global change ($vsRef, max ${(GLOBAL_CHANGE_SHARE * change.mask.size).toInt()}), new reference")
         }
         // Specks below the hole size are noise; anything else not hole-shaped vetoes.
@@ -407,7 +474,8 @@ internal class NewHoleWatch {
         // A still, clean sample becomes the reference, so slow light drift and
         // tripod creep never pile up. Safe for holes: a new one first shows as
         // "moving" (a blob of HOLE_MIN_AREA+ against the previous sample), and fires on the next.
-        if (found.isEmpty()) reference = sample
+        // It joins the reference mean, the older samples moved onto its framing.
+        if (found.isEmpty()) rebase(sample, change)
         val why = when {
             found.isEmpty() -> "no blob of $HOLE_MIN_AREA+ px"
             fired -> "FIRE: ${found.size} hole(s) ${found.joinToString()}"
@@ -439,15 +507,44 @@ internal class NewHoleWatch {
 
     /** Replay only: the state a recorded verdict started from, so the next [offer] redoes it exactly. */
     fun seed(reference: LumaFrame, previous: LumaFrame) {
-        this.reference = reference
+        rebase(reference)
         this.previous = previous
+    }
+
+    /**
+     * After a re-meter: the reference stays (the light fit bridges the step), but
+     * the next clean sample starts its mean over, so no mean mixes two exposures.
+     */
+    fun lightChanged() {
+        history.clear()
     }
 
     /** After a scan: the next sample becomes the new reference. */
     fun reset() {
         reference = null
         previous = null
+        history.clear()
     }
+}
+
+/**
+ * This (an earlier reference sample) as [change]'s sample would see it:
+ * this(x + dx, y + dy) by the tile shift at (x, y), clamped at the border (the
+ * band the compare never counts).
+ */
+private fun LumaFrame.movedOnto(change: Change): LumaFrame {
+    val align = change.align
+    if (align.dxs.all { it == 0 } && align.dys.all { it == 0 }) return this
+    val out = ByteArray(luma.size)
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            val t = align.tile(x, y)
+            val sx = (x + align.dxs[t]).coerceIn(0, width - 1)
+            val sy = (y + align.dys[t]).coerceIn(0, height - 1)
+            out[y * width + x] = luma[sy * width + sx]
+        }
+    }
+    return LumaFrame(width, height, out, rotation)
 }
 
 /** What a [WatchVerdict] came to; the debug recorder keeps the fires, vetoes and moving streaks. */

@@ -34,7 +34,7 @@ interface FrameSource {
     fun setWatching(on: Boolean) = Unit
 
     /**
-     * The newest luma frame of the live feed since the last call, for change
+     * The mean of the live feed's luma frames since the last call (see [FrameMean]), for change
      * detection (about [WATCH_GRID] px a side); null when none has arrived.
      */
     fun takeLuma(): LumaFrame? = null

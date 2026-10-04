@@ -310,6 +310,132 @@ class ContinuousScanTest {
         assertTrue(525 - found[0].x in 0 until found[0].width && 75 - found[0].y in 0 until found[0].height, "${found[0]} at ${found[0].x},${found[0].y}")
     }
 
+    /**
+     * [scene] plus gaussian-ish sensor noise of σ ≈ 12 (three uniform ±12 summed):
+     * at σ ≈ 8 single frames left only 4-10 changed px against the 3×3 interval
+     * compare, too few to show a difference; at 12 they leave ~90.
+     */
+    private fun noisy(seed: Int, paint: (x: Int, y: Int) -> Int? = { _, _ -> null }): LumaFrame {
+        val clean = scene(seed, paint = paint)
+        val rnd = Random(seed + 1000)
+        return LumaFrame(size, size, ByteArray(size * size) { i ->
+            val n = rnd.nextInt(-12, 13) + rnd.nextInt(-12, 13) + rnd.nextInt(-12, 13)
+            ((clean.luma[i].toInt() and 0xFF) + n).coerceIn(0, 255).toByte()
+        })
+    }
+
+    /** What the analyzer hands the watch: the running mean of the frames it got since the last sample. */
+    private fun averaged(vararg frames: LumaFrame): LumaFrame {
+        val mean = FrameMean()
+        frames.forEach(mean::add)
+        return assertNotNull(mean.take())
+    }
+
+    private fun noisySample(seed: Int, paint: (x: Int, y: Int) -> Int? = { _, _ -> null }) =
+        averaged(noisy(3 * seed, paint), noisy(3 * seed + 1, paint), noisy(3 * seed + 2, paint))
+
+    /**
+     * [actual] is the mean of [frames]: under 5 % of its pixels more than 1 luma
+     * off. (Older samples are moved by their tile shifts before averaging, so a
+     * tile that won a noise-level ±1 px shift is not bit-exact; taking the latest
+     * sample alone instead leaves ~40 % of the pixels off by 2+.)
+     */
+    private fun assertMeanOf(actual: LumaFrame?, vararg frames: LumaFrame) {
+        val expected = averaged(*frames).luma
+        val off = assertNotNull(actual).luma.indices.count { abs((actual.luma[it].toInt() and 0xFF) - (expected[it].toInt() and 0xFF)) > 1 }
+        assertTrue(off < 0.05 * expected.size, "$off of ${expected.size} px off the mean")
+    }
+
+    @Test
+    fun frameMeanAveragesAndStartsOverOnTake() {
+        val mean = FrameMean()
+        assertEquals(null, mean.take())
+        listOf(10, 20, 31).forEach { v -> mean.add(LumaFrame(2, 1, byteArrayOf(v.toByte(), 250.toByte()), rotation = 90)) }
+        val out = assertNotNull(mean.take())
+        assertContentEquals(byteArrayOf(20, 250.toByte()), out.luma)
+        assertEquals(90, out.rotation)
+        assertEquals(null, mean.take())
+        // A different grid starts the mean over rather than mixing two sizes.
+        mean.add(LumaFrame(2, 1, byteArrayOf(0, 0)))
+        mean.add(LumaFrame(1, 1, byteArrayOf(9)))
+        assertContentEquals(byteArrayOf(9), assertNotNull(mean.take()).luma)
+    }
+
+    @Test
+    fun theReferenceIsTheMeanOfTheLastThreeStillCleanSamples() {
+        val watch = NewHoleWatch()
+        // Low-noise frames: at σ ≈ 12 flat tiles pass as textured and win random
+        // ±2 px shifts, which move the older samples' noise and break the pixel check.
+        val s = (1..5).map { scene(it) }
+        watch.feed(*s.toTypedArray())
+        // The 5th sample was compared against the mean of the 2nd to 4th.
+        assertMeanOf(watch.last?.reference, s[1], s[2], s[3])
+    }
+
+    @Test
+    fun averagingCutsTheNoiseAndNoiseAloneNeverFires() {
+        val single = changeMask(noisy(100), noisy(101))!!.count
+        val watch = NewHoleWatch()
+        val fired = (1..8).map { watch.offer(noisySample(it)) }
+        assertFalse(fired.any { it })
+        assertEquals(WatchOutcome.OTHER, watch.last?.outcome, watch.last?.reason)
+        val averagedCount = changeMask(watch.last!!.reference!!, noisySample(9))!!.count
+        println("noise σ≈12: single frames $single changed px, averaged $averagedCount")
+        assertTrue(single >= 50, "single frames should show the noise: $single")
+        assertTrue(averagedCount * 5 <= single, "averaged $averagedCount vs single $single")
+    }
+
+    @Test
+    fun aHoleStillFiresThroughTheAveragedPath() {
+        val watch = NewHoleWatch()
+        repeat(4) { assertFalse(watch.offer(noisySample(it)), watch.last?.reason) }
+        assertFalse(watch.offer(noisySample(4, hole(55, 50))))
+        assertTrue(watch.offer(noisySample(5, hole(55, 50))), watch.last?.reason)
+    }
+
+    @Test
+    fun aGlobalChangeStartsTheReferenceMeanOver() {
+        val watch = NewHoleWatch()
+        val cover: (Int, Int) -> Int? = { x, _ -> if (x < 40) 90 else null }
+        watch.feed(scene(1), scene(2), scene(3))
+        val b = (4..7).map { scene(it, paint = cover) }
+        watch.feed(b[0], b[1]) // moving, then a global change: b[1] is the new reference
+        assertTrue(watch.last!!.reason.startsWith("global change"), watch.last?.reason)
+        watch.feed(b[2], b[3])
+        // Compared against mean(b1, b2): nothing from before the change.
+        assertMeanOf(watch.last?.reference, b[1], b[2])
+    }
+
+    @Test
+    fun aResetAfterAFireStartsTheReferenceMeanOver() {
+        val watch = NewHoleWatch()
+        watch.feed(scene(1), scene(2), scene(3, paint = hole(55, 50)))
+        assertTrue(watch.offer(scene(4, paint = hole(55, 50))))
+        watch.reset()
+        val c = (5..7).map { scene(it, paint = hole(55, 50)) }
+        watch.feed(*c.toTypedArray())
+        assertMeanOf(watch.last?.reference, c[0], c[1])
+    }
+
+    @Test
+    fun aCreptSampleMovesTheReferenceMeanOntoTheNewFraming() {
+        val watch = NewHoleWatch()
+        watch.feed(scene(1), scene(2), scene(3), scene(4, shift = 2), scene(5, shift = 2))
+        // Older samples were moved onto the creep before averaging: nothing left to align.
+        assertTrue(watch.last!!.reason.contains("shift 0,0"), watch.last?.reason)
+        assertEquals(WatchOutcome.OTHER, watch.last?.outcome)
+    }
+
+    @Test
+    fun aReMeterStartsTheReferenceMeanOver() {
+        val watch = NewHoleWatch()
+        watch.feed(scene(1), scene(2), scene(3))
+        watch.lightChanged()
+        val after = (4..6).map { scene(it, brightness = 20) }
+        watch.feed(*after.toTypedArray())
+        assertMeanOf(watch.last?.reference, after[0], after[1])
+    }
+
     @Test
     fun pgmRoundTrips() {
         val frame = LumaFrame(7, 3, ByteArray(21) { (it * 12 + 3).toByte() })

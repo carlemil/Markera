@@ -21,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import java.io.File
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
@@ -48,7 +47,8 @@ private class CameraFrameSource(
 
     // Continuous scan only: binds the analysis stream (and the low frame rate).
     private var analyzing by mutableStateOf(false)
-    private val latest = AtomicReference<LumaFrame?>(null)
+    // The frames since the last sample, averaged (guarded by itself: analyzer vs watch loop).
+    private val mean = FrameMean()
     private var lastSampleAt = 0L
     // The bound camera (main thread), for [remeter]; CameraPreview owns its binding.
     private var camera: Camera? = null
@@ -108,10 +108,10 @@ private class CameraFrameSource(
 
     override fun setWatching(on: Boolean) {
         analyzing = on
-        if (!on) latest.set(null)
+        if (!on) synchronized(mean) { mean.clear() }
     }
 
-    override fun takeLuma(): LumaFrame? = latest.getAndSet(null)
+    override fun takeLuma(): LumaFrame? = synchronized(mean) { mean.take() }
 
     override suspend fun remeter() {
         camera?.let { remeterExposure(it) }
@@ -141,20 +141,22 @@ private class CameraFrameSource(
         }
     }
 
-    /** Keeps about two frames a second, box-averaged down to the watch grid. */
+    /** Adds about every [ANALYSIS_INTERVAL_MS] a frame, box-averaged down to the watch grid, to the running mean. */
     private fun analyze(image: ImageProxy) {
         image.use {
             val now = SystemClock.elapsedRealtime()
             if (now - lastSampleAt < ANALYSIS_INTERVAL_MS) return
             lastSampleAt = now
-            latest.set(it.lumaFrame())
+            val frame = it.lumaFrame()
+            synchronized(mean) { mean.add(frame) }
         }
     }
 }
 
-// ponytail: fixed ~2 samples/s off whatever rate the sensor runs at (most phones
-// go no lower than ~5-7 fps); if battery is still bad, unbind the preview between samples.
-private const val ANALYSIS_INTERVAL_MS = 500L
+// ponytail: about 4 frames per watch sample off whatever rate the sensor runs at
+// (most phones go no lower than ~5-7 fps, so ~3 land in each sample's mean, ~√3
+// less noise); if battery is still bad, unbind the preview between samples.
+private const val ANALYSIS_INTERVAL_MS = CHANGE_SAMPLE_MS / 4
 
 /** Debug recordings of the watch: this many sets stay in `filesDir/watch/`. */
 private const val WATCH_SETS_KEPT = 30

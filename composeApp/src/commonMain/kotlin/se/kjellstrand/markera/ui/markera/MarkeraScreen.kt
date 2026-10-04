@@ -218,6 +218,8 @@ fun MarkeraScreen(
                     // Drop the frame taken while it metered. The watch keeps its
                     // reference and previous sample: the light fit bridges the step.
                     frameSource.takeLuma()
+                    // ... but the next clean sample starts the reference mean over.
+                    watch.lightChanged()
                     meteredAt = TimeSource.Monotonic.markNow()
                     remeters++
                     continue
