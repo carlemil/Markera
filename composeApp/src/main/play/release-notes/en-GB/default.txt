@@ -1,3 +1,4 @@
-New in 1.9.1:
-• Hit detection uses far less memory on iPhone, which fixes the app closing during a scan on smaller phones
-• Better error reports from scanning, so problems can be fixed faster
+New in 1.10.0:
+• Fixed Sign in with Apple failing on some iPhones
+• Better diagnostics for sign-in problems, so they can be fixed faster
+• Under-the-hood improvements and bug fixes

@@ -1,3 +1,4 @@
-Nytt i 1.9.1:
-• Träffdetekteringen använder mycket mindre minne på iPhone, vilket rättar att appen stängdes under en skanning på mindre telefoner
-• Bättre felrapporter från skanningen, så att problem kan rättas snabbare
+Nytt i 1.10.0:
+• Rättat att Logga in med Apple misslyckades på vissa iPhones
+• Bättre felsökning av inloggningsproblem, så att de kan rättas snabbare
+• Förbättringar och buggrättningar under huven
