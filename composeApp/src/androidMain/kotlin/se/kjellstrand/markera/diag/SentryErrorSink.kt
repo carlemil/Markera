@@ -23,6 +23,8 @@ fun initErrorReporting(app: Application) {
         options.isSendDefaultPii = false
         options.isAttachScreenshot = false
         options.isAttachViewHierarchy = false
+        // Every breadcrumb also goes up as a Sentry log, error or not (Explore → Logs).
+        options.logs.isEnabled = true
     }
     ErrorLog.sink = SentryErrorSink
 }
@@ -34,6 +36,7 @@ private object SentryErrorSink : ErrorSink {
             this.message = message
             level = SentryLevel.INFO
         })
+        Sentry.logger().info("[%s] %s", category, message)
     }
 
     override fun report(where: String, error: Throwable, details: Map<String, String>) {

@@ -9,9 +9,10 @@ interface ErrorSink {
 }
 
 /**
- * Remote error log. [breadcrumb]s cost nothing until a [report] (or a crash) carries the
- * last hundred or so of them along, so leave a trail through any flow that can fail on
- * somebody else's phone. Without a [sink] both just print.
+ * Remote error log. A [report] (or a crash) carries the last hundred or so [breadcrumb]s
+ * along, and on Android each breadcrumb is also sent as a Sentry log right away, error or
+ * not; so leave a trail through any flow that can fail on somebody else's phone. Without a
+ * [sink] both just print.
  *
  * Never pass tokens, e-mail addresses or names: this leaves the device.
  */
