@@ -238,7 +238,7 @@ crashes/ANRs). iOS: `iosApp/iosApp/SentryReporter.swift` starts Sentry Cocoa (SP
 `NativeErrorReporter` (`iosMain/diag/IosErrorReporting.kt`, strings only), DSN from
 `MARKERA_SENTRY_DSN` in `Local.xcconfig` (write `https:/$()/…`, since `//` starts a comment). `Throwable.userMessage()` reports every
 toasted failure except IOExceptions (offline is not a bug), so new error paths that toast are
-covered for free; sign-in leaves breadcrumbs per step. On Android every breadcrumb is also a Sentry log (`options.logs`), sent whether or not an error follows. Never log tokens, names or e-mail.
+covered for free; sign-in leaves breadcrumbs per step. Every breadcrumb is also a Sentry log (Android `options.logs`, iOS `options.experimental.enableLogs`), sent whether or not an error follows. iOS sign-in errors carry the whole NSError chain in the exception message: Sentry scrubs the `kotlin_stack` extra. Never log tokens, names or e-mail.
 DSN: `markera.sentry.dsn` in `local.properties` (empty = Sentry off). The Sentry Gradle plugin
 is there only to upload the R8 mapping, and only when `sentry.properties` (gitignored:
 `auth.token`, `defaults.org`, `defaults.project`) exists at the repo root. iOS dSYMs go up with

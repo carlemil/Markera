@@ -17,11 +17,15 @@ import platform.Foundation.NSError
 import platform.Foundation.NSNumber
 import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
+import platform.Foundation.NSUnderlyingErrorKey
 import platform.Foundation.create
 import platform.UIKit.UIApplication
+import platform.UIKit.UISceneActivationStateForegroundActive
 import platform.UIKit.UIWindow
+import platform.UIKit.UIWindowLevelNormal
 import platform.UIKit.UIWindowScene
 import platform.darwin.NSObject
+import se.kjellstrand.markera.diag.ErrorLog
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -32,7 +36,8 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 suspend fun signInWithProvider(session: BackendSessionRepository): BackendAuth {
     val idToken = requestAppleIdToken()
-    return session.signInApple(idToken)
+    ErrorLog.breadcrumb("signin", "apple: exchanging the id token with the backend")
+    return session.signInApple(idToken).also { ErrorLog.breadcrumb("signin", "apple: signed in") }
 }
 
 // ASAuthorizationController holds its delegate weakly, so park both here for
@@ -50,6 +55,7 @@ private suspend fun requestAppleIdToken(): String {
     controller.presentationContextProvider = delegate
     inFlight += delegate
     inFlight += controller
+    ErrorLog.breadcrumb("signin", "apple: asking ASAuthorizationController")
     controller.performRequests()
     try {
         return result.await()
@@ -74,6 +80,7 @@ private class AppleSignInDelegate(
         val token = credential?.identityToken?.let {
             NSString.create(data = it, encoding = NSUTF8StringEncoding) as String?
         }
+        ErrorLog.breadcrumb("signin", "apple: got credential, token=${if (token == null) "missing" else "present"}")
         if (token == null) {
             result.completeExceptionally(IllegalStateException("No Apple identity token"))
         } else {
@@ -85,28 +92,62 @@ private class AppleSignInDelegate(
         controller: ASAuthorizationController,
         didCompleteWithError: NSError,
     ) {
-        result.completeExceptionally(
-            if (didCompleteWithError.code == ASAuthorizationErrorCanceled) {
-                SignInCancelledException()
-            } else {
-                IllegalStateException(didCompleteWithError.localizedDescription)
-            },
-        )
+        val error = didCompleteWithError
+        if (error.code == ASAuthorizationErrorCanceled) {
+            ErrorLog.breadcrumb("signin", "apple: cancelled")
+            result.completeExceptionally(SignInCancelledException())
+        } else {
+            ErrorLog.breadcrumb("signin", "apple: failed ${error.domain} ${error.code}")
+            // The whole NSError goes in the message: Sentry scrubs extras with auth-ish words.
+            result.completeExceptionally(IllegalStateException(describe(error)))
+        }
     }
 
     override fun presentationAnchorForAuthorizationController(
         controller: ASAuthorizationController,
-    ): ASPresentationAnchor = keyWindow()
+    ): ASPresentationAnchor {
+        val window = keyWindow()
+        val scenes = UIApplication.sharedApplication.connectedScenes.size
+        ErrorLog.breadcrumb(
+            "signin",
+            "apple: presenting from ${window::class.simpleName}, key=${window.keyWindow}, scenes=$scenes",
+        )
+        return window
+    }
 }
 
-/** The app's key window; a sheet has nowhere to go without one. */
-internal fun keyWindow(): UIWindow =
-    UIApplication.sharedApplication.connectedScenes
-        .filterIsInstance<UIWindowScene>()
-        .flatMap { it.windows }
-        .filterIsInstance<UIWindow>()
-        .firstOrNull()
+/**
+ * "domain code: description; reason: …; userInfo keys: […] <- underlying domain code: description …",
+ * walking NSUnderlyingErrorKey up to five deep. An Apple ID error carries nothing personal.
+ */
+internal fun describe(error: NSError): String = buildString {
+    var e: NSError? = error
+    var depth = 0
+    while (e != null && depth < 5) {
+        if (depth > 0) append(" <- underlying ")
+        append("${e.domain} ${e.code}: ${e.localizedDescription}")
+        e.localizedFailureReason?.let { append("; reason: $it") }
+        append("; userInfo keys: ${e.userInfo.keys.map { it.toString() }}")
+        e = e.userInfo[NSUnderlyingErrorKey] as? NSError
+        depth++
+    }
+}
+
+/**
+ * The app's key window; a sheet has nowhere to go without one. The first window of a scene can
+ * be the keyboard's UITextEffectsWindow, which no sheet presents from.
+ */
+internal fun keyWindow(): UIWindow {
+    val scenes = UIApplication.sharedApplication.connectedScenes.filterIsInstance<UIWindowScene>()
+    val scene = scenes.firstOrNull { it.activationState == UISceneActivationStateForegroundActive }
+        ?: scenes.firstOrNull()
+        ?: error("The app has no window scene to present from")
+    val windows = scene.windows.filterIsInstance<UIWindow>()
+    return windows.firstOrNull { it.keyWindow }
+        ?: scene.keyWindow
+        ?: windows.firstOrNull { it.windowLevel == UIWindowLevelNormal }
         ?: error("The app has no window to present from")
+}
 
 /** The xcconfig `MARKERA_DEV_AUTH` flag, as xcodegen wrote it into Info.plist. */
 private val devAuth: Boolean by lazy {
@@ -127,6 +168,7 @@ actual fun rememberSignIn(session: BackendSessionRepository): suspend () -> Back
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            ErrorLog.breadcrumb("signin", "apple: failed, using dev auth")
             println("Sign in with Apple failed, using dev auth: $e")
             session.signInDev("ios-sim")
         }

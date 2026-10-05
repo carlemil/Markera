@@ -20,6 +20,8 @@ final class SentryReporter: NSObject, NativeErrorReporter {
             options.sendDefaultPii = false
             options.attachScreenshot = false
             options.attachViewHierarchy = false
+            // Every breadcrumb also goes up as a log, error or not (Android parity).
+            options.experimental.enableLogs = true
         }
         IosErrorReportingKt.installErrorReporter(reporter: SentryReporter())
     }
@@ -28,6 +30,7 @@ final class SentryReporter: NSObject, NativeErrorReporter {
         let crumb = Breadcrumb(level: .info, category: category)
         crumb.message = message
         SentrySDK.addBreadcrumb(crumb)
+        SentrySDK.logger.info("[\(category)] \(message)")
     }
 
     func report(place: String, type: String, message: String, stackTrace: String, details: [String: String]) {
