@@ -7,7 +7,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +34,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -38,7 +42,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -158,9 +161,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var knob by remember(plotted) { mutableIntStateOf(plotted.lastIndex.coerceAtLeast(0)) }
     var knobOn by remember(plotted) { mutableStateOf(false) }
     var showingPhoto by remember { mutableStateOf<SeriesDto?>(null) }
-    // Tavla's measuring ring, in mm from the centre; all the way out is the whole target.
-    var limitMm by remember { mutableFloatStateOf(PLOT_RADIUS_MM) }
-    val limit = limitMm.roundToInt().toDouble().takeIf { limitMm < PLOT_RADIUS_MM }
+    // Tavla's measuring ring, in mm from the centre; null is the whole target.
+    var limit by remember { mutableStateOf<Double?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -239,7 +241,14 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         val segment = remember(plotted, knob, knobOn) { knobSelection(plotted, knob, knobOn) }
                         val segmentStats = remember(segment, limit) { segment.within(limit).statistics() }
                         Box {
-                            TargetCanvas(segment, segmentStats, calibers, limit)
+                            TargetCanvas(segment, segmentStats, calibers, limit) { limit = it }
+                            // The gestures and the ring live in the help, not in a line of text here.
+                            FilledTonalIconButton(
+                                onClick = { showingHelp = true },
+                                modifier = Modifier.align(Alignment.TopStart).padding(4.dp).size(32.dp),
+                            ) {
+                                Icon(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help))
+                            }
                             // The one series under a switched-on knob, when it has a photo.
                             val photographed = segment.singleOrNull()?.series?.takeIf { knobOn && it.hasImage }
                             if (photographed != null) {
@@ -252,28 +261,29 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                                 }
                             }
                         }
-                        // The target's gestures have no other visible cue.
                         Text(
-                            stringResource(Res.string.stats_target_hint),
+                            stringResource(Res.string.stats_ring_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
-                        MarkerLegend(segment, calibers)
-                        Column {
-                            Text(
-                                if (limit == null) {
-                                    stringResource(Res.string.stats_limit_all)
-                                } else {
-                                    stringResource(Res.string.stats_limit_mm, limit.roundToInt())
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Slider(value = limitMm, onValueChange = { limitMm = it }, valueRange = 1f..PLOT_RADIUS_MM)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Text(
+                                    stringResource(Res.string.stats_timeline),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
+                            }
                         }
-                        segmentStats?.let { MeasurementRows(it) }
+                        MarkerLegend(segment, calibers)
+                        segmentStats?.let { MeasurementTiles(it) }
                         Text(
                             stringResource(Res.string.stats_limit_note),
                             style = MaterialTheme.typography.bodySmall,
@@ -314,6 +324,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
         HelpDialog(
             title = stringResource(Res.string.stats_help),
             sections = listOf(
+                Res.string.stats_help_target to Res.string.stats_target_hint,
                 Res.string.stats_series to Res.string.stats_help_series,
                 Res.string.stats_hits to Res.string.stats_help_hits,
                 Res.string.stats_mean_distance to Res.string.stats_help_mean_distance,
@@ -384,50 +395,48 @@ private fun PhotoDialog(series: SeriesDto, services: SeriesServices, onDismiss: 
 /** Marks a measurement that counts only the hits inside the measuring ring. */
 private const val LIMITED = " *"
 
+/** The measurements as tiles, two to a row. */
 @Composable
-private fun MeasurementRows(stats: SeriesStatistics) {
+private fun MeasurementTiles(stats: SeriesStatistics) {
     val mm = @Composable { value: Double -> stringResource(Res.string.stats_mm, value.roundToInt()) }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Measurement(stringResource(Res.string.stats_series), stats.seriesCount.toString())
-        Measurement(stringResource(Res.string.stats_hits) + LIMITED, stats.hitCount.toString())
-        Measurement(stringResource(Res.string.stats_mean_distance) + LIMITED, mm(stats.meanDistanceMm))
-        Measurement(stringResource(Res.string.stats_mean_pairwise) + LIMITED, mm(stats.meanPairwiseMm))
-        Measurement(stringResource(Res.string.stats_group_size) + LIMITED, mm(stats.meanGroupSizeMm))
-        Measurement(stringResource(Res.string.stats_mean_radius) + LIMITED, mm(stats.meanRadiusMm))
-        Measurement(stringResource(Res.string.stats_radial_sd) + LIMITED, mm(stats.radialSdMm))
-        Measurement(
-            stringResource(Res.string.stats_impact) + LIMITED,
-            stringResource(
-                Res.string.stats_impact_value,
-                stats.impactXMm.roundToInt(),
-                stats.impactYMm.roundToInt(),
-            ),
-        )
-        Measurement(
-            stringResource(Res.string.stats_impact_median) + LIMITED,
-            stringResource(
-                Res.string.stats_impact_value,
-                stats.medianXMm.roundToInt(),
-                stats.medianYMm.roundToInt(),
-            ),
-        )
-        Measurement(
-            stringResource(Res.string.stats_mean_score),
-            oneDecimal(stats.meanScore, stringResource(Res.string.decimal_mark)),
-        )
+    val tiles = listOf(
+        stringResource(Res.string.stats_series) to stats.seriesCount.toString(),
+        stringResource(Res.string.stats_hits) + LIMITED to stats.hitCount.toString(),
+        stringResource(Res.string.stats_mean_score) to oneDecimal(stats.meanScore, stringResource(Res.string.decimal_mark)),
+        stringResource(Res.string.stats_mean_distance) + LIMITED to mm(stats.meanDistanceMm),
+        stringResource(Res.string.stats_mean_pairwise) + LIMITED to mm(stats.meanPairwiseMm),
+        stringResource(Res.string.stats_group_size) + LIMITED to mm(stats.meanGroupSizeMm),
+        stringResource(Res.string.stats_mean_radius) + LIMITED to mm(stats.meanRadiusMm),
+        stringResource(Res.string.stats_radial_sd) + LIMITED to mm(stats.radialSdMm),
+        stringResource(Res.string.stats_impact) + LIMITED to impactArrows(stats.impactXMm, stats.impactYMm),
+        stringResource(Res.string.stats_impact_median) + LIMITED to impactArrows(stats.medianXMm, stats.medianYMm),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        tiles.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (label, value) ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    ) {
+                        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+                            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(value, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
     }
 }
 
-@Composable
-private fun Measurement(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.size(8.dp))
-        Text(value, style = MaterialTheme.typography.bodyMedium)
-    }
+/** A point of impact as arrows: right/left, then down/up, in mm ("→ 3  ↓ 2 mm"). */
+internal fun impactArrows(xMm: Double, yMm: Double): String {
+    val x = xMm.roundToInt()
+    val y = yMm.roundToInt()
+    val h = if (x < 0) "← ${-x}" else "→ $x"
+    val v = if (y < 0) "↑ ${-y}" else "↓ $y"
+    return "$h  $v mm"
 }

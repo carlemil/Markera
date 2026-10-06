@@ -24,4 +24,11 @@ class TimelineKnobTest {
         assertEquals(listOf("b"), knobSelection(plotted, 1, on = true))
         assertEquals(emptyList(), knobSelection(emptyList<String>(), 0, on = true))
     }
+
+    @Test
+    fun impactArrowsPointTheWayTheGroupSits() {
+        assertEquals("→ 3  ↓ 2 mm", impactArrows(3.2, 2.0))
+        assertEquals("← 4  ↑ 1 mm", impactArrows(-4.0, -0.6))
+        assertEquals("→ 0  ↓ 0 mm", impactArrows(0.0, 0.0))
+    }
 }

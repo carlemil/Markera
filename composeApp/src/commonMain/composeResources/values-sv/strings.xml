@@ -124,7 +124,6 @@
     <string name="stats_legend_median">Median</string>
     <string name="stats_mean_score">Medelpoäng</string>
     <string name="stats_mm">%1$d mm</string>
-    <string name="stats_impact_value">%1$d mm, %2$d mm</string>
     <string name="stats_tab_target">Tavla</string>
     <string name="stats_tab_trend">Trend</string>
     <string name="stats_bucket_series">Serie</string>
@@ -139,10 +138,12 @@
     <string name="stats_no_geometry">Ingen av dina serier har en ring att rita mot. Skanna en där 6/7-ringen hittas.</string>
     <string name="stats_target_description">Tavla med %1$d träffar från %2$d serier</string>
     <string name="stats_timeline">Serietidslinje</string>
-    <string name="stats_limit_all">Mätring: hela tavlan</string>
-    <string name="stats_limit_mm">Mätring: %1$d mm från centrum</string>
-    <string name="stats_limit_note">* Räknas bara på träffarna innanför mätringen (den streckade blå cirkeln). Dra i reglaget för att krympa den och lämna utliggare utanför.</string>
-    <string name="stats_target_hint">Nyp för att zooma · dubbeltryck för att återställa · tryck på tidslinjen för att visa en serie</string>
+    <string name="stats_limit_all">Alla</string>
+    <string name="stats_limit_mm">%1$d mm</string>
+    <string name="stats_limit_note">* Bara träffar inom mätringen räknas.</string>
+    <string name="stats_ring_hint">Dra i den blå pricken för att ändra mätringen</string>
+    <string name="stats_help_target">Tavlan</string>
+    <string name="stats_target_hint">Nyp för att zooma, dubbeltryck för att återställa. Dra i den blå pricken på ringen för att ställa in mätringen: träffar utanför tonas ned och räknas inte i måtten med *. Tryck på tidslinjen för att visa en serie.</string>
     <string name="state_expanded">Utfälld</string>
     <string name="state_collapsed">Hopfälld</string>
     <string name="refresh_offline">Nådde inte servern — visar sparade serier.</string>

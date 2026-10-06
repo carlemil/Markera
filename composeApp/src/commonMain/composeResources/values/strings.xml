@@ -124,7 +124,6 @@
     <string name="stats_legend_median">Median</string>
     <string name="stats_mean_score">Mean score</string>
     <string name="stats_mm">%1$d mm</string>
-    <string name="stats_impact_value">%1$d mm, %2$d mm</string>
     <string name="stats_tab_target">Target</string>
     <string name="stats_tab_trend">Trend</string>
     <string name="stats_bucket_series">Series</string>
@@ -139,10 +138,12 @@
     <string name="stats_no_geometry">None of your series has a ring to plot against. Scan one with the 6/7 ring found.</string>
     <string name="stats_target_description">Target with %1$d hits from %2$d series</string>
     <string name="stats_timeline">Series timeline</string>
-    <string name="stats_limit_all">Measuring ring: whole target</string>
-    <string name="stats_limit_mm">Measuring ring: %1$d mm from the centre</string>
-    <string name="stats_limit_note">* Counts only the hits inside the measuring ring (the dashed blue circle). Drag the slider to shrink it and leave stray shots out.</string>
-    <string name="stats_target_hint">Pinch to zoom · double-tap to reset · tap the timeline to show one series</string>
+    <string name="stats_limit_all">All</string>
+    <string name="stats_limit_mm">%1$d mm</string>
+    <string name="stats_limit_note">* Only hits inside the measuring ring count.</string>
+    <string name="stats_ring_hint">Drag the blue dot to change the measuring ring</string>
+    <string name="stats_help_target">The target</string>
+    <string name="stats_target_hint">Pinch to zoom, double-tap to reset. Drag the blue dot on the ring to set the measuring ring: hits outside it fade and are left out of the measurements marked *. Tap the timeline to show one series.</string>
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>
     <string name="refresh_offline">Couldn’t reach the server — showing saved series.</string>

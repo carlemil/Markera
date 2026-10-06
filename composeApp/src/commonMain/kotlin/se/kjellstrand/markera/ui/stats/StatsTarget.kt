@@ -53,7 +53,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.min
@@ -97,6 +99,22 @@ private val MEAN_MARK = Color(0xFFFF00C8)
 private val MEDIAN_MARK = Color(0xFF00C853)
 /** The measuring ring: dashed, and a colour neither the paper, the black nor the marks use. */
 private val LIMIT_RING = Color(0xFF00B0FF)
+private val PILL = Color(0xE6073042)
+/** How much of its opacity a hit outside the measuring ring keeps. */
+private const val OUTSIDE_FADE = 0.3f
+private val HANDLE = 7.dp
+/** The handle's reach: a finger, not the drawn dot. */
+private val HANDLE_TOUCH = 28.dp
+
+/**
+ * The ring handle's place: on the ring's right, kept inside the canvas so the
+ * whole-target ring (at the very edge) still has a dot to grab.
+ */
+private fun Density.handleAt(centre: Offset, limitMm: Double?, mmScale: Float, width: Float): Offset =
+    Offset(
+        min(centre.x + (limitMm?.toFloat() ?: PLOT_RADIUS_MM) * mmScale, width - HANDLE.toPx() - 2f),
+        centre.y,
+    )
 
 /** Marker geometry, shared by the target and the legend (see [drawMark]). */
 private val MARK_ARM = 5.dp
@@ -119,10 +137,17 @@ internal fun TargetCanvas(
     stats: SeriesStatistics?,
     /** Every caliber on any plottable series — see [caliberColour]. */
     calibers: List<Caliber>,
-    /** The measuring ring's radius; null draws none. */
-    limitMm: Double? = null,
+    /** The measuring ring's radius in mm; null is the whole target. */
+    limitMm: Double?,
+    /** The ring's handle was dragged: the new radius, null all the way out. */
+    onLimit: (Double?) -> Unit,
 ) {
     val textMeasurer = rememberTextMeasurer()
+    val limitText = limitMm?.let { stringResource(Res.string.stats_limit_mm, it.roundToInt()) }
+        ?: stringResource(Res.string.stats_limit_all)
+    // The gesture outlives recompositions, so it reads these.
+    val currentLimit by rememberUpdatedState(limitMm)
+    val currentOnLimit by rememberUpdatedState(onLimit)
     // The user's own calibers carry their diameter only on this device.
     val custom = customCalibers()
     // The layer scales about its top-left corner, so zooming about the pinch
@@ -142,7 +167,24 @@ internal fun TargetCanvas(
             }
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    // The ring's handle sits on the right of the ring; the layer below is
+                    // scaled about its top-left by `zoom` and shifted by `pan`.
+                    val mmScale = min(size.width, size.height) / 2f / PLOT_RADIUS_MM
+                    val layerCentre = Offset(size.width / 2f, size.height / 2f)
+                    val handle = handleAt(layerCentre, currentLimit, mmScale, size.width.toFloat()) * zoom + pan
+                    if ((down.position - handle).getDistance() <= HANDLE_TOUCH.toPx()) {
+                        val screenCentre = layerCentre * zoom + pan
+                        down.consume()
+                        do {
+                            val event = awaitPointerEvent()
+                            val p = event.changes.first()
+                            val mm = (p.position - screenCentre).getDistance() / (mmScale * zoom)
+                            currentOnLimit(mm.roundToInt().takeIf { it < PLOT_RADIUS_MM }?.coerceAtLeast(1)?.toDouble())
+                            event.changes.forEach { it.consume() }
+                        } while (event.changes.any { it.pressed })
+                        return@awaitEachGesture
+                    }
                     do {
                         val event = awaitPointerEvent()
                         // One finger on the unzoomed target still scrolls the page.
@@ -218,9 +260,12 @@ internal fun TargetCanvas(
             val dotRadius = caliber.hitDotRadiusMm() * scale
             series.hits.forEach { hit ->
                 val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
-                drawCircle(colour, radius = dotRadius, center = at)
+                val distance = hypot(hit.xMm, hit.yMm)
+                // Outside the measuring ring: still shown, faded, as it is not counted.
+                val fade = if (limitMm != null && distance > limitMm) OUTSIDE_FADE else 1f
+                drawCircle(colour.copy(alpha = colour.alpha * fade), radius = dotRadius, center = at)
                 drawCircle(
-                    hitOutline(hypot(hit.xMm, hit.yMm)),
+                    hitOutline(distance).let { it.copy(alpha = it.alpha * fade) },
                     radius = dotRadius,
                     center = at,
                     style = Stroke(width = 1f),
@@ -236,6 +281,19 @@ internal fun TargetCanvas(
                 style = Stroke(width = 3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
             )
         }
+        // The handle, and its radius in a pill beside it (left of it at the right edge).
+        val handle = handleAt(centre, limitMm, scale, size.width)
+        drawCircle(BLACK, radius = HANDLE.toPx() + 1.5f, center = handle)
+        drawCircle(LIMIT_RING, radius = HANDLE.toPx(), center = handle)
+        val pill = textMeasurer.measure(limitText, TextStyle(color = LIMIT_RING, fontSize = 12.sp))
+        val padX = 6.dp.toPx()
+        val pillW = pill.size.width + 2 * padX
+        val pillH = pill.size.height + 2.dp.toPx()
+        val right = handle.x + HANDLE.toPx() + 4.dp.toPx()
+        val pillX = if (right + pillW <= size.width) right else handle.x - HANDLE.toPx() - 4.dp.toPx() - pillW
+        val pillTop = Offset(pillX, handle.y - pillH / 2f)
+        drawRoundRect(PILL, topLeft = pillTop, size = Size(pillW, pillH), cornerRadius = CornerRadius(pillH / 2f))
+        drawText(pill, topLeft = pillTop + Offset(padX, 1.dp.toPx()))
 
         // Mean (+) and median (×) point of impact, on top of the hits.
         if (stats != null) {
@@ -296,8 +354,9 @@ internal fun MarkerLegend(plotted: List<PlottedSeries>, calibers: List<Caliber>)
     val shown = remember(plotted) {
         plotted.map { Caliber.fromLabel(it.series.caliber) }.distinct().sortedBy { it.ordinal }
     }
-    if (shown.size >= 2) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    // One row: the caliber swatches (two or more only), then the + and × marks.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.Center) {
+        if (shown.size >= 2) {
             shown.forEach { caliber ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -312,8 +371,6 @@ internal fun MarkerLegend(plotted: List<PlottedSeries>, calibers: List<Caliber>)
                 }
             }
         }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         listOf(
             false to (MEAN_MARK to Res.string.stats_legend_mean),
             true to (MEDIAN_MARK to Res.string.stats_legend_median),
