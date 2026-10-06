@@ -107,14 +107,15 @@ private val HANDLE = 7.dp
 private val HANDLE_TOUCH = 28.dp
 
 /**
- * The ring handle's place: on the ring's right, kept inside the canvas so the
- * whole-target ring (at the very edge) still has a dot to grab.
+ * The ring handle's place: on the ring, up and to the right at 45 degrees, so
+ * even the whole-target ring keeps it well inside the canvas.
  */
-private fun Density.handleAt(centre: Offset, limitMm: Double?, mmScale: Float, width: Float): Offset =
-    Offset(
-        min(centre.x + (limitMm?.toFloat() ?: PLOT_RADIUS_MM) * mmScale, width - HANDLE.toPx() - 2f),
-        centre.y,
-    )
+private fun handleAt(centre: Offset, limitMm: Double?, mmScale: Float): Offset {
+    val d = (limitMm?.toFloat() ?: PLOT_RADIUS_MM) * mmScale * HALF_SQRT2
+    return Offset(centre.x + d, centre.y - d)
+}
+
+private const val HALF_SQRT2 = 0.70710677f
 
 /** Marker geometry, shared by the target and the legend (see [drawMark]). */
 private val MARK_ARM = 5.dp
@@ -172,7 +173,7 @@ internal fun TargetCanvas(
                     // scaled about its top-left by `zoom` and shifted by `pan`.
                     val mmScale = min(size.width, size.height) / 2f / PLOT_RADIUS_MM
                     val layerCentre = Offset(size.width / 2f, size.height / 2f)
-                    val handle = handleAt(layerCentre, currentLimit, mmScale, size.width.toFloat()) * zoom + pan
+                    val handle = handleAt(layerCentre, currentLimit, mmScale) * zoom + pan
                     if ((down.position - handle).getDistance() <= HANDLE_TOUCH.toPx()) {
                         val screenCentre = layerCentre * zoom + pan
                         down.consume()
@@ -281,8 +282,8 @@ internal fun TargetCanvas(
                 style = Stroke(width = 3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
             )
         }
-        // The handle, and its radius in a pill beside it (left of it at the right edge).
-        val handle = handleAt(centre, limitMm, scale, size.width)
+        // The handle, and its radius in a pill beside it (left of it near the right edge).
+        val handle = handleAt(centre, limitMm, scale)
         drawCircle(BLACK, radius = HANDLE.toPx() + 1.5f, center = handle)
         drawCircle(LIMIT_RING, radius = HANDLE.toPx(), center = handle)
         val pill = textMeasurer.measure(limitText, TextStyle(color = LIMIT_RING, fontSize = 12.sp))
