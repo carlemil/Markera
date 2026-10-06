@@ -98,10 +98,11 @@ class CaliberTest {
         )
     }
 
-    /** A dot covers the hole: the bullet's own radius; no caliber draws like a 32. */
+    /** A dot is drawn at 80% of the bullet's diameter; no caliber draws like a 32. */
     @Test
-    fun dotIsTheBulletRadius() {
-        assertEquals(3.96f, Caliber.C32.hitDotRadiusMm())
+    fun dotIsEightyPercentOfTheBullet() {
+        assertEquals(2.264f, Caliber.LR22.hitDotRadiusMm(), 1e-4f)
+        assertEquals(5.66 / 2, Caliber.LR22.holeRadiusMm()!!, 1e-4) // Scoring keeps the full bullet.
         assertEquals(Caliber.C32.hitDotRadiusMm(), Caliber.NONE.hitDotRadiusMm())
     }
 

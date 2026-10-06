@@ -122,10 +122,17 @@ fun decodeCustomCalibers(text: String?): List<Caliber> =
 const val HIT_DOT_ALPHA = 0.80f
 
 /**
- * Dot radius in target millimetres: the bullet's own, so a dot covers the hole it
- * marks. [Caliber.NONE] draws at caliber 32's size.
+ * Paper closes up behind the bullet, so a hole looks smaller than the bullet:
+ * dots are drawn at this share of its diameter. A knob the user set by eye on
+ * the phone (2026-10-06); scoring's [holeRadiusMm] keeps the full bullet.
  */
-fun Caliber.hitDotRadiusMm(): Float = diameterMm / 2f
+const val HIT_DOT_DIAMETER_SHARE = 0.8f
+
+/**
+ * Dot radius in target millimetres: [HIT_DOT_DIAMETER_SHARE] of the bullet's, so
+ * a dot looks like the hole it marks. [Caliber.NONE] draws at caliber 32's size.
+ */
+fun Caliber.hitDotRadiusMm(): Float = diameterMm * HIT_DOT_DIAMETER_SHARE / 2f
 
 /**
  * Radius in mm of the hole a hand-placed hit is edge-gauged with; null for
