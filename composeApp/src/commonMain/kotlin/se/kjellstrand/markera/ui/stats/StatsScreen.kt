@@ -29,6 +29,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -37,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +69,7 @@ import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.statistics
 import se.kjellstrand.markera.series.stats.window
+import se.kjellstrand.markera.series.stats.within
 import androidx.compose.material.icons.Icons
 import se.kjellstrand.markera.ui.MenuItem
 import se.kjellstrand.markera.ui.StateMessage
@@ -155,6 +158,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var knob by remember(plotted) { mutableIntStateOf(plotted.lastIndex.coerceAtLeast(0)) }
     var knobOn by remember(plotted) { mutableStateOf(false) }
     var showingPhoto by remember { mutableStateOf<SeriesDto?>(null) }
+    // Tavla's measuring ring, in mm from the centre; all the way out is the whole target.
+    var limitMm by remember { mutableFloatStateOf(PLOT_RADIUS_MM) }
+    val limit = limitMm.roundToInt().toDouble().takeIf { limitMm < PLOT_RADIUS_MM }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -231,9 +237,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         )
                     } else if (tab == 0) {
                         val segment = remember(plotted, knob, knobOn) { knobSelection(plotted, knob, knobOn) }
-                        val segmentStats = remember(segment) { segment.statistics() }
+                        val segmentStats = remember(segment, limit) { segment.within(limit).statistics() }
                         Box {
-                            TargetCanvas(segment, segmentStats, calibers)
+                            TargetCanvas(segment, segmentStats, calibers, limit)
                             // The one series under a switched-on knob, when it has a photo.
                             val photographed = segment.singleOrNull()?.series?.takeIf { knobOn && it.hasImage }
                             if (photographed != null) {
@@ -256,7 +262,23 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         )
                         AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
                         MarkerLegend(segment, calibers)
+                        Column {
+                            Text(
+                                if (limit == null) {
+                                    stringResource(Res.string.stats_limit_all)
+                                } else {
+                                    stringResource(Res.string.stats_limit_mm, limit.roundToInt())
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Slider(value = limitMm, onValueChange = { limitMm = it }, valueRange = 1f..PLOT_RADIUS_MM)
+                        }
                         segmentStats?.let { MeasurementRows(it) }
+                        Text(
+                            stringResource(Res.string.stats_limit_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     } else {
                         TrendTab(
                             plotted = plotted,
@@ -359,19 +381,22 @@ private fun PhotoDialog(series: SeriesDto, services: SeriesServices, onDismiss: 
     )
 }
 
+/** Marks a measurement that counts only the hits inside the measuring ring. */
+private const val LIMITED = " *"
+
 @Composable
 private fun MeasurementRows(stats: SeriesStatistics) {
     val mm = @Composable { value: Double -> stringResource(Res.string.stats_mm, value.roundToInt()) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Measurement(stringResource(Res.string.stats_series), stats.seriesCount.toString())
-        Measurement(stringResource(Res.string.stats_hits), stats.hitCount.toString())
-        Measurement(stringResource(Res.string.stats_mean_distance), mm(stats.meanDistanceMm))
-        Measurement(stringResource(Res.string.stats_mean_pairwise), mm(stats.meanPairwiseMm))
-        Measurement(stringResource(Res.string.stats_group_size), mm(stats.meanGroupSizeMm))
-        Measurement(stringResource(Res.string.stats_mean_radius), mm(stats.meanRadiusMm))
-        Measurement(stringResource(Res.string.stats_radial_sd), mm(stats.radialSdMm))
+        Measurement(stringResource(Res.string.stats_hits) + LIMITED, stats.hitCount.toString())
+        Measurement(stringResource(Res.string.stats_mean_distance) + LIMITED, mm(stats.meanDistanceMm))
+        Measurement(stringResource(Res.string.stats_mean_pairwise) + LIMITED, mm(stats.meanPairwiseMm))
+        Measurement(stringResource(Res.string.stats_group_size) + LIMITED, mm(stats.meanGroupSizeMm))
+        Measurement(stringResource(Res.string.stats_mean_radius) + LIMITED, mm(stats.meanRadiusMm))
+        Measurement(stringResource(Res.string.stats_radial_sd) + LIMITED, mm(stats.radialSdMm))
         Measurement(
-            stringResource(Res.string.stats_impact),
+            stringResource(Res.string.stats_impact) + LIMITED,
             stringResource(
                 Res.string.stats_impact_value,
                 stats.impactXMm.roundToInt(),
@@ -379,7 +404,7 @@ private fun MeasurementRows(stats: SeriesStatistics) {
             ),
         )
         Measurement(
-            stringResource(Res.string.stats_impact_median),
+            stringResource(Res.string.stats_impact_median) + LIMITED,
             stringResource(
                 Res.string.stats_impact_value,
                 stats.medianXMm.roundToInt(),

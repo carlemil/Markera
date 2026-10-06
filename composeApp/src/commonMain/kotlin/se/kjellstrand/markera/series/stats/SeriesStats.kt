@@ -124,6 +124,15 @@ fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
     }
 }
 
+/**
+ * Each series with only its hits within [radiusMm] of the target centre (the
+ * Tavla tab's measuring ring); null keeps every hit. Series are never dropped, so
+ * the series count and the mean score stay what the filter chose.
+ */
+@OptIn(ExperimentalTime::class)
+fun List<PlottedSeries>.within(radiusMm: Double?): List<PlottedSeries> =
+    if (radiusMm == null) this else map { s -> s.copy(hits = s.hits.filter { hypot(it.xMm, it.yMm) <= radiusMm }) }
+
 /** All distances in mm. */
 data class SeriesStatistics(
     val seriesCount: Int,

@@ -139,6 +139,9 @@
     <string name="stats_no_geometry">None of your series has a ring to plot against. Scan one with the 6/7 ring found.</string>
     <string name="stats_target_description">Target with %1$d hits from %2$d series</string>
     <string name="stats_timeline">Series timeline</string>
+    <string name="stats_limit_all">Measuring ring: whole target</string>
+    <string name="stats_limit_mm">Measuring ring: %1$d mm from the centre</string>
+    <string name="stats_limit_note">* Counts only the hits inside the measuring ring (the dashed blue circle). Drag the slider to shrink it and leave stray shots out.</string>
     <string name="stats_target_hint">Pinch to zoom · double-tap to reset · tap the timeline to show one series</string>
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>

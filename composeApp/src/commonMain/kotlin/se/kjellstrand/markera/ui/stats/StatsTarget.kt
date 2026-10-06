@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -74,7 +75,7 @@ import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.ringDigitRadiusMm
 
 /** Ring 1's outer edge — the whole drawn target, and the canvas' mm half-width. */
-private const val PLOT_RADIUS_MM = 250f
+internal const val PLOT_RADIUS_MM = 250f
 private const val MAX_ZOOM = 6f
 
 private val PAPER = Color(0xFFE8DEC8)
@@ -94,6 +95,8 @@ internal fun caliberColour(caliber: Caliber, calibers: List<Caliber>): Color =
 // + / × shapes and drawMark's dark halo still tell them apart for colour-blind readers.
 private val MEAN_MARK = Color(0xFFFF00C8)
 private val MEDIAN_MARK = Color(0xFF00C853)
+/** The measuring ring: dashed, and a colour neither the paper, the black nor the marks use. */
+private val LIMIT_RING = Color(0xFF00B0FF)
 
 /** Marker geometry, shared by the target and the legend (see [drawMark]). */
 private val MARK_ARM = 5.dp
@@ -116,6 +119,8 @@ internal fun TargetCanvas(
     stats: SeriesStatistics?,
     /** Every caliber on any plottable series — see [caliberColour]. */
     calibers: List<Caliber>,
+    /** The measuring ring's radius; null draws none. */
+    limitMm: Double? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
     // The user's own calibers carry their diameter only on this device.
@@ -221,6 +226,15 @@ internal fun TargetCanvas(
                     style = Stroke(width = 1f),
                 )
             }
+        }
+
+        if (limitMm != null) {
+            drawCircle(
+                LIMIT_RING,
+                radius = r(limitMm),
+                center = centre,
+                style = Stroke(width = 3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
+            )
         }
 
         // Mean (+) and median (×) point of impact, on top of the hits.

@@ -264,4 +264,19 @@ class SeriesStatsTest {
         assertEquals(Instant.parse("2026-09-21T22:00:00Z"), from)
         assertNull(to)
     }
+
+    @Test
+    fun withinDropsHitsOutsideTheRingButKeepsTheSeries() {
+        val plotted = listOf(
+            series(1, holes = listOf(hole(510.0, 500.0, 10), hole(560.0, 500.0, 8))),
+            series(2, holes = listOf(hole(500.0, 600.0, 7))),
+        ).plotSeries(StatsFilter())
+        val inside = plotted.within(20.0)
+        assertEquals(listOf(1, 0), inside.map { it.hits.size })
+        val stats = inside.statistics()!!
+        assertEquals(2, stats.seriesCount)
+        assertEquals(1, stats.hitCount)
+        assertEquals(10.0, stats.meanDistanceMm, 1e-6)
+        assertEquals(plotted, plotted.within(null))
+    }
 }
