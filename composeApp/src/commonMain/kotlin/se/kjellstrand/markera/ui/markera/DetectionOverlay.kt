@@ -76,6 +76,8 @@ fun DetectionOverlay(
     /** Sizes the hole dots; [Caliber.NONE] draws them at the calibration size. */
     caliber: Caliber = Caliber.NONE,
     showDebug: Boolean = false,
+    /** The ring lines inside the black; [ring] still sizes the hole dots without them. */
+    showRings: Boolean = true,
     scoreColor: Color = Color(0xFFFFFFFF),
     holeColor: Color = MarkeraGreen,
     /** Holes the user placed, moved or retyped (see [byHand]), marker and label. */
@@ -104,7 +106,7 @@ fun DetectionOverlay(
         // visibly skewed 9-line is then a real signal that the fit is off.
         // No 12.5mm inner-X circle: it lands exactly where the hits cluster and
         // would clutter the middle of the photo under the markers.
-        if (ring != null && centre != null && centre.method != CentreMethod.NONE) {
+        if (showRings && ring != null && centre != null && centre.method != CentreMethod.NONE) {
             val innerRingColor = RING_COLOR.copy(alpha = 0.45f)
             INNER_RING_RADII_MM.forEach { r ->
                 drawTargetRing(

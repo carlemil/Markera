@@ -95,6 +95,7 @@ import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.ui.markera.ScoreBox
 import se.kjellstrand.markera.ui.markera.holeLetter
+import se.kjellstrand.markera.ui.markera.isDebugBuild
 import se.kjellstrand.markera.ui.markera.photoGestures
 import se.kjellstrand.markera.ui.markera.rememberZoomPan
 import se.kjellstrand.markera.ui.markera.zoomPan
@@ -319,6 +320,8 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             imageHeight = imageH,
                             centre = series.geometry?.centre(),
                             ring = series.geometry?.ring(),
+                            // A diagnostic of the stored fit: dev builds only.
+                            showRings = isDebugBuild,
                             scores = marked.map { it.first },
                             letters = marked.map { it.second },
                             // The editable state, so correcting the caliber
