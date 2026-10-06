@@ -428,13 +428,29 @@ const total = () => document.getElementById('total').textContent =
     S.holes.reduce((t, h) => t + (h && !h.deleted && !h.removed ? h.ring : 0), 0);
 const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
 
-// The un-projection from scoreHits (HitScoring.kt): offset from the digit-row centre, rotated by -rotation,
-// the minor component stretched back to a circle, scaled by 100 mm / semiMajor (TARGET_BLACK_RING_RADIUS_MM).
+// The un-projection from scoreHits (TargetPlane.of in the app): the digit centre's polar line with respect to
+// the 6/7 ellipse is the vanishing line; sending it to infinity leaves an ellipse centred on the centre, whose
+// quadratic form B measures the point (100 mm = TARGET_BLACK_RING_RADIUS_MM on the rim).
 function distanceMm(h) {
   const g = S.geometry;
   if (!g || h.x == null) return null;
   const dx = h.x - g.centreX, dy = h.y - g.centreY;
   const c = Math.cos(g.ringRotationRad), s = Math.sin(g.ringRotationRad);
+  const ia = 1 / (g.ringSemiMajor * g.ringSemiMajor), ib = 1 / (g.ringSemiMinor * g.ringSemiMinor);
+  const a11 = c * c * ia + s * s * ib, a12 = c * s * (ia - ib), a22 = s * s * ia + c * c * ib;
+  const mx = g.ringCx - g.centreX, my = g.ringCy - g.centreY;
+  const amx = a11 * mx + a12 * my, amy = a12 * mx + a22 * my;
+  const l3 = mx * amx + my * amy - 1;
+  if (l3 < -1e-9) {
+    const v1 = -amx / l3, v2 = -amy / l3;
+    // k = Pinv^T C Pinv with Pinv = [[1,0,0],[0,1,0],[-v1,-v2,1]], C = [[a11,a12,-amx],[a12,a22,-amy],[-amx,-amy,l3]].
+    const k11 = a11 - 2 * v1 * -amx + v1 * v1 * l3, k12 = a12 - v2 * -amx - v1 * -amy + v1 * v2 * l3;
+    const k22 = a22 - 2 * v2 * -amy + v2 * v2 * l3, f = -l3;
+    const w = v1 * dx + v2 * dy + 1, px = dx / w, py = dy / w;
+    const q = (k11 * px * px + 2 * k12 * px * py + k22 * py * py) / f;
+    if (f > 0 && q >= 0) return Math.sqrt(q) * 100;
+  }
+  // Fallback, the old weak-perspective model: rotate, stretch the minor component, scale.
   const xR = dx * c + dy * s;
   const yC = (-dx * s + dy * c) * (g.ringSemiMajor / g.ringSemiMinor);
   return Math.sqrt(xR * xR + yC * yC) * (100 / g.ringSemiMajor);
