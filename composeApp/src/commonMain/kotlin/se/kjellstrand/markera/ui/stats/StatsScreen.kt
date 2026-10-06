@@ -46,6 +46,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import se.kjellstrand.markera.ui.markera.photoGestures
+import se.kjellstrand.markera.ui.markera.rememberZoomPan
+import se.kjellstrand.markera.ui.markera.zoomPan
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -253,10 +256,10 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             // The one series under a switched-on knob, when it has a photo.
                             val photographed = segment.singleOrNull()?.series?.takeIf { knobOn && it.hasImage }
                             if (photographed != null) {
-                                // Filled so it reads on both the cream paper and the black.
+                                // Filled so it reads on the paper; bottom right, clear of the ring handle up right.
                                 FilledTonalIconButton(
                                     onClick = { showingPhoto = photographed },
-                                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+                                    modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp),
                                 ) {
                                     Icon(Icons.Default.PhotoCamera, stringResource(Res.string.stats_show_photo))
                                 }
@@ -384,8 +387,22 @@ private fun PhotoDialog(series: SeriesDto, services: SeriesServices, onDismiss: 
         text = {
             val box = Modifier.fillMaxWidth().aspectRatio(1f)
             val shown = photo
+            val zoom = rememberZoomPan(shown)
             when {
-                shown != null -> Image(shown, contentDescription = null, contentScale = ContentScale.Fit, modifier = box)
+                // The scan screen's pinch/pan, with no holes to grab or place.
+                shown != null -> Image(
+                    shown,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = box
+                        .photoGestures(
+                            zoom, shown.width, shown.height, grabPx = 0f, key = shown,
+                            holeAt = { _, _, _ -> -1 },
+                            onMove = { _, _, _ -> -1 },
+                            onAdd = { _, _, _ -> },
+                        )
+                        .zoomPan(zoom),
+                )
                 failed -> StateMessage(icon = Icons.Default.HideImage, title = stringResource(Res.string.detail_photo_missing), modifier = box)
                 else -> StateMessage(loading = true, modifier = box)
             }
