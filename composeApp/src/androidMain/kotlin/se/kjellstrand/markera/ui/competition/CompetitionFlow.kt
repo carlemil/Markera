@@ -10,17 +10,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.platform.LocalContext
-import se.kjellstrand.markera.BuildConfig
 import se.kjellstrand.markera.ui.CompetitionHost
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.webshooter.WebshooterServices
 
 /**
- * The webshooter marking flow: login → competitions → groups → wizard. Debug
- * builds only until it is ready (PLAN "wizard-edit follow-up").
+ * The webshooter marking flow: login → competitions → groups → wizard. Off in
+ * every build, debug too (user 2026-10-06); flip to true to bring it back.
  */
-val SHOW_COMPETITION = BuildConfig.DEBUG
+const val SHOW_COMPETITION = false
 
 /** Null when the flow is off, and then the nav host shows no competition card. */
 @Composable
