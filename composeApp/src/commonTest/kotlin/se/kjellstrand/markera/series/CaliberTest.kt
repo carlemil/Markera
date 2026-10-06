@@ -98,10 +98,10 @@ class CaliberTest {
         )
     }
 
-    /** Caliber 32 is the size the user calibrated the dots against, by eye. */
+    /** A dot covers the hole: the bullet's own radius; no caliber draws like a 32. */
     @Test
-    fun caliber32DrawsAtTheCalibrationSize() {
-        assertEquals(HIT_DOT_RADIUS_32_MM, Caliber.C32.hitDotRadiusMm())
+    fun dotIsTheBulletRadius() {
+        assertEquals(3.96f, Caliber.C32.hitDotRadiusMm())
         assertEquals(Caliber.C32.hitDotRadiusMm(), Caliber.NONE.hitDotRadiusMm())
     }
 

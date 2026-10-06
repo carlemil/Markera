@@ -9,6 +9,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -116,15 +118,21 @@ fun DetectionOverlay(
         // hole itself is already visible in the photo. The dots come from the
         // scores when there are any, since only those know which holes the user
         // placed by hand (drawn orange); unscored frames fall back to the boxes.
-        // Dots are sized after the bullet. `scale` is only the image→canvas fit
-        // factor, so the millimetres have to come from the fitted 6/7 ellipse,
-        // whose semiMajor is TARGET_BLACK_RING_RADIUS_MM by definition. No ring,
-        // no mm scale: then keep the fixed dot.
-        val dotRadius = if (ring != null) {
-            val imagePxPerMm = ring.semiMajor / TARGET_BLACK_RING_RADIUS_MM
-            max(2f, (caliber.hitDotRadiusMm() * imagePxPerMm).toFloat() * scale)
-        } else {
-            max(3f, STROKE_WIDTH_PX * 1.1f)
+        // Dots are the bullet's hole as the camera sees it: the fitted 6/7
+        // ellipse (semiMajor = TARGET_BLACK_RING_RADIUS_MM by definition) scaled
+        // down to the caliber's radius, so size and perspective tilt both come
+        // from the target. No ring, no mm scale: then a fixed round dot.
+        val holeK = caliber.hitDotRadiusMm() / TARGET_BLACK_RING_RADIUS_MM.toFloat()
+        val dotRadius = max(3f, STROKE_WIDTH_PX * 1.1f)
+        fun drawHole(color: Color, x: Float, y: Float) {
+            if (ring != null) {
+                drawTargetRing(
+                    FittedEllipse(x, y, ring.semiMajor * holeK, ring.semiMinor * holeK, ring.rotationRad),
+                    scale, offsetX, offsetY, color, style = Fill,
+                )
+            } else {
+                drawCircle(color, radius = dotRadius, center = Offset(x * scale + offsetX, y * scale + offsetY))
+            }
         }
         if (showDebug) {
             detections.forEach { d ->
@@ -137,21 +145,14 @@ fun DetectionOverlay(
             }
         } else if (scores.isNotEmpty()) {
             scores.forEach { hit ->
-                drawCircle(
-                    color = (if (hit.byHand) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
-                    radius = dotRadius,
-                    center = Offset(hit.centerXpx * scale + offsetX, hit.centerYpx * scale + offsetY),
+                drawHole(
+                    (if (hit.byHand) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
+                    hit.centerXpx, hit.centerYpx,
                 )
             }
         } else {
             detections.forEach { d ->
-                val hx = (d.left + d.right) / 2f * scale + offsetX
-                val hy = (d.top + d.bottom) / 2f * scale + offsetY
-                drawCircle(
-                    holeColor.copy(alpha = HIT_DOT_ALPHA),
-                    radius = dotRadius,
-                    center = Offset(hx, hy),
-                )
+                drawHole(holeColor.copy(alpha = HIT_DOT_ALPHA), (d.left + d.right) / 2f, (d.top + d.bottom) / 2f)
             }
         }
 
@@ -272,7 +273,8 @@ private fun DrawScope.drawTargetRing(
     offsetX: Float,
     offsetY: Float,
     color: Color,
-    strokeWidth: Float,
+    strokeWidth: Float = 0f,
+    style: DrawStyle = Stroke(width = strokeWidth),
 ) {
     val ecx = e.cx * scale + offsetX
     val ecy = e.cy * scale + offsetY
@@ -283,7 +285,7 @@ private fun DrawScope.drawTargetRing(
             color = color,
             topLeft = Offset(ecx - a, ecy - b),
             size = Size(a * 2f, b * 2f),
-            style = Stroke(width = strokeWidth),
+            style = style,
         )
     }
 }

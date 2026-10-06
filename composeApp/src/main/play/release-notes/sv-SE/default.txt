@@ -1,4 +1,2 @@
-Nytt i 1.10.0:
-• Rättat att Logga in med Apple misslyckades på vissa iPhones
-• Bättre felsökning av inloggningsproblem, så att de kan rättas snabbare
-• Förbättringar och buggrättningar under huven
+Nytt i 1.11.0:
+• Träffmarkeringarna har nu samma storlek som de verkliga hålen för din kaliber och följer fotots vinkel. Ett särskilt tack till Tony H. som upptäckte och föreslog förbättringen!

@@ -1,4 +1,2 @@
-New in 1.10.0:
-• Fixed Sign in with Apple failing on some iPhones
-• Better diagnostics for sign-in problems, so they can be fixed faster
-• Under-the-hood improvements and bug fixes
+New in 1.11.0:
+• Hit markers now match the real hole size for your caliber, and follow the angle of the photo. Special thanks to Tony H. for noticing and suggesting the improvement!

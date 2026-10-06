@@ -115,13 +115,6 @@ fun decodeCustomCalibers(text: String?): List<Caliber> =
     }
 
 /**
- * The hit-dot radius the user calibrated by eye, against a caliber 32 target.
- * A calibration knob, not the physical hole size: every other caliber scales off
- * it by bullet diameter.
- */
-const val HIT_DOT_RADIUS_32_MM = 2.5f
-
-/**
  * Hit dots keep a little translucency so overlapping shots still read as a cloud
  * rather than one blob. A knob the user set by eye on the phone: 0.30 was too
  * faint to read against the target, 0.80 keeps the overlap visible.
@@ -129,12 +122,10 @@ const val HIT_DOT_RADIUS_32_MM = 2.5f
 const val HIT_DOT_ALPHA = 0.80f
 
 /**
- * Dot radius in target millimetres for this caliber. The ratio is taken first so
- * caliber 32 lands on exactly [HIT_DOT_RADIUS_32_MM] instead of a Float rounding
- * of it.
+ * Dot radius in target millimetres: the bullet's own, so a dot covers the hole it
+ * marks. [Caliber.NONE] draws at caliber 32's size.
  */
-fun Caliber.hitDotRadiusMm(): Float =
-    HIT_DOT_RADIUS_32_MM * (diameterMm / Caliber.C32.diameterMm)
+fun Caliber.hitDotRadiusMm(): Float = diameterMm / 2f
 
 /**
  * Radius in mm of the hole a hand-placed hit is edge-gauged with; null for
