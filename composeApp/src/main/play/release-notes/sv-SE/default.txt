@@ -1,2 +1,4 @@
 Nytt i 1.11.0:
 • Träffmarkeringarna har nu samma storlek som de verkliga hålen för din kaliber och följer fotots vinkel. Ett särskilt tack till Tony H. som upptäckte och föreslog förbättringen!
+• Poängen korrigeras nu fullt ut för kamerans vinkel, så träffar långt från mitten blir rätt även på snett tagna foton.
+• Statistik: ny Tavla-vy med en mätring som du drar direkt på tavlan, tydligare mätvärden och zoom i fotot.
