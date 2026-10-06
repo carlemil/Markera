@@ -126,7 +126,7 @@ const val HIT_DOT_ALPHA = 0.80f
  * dots are drawn at this share of its diameter. A knob the user set by eye on
  * the phone (2026-10-06); scoring's [holeRadiusMm] keeps the full bullet.
  */
-const val HIT_DOT_DIAMETER_SHARE = 0.8f
+const val HIT_DOT_DIAMETER_SHARE = 0.9f
 
 /**
  * Dot radius in target millimetres: [HIT_DOT_DIAMETER_SHARE] of the bullet's, so
