@@ -138,9 +138,12 @@
     <string name="stats_no_geometry">Ingen av dina serier har en ring att rita mot. Skanna en där 6/7-ringen hittas.</string>
     <string name="stats_target_description">Tavla med %1$d träffar från %2$d serier</string>
     <string name="stats_timeline">Serietidslinje</string>
-    <string name="stats_limit_all">Alla</string>
     <string name="stats_limit_mm">%1$d mm</string>
-    <string name="stats_limit_note">* Bara träffar inom mätringen räknas.</string>
+    <string name="stats_section_group">Träffbild</string>
+    <string name="stats_section_impact">Läge</string>
+    <string name="stats_hits_of">%1$d av %2$d</string>
+    <string name="stats_count">Antal</string>
+    <string name="stats_limit_note">* Träffar utanför ringen tonas ned och räknas inte.</string>
     <string name="stats_ring_hint">Dra i den blå pricken för att ändra mätringen</string>
     <string name="stats_help_target">Tavlan</string>
     <string name="stats_target_hint">Nyp för att zooma, dubbeltryck för att återställa. Dra i den blå pricken på ringen för att ställa in mätringen: träffar utanför tonas ned och räknas inte i måtten med *. Tryck på tidslinjen för att visa en serie.</string>

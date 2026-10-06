@@ -95,8 +95,8 @@ internal fun caliberColour(caliber: Caliber, calibers: List<Caliber>): Color =
 
 // Green sits far from the palette, magenta off to its pink side; the
 // + / × shapes and drawMark's dark halo still tell them apart for colour-blind readers.
-private val MEAN_MARK = Color(0xFFFF00C8)
-private val MEDIAN_MARK = Color(0xFF00C853)
+internal val MEAN_MARK = Color(0xFFFF00C8)
+internal val MEDIAN_MARK = Color(0xFF00C853)
 /** The measuring ring: dashed, and a colour neither the paper, the black nor the marks use. */
 private val LIMIT_RING = Color(0xFF00B0FF)
 private val PILL = Color(0xE6073042)
@@ -143,8 +143,8 @@ internal fun TargetCanvas(
     onLimit: (Double?) -> Unit,
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val limitText = limitMm?.let { stringResource(Res.string.stats_limit_mm, it.roundToInt()) }
-        ?: stringResource(Res.string.stats_limit_all)
+    // Always the distance from the centre; all the way out reads as the plot's edge.
+    val limitText = stringResource(Res.string.stats_limit_mm, (limitMm ?: PLOT_RADIUS_MM.toDouble()).roundToInt())
     // The gesture outlives recompositions, so it reads these.
     val currentLimit by rememberUpdatedState(limitMm)
     val currentOnLimit by rememberUpdatedState(onLimit)

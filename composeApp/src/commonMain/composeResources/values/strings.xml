@@ -138,9 +138,12 @@
     <string name="stats_no_geometry">None of your series has a ring to plot against. Scan one with the 6/7 ring found.</string>
     <string name="stats_target_description">Target with %1$d hits from %2$d series</string>
     <string name="stats_timeline">Series timeline</string>
-    <string name="stats_limit_all">All</string>
     <string name="stats_limit_mm">%1$d mm</string>
-    <string name="stats_limit_note">* Only hits inside the measuring ring count.</string>
+    <string name="stats_section_group">Grouping</string>
+    <string name="stats_section_impact">Point of impact</string>
+    <string name="stats_hits_of">%1$d of %2$d</string>
+    <string name="stats_count">Count</string>
+    <string name="stats_limit_note">* Hits outside the ring fade and do not count.</string>
     <string name="stats_ring_hint">Drag the blue dot to change the measuring ring</string>
     <string name="stats_help_target">The target</string>
     <string name="stats_target_hint">Pinch to zoom, double-tap to reset. Drag the blue dot on the ring to set the measuring ring: hits outside it fade and are left out of the measurements marked *. Tap the timeline to show one series.</string>

@@ -9,13 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
@@ -48,7 +44,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -283,7 +284,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             }
                         }
                         MarkerLegend(segment, calibers)
-                        segmentStats?.let { MeasurementTiles(it) }
+                        segmentStats?.let { MeasurementRows(it, segment.sumOf { s -> s.hits.size }) }
                         Text(
                             stringResource(Res.string.stats_limit_note),
                             style = MaterialTheme.typography.bodySmall,
@@ -395,40 +396,37 @@ private fun PhotoDialog(series: SeriesDto, services: SeriesServices, onDismiss: 
 /** Marks a measurement that counts only the hits inside the measuring ring. */
 private const val LIMITED = " *"
 
-/** The measurements as tiles, two to a row. */
+/** The measurements as label/value rows under three headings; [totalHits] is every hit, ring or not. */
 @Composable
-private fun MeasurementTiles(stats: SeriesStatistics) {
+private fun MeasurementRows(stats: SeriesStatistics, totalHits: Int) {
     val mm = @Composable { value: Double -> stringResource(Res.string.stats_mm, value.roundToInt()) }
-    val tiles = listOf(
-        stringResource(Res.string.stats_series) to stats.seriesCount.toString(),
-        stringResource(Res.string.stats_hits) + LIMITED to stats.hitCount.toString(),
-        stringResource(Res.string.stats_mean_score) to oneDecimal(stats.meanScore, stringResource(Res.string.decimal_mark)),
-        stringResource(Res.string.stats_mean_distance) + LIMITED to mm(stats.meanDistanceMm),
-        stringResource(Res.string.stats_mean_pairwise) + LIMITED to mm(stats.meanPairwiseMm),
-        stringResource(Res.string.stats_group_size) + LIMITED to mm(stats.meanGroupSizeMm),
-        stringResource(Res.string.stats_mean_radius) + LIMITED to mm(stats.meanRadiusMm),
-        stringResource(Res.string.stats_radial_sd) + LIMITED to mm(stats.radialSdMm),
-        stringResource(Res.string.stats_impact) + LIMITED to impactArrows(stats.impactXMm, stats.impactYMm),
-        stringResource(Res.string.stats_impact_median) + LIMITED to impactArrows(stats.medianXMm, stats.medianYMm),
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        tiles.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (label, value) ->
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    ) {
-                        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-                            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(value, style = MaterialTheme.typography.titleMedium)
-                        }
-                    }
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
+    val heading = @Composable { text: String ->
+        Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
+    }
+    val row = @Composable { label: AnnotatedString, value: String ->
+        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+    val plain = @Composable { label: String, value: String -> row(AnnotatedString(label), value) }
+    val marked = @Composable { mark: String, color: Color, label: String, value: String ->
+        row(buildAnnotatedString { withStyle(SpanStyle(color = color)) { append(mark) }; append(" $label") }, value)
+    }
+    Column {
+        heading(stringResource(Res.string.stats_section_group) + LIMITED)
+        plain(stringResource(Res.string.stats_hits), stringResource(Res.string.stats_hits_of, stats.hitCount, totalHits))
+        plain(stringResource(Res.string.stats_mean_distance), mm(stats.meanDistanceMm))
+        plain(stringResource(Res.string.stats_mean_pairwise), mm(stats.meanPairwiseMm))
+        plain(stringResource(Res.string.stats_group_size), mm(stats.meanGroupSizeMm))
+        plain(stringResource(Res.string.stats_mean_radius), mm(stats.meanRadiusMm))
+        plain(stringResource(Res.string.stats_radial_sd), mm(stats.radialSdMm))
+        heading(stringResource(Res.string.stats_section_impact) + LIMITED)
+        marked("+", MEAN_MARK, stringResource(Res.string.stats_legend_mean), impactArrows(stats.impactXMm, stats.impactYMm))
+        marked("×", MEDIAN_MARK, stringResource(Res.string.stats_legend_median), impactArrows(stats.medianXMm, stats.medianYMm))
+        heading(stringResource(Res.string.stats_series))
+        plain(stringResource(Res.string.stats_count), stats.seriesCount.toString())
+        plain(stringResource(Res.string.stats_mean_score), oneDecimal(stats.meanScore, stringResource(Res.string.decimal_mark)))
     }
 }
 
