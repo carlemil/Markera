@@ -112,11 +112,12 @@ class HitScoringTest {
 
     @Test
     fun `ellipse stretches the foreshortened axis back`() {
-        // 100x50 ellipse: a hole at the major edge (+100) and one at the minor
-        // edge (+50) both unstretch to 100mm → ring 7.
+        // 100x50 ellipse: a hole just inside the major edge (+99) and one just
+        // inside the minor edge (+49.5) both unstretch to 99mm → ring 7. (Not on
+        // the line itself: there the last bit of rounding decides the ring.)
         val e = FittedEllipse(cx = 0f, cy = 0f, semiMajor = 100f, semiMinor = 50f, rotationRad = 0f)
-        val sMajor = scoreHits(listOf(pointAt(0f, 0f, 100f, 0f)), centre(0f, 0f), e).single()
-        val sMinor = scoreHits(listOf(pointAt(0f, 0f, 0f, 50f)), centre(0f, 0f), e).single()
+        val sMajor = scoreHits(listOf(pointAt(0f, 0f, 99f, 0f)), centre(0f, 0f), e).single()
+        val sMinor = scoreHits(listOf(pointAt(0f, 0f, 0f, 49.5f)), centre(0f, 0f), e).single()
         assertEquals(7, sMajor.ring)
         assertEquals(7, sMinor.ring)
         assertEquals(sMajor.distanceMm, sMinor.distanceMm, 0.5)
@@ -175,14 +176,13 @@ class HitScoringTest {
     @Test
     fun `every point of a drawn ring outline scores its own radius`() {
         // Rotated, eccentric rim with the digit centre off the ellipse centre —
-        // an axis-aligned circle would pass even with the rotation dropped.
+        // an axis-aligned circle would pass even with the rotation dropped. Under
+        // perspective the outlines are not centred on the digit centre, so only
+        // the round trip is pinned down.
         val e = FittedEllipse(cx = 300f, cy = 280f, semiMajor = 200f, semiMinor = 80f, rotationRad = (PI / 5.0).toFloat())
         val c = centre(317f, 291f)
         for (r in listOf(12.5, 25.0, 50.0, 75.0, 100.0)) {
             val o = ringOutline(e, c, r)
-            assertEquals(e.rotationRad, o.rotationRad)
-            assertEquals(c.x, o.cx)
-            assertEquals(c.y, o.cy)
             val cosR = cos(o.rotationRad.toDouble())
             val sinR = sin(o.rotationRad.toDouble())
             for (i in 0 until 16) {

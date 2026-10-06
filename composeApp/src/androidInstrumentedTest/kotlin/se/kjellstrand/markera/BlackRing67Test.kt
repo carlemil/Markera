@@ -19,12 +19,17 @@ import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.RingProbe
 import se.kjellstrand.markera.vision.RingProbeResult
+import se.kjellstrand.markera.vision.RING_RADII_MM
+import se.kjellstrand.markera.vision.ringOutline
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.fit67RingByProbes
 import java.io.File
 import java.util.Locale
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -65,6 +70,8 @@ class BlackRing67Test {
 
         var withCentre = 0
         var withEllipse = 0
+        val perspOff = mutableListOf<Double>()
+        val affineOff = mutableListOf<Double>()
         val pathCounts = sortedMapOf<String, Int>()
         val detector = DigitDetector()
         try {
@@ -98,6 +105,8 @@ class BlackRing67Test {
                     canvas.drawLine(centre.x - arm, centre.y, centre.x + arm, centre.y, stroke)
                     canvas.drawLine(centre.x, centre.y - arm, centre.x, centre.y + arm, stroke)
                 }
+                val ringFit = result?.ellipse?.let { e -> gray?.let { drawRingModels(canvas, it, bmp.width, bmp.height, e, centre, s) } }
+                ringFit?.let { (persp, affine) -> perspOff += persp; affineOff += affine }
                 result?.let { drawProbes(canvas, it, s) }
                 writePng(bmp, File(outDir, "$id.png"))
 
@@ -110,15 +119,67 @@ class BlackRing67Test {
                         "dark=${probes.fmt { "%.3f".format(Locale.US, it.darkFraction) }} " +
                         "iter=${probes.fmt { it.iterations }} " +
                         "travel=${probes.fmt { "%.1f".format(Locale.US, hypot(it.x - it.startX, it.y - it.startY)) }} " +
-                        "ellipse=${result?.ellipse}",
+                        "ellipse=${result?.ellipse} lineOffPx(persp,affine)=$ringFit",
                 )
                 bmp.recycle()
             }
         } finally {
             detector.close()
         }
-        Log.i(TAG, "probeRings summary: images=${images.size} withCentre=$withCentre withEllipse=$withEllipse ringPaths=$pathCounts")
+        Log.i(TAG, "probeRings summary: images=${images.size} withCentre=$withCentre withEllipse=$withEllipse ringPaths=$pathCounts " +
+            "outerLineOffPx persp=${perspOff.sorted().getOrNull(perspOff.size / 2)} affine=${affineOff.sorted().getOrNull(affineOff.size / 2)}")
         assertTrue("no overlays written", (outDir.listFiles()?.size ?: 0) > 0)
+    }
+
+    /**
+     * Every ring drawn by both models: perspective ([ringOutline], magenta) and the old
+     * concentric scaled ellipse (orange). Returns the median px from each model's
+     * 150-250 mm outlines to the nearest dark printed line along the radial, (persp, affine).
+     * Rough: on club centre-patch cards those rings fall on the sheet behind, so judge the overlays.
+     */
+    private fun drawRingModels(
+        canvas: Canvas, gray: ByteArray, w: Int, h: Int, e: FittedEllipse,
+        centre: se.kjellstrand.markera.vision.CentreEstimate, s: Float,
+    ): Pair<Double, Double> {
+        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = s * 0.75f }
+        val offs = listOf(mutableListOf<Double>(), mutableListOf())
+        for (r in RING_RADII_MM) {
+            val k = (r / 100.0).toFloat()
+            val affine = FittedEllipse(centre.x, centre.y, e.semiMajor * k, e.semiMinor * k, e.rotationRad)
+            for ((i, o) in listOf(ringOutline(e, centre, r), affine).withIndex()) {
+                stroke.color = if (i == 0) 0xFFFF00FF.toInt() else 0xFFFF9100.toInt()
+                drawEllipse(canvas, o, stroke)
+                if (r >= 150.0) offs[i] += lineOffsets(gray, w, h, o)
+            }
+        }
+        fun List<Double>.median() = sorted().let { if (it.isEmpty()) -1.0 else it[it.size / 2] }
+        return offs[0].median() to offs[1].median()
+    }
+
+    /** Per outline sample: |px| along the radial to the darkest pixel within 30 px (the printed line). */
+    private fun lineOffsets(gray: ByteArray, w: Int, h: Int, o: FittedEllipse): List<Double> {
+        val c = cos(o.rotationRad.toDouble())
+        val sn = sin(o.rotationRad.toDouble())
+        return (0 until 72).mapNotNull { i ->
+            val t = 2 * PI * i / 72
+            val px = o.semiMajor * cos(t)
+            val py = o.semiMinor * sin(t)
+            val x = o.cx + px * c - py * sn
+            val y = o.cy + px * sn + py * c
+            val len = hypot(x - o.cx, y - o.cy)
+            val ux = (x - o.cx) / len
+            val uy = (y - o.cy) / len
+            var best = -1
+            var bestOff = 0
+            for (d in -30..30) {
+                val xi = (x + ux * d).toInt()
+                val yi = (y + uy * d).toInt()
+                if (xi !in 0 until w || yi !in 0 until h) return@mapNotNull null
+                val v = 255 - (gray[yi * w + xi].toInt() and 0xFF)
+                if (v > best) { best = v; bestOff = d }
+            }
+            abs(bestOff).toDouble()
+        }
     }
 
     private fun writePng(bmp: Bitmap, file: File) =

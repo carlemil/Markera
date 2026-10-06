@@ -191,7 +191,11 @@ fun fit67RingByProbes(
         finalX[i] = 2 * cx - finalX[partner]
         finalY[i] = 2 * cy - finalY[partner]
     }
-    return RingProbeResult(probes, ellipseFromConjugates(finalX, finalY))
+    // The probes are the target's (+-100, 0) and (0, +-100): exactly a perspective map, whose
+    // image of the 6/7 circle is the ring. Conjugate diameters only when that is degenerate.
+    val exact = TargetPlane.fromCross(finalX, finalY, TARGET_BLACK_RING_RADIUS_MM)
+        ?.circleOutline(TARGET_BLACK_RING_RADIUS_MM)
+    return RingProbeResult(probes, exact ?: ellipseFromConjugates(finalX, finalY))
 }
 
 /**

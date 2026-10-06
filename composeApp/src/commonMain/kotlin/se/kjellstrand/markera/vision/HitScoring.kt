@@ -71,15 +71,23 @@ val HitScore.byHand: Boolean get() = manual || original != null
 
 /**
  * Offset from the digit-row [centre] to the point [x],[y] (source-image px) in
- * target mm, un-projected through the 6/7 [ring] ellipse: rotate so the major
- * axis is +x, stretch the minor-axis component by `semiMajor / semiMinor` to
- * undo the foreshortening, scale by `TARGET_BLACK_RING_RADIUS_MM / semiMajor`,
- * then rotate back by the same angle so the result keeps the photo's
- * orientation (image axes, y down) and can be plotted as-is.
- * A degenerate ellipse has no scale, so it measures (0, 0).
+ * target mm, un-projected through the 6/7 [ring] under full perspective
+ * ([TargetPlane]), in the photo's orientation (image axes, y down) so it can be
+ * plotted as-is. Without a usable plane (centre outside the ring) it falls back
+ * to [affineOffsetMm]. A degenerate ellipse has no scale, so it measures (0, 0).
  */
 fun targetOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Pair<Double, Double> {
     if (ring.semiMajor <= 0f || ring.semiMinor <= 0f) return 0.0 to 0.0
+    return TargetPlane.of(centre, ring)?.toMm(x.toDouble(), y.toDouble()) ?: affineOffsetMm(x, y, centre, ring)
+}
+
+/**
+ * The old weak-perspective model: rotate so the major axis is +x, stretch the
+ * minor-axis component by `semiMajor / semiMinor`, scale by
+ * `TARGET_BLACK_RING_RADIUS_MM / semiMajor`, rotate back. It ignores how
+ * perspective slides each ring's centre, so it is only the fallback.
+ */
+internal fun affineOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Pair<Double, Double> {
     val theta = ring.rotationRad.toDouble()
     val cosT = cos(theta)
     val sinT = sin(theta)
@@ -94,14 +102,12 @@ fun targetOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllip
 
 /**
  * The image-space outline of a target circle of [radiusMm], for drawing over
- * the photo. [targetOffsetMm] is affine about the digit-row [centre] (rotate,
- * stretch the minor component, scale), so its inverse turns a circle in the
- * target plane back into an ellipse with the 6/7 [ring]'s rotation and its
- * semi-axes scaled by `radiusMm / TARGET_BLACK_RING_RADIUS_MM` — centred on
- * [centre], never on the fitted ellipse's own centre, so what is drawn and
- * what is scored can't disagree.
+ * the photo: the inverse of [targetOffsetMm], so what is drawn and what is
+ * scored can't disagree. Under perspective it is generally not centred on
+ * [centre]; the fallback is the 6/7 ellipse scaled about [centre].
  */
 fun ringOutline(ring: FittedEllipse, centre: CentreEstimate, radiusMm: Double): FittedEllipse {
+    TargetPlane.of(centre, ring)?.circleOutline(radiusMm)?.let { return it }
     val k = (radiusMm / TARGET_BLACK_RING_RADIUS_MM).toFloat()
     return FittedEllipse(
         cx = centre.x,
