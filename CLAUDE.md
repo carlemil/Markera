@@ -258,6 +258,18 @@ only ring + centre + hole markers + score labels. Tapping a missed hole on the f
 frame adds it: `TargetScanController.addManualHit` scores that point with the same
 geometry (`ManualHit.kt` holds the pure viewport→image and box-sizing maths) and it is
 drawn orange, `manual = true`, so it saves with no `detected*` values.
+**Import images** (Home's menu → `ImportDialog` in `HomeScreen.kt`: Gallery / Files, an Auto
+import switch, the caliber/tag chips) picks many images through `rememberImagePicker`
+(`ImagePicker.kt`, expect/actual: Android `PickMultipleVisualMedia` / `OpenMultipleDocuments`,
+`BitmapFactory` subsampled to a ~3000 px short side + `ExifInterface` rotation; iOS `PHPicker` /
+`UIDocumentPickerViewController`, an ImageIO thumbnail ≤ 4096 px with the orientation baked in).
+Each `PickedImage` is decoded only on its turn. `Screen.Import(ImportQueue)` is `MarkeraScreen`
+with an `ImportFrameSource` (the picked image is the frame, so the normal crop/store/upload apply)
+and its own view-model key; `ImportRunner` sets `SeriesRecorder.takenAt` (EXIF date taken via
+`exifInstant`, else now) and scans. Manual: Save/Skip move on. Auto: `importDecision` saves what
+scored, holds the rest, and those are reviewed by hand after the pass; one summary toast, back to Home.
+A caliber `-` is asked for before the first scan (a commit waiting on the dialog would be dropped by
+the next scan's `clear()`).
 Every screen but Home uses the one `AppTopBar` (`ui/AppTopBar.kt`): back button (left of the menu
 button, whenever the screen has a back), menu button, then title; back is that button plus system back.
 Top-bar actions go in the one `AppMenu` (FieldShootingTimer's speed dial; `ui/AppMenu.kt`,
