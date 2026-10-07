@@ -40,14 +40,22 @@ fun parseNmsRows(count: Int, get: (Int) -> Float): List<RawDetection> {
 
 /**
  * The whole post-model pipeline, shared by the app and `:eval`: confidence
- * filter, NMS, map back to image pixels. No cap on the count: the confidence
- * threshold alone decides what is a hole.
+ * filter, NMS, map back to image pixels. The confidence threshold decides what
+ * is a hole; [MAX_DETECTED_HOLES] only guards against a pocked target.
  */
 fun postProcess(raws: List<RawDetection>, inputSize: Int, srcWidth: Int, srcHeight: Int): List<Detection> =
     mapToImageSpace(
-        nonMaxSuppression(filterByConfidence(raws, HOLE_CONFIDENCE_THRESHOLD), HOLE_IOU_THRESHOLD),
+        nonMaxSuppression(filterByConfidence(raws, HOLE_CONFIDENCE_THRESHOLD), HOLE_IOU_THRESHOLD)
+            .take(MAX_DETECTED_HOLES),
         inputSize, srcWidth, srcHeight,
     )
+
+/**
+ * The server's `MAX_HOLES`: a scan with more is refused with a 400 and never saved
+ * (an auto import included). ponytail: tap-adds past it are not guarded; raise
+ * both together if real series ever get near it.
+ */
+const val MAX_DETECTED_HOLES = 50
 
 /**
  * Drop detections with a confidence below [threshold].

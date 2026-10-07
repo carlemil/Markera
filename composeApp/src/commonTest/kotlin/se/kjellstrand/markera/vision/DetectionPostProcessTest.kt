@@ -91,4 +91,10 @@ class DetectionPostProcessTest {
         val kept = postProcess(raws, inputSize = 1000, srcWidth = 1000, srcHeight = 1000)
         assertEquals(listOf(70, 65, 60, 55, 50, 45, 40), kept.map { (it.conf * 100).roundToInt() })
     }
+
+    @Test
+    fun `postProcess stops at the server's hole limit`() {
+        val raws = (0 until 60).map { RawDetection(10f + (it % 10) * 50f, 10f + (it / 10) * 50f, 10f, 10f, conf = 0.4f + it * 0.001f) }
+        assertEquals(MAX_DETECTED_HOLES, postProcess(raws, inputSize = 1000, srcWidth = 1000, srcHeight = 1000).size)
+    }
 }
