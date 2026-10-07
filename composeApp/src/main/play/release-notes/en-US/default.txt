@@ -1,4 +1,7 @@
-New in 1.11.0:
-• Hit markers now match the real hole size for your caliber, and follow the angle of the photo. Special thanks to Tony H. for noticing and suggesting the improvement!
-• Scores are now fully corrected for the camera angle, so hits far from the centre come out right even on photos taken at an angle.
-• Statistics: a redesigned Target view with a measuring ring you drag right on the target, clearer measurements and zoom in the photo.
+New in 1.12.0:
+• Import target photos from your gallery or files. With Auto import, every photo that scores is saved on its own.
+• No more five-hit limit per series.
+• Step between series with the arrows on the Serie page.
+• Caliber and tag fields now have titles.
+• Fewer false hits from printed digits and text.
+Special thanks to Hakan for suggesting photo upload, the measuring ring and more than five hits per series!

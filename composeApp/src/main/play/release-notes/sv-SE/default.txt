@@ -1,4 +1,7 @@
-Nytt i 1.11.0:
-• Träffmarkeringarna har nu samma storlek som de verkliga hålen för din kaliber och följer fotots vinkel. Ett särskilt tack till Tony H. som upptäckte och föreslog förbättringen!
-• Poängen korrigeras nu fullt ut för kamerans vinkel, så träffar långt från mitten blir rätt även på snett tagna foton.
-• Statistik: ny Tavla-vy med en mätring som du drar direkt på tavlan, tydligare mätvärden och zoom i fotot.
+Nytt i 1.12.0:
+• Importera tavelbilder från galleriet eller filer. Med Autoimport sparas varje bild som ger poäng av sig själv.
+• Inte längre max fem träffar per serie.
+• Bläddra mellan serier med pilarna på Serie-sidan.
+• Kaliber- och taggfälten har nu rubriker.
+• Färre falska träffar från tryckta siffror och text.
+Ett särskilt tack till Hakan som föreslog bilduppladdning, mätringen och fler än fem träffar per serie!
