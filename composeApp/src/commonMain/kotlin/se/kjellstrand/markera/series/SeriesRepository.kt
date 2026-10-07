@@ -25,7 +25,7 @@ interface ImageCache {
 }
 
 /**
- * The local copy of the user's series (PLAN task 57b): every screen reads
+ * The local copy of the user's series: every screen reads
  * [series] from SQLite and never pages the backend, and [refresh] pulls only
  * what changed since the stored `updatedAt` stamp (tombstones included).
  *

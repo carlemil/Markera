@@ -95,7 +95,7 @@ sqldelight {
     }
 }
 
-// The Markera series backend (see PLAN.md). Override with -Pmarkera.backend.url=...
+// The Markera series backend (see `server/` and PLAN.md). Override with -Pmarkera.backend.url=...
 val backendUrl = (project.findProperty("markera.backend.url") as String?)
     ?: "https://markera.duckdns.org"
 
@@ -118,7 +118,7 @@ val googleClientId: String = localProps?.getProperty("markera.google.client.id")
 val sentryDsn: String = localProps?.getProperty("markera.sentry.dsn") ?: ""
 
 // Release (upload) signing: `keystore.properties` + `keystore` at the repo root, both
-// gitignored (see PLAN.md task 26). Absent → the release build stays unsigned.
+// gitignored (see PLAN.md, Release signing). Absent → the release build stays unsigned.
 val keystoreProps: Properties? = rootProject.file("keystore.properties").takeIf { it.exists() }
     ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
 
