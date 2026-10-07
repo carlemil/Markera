@@ -183,14 +183,14 @@ class SeriesRecorderTest {
     }
 
     @Test
-    fun removingTheSelectedCustomCaliberFallsBackToNone() {
+    fun removingTheSelectedCustomCaliberFallsBackToTheDefault() {
         val recorder = recorder(stored = wadcutter, storedCustom = listOf(wadcutter))
 
         recorder.removeCaliber(wadcutter)
 
-        assertEquals(Caliber.NONE, recorder.caliber.value)
+        assertEquals(Caliber.LR22, recorder.caliber.value)
         assertEquals(emptyList(), recorder.customCalibers.value)
-        awaitWrite { writtenCustom.lastOrNull() == emptyList<Caliber>() && written.lastOrNull() == Caliber.NONE }
+        awaitWrite { writtenCustom.lastOrNull() == emptyList<Caliber>() && written.lastOrNull() == Caliber.LR22 }
     }
 
     @Test

@@ -80,7 +80,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
     }
 
     override suspend fun readCaliber(): Caliber =
-        Caliber.fromLabel(dataStore.data.first()[Keys.caliber] ?: "")
+        Caliber.fromStored(dataStore.data.first()[Keys.caliber])
 
     override suspend fun writeCaliber(caliber: Caliber) {
         dataStore.edit { it[Keys.caliber] = caliber.label }

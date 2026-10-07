@@ -26,6 +26,15 @@ class CaliberTest {
         assertEquals(Caliber.NONE, Caliber.fromLabel(""))
     }
 
+    /** A missing preference is the default; a stored one, "-" included, is kept. */
+    @Test
+    fun fromStoredDefaultsOnlyWhenMissing() {
+        assertEquals(Caliber.LR22, Caliber.fromStored(null))
+        assertEquals(Caliber.NONE, Caliber.fromStored("-"))
+        assertEquals(Caliber.MM9, Caliber.fromStored("9mm"))
+        assertEquals(Caliber.NONE, Caliber.fromStored(""))
+    }
+
     @Test
     fun customLabelResolvesToItsDiameterButNeverShadowsABuiltIn() {
         val custom = listOf(Caliber("38wc", 9.07f), Caliber("9mm", 1f))

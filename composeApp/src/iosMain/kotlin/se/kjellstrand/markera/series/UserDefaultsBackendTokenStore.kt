@@ -34,7 +34,7 @@ class UserDefaultsBackendTokenStore(
     override suspend fun writeLanguage(value: String?) = defaults.setObject(value ?: "", Keys.LANGUAGE)
 
     override suspend fun readCaliber(): Caliber =
-        Caliber.fromLabel(defaults.stringForKey(Keys.CALIBER) ?: "")
+        Caliber.fromStored(defaults.stringForKey(Keys.CALIBER))
 
     override suspend fun writeCaliber(caliber: Caliber) =
         defaults.setObject(caliber.label, Keys.CALIBER)

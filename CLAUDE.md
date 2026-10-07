@@ -191,7 +191,7 @@ feeds every scored scan to the recorder (hoisted in `AppNavHost`, exposed via
 wizard) merges the picker values into the pending request via `withPicks` — so a `HoleDto`'s
 `ring`/`innerTen` are what the user confirmed and `detectedRing`/`detectedInnerTen` what the
 detector said (null for a hand-placed or typed-in hole) — then
-saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then the scanned frame
+saves it: signed out → toast, caliber `-` → chooser dialog (a device that never chose one starts on `22lr`, `Caliber.fromStored`), else POST, then the scanned frame
 goes up as a ≤3072 px q90 JPEG (`POST /series/{id}/image`; a failed upload never fails the
 series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
 The history screen (`ui/history/`) lists series with thumbnails.
