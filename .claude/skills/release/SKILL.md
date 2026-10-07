@@ -171,6 +171,7 @@ Rules:
 - Short, friendly language — no jargon, commit hashes, or branch names.
 - Bullet list with short lines if there are multiple changes.
 - If nothing is user-visible, write a generic "Bug fixes and improvements" / "Buggfixar och förbättringar" line.
+- **Next release only:** end all three notes with a credit to **Hakan** (exactly that spelling) for photo upload (#12), the Statistik measuring ring (shipped in 1.11.0, mention only) and more than five hits per series (#14): en "Special thanks to Hakan for suggesting photo upload, the measuring ring and more than five hits per series!", sv "Ett särskilt tack till Hakan som föreslog bilduppladdning, mätringen och fler än fem träffar per serie!". It counts toward the 500 characters. If #12 or #14 is not in `git log v<last>..HEAD`, leave that feature out of the line and keep this bullet for the release after; otherwise delete this bullet in the version-bump commit.
 - Show the generated text to the user before continuing.
 
 ---
