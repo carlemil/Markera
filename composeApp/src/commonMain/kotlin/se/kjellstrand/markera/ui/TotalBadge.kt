@@ -49,7 +49,7 @@ fun TotalBadge(total: Int) {
  * The one result header: caliber | tag | total in one pill, shared by the scan
  * screen, wizard, Serie page and Historik. A null [caliber] leaves only the total;
  * a null click leaves that segment untappable; [compact] is the list-row size,
- * with short segment titles (Cal./Tag/Sum) instead of the full words.
+ * titling caliber/tag Cal./Tag instead of the full words (the total is Sum at both sizes).
  */
 @Composable
 fun TotalBadge(
