@@ -60,6 +60,16 @@ class Caliber(val label: String, val diameterMm: Float) {
         val C93X62 = Caliber("9.3x62", 9.30f)
         val WM300 = Caliber("300wm", 7.82f)
 
+        /** What a device that has never chosen a caliber starts on. */
+        val DEFAULT = LR22
+
+        /**
+         * A stored device preference: missing (never chosen) is [DEFAULT]; anything
+         * stored, an explicitly chosen "-" included, goes through [fromLabel].
+         */
+        fun fromStored(label: String?, custom: List<Caliber> = emptyList()): Caliber =
+            if (label == null) DEFAULT else fromLabel(label, custom)
+
         /** The fixed calibers, [NONE] first; the UI order. */
         val BUILT_IN = listOf(
             NONE, LR22, WMR22, HMR17,

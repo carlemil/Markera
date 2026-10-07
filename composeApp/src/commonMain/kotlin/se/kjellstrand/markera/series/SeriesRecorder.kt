@@ -178,13 +178,13 @@ class SeriesRecorder(
 
     /**
      * Drops one of the user's own calibers (a built-in is never in the list). Saved
-     * series keep their label; only the current choice falls back to [Caliber.NONE].
+     * series keep their label; only the current choice falls back to [Caliber.DEFAULT].
      */
     fun removeCaliber(caliber: Caliber) {
         persistCustom(_customCalibers.value - caliber)
         if (_caliber.value == caliber) {
-            _caliber.value = Caliber.NONE
-            scope.launch { writeCaliber(Caliber.NONE) }
+            _caliber.value = Caliber.DEFAULT
+            scope.launch { writeCaliber(Caliber.DEFAULT) }
         }
     }
 

@@ -14,8 +14,11 @@ interface BackendTokenStore {
     suspend fun write(auth: BackendAuth)
     suspend fun clear()
 
-    /** The chosen caliber shares this store but survives [clear] (sign-out). */
-    suspend fun readCaliber(): Caliber = Caliber.NONE
+    /**
+     * The chosen caliber shares this store but survives [clear] (sign-out); never
+     * chosen is [Caliber.DEFAULT] ([Caliber.fromStored]).
+     */
+    suspend fun readCaliber(): Caliber = Caliber.DEFAULT
     suspend fun writeCaliber(caliber: Caliber) {}
 
     /** The user's own calibers ([decodeCustomCalibers]-encoded): a device preference, survives [clear]. */
