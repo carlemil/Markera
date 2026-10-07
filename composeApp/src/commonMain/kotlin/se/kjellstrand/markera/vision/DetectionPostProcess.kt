@@ -5,7 +5,8 @@ import kotlin.math.min
 
 /** Side of the square tensor the hole model runs on. */
 const val MODEL_INPUT_SIZE = 1536
-const val HOLE_CONFIDENCE_THRESHOLD = 0.35f
+/** Real holes score from 0.28 and junk (digits, patch edges) up to 0.66; 0.45 keeps val 112/112 and train 339/343 (#18). */
+const val HOLE_CONFIDENCE_THRESHOLD = 0.45f
 const val HOLE_IOU_THRESHOLD = 0.45f
 
 /** Drops obvious noise at the inference boundary (zero-padded NMS slots). */
