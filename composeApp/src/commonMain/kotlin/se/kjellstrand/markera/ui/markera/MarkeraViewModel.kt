@@ -33,10 +33,9 @@ interface MarkeraViewModel {
 
     /**
      * A hole the user tapped on the frozen frame: added to the results and the
-     * pickers, in score order, like a detected one. Returns false when the
-     * series already has five holes and nothing was added.
+     * pickers, in score order, like a detected one. There is no cap on holes.
      */
-    fun addManualHit(detection: Detection, hit: HitScore): Boolean
+    fun addManualHit(detection: Detection, hit: HitScore)
 
     /**
      * The user dragged hole [index] somewhere else: replace its box and score

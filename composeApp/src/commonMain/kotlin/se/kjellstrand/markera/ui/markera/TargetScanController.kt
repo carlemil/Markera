@@ -163,6 +163,7 @@ class TargetScanController(
         val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
             ?: return@editHoles false
         viewModel.addManualHit(detection, hit)
+        true
     }
 
     /**

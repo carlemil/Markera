@@ -84,12 +84,11 @@ class DetectionPostProcessTest {
     }
 
     @Test
-    fun `postProcess keeps the five most confident holes after NMS`() {
+    fun `postProcess keeps every hole above the threshold after NMS`() {
         // Seven far-apart boxes, plus a near-duplicate of the best that NMS drops.
         val raws = (0 until 7).map { RawDetection(100f + it * 100f, 100f, 20f, 20f, conf = 0.4f + it * 0.05f) } +
             RawDetection(701f, 100f, 20f, 20f, conf = 0.69f)
         val kept = postProcess(raws, inputSize = 1000, srcWidth = 1000, srcHeight = 1000)
-        assertEquals(SHOTS_PER_SERIES, kept.size)
-        assertEquals(listOf(70, 65, 60, 55, 50), kept.map { (it.conf * 100).roundToInt() })
+        assertEquals(listOf(70, 65, 60, 55, 50, 45, 40), kept.map { (it.conf * 100).roundToInt() })
     }
 }

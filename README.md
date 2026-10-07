@@ -39,7 +39,7 @@ For each captured frame the app:
    and no scores.
 4. **Scores each hole** — undoes the perspective through the homography, measures the
    distance from the centre in mm against the target spec, and assigns a ring
-   with edge gauging. The top hits pre-fill the five score pickers, each hole is
+   with edge gauging. Every hole pre-fills a score picker (five boxes a row, more holes wrap), each hole is
    labelled with its value, and the series total is shown.
 
 A "radar" scanning overlay animates over the frozen frame while the (slow) hole
@@ -163,8 +163,8 @@ With the centre, the 6/7 ellipse, and the hole boxes, each hole is scored: map
 it through the full perspective (`TargetPlane`) into target mm, measured against
 the spec (black 6/7 edge = 100 mm radius, a ring every
 25 mm out to ring 1 at 250 mm, inner-ten within 12.5 mm), and **gauge by the
-hole's edge** — a shot whose edge breaks a line counts the higher ring. The top
-hits (inner-X first, then highest ring, then nearest) pre-fill the five pickers
+hole's edge** — a shot whose edge breaks a line counts the higher ring. The
+hits (inner-X first, then highest ring, then nearest) pre-fill one picker each
 (still editable), each hole is labelled with its value above its box, and the
 series total is shown. The rings drawn on the photo come from the same map, so
 what is drawn and what is scored can't disagree. **Status — in use.**

@@ -10,7 +10,6 @@
     <string name="markera_no_ring">Couldn’t find the 6/7 ring, so nothing was scored. Scan again with the whole black and its digits in view.</string>
     <string name="markera_rescan">Scan again</string>
     <string name="markera_edit_hint">Tap the photo to add a hit · drag to move · long-press to remove</string>
-    <string name="markera_series_full">A series is five hits. Long-press one to remove it first.</string>
     <string name="markera_reset_title">Discard your changes?</string>
     <string name="markera_reset_message">The edited scores are dropped and nothing is saved.</string>
     <string name="markera_reset_confirm">Discard</string>

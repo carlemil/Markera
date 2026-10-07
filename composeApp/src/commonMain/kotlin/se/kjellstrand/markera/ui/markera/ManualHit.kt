@@ -104,3 +104,22 @@ fun Detection.movedTo(x: Float, y: Float): Detection {
     val halfH = (bottom - top) / 2f
     return Detection(x - halfW, y - halfH, x + halfW, y + halfH, conf)
 }
+
+/**
+ * The holes a five-shot competition lane prefills from: the indices of the [n]
+ * most confident [detections] (a hand-placed hole is `conf = 1f`, so it ranks
+ * first), back in hole order so the boxes still read best to worst. All of
+ * them when there are no more than [n].
+ */
+fun confidentSlots(detections: List<Detection>, n: Int): List<Int> =
+    detections.indices.sortedByDescending { detections[it].conf }.take(n).sorted()
+
+/**
+ * The scan's per-hole picks [all] with the competition's [confirmed] values put
+ * back on the holes they came from ([slots], as [confidentSlots] chose them);
+ * confirmed values past the slots are holes the user typed in. Holes that were
+ * not chosen keep the detector's score.
+ */
+fun mergePicks(all: List<Int>, slots: List<Int>, confirmed: List<Int>): List<Int> =
+    all.toMutableList().apply { slots.forEachIndexed { k, s -> confirmed.getOrNull(k)?.let { this[s] = it } } } +
+        confirmed.drop(slots.size)

@@ -61,15 +61,8 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         }
     }
 
-    override fun addManualHit(detection: Detection, hit: HitScore): Boolean {
-        var added = false
-        _uiState.update {
-            // A series is five shots: past the picker count a tap adds nothing.
-            added = it.scores.size < SCORE_PICKER_COUNT
-            if (!added) return@update it
-            it.withHoles(it.detections + detection, it.scores + hit)
-        }
-        return added
+    override fun addManualHit(detection: Detection, hit: HitScore) {
+        _uiState.update { it.withHoles(it.detections + detection, it.scores + hit) }
     }
 
     override fun moveHit(index: Int, detection: Detection, hit: HitScore): Int {
@@ -141,7 +134,7 @@ private fun MarkeraUiState.withHoles(
     return copy(
         detections = if (detections.size == scores.size) order.map { detections[it] } else detections,
         scores = sorted,
-        topScores = List(SCORE_PICKER_COUNT) { i ->
+        topScores = List(maxOf(SCORE_PICKER_COUNT, sorted.size)) { i ->
             sorted.getOrNull(i)?.let { if (it.isInnerTen) SCORE_PICKER_INNER_TEN else it.ring } ?: 0
         },
     )

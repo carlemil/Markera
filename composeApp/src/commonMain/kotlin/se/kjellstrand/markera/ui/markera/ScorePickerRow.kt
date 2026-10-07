@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
@@ -46,8 +49,8 @@ private val DIALPAD_KEYS = listOf(
     listOf(9, 10, SCORE_PICKER_INNER_TEN),
 )
 
-/** The key letter for hole [index]: a, b, c… — same on the photo and the box. */
-fun holeLetter(index: Int): String = ('a' + index).toString()
+/** The key letter for hole [index]: a, b, c… z, then 27, 28… — same on the photo and the box. */
+fun holeLetter(index: Int): String = if (index < 26) ('a' + index).toString() else (index + 1).toString()
 
 /**
  * One hole's score: a highlighted box showing only the current value. With an
@@ -157,7 +160,19 @@ private fun DialpadKey(value: Int, onClick: () -> Unit) {
     }
 }
 
-/** Portrait — the score boxes in a row; read-only without [onValueChange]. */
+/** Laid out for a five-shot series: past [SCORE_PICKER_COUNT] boxes the rest wrap onto centred rows below. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ScoreFlowRow(modifier: Modifier, gap: Dp, content: @Composable () -> Unit) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(gap),
+        maxItemsInEachRow = SCORE_PICKER_COUNT,
+    ) { content() }
+}
+
+/** Portrait — the score boxes in a row (five a row); read-only without [onValueChange]. */
 @Composable
 fun ScorePickerHorizontalRow(
     values: List<Int>,
@@ -169,16 +184,15 @@ fun ScorePickerHorizontalRow(
     editableCount: Int = values.size,
     /** Per box: a hand-placed hole, drawn orange. */
     manual: List<Boolean> = emptyList(),
+    /** Explicit key letters per box, overriding [letteredCount] (the wizard's chosen holes). */
+    letters: List<String>? = null,
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(PICKER_GAP),
-    ) {
+    ScoreFlowRow(modifier, PICKER_GAP) {
         values.forEachIndexed { i, v ->
             ScoreBox(
                 value = v,
                 onValueChange = onValueChange?.takeIf { i < editableCount }?.let { f -> { v2: Int -> f(i, v2) } },
-                letter = if (i < letteredCount) holeLetter(i) else null,
+                letter = if (letters != null) letters.getOrNull(i) else if (i < letteredCount) holeLetter(i) else null,
                 manual = manual.getOrElse(i) { false },
             )
         }
@@ -193,7 +207,7 @@ fun ScoreMiniRow(
     /** Per box: a hole the user placed, retyped or moved, drawn orange. */
     manual: List<Boolean> = emptyList(),
 ) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+    ScoreFlowRow(modifier, 3.dp) {
         values.forEachIndexed { i, v ->
             ScoreBox(value = v, onValueChange = null, compact = true, manual = manual.getOrElse(i) { false })
         }

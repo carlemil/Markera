@@ -132,8 +132,8 @@ fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse):
  * the original circle; distances convert to mm via `mmPerPx` derived from
  * `semiMajor`. Each hole is edge-gauged by its box radius through [scoreAt].
  *
- * Returned inner-X first, then highest ring, then nearest — so the first
- * five map straight onto the score pickers.
+ * Returned inner-X first, then highest ring, then nearest — so hit `i` maps
+ * straight onto score picker `i`.
  */
 fun scoreHits(
     detections: List<Detection>,
@@ -172,7 +172,7 @@ fun scoreAt(distMm: Double, holeRadiusMm: Double): Pair<Int, Boolean> {
 
 /**
  * The order hits are always shown (and stored) in: inner-X first, then highest
- * ring, then nearest — so the first five map straight onto the score pickers.
+ * ring, then nearest — so hit `i` maps straight onto score picker `i`.
  */
 val HIT_SCORE_ORDER: Comparator<HitScore> = scoreOrder({ it.isInnerTen }, { it.ring }, { it.distanceMm })
 
