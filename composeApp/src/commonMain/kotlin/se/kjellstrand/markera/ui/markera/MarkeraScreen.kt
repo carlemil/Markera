@@ -753,7 +753,7 @@ private fun ImportRunner(
 ) {
     val scope = rememberCoroutineScope()
     val toast = LocalToast.current
-    LaunchedEffect(queue.items, queue.index) {
+    LaunchedEffect(queue.pass, queue.index) {
         val item = queue.current
         if (item == null) {
             // ponytail: waits for the last save only, so an earlier one landing late can still toast after this.

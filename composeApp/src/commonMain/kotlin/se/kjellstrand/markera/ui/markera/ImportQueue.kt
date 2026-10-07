@@ -28,6 +28,9 @@ class ImportQueue<T>(items: List<T>, auto: Boolean) {
         private set
     var auto by mutableStateOf(auto)
         private set
+    /** Bumped when the review pass starts: its list and index can equal the first pass's. */
+    var pass by mutableStateOf(0)
+        private set
     var saved = 0
         private set
     var skipped = 0
@@ -50,6 +53,7 @@ class ImportQueue<T>(items: List<T>, auto: Boolean) {
             review.clear()
             index = 0
             auto = false
+            pass++
         }
     }
 }

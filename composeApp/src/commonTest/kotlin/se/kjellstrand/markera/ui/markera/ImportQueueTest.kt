@@ -36,6 +36,17 @@ class ImportQueueTest {
     }
 
     @Test
+    fun aSingleFailedImageStartsANewPass() {
+        // Its review pass has the same list and index as the auto pass: only `pass` tells them apart.
+        val queue = ImportQueue(listOf("a"), auto = true)
+        queue.next(ImportDecision.Review)
+
+        assertEquals(listOf("a"), queue.items)
+        assertEquals(0, queue.index)
+        assertEquals(1, queue.pass)
+    }
+
+    @Test
     fun aManualQueueEndsAfterItsLastImage() {
         val queue = ImportQueue(listOf("a", "b"), auto = false)
         queue.next(ImportDecision.Save)

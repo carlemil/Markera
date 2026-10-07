@@ -12,7 +12,9 @@ import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.value
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import platform.Foundation.CFBridgingRelease
 import platform.Foundation.CFBridgingRetain
 import platform.CoreFoundation.CFDataRef
@@ -95,7 +97,7 @@ private class GalleryDelegate(
         importDelegate = null
         // The providers stay valid after the picker is gone: each is read on its turn.
         val providers = didFinishPicking.mapNotNull { (it as? PHPickerResult)?.itemProvider }
-        onPicked(providers.map { provider -> PickedImage { provider.imageData()?.let(::decodeImport) } })
+        onPicked(providers.map { provider -> PickedImage { provider.imageData()?.let { withContext(Dispatchers.Default) { decodeImport(it) } } } })
     }
 }
 
@@ -106,7 +108,7 @@ private class FilesDelegate(
     override fun documentPicker(controller: UIDocumentPickerViewController, didPickDocumentsAtURLs: List<*>) {
         importDelegate = null
         val urls = didPickDocumentsAtURLs.mapNotNull { it as? NSURL }
-        onPicked(urls.map { url -> PickedImage { NSData.dataWithContentsOfURL(url)?.let(::decodeImport) } })
+        onPicked(urls.map { url -> PickedImage { withContext(Dispatchers.Default) { NSData.dataWithContentsOfURL(url)?.let(::decodeImport) } } })
     }
 
     override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
