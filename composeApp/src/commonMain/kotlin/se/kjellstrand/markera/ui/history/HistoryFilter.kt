@@ -85,6 +85,18 @@ fun encodeOpenDays(
 fun decodeOpenDays(text: String?): Set<String> =
     text?.split(";")?.filterTo(mutableSetOf()) { it.isNotEmpty() } ?: emptySet()
 
+/**
+ * The Serie page's arrows: the ids either side of [current] in the list the user came
+ * from ([ids], newest first) — first the newer one, then the older one. Ids no longer
+ * in [present] (deleted since) are skipped; null at an end or when [current] isn't there.
+ */
+fun neighbours(ids: List<Long>, current: Long, present: Set<Long>): Pair<Long?, Long?> {
+    val live = ids.filter { it in present }
+    val i = live.indexOf(current)
+    if (i < 0) return null to null
+    return live.getOrNull(i - 1) to live.getOrNull(i + 1)
+}
+
 /** Every caliber on any series, [Caliber.NONE] included, ordinal order. */
 fun List<SeriesDto>.calibersPresent(): List<Caliber> =
     map { Caliber.fromLabel(it.caliber) }.distinct().sortedBy { it.ordinal }

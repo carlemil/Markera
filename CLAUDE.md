@@ -195,6 +195,8 @@ saves it: signed out → toast, caliber `-` → chooser dialog, else POST, then 
 goes up as a ≤3072 px q90 JPEG (`POST /series/{id}/image`; a failed upload never fails the
 series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
 The history screen (`ui/history/`) lists series with thumbnails.
+`Screen.SeriesDetail` carries the walk order (`ids`, the filtered list it was opened from) and its
+previous/next arrows step with `replace`, so Back still returns to the list.
 
 **Local cache (PLAN task 57b).** Nothing fetches per screen any more: `SeriesRepository`
 (commonMain, hoisted in `AppNavHost` beside `SeriesServices`) is the single source —

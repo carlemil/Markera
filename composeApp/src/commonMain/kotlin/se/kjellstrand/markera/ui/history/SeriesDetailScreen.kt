@@ -21,7 +21,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -119,10 +125,20 @@ internal const val PHOTO_MAX_DIM = 1536
  * a snackbar offers to undo it.
  */
 @Composable
-fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
+fun SeriesDetailScreen(
+    initial: SeriesDto,
+    services: SeriesServices,
+    onBack: () -> Unit,
+    // The list this series was opened from (newest first) and how to step to another.
+    ids: List<Long> = emptyList(),
+    onOpen: (SeriesDto) -> Unit = {},
+) {
     // Looked up in the cache by id, so an edit made anywhere else shows here.
     val cached by services.repository.series.collectAsState()
     val series = cached.firstOrNull { it.id == initial.id } ?: initial
+    val (newerId, olderId) = neighbours(ids, series.id, cached.mapTo(mutableSetOf()) { it.id })
+    val newer = cached.firstOrNull { it.id == newerId }
+    val older = cached.firstOrNull { it.id == olderId }
     val toast = LocalToast.current
     val snackbar = LocalSnackbar.current
     val scope = rememberCoroutineScope()
@@ -162,12 +178,24 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
         tag = to.tag
     }
 
+    // Saves in flight. The arrows wait for them: the cache only updates once the server
+    // answered, so stepping away and straight back would show (and re-save) the old holes.
+    var saving by remember { mutableIntStateOf(0) }
+    suspend fun save(next: SeriesEdit, removedHole: HoleDto? = null): SeriesEdit? {
+        saving++
+        try {
+            return edits.save(next, removedHole)
+        } finally {
+            saving--
+        }
+    }
+
     // Saves the local state as it is now; a failed save puts back what the server has.
     fun commit(removedHole: HoleDto? = null) {
         val next = SeriesEdit(holes.value, caliber.label, tag)
         if (next == edits.saved && removedHole == null) return
         scope.launch {
-            val before = edits.save(next, removedHole)
+            val before = save(next, removedHole)
             if (before == null) {
                 toast(failedText)
                 restore(edits.saved)
@@ -179,7 +207,7 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 val result = snackbar.showSnackbar(savedText, undoText, duration = SnackbarDuration.Short)
                 if (result == SnackbarResult.ActionPerformed) {
                     restore(before)
-                    if (edits.save(before) == null) {
+                    if (save(before) == null) {
                         toast(failedText)
                         restore(edits.saved)
                     }
@@ -233,10 +261,12 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // The arrows are siblings of the photo, not children: photoGestures
+                // sees even consumed taps, so a button inside it would also add a hole.
+                Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
+                        .fillMaxSize()
                         // Pinch to zoom, drag a marker to move it, tap empty
                         // target to add a hole — the same loop the scan screen
                         // uses (deleting here is the row's own button). Without
@@ -332,6 +362,25 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
+                }
+                newer?.let {
+                    SeriesArrow(
+                        icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        description = stringResource(Res.string.detail_previous_series),
+                        enabled = saving == 0,
+                        onClick = { onOpen(it) },
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    )
+                }
+                older?.let {
+                    SeriesArrow(
+                        icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        description = stringResource(Res.string.detail_next_series),
+                        enabled = saving == 0,
+                        onClick = { onOpen(it) },
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                    )
+                }
                 }
 
                 Row(
@@ -476,6 +525,27 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 }
             },
         )
+    }
+}
+
+/** A previous/next button over the photo, see-through so the target still shows. */
+@Composable
+private fun SeriesArrow(
+    icon: ImageVector,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier,
+) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.padding(8.dp),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+        ),
+    ) {
+        Icon(imageVector = icon, contentDescription = description)
     }
 }
 

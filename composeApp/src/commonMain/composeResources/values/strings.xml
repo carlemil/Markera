@@ -218,7 +218,7 @@
     <!-- Help: series detail -->
     <string name="help_detail_title">About the series</string>
     <string name="help_detail_photo">The photo</string>
-    <string name="help_detail_photo_body">The scanned target with hits, ring and centre. Pinch to zoom, drag a hit to move it and tap the target to add a missing one — the score is recalculated from the hit\’s position.</string>
+    <string name="help_detail_photo_body">The scanned target with hits, ring and centre. Pinch to zoom, drag a hit to move it and tap the target to add a missing one — the score is recalculated from the hit\’s position. The arrows on the photo step to the previous or next series in the list you came from.</string>
     <string name="help_detail_holes">The hits</string>
     <string name="help_detail_holes_body">The list shows the ring, the distance from the centre in millimetres and whether the hit was detected or added by hand. The bin in the row removes the hit after a confirmation. The arrow beside it puts a moved or re-scored hit back where the detector saw it. Changes are saved at once; undo them from the message at the bottom.</string>
     <string name="help_detail_delete">Delete</string>
@@ -253,6 +253,8 @@
     <string name="detail_kind_detected">detected</string>
     <string name="detail_delete_hole">Remove hit</string>
     <string name="detail_restore_hole">Restore hit</string>
+    <string name="detail_previous_series">Previous series</string>
+    <string name="detail_next_series">Next series</string>
 
     <!-- Webshooter login -->
     <string name="login_title">Sign in to Webshooter</string>

@@ -200,4 +200,38 @@ class HistoryFilterTest {
         assertEquals(HistoryFilter(), decodeHistoryFilter(null))
         assertEquals(HistoryFilter(), decodeHistoryFilter("not a valid filter at all"))
     }
+
+    private val ids = listOf(5L, 4L, 3L, 2L, 1L)
+    private val all = ids.toSet()
+
+    @Test
+    fun `neighbours in the middle are the newer then the older id`() {
+        assertEquals(4L to 2L, neighbours(ids, 3L, all))
+    }
+
+    @Test
+    fun `the first series has no newer neighbour`() {
+        assertEquals(null to 4L, neighbours(ids, 5L, all))
+    }
+
+    @Test
+    fun `the last series has no older neighbour`() {
+        assertEquals(2L to null, neighbours(ids, 1L, all))
+    }
+
+    @Test
+    fun `a deleted neighbour is skipped`() {
+        assertEquals(5L to 1L, neighbours(ids, 3L, all - 4L - 2L))
+    }
+
+    @Test
+    fun `a current id missing from the list has no neighbours`() {
+        assertEquals(null to null, neighbours(ids, 9L, all + 9L))
+        assertEquals(null to null, neighbours(emptyList(), 3L, all))
+    }
+
+    @Test
+    fun `a single series has no neighbours`() {
+        assertEquals(null to null, neighbours(listOf(3L), 3L, all))
+    }
 }
