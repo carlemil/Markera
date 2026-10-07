@@ -339,4 +339,15 @@
     <string name="badge_caliber_short">Kal.</string>
     <string name="badge_tag_short">Tagg</string>
     <string name="badge_total_short">Summa</string>
+    <string name="import_images">Importera bilder</string>
+    <string name="import_gallery">Galleri</string>
+    <string name="import_files">Filer</string>
+    <string name="import_auto">Autoimport</string>
+    <string name="import_auto_body">Sparar varje bild som ger poäng utan att stanna; de som inte gör det visas efteråt.</string>
+    <string name="import_auto_signed_out">Logga in för att autospara</string>
+    <string name="import_progress">Import %1$d / %2$d</string>
+    <string name="import_skip">Hoppa över</string>
+    <string name="import_summary">%1$d sparade, %2$d överhoppade</string>
+    <string name="help_home_import">Importera bilder</string>
+    <string name="help_home_import_body">I menyn: räkna poäng på foton som redan finns i telefonen, från galleriet eller från filer. Varje bild skannas och resultatet visas, för att spara eller hoppa över. Med Autoimport på sparas varje bild som ger poäng av sig själv, med datumet då fotot togs; resten visas en i taget efteråt.</string>
 </resources>

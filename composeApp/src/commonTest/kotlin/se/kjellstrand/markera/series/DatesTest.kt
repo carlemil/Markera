@@ -48,4 +48,13 @@ class DatesTest {
         assertEquals("2026-08-15T12:00:00.000Z", isoUtcMillis(Instant.parse("2026-08-15T14:00:00+02:00")))
         assertEquals("2026-08-15T12:00:00.120Z", isoUtcMillis(Instant.parse("2026-08-15T12:00:00.1209Z")))
     }
+
+    @Test
+    fun exifInstantUsesTheOffsetOrElseTheZone() {
+        val stockholm = TimeZone.of("Europe/Stockholm")
+        assertEquals("2026-05-01T08:30:00Z", exifInstant("2026:05:01 10:30:00", "+02:00", TimeZone.UTC))
+        assertEquals("2026-05-01T08:30:00Z", exifInstant("2026:05:01 10:30:00", null, stockholm))
+        assertEquals(null, exifInstant("0000:00:00 00:00:00", null, stockholm))
+        assertEquals(null, exifInstant(null, null, stockholm))
+    }
 }

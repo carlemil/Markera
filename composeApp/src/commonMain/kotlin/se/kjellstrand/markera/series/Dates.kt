@@ -2,7 +2,10 @@ package se.kjellstrand.markera.series
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
 /**
@@ -50,4 +53,21 @@ fun isoUtcMillis(now: Instant = Clock.System.now()): String {
     val t = now.toLocalDateTime(TimeZone.UTC)
     return "${t.year.pad(4)}-${t.monthNumber.pad()}-${t.dayOfMonth.pad()}T" +
         "${t.hour.pad()}:${t.minute.pad()}:${t.second.pad()}.${(t.nanosecond / 1_000_000).pad(3)}Z"
+}
+
+/**
+ * A photo's EXIF `DateTimeOriginal` (`yyyy:MM:dd HH:mm:ss`) as an ISO instant, using
+ * its `OffsetTimeOriginal` (`+02:00`) when there is one and [zone] otherwise. Null
+ * for a missing or unreadable date (cameras write `0000:00:00 00:00:00` too).
+ */
+fun exifInstant(
+    dateTime: String?,
+    offset: String?,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+): String? = try {
+    val (date, time) = dateTime!!.trim().split(' ', limit = 2)
+    val local = LocalDateTime.parse(date.replace(':', '-') + "T" + time.trim())
+    (if (offset.isNullOrBlank()) local.toInstant(zone) else local.toInstant(UtcOffset.parse(offset.trim()))).toString()
+} catch (_: Exception) {
+    null
 }

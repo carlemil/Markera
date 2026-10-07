@@ -158,6 +158,17 @@ class SeriesRecorderTest {
     }
 
     @Test
+    fun anImportedPhotoIsSavedWithTheTimeItWasTaken() {
+        val recorder = recorder(stored = Caliber.MM9)
+        recorder.takenAt = "2026-05-01T08:30:00Z"
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+
+        assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
+        assertTrue(""""timestamp":"2026-05-01T08:30:00Z"""" in sentBody, sentBody)
+    }
+
+    @Test
     fun anInvalidOrDuplicateCaliberIsNotAdded() {
         val recorder = recorder(storedCustom = listOf(wadcutter))
 

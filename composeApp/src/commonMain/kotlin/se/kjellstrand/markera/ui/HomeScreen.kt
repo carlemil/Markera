@@ -27,6 +27,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
@@ -61,6 +65,10 @@ import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.ui.history.SeriesCard
 import se.kjellstrand.markera.ui.history.dayOrdinals
+import se.kjellstrand.markera.ui.markera.ImageSource
+import se.kjellstrand.markera.ui.markera.PickedImage
+import se.kjellstrand.markera.ui.markera.ScanChips
+import se.kjellstrand.markera.ui.markera.rememberImagePicker
 
 /** Start screen: free marking (standalone scanner) or competition marking. */
 @Composable
@@ -71,10 +79,16 @@ internal fun HomeScreen(
     onHistory: () -> Unit,
     onOpenSeries: (SeriesDto) -> Unit,
     onStatistics: () -> Unit,
+    /** The picked images and whether Auto import is on. */
+    onImport: (List<PickedImage>, Boolean) -> Unit,
     backendAuth: BackendAuth?,
     seriesServices: SeriesServices,
 ) {
     var showingHelp by remember { mutableStateOf(false) }
+    var showingImport by remember { mutableStateOf(false) }
+    // Read when the system picker returns, so it is the switch as the dialog was left.
+    var importAuto by remember { mutableStateOf(false) }
+    val pickImages = rememberImagePicker { onImport(it, importAuto) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         // No top bar here, so the menu floats in the top-left corner.
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -130,6 +144,9 @@ internal fun HomeScreen(
             }
             AppMenu(
                 items = listOf(
+                    MenuItem(Icons.Default.PhotoLibrary, stringResource(Res.string.import_images)) {
+                        showingImport = true
+                    },
                     MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) {
                         showingHelp = true
                     },
@@ -143,12 +160,25 @@ internal fun HomeScreen(
         }
     }
 
+    if (showingImport) {
+        ImportDialog(
+            signedIn = backendAuth != null,
+            onPick = { source, auto ->
+                showingImport = false
+                importAuto = auto
+                pickImages(source)
+            },
+            onDismiss = { showingImport = false },
+        )
+    }
+
     if (showingHelp) {
         HelpDialog(
             title = stringResource(Res.string.help_home_title),
             sections = listOf(
                 Res.string.help_home_how to Res.string.help_home_how_body,
                 Res.string.help_home_marking to Res.string.help_home_marking_body,
+                Res.string.help_home_import to Res.string.help_home_import_body,
                 Res.string.help_home_history to Res.string.help_home_history_body,
                 Res.string.help_home_stats to Res.string.help_home_stats_body,
                 Res.string.help_home_account to Res.string.help_home_account_body,
@@ -156,6 +186,53 @@ internal fun HomeScreen(
             onDismiss = { showingHelp = false },
         )
     }
+}
+
+/** The Auto import switch as last left, for the rest of the session. */
+private var autoImportChoice = false
+
+/**
+ * Before the system picker: where the images come from, Auto import (saving
+ * needs an account, so it is off and disabled signed out) and the caliber and
+ * tag the series get.
+ */
+@Composable
+private fun ImportDialog(signedIn: Boolean, onPick: (ImageSource, Boolean) -> Unit, onDismiss: () -> Unit) {
+    var auto by remember { mutableStateOf(autoImportChoice) }
+    val on = auto && signedIn
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.import_images)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                ScanChips()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().toggleable(on, enabled = signedIn, role = Role.Switch) {
+                        auto = it
+                        autoImportChoice = it
+                    },
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(Res.string.import_auto), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(if (signedIn) Res.string.import_auto_body else Res.string.import_auto_signed_out),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = on, onCheckedChange = null, enabled = signedIn)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onPick(ImageSource.GALLERY, on) }) { Text(stringResource(Res.string.import_gallery)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { onPick(ImageSource.FILES, on) }) { Text(stringResource(Res.string.import_files)) }
+        },
+    )
 }
 
 /** Markera-backend account: sign in to save scanned series, or sign out. */

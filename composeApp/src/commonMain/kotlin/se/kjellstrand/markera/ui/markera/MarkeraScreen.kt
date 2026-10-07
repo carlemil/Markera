@@ -49,6 +49,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,6 +65,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import org.jetbrains.compose.resources.getString
+import se.kjellstrand.markera.series.SaveStatus
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
@@ -85,15 +90,23 @@ import se.kjellstrand.markera.ui.SecondaryActionButton
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
  * the pickers. The detectors and frame source are hoisted by the caller (the
  * nav host) so they are shared with the competition wizard.
+ *
+ * With an [importQueue] (and an [ImportFrameSource]) it scans the picked images
+ * instead, one per turn: Save or Skip moves on; in auto mode a scan that scored
+ * is saved without stopping (see [importDecision]).
  */
 @Composable
 fun MarkeraScreen(
     frameSource: FrameSource = rememberFrameSource(),
     scanController: TargetScanController,
     onBack: (() -> Unit)? = null,
+    importQueue: ImportQueue<PickedImage>? = null,
+    signedIn: Boolean = true,
 ) {
-    val viewModel: MarkeraViewModelImpl = viewModel { MarkeraViewModelImpl() }
-    val snapshotVm: MarkeraSnapshotViewModel = viewModel { MarkeraSnapshotViewModel() }
+    // An import keeps its own pair, so a frame frozen in free marking never shows up in it.
+    val vmKey = importQueue?.let { "import" }
+    val viewModel: MarkeraViewModelImpl = viewModel(key = vmKey) { MarkeraViewModelImpl() }
+    val snapshotVm: MarkeraSnapshotViewModel = viewModel(key = vmKey) { MarkeraSnapshotViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val permission = rememberCameraPermission(frameSource)
@@ -159,20 +172,27 @@ fun MarkeraScreen(
     val onResumeLive: () -> Unit = {
         // Read the pickers before clearResults() wipes them.
         val picks = uiState.topScores
+        val scored = uiState.scores.isNotEmpty()
         edited = false
         snapshotVm.clear()
         viewModel.clearResults()
         // Leaving the frozen frame is what saves the scan, with the edited scores.
         recorder?.commit(picks)
         frameSource.onResumeLive()
+        importQueue?.next(if (scored && signedIn) ImportDecision.Save else ImportDecision.Skip)
     }
     // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
+    // In an import that is Skip: the next image.
     val discard: () -> Unit = {
         edited = false
         snapshotVm.clear()
         viewModel.clearResults()
         recorder?.clear()
         frameSource.onResumeLive()
+        importQueue?.next(ImportDecision.Skip)
+    }
+    if (importQueue != null && frameSource is ImportFrameSource && recorder != null) {
+        ImportRunner(importQueue, frameSource, scanController, viewModel, snapshotVm, recorder, signedIn, errorInference, onBack)
     }
     // Hand edits are work: throwing them away asks first.
     var confirmingReset by remember { mutableStateOf(false) }
@@ -268,10 +288,13 @@ fun MarkeraScreen(
             CameraPermissionPrompt(onGrantClick = permission.request)
         } else {
             val isFrozen = snapshotVm.snapshot != null
-            val processing = uiState.phase != ScanPhase.IDLE
+            // An auto import never stops at the results: they are not the user's to act on.
+            val processing = uiState.phase != ScanPhase.IDLE || importQueue?.auto == true
             Column(modifier = Modifier.fillMaxSize()) {
                 AppTopBar(
-                    title = stringResource(Res.string.app_name),
+                    title = importQueue?.let {
+                        stringResource(Res.string.import_progress, minOf(it.index + 1, it.items.size), it.items.size)
+                    } ?: stringResource(Res.string.app_name),
                     onBack = onBack,
                     menuItems = listOfNotNull(
                         MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
@@ -328,6 +351,7 @@ fun MarkeraScreen(
                     continuous = continuous,
                     onToggleContinuous = { continuous = it },
                     onContinuousHelp = { showingContinuousHelp = true },
+                    importing = importQueue != null,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }
@@ -415,6 +439,7 @@ private fun BottomArea(
     continuous: Boolean,
     onToggleContinuous: (Boolean) -> Unit,
     onContinuousHelp: () -> Unit,
+    importing: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
@@ -432,6 +457,8 @@ private fun BottomArea(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // Between two images (or waiting for a caliber): no camera to scan with.
+            !isFrozen && importing -> ScanChips()
             !isFrozen -> Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -473,7 +500,7 @@ private fun BottomArea(
                     }
                 }
             }
-            else -> ResultsContent(uiState, onResume, onReset, onSetScore, Modifier.fillMaxSize())
+            else -> ResultsContent(uiState, onResume, onReset, onSetScore, importing, Modifier.fillMaxSize())
         }
     }
 }
@@ -483,7 +510,7 @@ private fun BottomArea(
  * before a scan (and while one runs) instead of only after one.
  */
 @Composable
-private fun ScanChips() {
+internal fun ScanChips() {
     val recorder = LocalSeriesRecorder.current ?: return
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ChipTitle(stringResource(Res.string.badge_caliber)) { CaliberChip(recorder) }
@@ -557,8 +584,11 @@ private fun ResultsContent(
     onResume: () -> Unit,
     onReset: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
+    importing: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // In an import a rescan would find the same: throwing the scan away is skipping the image.
+    val resetText = stringResource(if (importing) Res.string.import_skip else Res.string.markera_reset)
     // No ring or centre: nothing was scored and nothing can be, so say so and offer only a rescan.
     if (uiState.ring == null || uiState.centre?.method.let { it == null || it == CentreMethod.NONE }) {
         Column(
@@ -572,7 +602,7 @@ private fun ResultsContent(
                 textAlign = TextAlign.Center,
             )
             PrimaryActionButton(
-                text = stringResource(Res.string.markera_rescan),
+                text = if (importing) resetText else stringResource(Res.string.markera_rescan),
                 icon = Icons.Default.PhotoCamera,
                 onClick = onReset,
             )
@@ -616,7 +646,7 @@ private fun ResultsContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SecondaryActionButton(
-                text = stringResource(Res.string.markera_reset),
+                text = resetText,
                 icon = Icons.Default.Refresh,
                 onClick = onReset,
             )
@@ -700,5 +730,68 @@ private fun WatchVerdict.upright(x: Int, y: Int): Offset {
         180 -> Offset(1 - u, 1 - w)
         270 -> Offset(w, 1 - u)
         else -> Offset(u, w)
+    }
+}
+
+/**
+ * Works [queue] through: each image on its turn is loaded, dated (its EXIF date
+ * becomes the series time) and scanned. In auto mode the result is then decided
+ * here, saved or held for review, and the next image follows; otherwise the
+ * results wait for Save or Skip. When the queue runs out: one summary, and back.
+ */
+@Composable
+private fun ImportRunner(
+    queue: ImportQueue<PickedImage>,
+    source: ImportFrameSource,
+    scanController: TargetScanController,
+    viewModel: MarkeraViewModelImpl,
+    snapshotVm: MarkeraSnapshotViewModel,
+    recorder: SeriesRecorder,
+    signedIn: Boolean,
+    errorMessage: String,
+    onBack: (() -> Unit)?,
+) {
+    val scope = rememberCoroutineScope()
+    val toast = LocalToast.current
+    LaunchedEffect(queue.pass, queue.index) {
+        val item = queue.current
+        if (item == null) {
+            // ponytail: waits for the last save only, so an earlier one landing late can still toast after this.
+            withTimeoutOrNull(10_000) { recorder.status.first { it != SaveStatus.Saving } }
+            toast(getString(Res.string.import_summary, queue.saved, queue.skipped))
+            onBack?.invoke()
+            return@LaunchedEffect
+        }
+        // A commit that waits for the caliber dialog would be dropped by the next scan: ask up front.
+        if (signedIn && recorder.caliber.value == Caliber.NONE) {
+            recorder.openCaliberDialog()
+            recorder.caliber.first { it != Caliber.NONE }
+        }
+        val loaded = item.load()
+        if (loaded == null) {
+            queue.next(ImportDecision.Skip)
+            return@LaunchedEffect
+        }
+        recorder.takenAt = loaded.takenAt
+        source.image = loaded.image
+        // A scan another screen left running still holds the detector.
+        while (!scanController.startScan(source, snapshotVm, viewModel, scope, errorMessage)) delay(100)
+        val state = viewModel.uiState.first { it.phase == ScanPhase.IDLE }
+        if (!queue.auto) return@LaunchedEffect
+        val decision = importDecision(true, state.scores.isNotEmpty(), recorder.caliber.value, signedIn)
+        if (decision == ImportDecision.Save) recorder.commit(state.topScores)
+        snapshotVm.clear()
+        viewModel.clearResults()
+        source.image = null
+        queue.next(decision)
+    }
+    // Leaving drops what is left, the frame on screen included.
+    DisposableEffect(queue) {
+        onDispose {
+            recorder.takenAt = null
+            recorder.clear()
+            snapshotVm.clear()
+            viewModel.clearResults()
+        }
     }
 }

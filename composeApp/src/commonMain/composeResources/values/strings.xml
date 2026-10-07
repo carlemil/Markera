@@ -339,4 +339,15 @@
     <string name="badge_caliber_short">Cal.</string>
     <string name="badge_tag_short">Tag</string>
     <string name="badge_total_short">Sum</string>
+    <string name="import_images">Import images</string>
+    <string name="import_gallery">Gallery</string>
+    <string name="import_files">Files</string>
+    <string name="import_auto">Auto import</string>
+    <string name="import_auto_body">Saves every image that scores without stopping; the ones that don’t are shown afterwards.</string>
+    <string name="import_auto_signed_out">Sign in to auto-save</string>
+    <string name="import_progress">Import %1$d / %2$d</string>
+    <string name="import_skip">Skip</string>
+    <string name="import_summary">%1$d saved, %2$d skipped</string>
+    <string name="help_home_import">Import images</string>
+    <string name="help_home_import_body">In the menu: score photos already on the phone, from the gallery or from files. Each image is scanned and its results shown, to save or skip. With Auto import on, every image that scores is saved on its own with the date the photo was taken; the rest are shown one by one afterwards.</string>
 </resources>

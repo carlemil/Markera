@@ -10,6 +10,7 @@ composeMultiplatform = "1.9.0"
 composeMaterialIcons = "1.7.3"
 kotlinxCoroutines = "1.10.2"
 cameraX = "1.4.1"
+exifinterface = "1.4.2"
 onnxruntimeAndroid = "1.29.0"
 mlkitTextRecognition = "16.0.1"
 ktor = "3.2.2"
@@ -37,6 +38,7 @@ compose-material-icons-extended = { group = "org.jetbrains.compose.material", na
 compose-ui-backhandler = { group = "org.jetbrains.compose.ui", name = "ui-backhandler", version.ref = "composeMultiplatform" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraX" }

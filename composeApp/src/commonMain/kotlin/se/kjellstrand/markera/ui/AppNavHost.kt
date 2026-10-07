@@ -43,6 +43,9 @@ import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.encodeSeriesJpeg
 import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.ui.markera.FrameSource
+import se.kjellstrand.markera.ui.markera.ImportFrameSource
+import se.kjellstrand.markera.ui.markera.ImportQueue
+import se.kjellstrand.markera.ui.markera.PickedImage
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.history.SeriesDetailScreen
@@ -79,6 +82,9 @@ sealed interface Screen {
      * [ids] — the list it was opened from, newest first — for the previous/next arrows.
      */
     data class SeriesDetail(val series: SeriesDto, val ids: List<Long> = emptyList()) : Screen
+
+    /** Picked images scanned one by one; the queue lives as long as the entry. */
+    class Import(val queue: ImportQueue<PickedImage>) : Screen
 
     /** The optional platform flow, if the host supplied one. */
     data object Competition : Screen
@@ -272,6 +278,7 @@ fun AppNavHost(
                 push(Screen.SeriesDetail(it, seriesServices.repository.series.value.map { s -> s.id }))
             },
             onStatistics = { push(Screen.Statistics) },
+            onImport = { images, auto -> push(Screen.Import(ImportQueue(images, auto))) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,
         )
@@ -280,6 +287,14 @@ fun AppNavHost(
             frameSource = frameSource,
             scanController = scanController,
             onBack = pop,
+        )
+
+        is Screen.Import -> MarkeraScreen(
+            frameSource = remember(screen) { ImportFrameSource() },
+            scanController = scanController,
+            onBack = pop,
+            importQueue = screen.queue,
+            signedIn = backendAuth != null,
         )
 
         // Both list screens read the cached flow; they only ask for a delta on open.
