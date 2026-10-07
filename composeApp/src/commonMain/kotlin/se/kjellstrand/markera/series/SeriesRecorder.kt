@@ -124,6 +124,12 @@ class SeriesRecorder(
         }
     }
 
+    /**
+     * When the frame was taken, if not now: an imported photo's EXIF date (ISO instant).
+     * Set by the import queue per image, null again when it is left.
+     */
+    var takenAt: String? = null
+
     fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage, geometry: GeometryDto?) {
         if (session.auth.value == null) {
             pending = null
@@ -131,7 +137,7 @@ class SeriesRecorder(
             return
         }
         // A fresh scan waits for its own commit.
-        pending = Pending(seriesRequest(scores, _caliber.value, geometry = geometry), image)
+        pending = Pending(seriesRequest(scores, _caliber.value, takenAt ?: nowIso(), geometry), image)
         _status.value = SaveStatus.Pending
     }
 
