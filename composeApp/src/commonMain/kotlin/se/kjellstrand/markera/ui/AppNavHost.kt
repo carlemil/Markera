@@ -74,8 +74,11 @@ sealed interface Screen {
     data object Settings : Screen
     data object Suggestion : Screen
 
-    /** One saved series, editable. Carries the DTO the history row already has. */
-    data class SeriesDetail(val series: SeriesDto) : Screen
+    /**
+     * One saved series, editable. Carries the DTO the history row already has, and
+     * [ids] — the list it was opened from, newest first — for the previous/next arrows.
+     */
+    data class SeriesDetail(val series: SeriesDto, val ids: List<Long> = emptyList()) : Screen
 
     /** The optional platform flow, if the host supplied one. */
     data object Competition : Screen
@@ -237,6 +240,8 @@ fun AppNavHost(
     val current = stack.last()
     val push: (Screen) -> Unit = { stack = stack + it }
     val pop: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) }
+    // Swaps the top entry, so stepping between series leaves one Back to the list.
+    val replace: (Screen) -> Unit = { stack = stack.dropLast(1) + it }
 
     BackHandler(enabled = stack.size > 1) { pop() }
 
@@ -262,7 +267,10 @@ fun AppNavHost(
             onFreeMarking = { push(Screen.FreeMarking) },
             onCompetition = competition?.let { { push(Screen.Competition) } },
             onHistory = { push(Screen.History) },
-            onOpenSeries = { push(Screen.SeriesDetail(it)) },
+            // From Home the arrows walk every series.
+            onOpenSeries = {
+                push(Screen.SeriesDetail(it, seriesServices.repository.series.value.map { s -> s.id }))
+            },
             onStatistics = { push(Screen.Statistics) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,
@@ -279,7 +287,7 @@ fun AppNavHost(
             services = seriesServices,
             onBack = pop,
             shareFile = app.shareFile,
-            onOpen = { push(Screen.SeriesDetail(it)) },
+            onOpen = { series, ids -> push(Screen.SeriesDetail(series, ids)) },
             onMarkera = { push(Screen.FreeMarking) },
         )
 
@@ -293,11 +301,16 @@ fun AppNavHost(
 
         Screen.Suggestion -> SuggestionScreen(api = seriesServices.api, onBack = pop)
 
-        is Screen.SeriesDetail -> SeriesDetailScreen(
-            initial = screen.series,
-            services = seriesServices,
-            onBack = pop,
-        )
+        // Keyed so every bit of screen state starts fresh when the arrows step on.
+        is Screen.SeriesDetail -> key(screen.series.id) {
+            SeriesDetailScreen(
+                initial = screen.series,
+                services = seriesServices,
+                onBack = pop,
+                ids = screen.ids,
+                onOpen = { replace(Screen.SeriesDetail(it, screen.ids)) },
+            )
+        }
 
         Screen.Competition -> competition!!.content(frameSource, scanController, pop)
     }

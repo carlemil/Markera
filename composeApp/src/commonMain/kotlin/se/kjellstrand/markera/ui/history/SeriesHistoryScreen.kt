@@ -83,7 +83,8 @@ fun SeriesHistoryScreen(
     services: SeriesServices,
     onBack: () -> Unit,
     shareFile: suspend (path: String) -> Unit,
-    onOpen: (SeriesDto) -> Unit = {},
+    /** The tapped series plus the filtered list's ids, newest first, for the Serie page's arrows. */
+    onOpen: (SeriesDto, List<Long>) -> Unit = { _, _ -> },
     onMarkera: () -> Unit = {},
 ) {
     val auth by services.session.auth.collectAsState()
@@ -256,7 +257,7 @@ fun SeriesHistoryScreen(
                                             series = item,
                                             ordinal = ordinals[item.id] ?: 1,
                                             services = services,
-                                            onClick = { onOpen(item) },
+                                            onClick = { onOpen(item, shown.map { it.id }) },
                                             onLongPress = { pending = item },
                                         )
                                     }

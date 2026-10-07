@@ -21,7 +21,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -119,10 +124,20 @@ internal const val PHOTO_MAX_DIM = 1536
  * a snackbar offers to undo it.
  */
 @Composable
-fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () -> Unit) {
+fun SeriesDetailScreen(
+    initial: SeriesDto,
+    services: SeriesServices,
+    onBack: () -> Unit,
+    // The list this series was opened from (newest first) and how to step to another.
+    ids: List<Long> = emptyList(),
+    onOpen: (SeriesDto) -> Unit = {},
+) {
     // Looked up in the cache by id, so an edit made anywhere else shows here.
     val cached by services.repository.series.collectAsState()
     val series = cached.firstOrNull { it.id == initial.id } ?: initial
+    val (newerId, olderId) = neighbours(ids, series.id, cached.mapTo(mutableSetOf()) { it.id })
+    val newer = cached.firstOrNull { it.id == newerId }
+    val older = cached.firstOrNull { it.id == olderId }
     val toast = LocalToast.current
     val snackbar = LocalSnackbar.current
     val scope = rememberCoroutineScope()
@@ -233,10 +248,12 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // The arrows are siblings of the photo, not children: photoGestures
+                // sees even consumed taps, so a button inside it would also add a hole.
+                Box(modifier = Modifier.fillMaxWidth().aspectRatio(1f)) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
+                        .fillMaxSize()
                         // Pinch to zoom, drag a marker to move it, tap empty
                         // target to add a hole — the same loop the scan screen
                         // uses (deleting here is the row's own button). Without
@@ -332,6 +349,23 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
+                }
+                newer?.let {
+                    SeriesArrow(
+                        icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        description = stringResource(Res.string.detail_previous_series),
+                        onClick = { onOpen(it) },
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    )
+                }
+                older?.let {
+                    SeriesArrow(
+                        icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        description = stringResource(Res.string.detail_next_series),
+                        onClick = { onOpen(it) },
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                    )
+                }
                 }
 
                 Row(
@@ -476,6 +510,20 @@ fun SeriesDetailScreen(initial: SeriesDto, services: SeriesServices, onBack: () 
                 }
             },
         )
+    }
+}
+
+/** A previous/next button over the photo, see-through so the target still shows. */
+@Composable
+private fun SeriesArrow(icon: ImageVector, description: String, onClick: () -> Unit, modifier: Modifier) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        modifier = modifier.padding(8.dp),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+        ),
+    ) {
+        Icon(imageVector = icon, contentDescription = description)
     }
 }
 
