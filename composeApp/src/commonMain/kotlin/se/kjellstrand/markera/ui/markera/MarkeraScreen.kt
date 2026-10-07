@@ -486,8 +486,22 @@ private fun BottomArea(
 private fun ScanChips() {
     val recorder = LocalSeriesRecorder.current ?: return
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        CaliberChip(recorder)
-        TagChip(recorder)
+        ChipTitle(stringResource(Res.string.badge_caliber)) { CaliberChip(recorder) }
+        ChipTitle(stringResource(Res.string.badge_tag)) { TagChip(recorder) }
+    }
+}
+
+/** A small title above a scan chip, as the result pill labels the same values. */
+@Composable
+private fun ChipTitle(title: String, chip: @Composable () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        chip()
     }
 }
 
