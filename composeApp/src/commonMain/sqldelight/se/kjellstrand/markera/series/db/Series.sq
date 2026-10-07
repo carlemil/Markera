@@ -1,4 +1,4 @@
--- The local read cache for the Markera backend (PLAN task 57b). `json` is the
+-- The local read cache for the Markera backend. `json` is the
 -- whole SeriesDto; `timestamp` beside it only orders the rows without decoding. `sync` holds the one `updatedAt` stamp the delta refresh sends back,
 -- keyed by the user it belongs to so another login is detected and wiped.
 
