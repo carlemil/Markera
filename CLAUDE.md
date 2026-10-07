@@ -181,7 +181,7 @@ token (`POST /auth/google|apple`) for an opaque session token, `POST/GET /series
 `POST /auth/dev` exists only with `DEV_AUTH=true`.
 It runs in Docker on the Mac mini (`ssh macmini`, Colima, `~/source/Markera/server`,
 bound to 127.0.0.1:**8090** — 8080 there belongs to another site — and published as `https://markera.duckdns.org` by the Mac's host Caddy). `PLAN.md` holds the design
-decisions and the still-open user actions (Google/Apple client ids).
+decisions and the still-open user actions.
 
 App side: `series/` (commonMain, JVM-unit-tested) has `Caliber`, `SeriesApi`,
 `BackendSessionRepository` and `SeriesRecorder`. `TargetScanController.onSeriesDetected`
@@ -198,7 +198,7 @@ The history screen (`ui/history/`) lists series with thumbnails.
 `Screen.SeriesDetail` carries the walk order (`ids`, the filtered list it was opened from) and its
 previous/next arrows step with `replace`, so Back still returns to the list.
 
-**Local cache (PLAN task 57b).** Nothing fetches per screen any more: `SeriesRepository`
+**Local cache.** Nothing fetches per screen any more: `SeriesRepository`
 (commonMain, hoisted in `AppNavHost` beside `SeriesServices`) is the single source —
 `series: StateFlow<List<SeriesDto>>` read from **SQLDelight** (`series` + `sync` tables,
 `commonMain/sqldelight/.../series/db/Series.sq`, the whole `SeriesDto` kept as `json`).

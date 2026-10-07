@@ -7,7 +7,7 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 
 /**
- * The two CSVs of the Historik export (PLAN task 58). Semicolon-separated with
+ * The two CSVs of the Historik export. Semicolon-separated with
  * CRLF ends so Excel on a Swedish machine opens them directly; numbers are
  * Kotlin's own `toString`, i.e. always a decimal point, never a locale comma.
  * Nulls are empty cells.
