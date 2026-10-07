@@ -369,7 +369,7 @@ fun SeriesDetailScreen(
                         description = stringResource(Res.string.detail_previous_series),
                         enabled = saving == 0,
                         onClick = { onOpen(it) },
-                        modifier = Modifier.align(Alignment.CenterStart),
+                        modifier = Modifier.align(Alignment.BottomStart),
                     )
                 }
                 older?.let {
@@ -378,7 +378,7 @@ fun SeriesDetailScreen(
                         description = stringResource(Res.string.detail_next_series),
                         enabled = saving == 0,
                         onClick = { onOpen(it) },
-                        modifier = Modifier.align(Alignment.CenterEnd),
+                        modifier = Modifier.align(Alignment.BottomEnd),
                     )
                 }
                 }
@@ -528,7 +528,10 @@ fun SeriesDetailScreen(
     }
 }
 
-/** A previous/next button over the photo, see-through so the target still shows. */
+/**
+ * A previous/next button in a bottom corner of the photo, the one padding giving
+ * the same gap to the bottom and the side; see-through so the target still shows.
+ */
 @Composable
 private fun SeriesArrow(
     icon: ImageVector,
