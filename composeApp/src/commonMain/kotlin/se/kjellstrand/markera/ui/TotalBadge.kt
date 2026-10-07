@@ -48,7 +48,8 @@ fun TotalBadge(total: Int) {
 /**
  * The one result header: caliber | tag | total in one pill, shared by the scan
  * screen, wizard, Serie page and Historik. A null [caliber] leaves only the total;
- * a null click leaves that segment untappable; [compact] is the list-row size.
+ * a null click leaves that segment untappable; [compact] is the list-row size,
+ * titling caliber/tag Cal./Tag instead of the full words (the total is Sum at both sizes).
  */
 @Composable
 fun TotalBadge(
@@ -67,13 +68,13 @@ fun TotalBadge(
             if (caliber != null) {
                 PillSegment(
                     caliber.takeUnless { it.isBlank() || it == Caliber.NONE.label } ?: "–", onCaliberClick, compact,
-                    caption = if (compact) stringResource(Res.string.badge_caliber_short) else null,
+                    caption = stringResource(if (compact) Res.string.badge_caliber_short else Res.string.badge_caliber),
                 )
                 VerticalDivider()
                 // Capped: a 32-character tag must not push the total off the row.
                 PillSegment(
                     tag?.takeUnless { it.isBlank() } ?: "–", onTagClick, compact, if (compact) 96.dp else 120.dp,
-                    caption = if (compact) stringResource(Res.string.badge_tag_short) else null,
+                    caption = stringResource(if (compact) Res.string.badge_tag_short else Res.string.badge_tag),
                 )
             }
             Box(
@@ -84,8 +85,8 @@ fun TotalBadge(
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Only Historik's compact rows label the segments.
-                    if (compact) PillCaption(
+                    // Labelled whenever caliber and tag are: a bare total needs no title.
+                    if (caliber != null) PillCaption(
                         stringResource(Res.string.badge_total_short),
                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                     )
