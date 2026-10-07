@@ -4,6 +4,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import se.kjellstrand.markera.series.byHand
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -365,6 +367,7 @@ fun SeriesDetailScreen(
                         description = stringResource(Res.string.detail_previous_series),
                         enabled = saving == 0,
                         onClick = { onOpen(it) },
+                        corner = Alignment.BottomStart,
                         modifier = Modifier.align(Alignment.BottomStart),
                     )
                 }
@@ -374,6 +377,7 @@ fun SeriesDetailScreen(
                         description = stringResource(Res.string.detail_next_series),
                         enabled = saving == 0,
                         onClick = { onOpen(it) },
+                        corner = Alignment.BottomEnd,
                         modifier = Modifier.align(Alignment.BottomEnd),
                     )
                 }
@@ -527,6 +531,8 @@ fun SeriesDetailScreen(
 /**
  * A previous/next button in a bottom corner of the photo, the one padding giving
  * the same gap to the bottom and the side; see-through so the target still shows.
+ * The corner square around it takes the tap too (always, even while saving), so
+ * a near miss steps the series instead of falling through and placing a hole.
  */
 @Composable
 private fun SeriesArrow(
@@ -534,19 +540,32 @@ private fun SeriesArrow(
     description: String,
     enabled: Boolean,
     onClick: () -> Unit,
+    corner: Alignment,
     modifier: Modifier,
 ) {
-    FilledTonalIconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.padding(8.dp),
-        colors = IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-        ),
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .size(ARROW_TOUCH_SIZE)
+            .clickable(interactionSource = interaction, indication = null) { if (enabled) onClick() },
+        contentAlignment = corner,
     ) {
-        Icon(imageVector = icon, contentDescription = description)
+        FilledTonalIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.padding(8.dp),
+            interactionSource = interaction,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+            ),
+        ) {
+            Icon(imageVector = icon, contentDescription = description)
+        }
     }
 }
+
+/** The arrow's corner tap target: the button (40 dp + 8 dp gap) plus 40 dp of slop inwards. */
+private val ARROW_TOUCH_SIZE = 96.dp
 
 /**
  * One hole: its letter + what the detector said, the editable score, the

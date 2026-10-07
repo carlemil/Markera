@@ -42,6 +42,9 @@ import se.kjellstrand.markera.ui.TotalBadge
 /** The list thumbnail is ~115 dp square; the stored frame is ~3000², so subsample hard. */
 private const val THUMB_MAX_DIM = 384
 
+/** Score boxes on a card; the Serie page shows every hole. */
+private const val CARD_HITS = 5
+
 @Composable
 internal fun SeriesCard(
     series: SeriesDto,
@@ -103,7 +106,13 @@ internal fun SeriesCard(
                 )
                 // Display only: the card itself opens the Serie page, where these are edited.
                 // Orange like the photo's hand-placed marker: what the user changed.
-                if (series.holes.isNotEmpty()) ScoreMiniRow(series.scorePicks(), manual = series.scorePicksByHand())
+                // At most the five best (scorePicks is best first), so a card keeps one row.
+                if (series.holes.isNotEmpty()) {
+                    ScoreMiniRow(
+                        series.scorePicks().take(CARD_HITS),
+                        manual = series.scorePicksByHand().take(CARD_HITS),
+                    )
+                }
                 TotalBadge(series.total(), series.caliber, series.tag, compact = true)
             }
         }
