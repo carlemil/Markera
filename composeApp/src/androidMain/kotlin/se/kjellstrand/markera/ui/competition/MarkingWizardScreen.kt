@@ -68,6 +68,9 @@ import se.kjellstrand.markera.ui.markera.ScoreMiniRow
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanner
+import se.kjellstrand.markera.ui.markera.confidentSlots
+import se.kjellstrand.markera.ui.markera.holeLetter
+import se.kjellstrand.markera.ui.markera.mergePicks
 import se.kjellstrand.markera.ui.TotalBadge
 import se.kjellstrand.markera.ui.markera.rememberCameraPermission
 import se.kjellstrand.markera.webshooter.MarkingLogic
@@ -124,11 +127,18 @@ fun MarkingWizardScreen(
     LaunchedEffect(state.step) {
         (state.step as? LaneStep.Confirm)?.let { confirmedShots = it.shots }
     }
+    // A scan can find more holes than the lane's five: Confirm shows the five most
+    // confident ([scanSlots], hole indices) and [scanPicks] keeps every hole's pick,
+    // so the confirmed values go back onto the right holes for personal history.
+    var scanSlots by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var scanPicks by remember { mutableStateOf<List<Int>>(emptyList()) }
     // Back to a live viewfinder; [save] the scan we are leaving behind (moving
     // on to another lane) or drop it (a rescan of this one).
     val resetScanner = { save: Boolean ->
-        val picks = confirmedShots
+        val picks = confirmedShots?.let { mergePicks(scanPicks, scanSlots, it) }
         confirmedShots = null
+        scanSlots = emptyList()
+        scanPicks = emptyList()
         snapshotVm.clear()
         markeraVm.clearResults()
         if (save && picks != null) recorder?.commit(picks) else recorder?.clear()
@@ -154,7 +164,12 @@ fun MarkingWizardScreen(
             markeraState.error == null &&
             markeraState.imageWidth > 0
         ) {
-            wizardVm.onScanComplete(markeraState.topScores)
+            val holes = markeraState.scores.size
+            val slots = confidentSlots(markeraState.detections.take(holes), MarkingWizardViewModel.SUPPORTED_SHOTS)
+            scanSlots = slots
+            scanPicks = markeraState.topScores.take(holes)
+            val prefill = slots.map { markeraState.topScores[it] }
+            wizardVm.onScanComplete(prefill + List(MarkingWizardViewModel.SUPPORTED_SHOTS - prefill.size) { 0 })
         }
     }
 
@@ -254,6 +269,7 @@ fun MarkingWizardScreen(
                         state = state,
                         wizardVm = wizardVm,
                         processing = markeraState.phase != ScanPhase.IDLE,
+                        confirmLetters = scanSlots.map(::holeLetter),
                         onScan = startScan,
                         onRescan = {
                             resetScanner(false)
@@ -371,6 +387,8 @@ private fun StepContent(
     state: WizardUiState,
     wizardVm: MarkingWizardViewModel,
     processing: Boolean,
+    /** The photo's key letters of the holes Confirm was prefilled from. */
+    confirmLetters: List<String>,
     onScan: () -> Unit,
     onRescan: () -> Unit,
 ) {
@@ -411,6 +429,7 @@ private fun StepContent(
                 ScorePickerHorizontalRow(
                     values = step.shots,
                     onValueChange = wizardVm::updateShot,
+                    letters = confirmLetters,
                 )
                 if (state.saveError) {
                     Text(

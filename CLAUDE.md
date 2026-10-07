@@ -282,7 +282,9 @@ Every UI string lives in `composeResources`: English is the default `values/stri
 Swedish is `values-sv/` — add each new key to both (iOS: `CFBundleLocalizations` in
 `project.yml` + `sv.lproj/InfoPlist.strings`). Caliber labels stay untranslated (stored values).
 `topScores` are picker indices 0–10
-plus 11 = inner-X. Theme is a green-accented dark or light scheme (Settings; no dynamic color); photo overlays keep fixed colours in both.
+plus 11 = inner-X, one per hole and at least five; a series has no hole cap (the detector keeps
+every box over its confidence threshold), the score rows show five a row and wrap the rest, and the
+competition wizard prefills its five boxes from the five most confident holes (`confidentSlots`). Theme is a green-accented dark or light scheme (Settings; no dynamic color); photo overlays keep fixed colours in both.
 Overlay text is drawn with `TextMeasurer` (Skia on iOS, so the two platforms render alike);
 back navigation is Compose's common `BackHandler`; toasts are one `SnackbarHost` behind
 `LocalToast`.

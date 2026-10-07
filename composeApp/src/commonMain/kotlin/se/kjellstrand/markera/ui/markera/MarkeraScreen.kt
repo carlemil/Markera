@@ -141,21 +141,14 @@ fun MarkeraScreen(
     // keeps a mis-tap next to a marked hole from doubling it), drag moves one,
     // long press removes one. Each edit re-publishes the pending series.
     val recorder = LocalSeriesRecorder.current
-    val toast = LocalToast.current
     val haptics = LocalHapticFeedback.current
-    val seriesFull = stringResource(Res.string.markera_series_full)
     val editing = remember(scanController) {
         HoleEditing(
             add = { x, y, reach ->
-                // A sixth tap would be dropped without a word: say why instead.
-                if (viewModel.uiState.value.scores.size >= SCORE_PICKER_COUNT) {
-                    toast(seriesFull)
-                } else {
-                    // Read at tap time, so the remembered lambda sees the current caliber.
-                    val caliber = recorder?.caliber?.value ?: Caliber.NONE
-                    edited = true
-                    scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
-                }
+                // Read at tap time, so the remembered lambda sees the current caliber.
+                val caliber = recorder?.caliber?.value ?: Caliber.NONE
+                edited = true
+                scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
             },
             move = { i, x, y ->
                 edited = true

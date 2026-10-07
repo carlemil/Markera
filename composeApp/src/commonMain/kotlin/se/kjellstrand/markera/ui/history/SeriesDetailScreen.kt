@@ -97,7 +97,6 @@ import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.customCalibers
 import se.kjellstrand.markera.ui.TotalBadge
-import se.kjellstrand.markera.ui.markera.SCORE_PICKER_COUNT
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.ui.markera.ScoreBox
 import se.kjellstrand.markera.ui.markera.holeLetter
@@ -304,13 +303,10 @@ fun SeriesDetailScreen(
                                 }
                             },
                             onAdd = { x, y, _ ->
-                                // A series is five shots: past that a tap adds nothing.
-                                if (holes.value.size < SCORE_PICKER_COUNT) {
-                                    geometry?.let {
-                                        holes.value =
-                                            holes.value.withNewHole(x.toDouble(), y.toDouble(), it, caliber)
-                                        commit()
-                                    }
+                                geometry?.let {
+                                    holes.value =
+                                        holes.value.withNewHole(x.toDouble(), y.toDouble(), it, caliber)
+                                    commit()
                                 }
                             },
                             // One save per drag, when the finger lifts.

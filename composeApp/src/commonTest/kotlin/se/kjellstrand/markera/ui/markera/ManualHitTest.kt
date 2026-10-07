@@ -2,10 +2,8 @@ package se.kjellstrand.markera.ui.markera
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.FittedEllipse
@@ -67,14 +65,33 @@ class ManualHitTest {
     }
 
     @Test
-    fun addManualHitStopsAtFiveHoles() {
+    fun moreThanFiveHolesGetAPickerEachAndASixthTapAdds() {
         val vm = MarkeraViewModelImpl()
-        vm.onHolesDetected(List(5) { box(it * 100f, 0f, 10f) }, List(5) { hit(ring = 9) })
+        vm.onHolesDetected(List(6) { box(it * 100f, 0f, 10f) }, List(6) { hit(ring = 9) })
+        assertEquals(List(6) { 9 }, vm.uiState.value.topScores)
 
-        assertFalse(vm.addManualHit(box(900f, 900f, 10f), hit(ring = 10, manual = true)))
+        vm.addManualHit(box(900f, 900f, 10f), hit(ring = 10, manual = true))
 
-        assertEquals(5, vm.uiState.value.scores.size)
-        assertEquals(listOf(9, 9, 9, 9, 9), vm.uiState.value.topScores)
+        assertEquals(7, vm.uiState.value.scores.size)
+        assertEquals(listOf(10, 9, 9, 9, 9, 9, 9), vm.uiState.value.topScores)
+    }
+
+    @Test
+    fun theWizardTakesTheFiveMostConfidentHolesInHoleOrder() {
+        val confs = listOf(0.9f, 0.4f, 1f, 0.5f, 0.8f, 0.6f, 0.7f)
+        val dets = confs.map { Detection(0f, 0f, 1f, 1f, it) }
+        // The hand-placed hole (conf 1) ranks first; 0.4 and 0.5 drop out.
+        assertEquals(listOf(0, 2, 4, 5, 6), confidentSlots(dets, 5))
+        assertEquals(listOf(0, 1), confidentSlots(dets.take(2), 5))
+    }
+
+    @Test
+    fun confirmedValuesLandOnTheirHolesAndTheRestKeepTheDetectorsScore() {
+        val all = listOf(10, 9, 9, 8, 8, 7, 6)
+        val merged = mergePicks(all, slots = listOf(0, 2, 4, 5, 6), confirmed = listOf(11, 9, 7, 7, 5))
+        assertEquals(listOf(11, 9, 9, 8, 7, 7, 5), merged)
+        // Five holes or fewer: the confirmed row is the series, typed extras included.
+        assertEquals(listOf(10, 9, 0, 0, 3), mergePicks(listOf(10, 9), listOf(0, 1), listOf(10, 9, 0, 0, 3)))
     }
 
     @Test
@@ -84,7 +101,7 @@ class ManualHitTest {
         assertEquals(listOf(9, 0, 0, 0, 0), vm.uiState.value.topScores)
 
         val added = box(50f, 50f, 10f)
-        assertTrue(vm.addManualHit(added, hit(ring = 10, inner = true, manual = true)))
+        vm.addManualHit(added, hit(ring = 10, inner = true, manual = true))
 
         assertEquals(2, vm.uiState.value.scores.size)
         // The inner X sorts ahead of the 9 — holes and pickers both.
@@ -168,12 +185,12 @@ class ManualHitTest {
     }
 
     @Test
-    fun removingAHolePullsTheNextOneIntoTheLastPickerSlot() {
+    fun removingAHoleClosesTheGapInThePickers() {
         val vm = MarkeraViewModelImpl()
         val six = List(6) { box(it * 100f, 0f, 10f) }
         // Fed in any order, the results come out highest first.
         vm.onHolesDetected(six, List(5) { hit(ring = 5 + it) } + hit(ring = 10, inner = true))
-        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 9, 8, 7, 6), vm.uiState.value.topScores)
+        assertEquals(listOf(SCORE_PICKER_INNER_TEN, 9, 8, 7, 6, 5), vm.uiState.value.topScores)
 
         vm.removeHit(2) // the 8
 
@@ -182,7 +199,7 @@ class ManualHitTest {
     }
 
     @Test
-    fun removingAHoleBeyondThePickersLeavesThemAlone() {
+    fun pickersShrinkWithTheHolesButNeverBelowFive() {
         val vm = MarkeraViewModelImpl()
         val seven = List(7) { box(it * 100f, 0f, 10f) }
         vm.onHolesDetected(seven, List(7) { hit(ring = 6) })
@@ -191,7 +208,12 @@ class ManualHitTest {
 
         assertEquals(6, vm.uiState.value.scores.size)
         assertEquals(6, vm.uiState.value.detections.size)
-        assertEquals(List(5) { 6 }, vm.uiState.value.topScores)
+        assertEquals(List(6) { 6 }, vm.uiState.value.topScores)
+
+        vm.removeHit(0)
+        vm.removeHit(0)
+
+        assertEquals(listOf(6, 6, 6, 6, 0), vm.uiState.value.topScores)
     }
 
     private fun box(cx: Float, cy: Float, side: Float) =

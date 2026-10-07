@@ -5,7 +5,6 @@ import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.DigitDetection
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.vision.SHOTS_PER_SERIES
 
 data class MarkeraUiState(
     val detections: List<Detection> = emptyList(),
@@ -13,7 +12,7 @@ data class MarkeraUiState(
     val centre: CentreEstimate? = null,
     /** The 6/7 ring, the probe-disk ellipse from `fit67Ring`; null when that was implausible. */
     val ring: FittedEllipse? = null,
-    /** Per-hole ring scores, inner-X first; the first five fill the pickers. */
+    /** Per-hole ring scores, inner-X first; hole `i` fills picker `i`. */
     val scores: List<HitScore> = emptyList(),
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
@@ -22,8 +21,8 @@ data class MarkeraUiState(
     /**
      * Top-hit scores in descending order. Each value is a picker
      * index in [0..11], where 0..10 are ring numbers and 11 represents
-     * the inner-ten ("X"). Defaults to zeros so the pickers always have
-     * something to display.
+     * the inner-ten ("X"). One per hole, zero-padded to at least
+     * [SCORE_PICKER_COUNT] so the pickers always have something to display.
      */
     val topScores: List<Int> = List(SCORE_PICKER_COUNT) { 0 },
 )
@@ -35,7 +34,8 @@ data class MarkeraUiState(
  */
 enum class ScanPhase { IDLE, GEOMETRY, HOLES }
 
-const val SCORE_PICKER_COUNT = SHOTS_PER_SERIES
+/** The boxes always shown: the UI is laid out for a five-shot series; more holes wrap. */
+const val SCORE_PICKER_COUNT = 5
 const val SCORE_PICKER_INNER_TEN = 11
 val SCORE_PICKER_LABELS: List<String> =
     (0..10).map { it.toString() } + "X"
