@@ -32,10 +32,12 @@ For each captured frame the app:
 1. **Detects the bullet holes** — a YOLOv8 ONNX model.
 2. **Finds the centre** — OCRs the ring digits and intersects the 6–9 digit rows.
 3. **Locates the 6/7 ring** — four probe disks, started where the digits predict
-   the boundary, settle on the black→white rim and an ellipse goes through them,
-   giving the perspective-tilted ellipse (scale + perspective). There is no
-   fallback: if that ellipse is implausible the scan shows no ring and no scores.
-4. **Scores each hole** — undoes the perspective with the ellipse, measures the
+   the boundary, and settle on the black→white rim. They are the images of four
+   known points on the target, so they pin down the full perspective map
+   (a homography), and the 6/7 ellipse is that map's image of the 100 mm circle.
+   There is no fallback: if that ellipse is implausible the scan shows no ring
+   and no scores.
+4. **Scores each hole** — undoes the perspective through the homography, measures the
    distance from the centre in mm against the target spec, and assigns a ring
    with edge gauging. The top hits pre-fill the five score pickers, each hole is
    labelled with its value, and the series total is shown.
@@ -143,8 +145,11 @@ side's own digits predict (so a tilted target's near side starts further out).
 A 50 px disk on each start counts dark pixels (Otsu). A disk centred on the rim
 is very slightly more light than dark, because the black disk curves away. Each
 disk steps out or in by the offset the ratio implies, until it stops moving
-(travel capped at one ring width), and an ellipse goes exactly through the four
-final centres.
+(travel capped at one ring width). The four final centres are the photo's image
+of the target points (±100, 0) and (0, ±100) mm, so a homography (DLT) maps them
+exactly, and the 6/7 ellipse is that homography's image of the 100 mm circle
+(an ellipse through the four probes via conjugate diameters only if that is
+degenerate).
 
 **Why it works:** it only needs the local rim at four points the digits already
 pin down, so interior pasters, other printed rings and the paper edge don't
@@ -154,14 +159,28 @@ no ring.
 
 ### Automatic scoring from the geometry — works, in use
 
-With the centre, the 6/7 ellipse, and the hole boxes, each hole is scored: rotate
-its offset onto the ellipse axes and stretch the short axis to undo perspective,
-convert pixels→mm against the spec (black 6/7 edge = 100 mm radius, a ring every
+With the centre, the 6/7 ellipse, and the hole boxes, each hole is scored: map
+it through the full perspective (`TargetPlane`) into target mm, measured against
+the spec (black 6/7 edge = 100 mm radius, a ring every
 25 mm out to ring 1 at 250 mm, inner-ten within 12.5 mm), and **gauge by the
 hole's edge** — a shot whose edge breaks a line counts the higher ring. The top
 hits (inner-X first, then highest ring, then nearest) pre-fill the five pickers
 (still editable), each hole is labelled with its value above its box, and the
-series total is shown. **Status — in use.**
+series total is shown. The rings drawn on the photo come from the same map, so
+what is drawn and what is scored can't disagree. **Status — in use.**
+
+**What changed (and why):** until 2026-10-06 the un-projection was a
+rotate-and-stretch about the centre (weak perspective): turn the offset onto the
+ellipse axes and stretch the short axis. That ignores that a tilted camera slides
+each ring's ellipse centre towards the near side, more the bigger the ring (about
+radius²), so the outer rings drawn in Historik drifted off the printed lines and
+far-out holes were measured slightly wrong. Now it is a true homography: new
+scans get it straight from the four probes; older stored series (only the
+ellipse + centre were saved) recover it from the centre's polar line with respect
+to the ellipse, which is the target's vanishing line. Checked on the phone with
+`BlackRing67Test.probeRings`: the outer rings now sit on the printed lines.
+Stored scores of old series are left as they were; the rotate-and-stretch stays
+only as the fallback when no plane can be built (centre outside the ellipse).
 
 ## Technical overview
 

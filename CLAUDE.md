@@ -122,7 +122,9 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    fallback: an implausible ellipse (checks include a size check against the
    `fit67RingFromDigits` median-radius seed) means no ring, so no scores — the user
    rescans or places holes by hand. This `FittedEllipse` supplies scale + perspective.
-4. **Score** — `scoreHits` un-projects each hole via the ellipse, converts px→mm against
+4. **Score** — `scoreHits` un-projects each hole through `TargetPlane` (a full
+   homography from the four probes, or from the ellipse + the centre's polar line
+   for old series; the drawn rings use the same map), converts px→mm against
    the fixed target spec (black 6/7 edge = 100 mm, rings every 25 mm, inner-X ≤ 12.5 mm),
    and assigns a ring with edge gauging. Results pre-fill the editable pickers.
 
