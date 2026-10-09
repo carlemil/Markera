@@ -48,7 +48,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Users",
                 """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
-                    """<label><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
+                    """<label style="margin-left:16px"><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
             )
@@ -664,12 +664,12 @@ Array.from(heads).forEach((h, c) => h.onclick = () => {
     return dir * (n ? x - y : x.localeCompare(y));
   }).forEach(r => tb.appendChild(r));
 });
-const hide = document.getElementById('hide-empty');
+const hide = document.getElementById('hide-empty'), sc = Array.from(heads).findIndex(h => h.textContent === 'series');
 const apply = () => {
   const f = inputs.map(i => i.value.trim().toLowerCase());
   Array.from(tb.rows).forEach(r =>
     r.hidden = !f.every((v, c) => !v || text(r, c).toLowerCase().includes(v))
-      || (hide.checked && text(r, 4) === '0'));
+      || (hide.checked && text(r, sc) === '0'));
 };
 t.tHead.addEventListener('input', apply);
 hide.onchange = () => { try { localStorage.hideEmpty = hide.checked ? '1' : '' } catch (e) {} apply(); };
