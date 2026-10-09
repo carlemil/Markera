@@ -1004,6 +1004,15 @@ class ApiTest {
     }
 
     @Test
+    fun adminUsersPageCanSortAndFilter() = apiTest(adminPassword = ADMIN_PW) { client ->
+        client.devAuth("me")
+        val users = client.admin("/admin").bodyAsText()
+        for (c in 0..4) assertTrue("""<input data-col="$c" size="8">""" in users, users)
+        assertTrue("""<tr class="sortable">""" in users, users)
+        assertTrue("<script>" in users && "localeCompare" in users, users)
+    }
+
+    @Test
     fun adminShowsTheLoginNameFormatsNumbersAndTimestamps() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("alice")
         val id = client.createSeries(

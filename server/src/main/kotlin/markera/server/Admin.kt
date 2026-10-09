@@ -47,7 +47,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Users",
                 """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
-                    table(listOf("id", "provider", "subject", "name", "series"), rows),
+                    usersTable(listOf("id", "provider", "subject", "name", "series"), rows) +
+                    "<script>$USERS_JS</script>",
             )
         )
     }
@@ -384,6 +385,12 @@ private fun time(value: String): String {
 private fun table(headers: List<String>, rows: String) =
     "<table><tr>${headers.joinToString("") { "<th>$it</th>" }}</tr>$rows</table>"
 
+/** The users table plus a filter row, one input per column; [USERS_JS] sorts and filters it in the browser. */
+private fun usersTable(headers: List<String>, rows: String) =
+    """<table id="users"><thead><tr class="sortable">${headers.joinToString("") { "<th>$it</th>" }}</tr>""" +
+        """<tr class="filters">${headers.indices.joinToString("") { """<th><input data-col="$it" size="8"></th>""" }}</tr>""" +
+        "</thead><tbody>$rows</tbody></table>"
+
 private fun page(title: String, body: String) = """<!doctype html>
 <html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
 body{background:#12160f;color:#e6ead9;font:14px system-ui,sans-serif;margin:24px}
@@ -408,6 +415,9 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 .hit.gone{border-style:dashed;cursor:default}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
+.sortable th{cursor:pointer;user-select:none}
+th[data-sort=asc]::after{content:" \25B2"}
+th[data-sort=desc]::after{content:" \25BC"}
 .text{white-space:pre-wrap;max-width:640px;margin-top:4px}
 .note{color:#a8b39a}
 #msg{margin-left:8px}
@@ -629,4 +639,31 @@ document.getElementById('restore').onclick = () => {
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
 };
+"""
+
+/**
+ * The users page's sort and filter, all in the browser (a handful of users). A header click sorts on that column,
+ * again reverses; numbers compare as numbers. Rows only move or hide, so their onclick links keep working.
+ */
+private const val USERS_JS = """
+const t = document.getElementById('users'), tb = t.tBodies[0], heads = t.tHead.rows[0].cells;
+const inputs = Array.from(t.tHead.querySelectorAll('input'));
+const text = (r, c) => r.cells[c].textContent.trim();
+let col = -1, dir = 1;
+Array.from(heads).forEach((h, c) => h.onclick = () => {
+  dir = col === c ? -dir : 1;
+  col = c;
+  Array.from(heads).forEach(o => o.removeAttribute('data-sort'));
+  h.dataset.sort = dir > 0 ? 'asc' : 'desc';
+  Array.from(tb.rows).sort((a, b) => {
+    const x = text(a, c), y = text(b, c);
+    const n = x !== '' && y !== '' && !isNaN(x) && !isNaN(y);
+    return dir * (n ? x - y : x.localeCompare(y));
+  }).forEach(r => tb.appendChild(r));
+});
+t.tHead.addEventListener('input', () => {
+  const f = inputs.map(i => i.value.trim().toLowerCase());
+  Array.from(tb.rows).forEach(r =>
+    r.hidden = !f.every((v, c) => !v || text(r, c).toLowerCase().includes(v)));
+});
 """
