@@ -310,6 +310,29 @@ class ContinuousScanTest {
         assertTrue(525 - found[0].x in 0 until found[0].width && 75 - found[0].y in 0 until found[0].height, "${found[0]} at ${found[0].x},${found[0].y}")
     }
 
+    // At σ ≈ 12 a fixed 20-luma edge cut passed ~40 % of a flat tile's samples,
+    // so it counted as textured and won a random ±2 px shift.
+    @Test
+    fun flatNoisyTilesKeepTheGlobalShift() {
+        fun flat(seed: Int): LumaFrame {
+            val rnd = Random(seed)
+            return LumaFrame(WATCH_GRID, WATCH_GRID, ByteArray(WATCH_GRID * WATCH_GRID) {
+                (128 + rnd.nextInt(-12, 13) + rnd.nextInt(-12, 13) + rnd.nextInt(-12, 13)).toByte()
+            })
+        }
+        val align = estimateTiles(flat(1), flat(2), Light(1f, 0f), 0, 0)
+        assertTrue(align.dxs.all { it == 0 } && align.dys.all { it == 0 }, "dxs ${align.dxs.toList()} dys ${align.dys.toList()}")
+    }
+
+    @Test
+    fun textureStillAlignsTheCornerTilesOfATurn() {
+        val ref = turned(1, 0.0)
+        val cur = turned(2, 0.5)
+        val (dx, dy) = estimateShift(ref, cur, fitLight(ref, cur))
+        val align = estimateTiles(ref, cur, fitLight(ref, cur, Alignment(big, big, dx, dy)), dx, dy)
+        assertTrue(listOf(0, 5, 30, 35).all { align.dxs[it] != dx || align.dys[it] != dy }, "dxs ${align.dxs.toList()} dys ${align.dys.toList()}")
+    }
+
     /**
      * [scene] plus gaussian-ish sensor noise of σ ≈ 12 (three uniform ±12 summed):
      * at σ ≈ 8 single frames left only 4-10 changed px against the 3×3 interval
@@ -364,9 +387,9 @@ class ContinuousScanTest {
     @Test
     fun theReferenceIsTheMeanOfTheLastThreeStillCleanSamples() {
         val watch = NewHoleWatch()
-        // Low-noise frames: at σ ≈ 12 flat tiles pass as textured and win random
-        // ±2 px shifts, which move the older samples' noise and break the pixel check.
-        val s = (1..5).map { scene(it) }
+        // Noisy samples: flat tiles must keep the global shift, or a random ±2 px
+        // win moves the older samples' noise and breaks the pixel check.
+        val s = (1..5).map { noisySample(it) }
         watch.feed(*s.toTypedArray())
         // The 5th sample was compared against the mean of the 2nd to 4th.
         assertMeanOf(watch.last?.reference, s[1], s[2], s[3])

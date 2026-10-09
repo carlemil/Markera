@@ -144,10 +144,12 @@ internal class Alignment(private val w: Int, private val h: Int, val dxs: IntArr
  * within ±[TILE_SHIFT] of it with the least absolute difference (every 2nd pixel,
  * the [light] taken out); a flat tile keeps the global shift, since it has nothing
  * to align on and any shift fits it equally. Textured = at least a quarter tile
- * side's worth of edge samples, an edge being a central difference of
- * [CHANGE_MIN_DELTA]+ across or down: that is half of one edge crossing the tile
- * (a crossing edge leaves ~side/2 samples), while a weaker step could not show up
- * as a changed pixel anyway, and noise alone never reaches it.
+ * side's worth of edge samples (half of one edge crossing the tile, which leaves
+ * ~side/2 samples). An edge is a central difference across or down of at least
+ * [CHANGE_MIN_DELTA] or [CHANGE_NOISE_FACTOR] times the tile's median one, the
+ * same rule [changeMask] cuts at: at σ ≈ 12 noise alone passes the fixed 20 in
+ * ~40 % of a flat tile's samples, while real edges are too few to move the median.
+ * A tile that is all edges then counts as flat, which only keeps the global shift.
  */
 internal fun estimateTiles(ref: LumaFrame, cur: LumaFrame, light: Light, dx: Int, dy: Int): Alignment {
     val w = cur.width
@@ -158,21 +160,28 @@ internal fun estimateTiles(ref: LumaFrame, cur: LumaFrame, light: Light, dx: Int
     val r = ref.luma
     val dxs = IntArray(TILES * TILES) { dx }
     val dys = IntArray(TILES * TILES) { dy }
+    val histogram = IntArray(256)
     for (ty in 0 until TILES) {
         val y0 = max(margin, ty * h / TILES)
         val y1 = min(h - margin, (ty + 1) * h / TILES)
         for (tx in 0 until TILES) {
             val x0 = max(margin, tx * w / TILES)
             val x1 = min(w - margin, (tx + 1) * w / TILES)
-            var edges = 0
+            histogram.fill(0)
+            var n = 0
             for (y in y0 until y1 step 2) {
                 for (x in x0 until x1 step 2) {
                     val i = y * w + x
                     val gx = abs((c[i + 1].toInt() and 0xFF) - (c[i - 1].toInt() and 0xFF))
                     val gy = abs((c[i + w].toInt() and 0xFF) - (c[i - w].toInt() and 0xFF))
-                    if (max(gx, gy) >= CHANGE_MIN_DELTA) edges++
+                    histogram[max(gx, gy)]++
+                    n++
                 }
             }
+            if (n == 0) continue // a tile inside the margin has nothing to sample
+            val edgeMin = max(CHANGE_MIN_DELTA, CHANGE_NOISE_FACTOR * histogramMedian(histogram, n))
+            var edges = 0
+            for (g in edgeMin until 256) edges += histogram[g]
             if (edges < (x1 - x0) / 4) continue
             var best = Int.MAX_VALUE
             for (sy in dy - TILE_SHIFT..dy + TILE_SHIFT) {
@@ -227,6 +236,14 @@ internal fun estimateShift(ref: LumaFrame, cur: LumaFrame, light: Light, radius:
         }
     }
     return shift
+}
+
+/** The median of the [n] values counted in the 256-bin [histogram] (n > 0). */
+private fun histogramMedian(histogram: IntArray, n: Int): Int {
+    var median = 0
+    var seen = 0
+    while (seen + histogram[median] <= n / 2) seen += histogram[median++]
+    return median
 }
 
 /**
@@ -308,10 +325,7 @@ internal fun changeMask(ref: LumaFrame, cur: LumaFrame): Change? {
             histogram[d]++
         }
     }
-    var median = 0
-    var seen = 0
-    while (seen + histogram[median] <= c.size / 2) seen += histogram[median++]
-    val threshold = max(CHANGE_MIN_DELTA, CHANGE_NOISE_FACTOR * median)
+    val threshold = max(CHANGE_MIN_DELTA, CHANGE_NOISE_FACTOR * histogramMedian(histogram, c.size))
     return Change(BooleanArray(c.size) { diff[it] >= threshold }, threshold, dx, dy, light, align)
 }
 
