@@ -330,7 +330,7 @@ class ContinuousScanTest {
         val cur = turned(2, 0.5)
         val (dx, dy) = estimateShift(ref, cur, fitLight(ref, cur))
         val align = estimateTiles(ref, cur, fitLight(ref, cur, Alignment(big, big, dx, dy)), dx, dy)
-        assertTrue(listOf(0, 5, 30, 35).any { align.dxs[it] != dx || align.dys[it] != dy }, "dxs ${align.dxs.toList()} dys ${align.dys.toList()}")
+        assertTrue(listOf(0, 5, 30, 35).all { align.dxs[it] != dx || align.dys[it] != dy }, "dxs ${align.dxs.toList()} dys ${align.dys.toList()}")
     }
 
     /**

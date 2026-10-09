@@ -178,6 +178,7 @@ internal fun estimateTiles(ref: LumaFrame, cur: LumaFrame, light: Light, dx: Int
                     n++
                 }
             }
+            if (n == 0) continue // a tile inside the margin has nothing to sample
             val edgeMin = max(CHANGE_MIN_DELTA, CHANGE_NOISE_FACTOR * histogramMedian(histogram, n))
             var edges = 0
             for (g in edgeMin until 256) edges += histogram[g]
