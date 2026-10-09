@@ -48,6 +48,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Users",
                 """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
+                    """<label style="margin-left:16px"><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
             )
@@ -645,6 +646,7 @@ document.getElementById('restore').onclick = () => {
 /**
  * The users page's sort and filter, all in the browser (a handful of users). A header click sorts on that column,
  * again reverses; numbers compare as numbers. Rows only move or hide, so their onclick links keep working.
+ * The "hide users with 0 series" checkbox stacks on the column filters and is remembered in localStorage.
  */
 private const val USERS_JS = """
 const t = document.getElementById('users'), tb = t.tBodies[0], heads = t.tHead.rows[0].cells;
@@ -662,9 +664,15 @@ Array.from(heads).forEach((h, c) => h.onclick = () => {
     return dir * (n ? x - y : x.localeCompare(y));
   }).forEach(r => tb.appendChild(r));
 });
-t.tHead.addEventListener('input', () => {
+const hide = document.getElementById('hide-empty'), sc = Array.from(heads).findIndex(h => h.textContent === 'series');
+const apply = () => {
   const f = inputs.map(i => i.value.trim().toLowerCase());
   Array.from(tb.rows).forEach(r =>
-    r.hidden = !f.every((v, c) => !v || text(r, c).toLowerCase().includes(v)));
-});
+    r.hidden = !f.every((v, c) => !v || text(r, c).toLowerCase().includes(v))
+      || (hide.checked && text(r, sc) === '0'));
+};
+t.tHead.addEventListener('input', apply);
+hide.onchange = () => { try { localStorage.hideEmpty = hide.checked ? '1' : '' } catch (e) {} apply(); };
+try { hide.checked = localStorage.hideEmpty === '1' } catch (e) {}
+apply();
 """
