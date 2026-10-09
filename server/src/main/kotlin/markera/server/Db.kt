@@ -17,6 +17,7 @@ data class UserRow(
     val name: String?,
     val createdAt: String,
     val seriesCount: Int,
+    val lastUsedAt: String?,
 )
 
 /**
@@ -43,6 +44,7 @@ class Db(dbPath: String) : AutoCloseable {
                      subject TEXT NOT NULL,
                      created_at TEXT NOT NULL,
                      name TEXT,
+                     last_used_at TEXT, -- last sign-in or authenticated request; outlives sign-out and session expiry
                      UNIQUE(provider, subject))"""
             )
             // Databases created before names existed.
@@ -75,6 +77,13 @@ class Db(dbPath: String) : AutoCloseable {
                 }
                 st.executeUpdate("ALTER TABLE sessions ADD COLUMN last_used_at TEXT NOT NULL DEFAULT ''")
                 st.executeUpdate("UPDATE sessions SET last_used_at = datetime('now')")
+            }
+            // Databases created before users kept their own last use: start from their freshest session.
+            if ("last_used_at" !in columns) {
+                st.executeUpdate("ALTER TABLE users ADD COLUMN last_used_at TEXT")
+                st.executeUpdate(
+                    "UPDATE users SET last_used_at = (SELECT MAX(last_used_at) FROM sessions WHERE user_id = users.id)"
+                )
             }
             st.executeUpdate(
                 """CREATE TABLE IF NOT EXISTS series (
@@ -192,6 +201,7 @@ class Db(dbPath: String) : AutoCloseable {
         conn.prepareStatement(
             "INSERT INTO sessions(token, user_id, created_at, last_used_at) VALUES (?, ?, datetime('now'), datetime('now'))"
         ).use { it.setString(1, sha256(token)); it.setLong(2, userId); it.executeUpdate() }
+        touchUser(userId)
         conn.createStatement().use {
             it.executeUpdate("DELETE FROM sessions WHERE last_used_at < datetime('now', '$SESSION_IDLE')")
         }
@@ -208,9 +218,17 @@ class Db(dbPath: String) : AutoCloseable {
             it.setString(1, hash)
             it.executeQuery().use { rs -> if (rs.next()) rs.getLong(1) else null }
         } ?: return null
-        conn.prepareStatement("UPDATE sessions SET last_used_at = datetime('now') WHERE token = ?")
-            .use { it.setString(1, hash); it.executeUpdate() }
+        transaction { // one commit, not two, on every authenticated request
+            conn.prepareStatement("UPDATE sessions SET last_used_at = datetime('now') WHERE token = ?")
+                .use { it.setString(1, hash); it.executeUpdate() }
+            touchUser(userId)
+        }
         return userId
+    }
+
+    private fun touchUser(userId: Long) {
+        conn.prepareStatement("UPDATE users SET last_used_at = datetime('now') WHERE id = ?")
+            .use { it.setLong(1, userId); it.executeUpdate() }
     }
 
     @Synchronized
@@ -335,7 +353,7 @@ class Db(dbPath: String) : AutoCloseable {
     private fun queryUsers(userId: Long?): List<UserRow> {
         val users = mutableListOf<UserRow>()
         conn.prepareStatement(
-            """SELECT u.id, u.provider, u.subject, u.name, u.created_at, COUNT(s.id)
+            """SELECT u.id, u.provider, u.subject, u.name, u.created_at, COUNT(s.id), u.last_used_at
                FROM users u LEFT JOIN series s ON s.user_id = u.id AND s.deleted_at IS NULL
                ${if (userId == null) "" else "WHERE u.id = ?"}
                GROUP BY u.id
@@ -345,7 +363,8 @@ class Db(dbPath: String) : AutoCloseable {
             st.executeQuery().use { rs ->
                 while (rs.next()) {
                     users += UserRow(
-                        rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6)
+                        rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6),
+                        rs.getString(7),
                     )
                 }
             }
