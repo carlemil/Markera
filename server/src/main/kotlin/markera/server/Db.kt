@@ -218,9 +218,11 @@ class Db(dbPath: String) : AutoCloseable {
             it.setString(1, hash)
             it.executeQuery().use { rs -> if (rs.next()) rs.getLong(1) else null }
         } ?: return null
-        conn.prepareStatement("UPDATE sessions SET last_used_at = datetime('now') WHERE token = ?")
-            .use { it.setString(1, hash); it.executeUpdate() }
-        touchUser(userId)
+        transaction { // one commit, not two, on every authenticated request
+            conn.prepareStatement("UPDATE sessions SET last_used_at = datetime('now') WHERE token = ?")
+                .use { it.setString(1, hash); it.executeUpdate() }
+            touchUser(userId)
+        }
         return userId
     }
 
