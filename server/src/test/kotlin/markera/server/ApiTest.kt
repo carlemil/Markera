@@ -821,6 +821,50 @@ class ApiTest {
     }
 
     @Test
+    fun adminShowsWhenAUserLastUsedTheApp() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        sql { it.executeUpdate("UPDATE users SET last_used_at = '2020-01-01 00:00:00'") }
+        // An app open is an authenticated request.
+        assertEquals(HttpStatusCode.OK, client.get("/series") { bearerAuth(me.token) }.status)
+        val today = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault()).format(Instant.now())
+        assertTrue("<td>0</td><td>$today " in client.admin("/admin").bodyAsText())
+        // Sign-out drops the session, not the stamp.
+        assertEquals(HttpStatusCode.NoContent, client.delete("/auth/session") { bearerAuth(me.token) }.status)
+        val users = client.admin("/admin").bodyAsText()
+        assertTrue("<td>0</td><td>$today " in users, users)
+    }
+
+    @Test
+    fun oldDatabasesBackfillLastUsedFromSessions() {
+        val dbFile = File.createTempFile("markera-old-users", ".db").also { it.delete(); it.deleteOnExit() }
+        DriverManager.getConnection("jdbc:sqlite:${dbFile.path}").use { conn ->
+            conn.createStatement().use { st ->
+                st.executeUpdate(
+                    """CREATE TABLE users (
+                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         provider TEXT NOT NULL, subject TEXT NOT NULL, created_at TEXT NOT NULL, name TEXT,
+                         UNIQUE(provider, subject))"""
+                )
+                st.executeUpdate(
+                    """CREATE TABLE sessions (
+                         token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id),
+                         created_at TEXT NOT NULL, last_used_at TEXT NOT NULL)"""
+                )
+                st.executeUpdate("INSERT INTO users(provider, subject, created_at) VALUES ('google', 'active', 'then')")
+                st.executeUpdate("INSERT INTO users(provider, subject, created_at) VALUES ('google', 'signedOut', 'then')")
+                st.executeUpdate("INSERT INTO sessions VALUES ('a', 1, 'then', '2026-01-01 10:00:00')")
+                st.executeUpdate("INSERT INTO sessions VALUES ('b', 1, 'then', '2026-02-01 10:00:00')")
+            }
+        }
+        repeat(2) { // reopening changes nothing
+            Db(dbFile.path).use { db ->
+                assertEquals("2026-02-01 10:00:00", db.getUser(1)?.lastUsedAt)
+                assertEquals(null, db.getUser(2)?.lastUsedAt)
+            }
+        }
+    }
+
+    @Test
     fun signOutRevokesTheSession() = apiTest { client ->
         val me = client.devAuth("me")
         val otherDevice = client.devAuth("me")
@@ -979,7 +1023,7 @@ class ApiTest {
         val users = client.admin("/admin").bodyAsText()
         assertTrue("me" in users && "other" in users, users)
         // Two dev users, one series each.
-        assertEquals(2, Regex("<td>1</td></tr>").findAll(users).count(), users)
+        assertEquals(2, Regex("<td>1</td><td>[^<]*</td></tr>").findAll(users).count(), users)
 
         val userPage = client.admin("/admin/users/${me.userId}").bodyAsText()
         assertTrue("9mm" in userPage, userPage)
@@ -1007,7 +1051,8 @@ class ApiTest {
     fun adminUsersPageCanSortAndFilter() = apiTest(adminPassword = ADMIN_PW) { client ->
         client.devAuth("me")
         val users = client.admin("/admin").bodyAsText()
-        for (c in 0..4) assertTrue("""<input data-col="$c" size="8">""" in users, users)
+        for (c in 0..5) assertTrue("""<input data-col="$c" size="8">""" in users, users)
+        assertTrue("<th>last used</th>" in users, users)
         assertTrue("""<tr class="sortable">""" in users, users)
         assertTrue("<script>" in users && "localeCompare" in users, users)
     }

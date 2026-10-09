@@ -39,6 +39,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "$link${esc(u.subject)}</a>",
                 esc(u.name.orEmpty()),
                 u.seriesCount,
+                u.lastUsedAt?.let { time(it) },
                 href = "/admin/users/${u.id}",
             )
         }
@@ -47,7 +48,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Users",
                 """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
-                    usersTable(listOf("id", "provider", "subject", "name", "series"), rows) +
+                    usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
             )
         )
