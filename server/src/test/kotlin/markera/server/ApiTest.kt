@@ -1055,6 +1055,8 @@ class ApiTest {
         assertTrue("<th>last used</th>" in users, users)
         assertTrue("""<tr class="sortable">""" in users, users)
         assertTrue("<script>" in users && "localeCompare" in users, users)
+        assertTrue("""<input type="checkbox" id="hide-empty">""" in users, users)
+        assertTrue("hideEmpty" in users, users)
     }
 
     @Test
