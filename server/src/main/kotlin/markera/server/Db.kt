@@ -424,6 +424,7 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     /** Ids of every series that is not soft-deleted, any user's: the training export's input. */
+    @Synchronized
     fun liveSeriesIds(): List<Long> = conn.createStatement().use { st ->
         st.executeQuery("SELECT id FROM series WHERE deleted_at IS NULL ORDER BY id").use { rs ->
             buildList { while (rs.next()) add(rs.getLong(1)) }

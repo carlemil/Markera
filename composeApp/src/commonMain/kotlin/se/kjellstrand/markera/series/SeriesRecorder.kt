@@ -163,7 +163,10 @@ class SeriesRecorder(
     fun commit(topScores: List<Int>) {
         val p = pending ?: return
         // After withPicks, so the picker slots stay aligned with the holes that are still there.
-        p.request = p.request.withPicks(topScores).let { it.copy(holes = it.holes + p.removed) }
+        // A repeated commit (caliber dialog dismissed, then Spara again) starts from the live holes, so the removed
+        // ones are neither re-picked nor appended twice.
+        val live = p.request.copy(holes = p.request.holes.filterNot { it.deleted })
+        p.request = live.withPicks(topScores).let { it.copy(holes = it.holes + p.removed) }
         p.committed = true
         val caliber = _caliber.value
         if (caliber == Caliber.NONE) {

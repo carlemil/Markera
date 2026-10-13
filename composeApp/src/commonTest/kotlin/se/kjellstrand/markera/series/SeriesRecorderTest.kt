@@ -508,6 +508,22 @@ class SeriesRecorderTest {
     }
 
     @Test
+    fun aRepeatedCommitSendsARemovedDetectionOnlyOnce() {
+        val recorder = recorder(stored = Caliber.NONE)
+        val gone = HitScore(7f, 8f, 0f, 90.0, 6, false, boxW = 20f, boxH = 22f, conf = 0.4f)
+
+        recorder.onSeriesDetected(scores, image, null, removed = listOf(gone))
+        recorder.commit(listOf(10, 8))
+        recorder.dismissCaliberDialog()
+        recorder.commit(listOf(10, 8))
+        recorder.selectCaliber(Caliber.LR22)
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals(1, Regex(""""deleted":true""").findAll(sentBody).count(), sentBody)
+        assertTrue(""""x":7.0,"y":8.0,"ring":6""" in sentBody, sentBody)
+    }
+
+    @Test
     fun theChosenTagRidesAlongWithTheSeriesAndIsRemembered() {
         val recorder = recorder(stored = Caliber.LR22)
 

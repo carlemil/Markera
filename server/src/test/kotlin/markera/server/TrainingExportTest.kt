@@ -91,6 +91,15 @@ class TrainingExportTest {
     }
 
     @Test
+    fun aHoleWhollyOffTheFrameHasNoBoxRatherThanANegativeOne() {
+        val s = classifySeries(
+            series(detected(-50.0, 250.0), detected(1100.0, 250.0, deleted = true), detected(100.0, 600.0).copy(ring = 0)),
+        )!!
+        assertTrue(s.labels.isEmpty(), s.labels.toString())
+        assertTrue(s.negatives.isEmpty(), s.negatives.toString())
+    }
+
+    @Test
     fun aSeriesWithoutAFrameSizeCannotBePlaced() {
         assertNull(classifySeries(series(detected(1.0, 1.0)).copy(imageWidth = null)))
     }

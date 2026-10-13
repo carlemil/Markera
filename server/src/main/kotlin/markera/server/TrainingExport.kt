@@ -64,13 +64,15 @@ fun classifySeries(series: Series): SeriesTraining? {
     val height = series.imageHeight?.takeIf { it > 0 } ?: return null
     val fallbackSide = fallbackSidePx(series, width)
 
-    fun box(x: Double, y: Double, w: Double?, h: Double?): ExportBox {
+    /** Clipped to the frame; null when nothing of it is inside (a hole off the frame's edge). */
+    fun box(x: Double, y: Double, w: Double?, h: Double?): ExportBox? {
         val bw = w ?: fallbackSide
         val bh = h ?: fallbackSide
         val left = max(0.0, x - bw / 2)
         val right = min(width.toDouble(), x + bw / 2)
         val top = max(0.0, y - bh / 2)
         val bottom = min(height.toDouble(), y + bh / 2)
+        if (right <= left || bottom <= top) return null
         return ExportBox(
             (left + right) / 2 / width, (top + bottom) / 2 / height,
             (right - left) / width, (bottom - top) / height,
@@ -93,12 +95,12 @@ fun classifySeries(series: Series): SeriesTraining? {
         val x = h.x
         val y = h.y
         if (x == null || y == null) continue
-        if (detectedBox != null && h.ring == 0 && !h.innerTen && h.detectedRing != 0) {
+        if (dx != null && dy != null && h.ring == 0 && !h.innerTen && h.detectedRing != 0) {
             // The user scored the detection 0: not a hole.
-            negatives += NegativeBox(detectedBox, h.detectedConf, "zeroed")
+            if (detectedBox != null) negatives += NegativeBox(detectedBox, h.detectedConf, "zeroed")
             continue
         }
-        val confirmed = box(x, y, h.detectedW, h.detectedH)
+        val confirmed = box(x, y, h.detectedW, h.detectedH) ?: continue
         labels += PositiveLabel(if (h.innerTen) TRAINING_CLASSES.lastIndex else h.ring.coerceIn(0, 10), confirmed)
         if (detectedBox != null && dx != null && dy != null && (x != dx || y != dy)) {
             val diameter = h.detectedW?.let { w -> h.detectedH?.let { (w + it) / 2 } } ?: fallbackSide

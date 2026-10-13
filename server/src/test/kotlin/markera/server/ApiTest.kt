@@ -745,6 +745,9 @@ class ApiTest {
             series(caliber = "x".repeat(17)),
             series().copy(holes = emptyList()),
             series().copy(holes = List(MAX_HOLES + 1) { hole }),
+            // Only removed detections: nothing left to store.
+            series().copy(holes = listOf(hole.copy(deleted = true))),
+            series().copy(holes = listOf(hole) + List(MAX_DELETED_HOLES + 1) { hole.copy(deleted = true) }),
             series().copy(holes = listOf(hole.copy(ring = 11))),
             series().copy(holes = listOf(hole.copy(ring = -1))),
             series().copy(holes = listOf(hole.copy(ring = 9, innerTen = true))),
@@ -763,6 +766,12 @@ class ApiTest {
             assertEquals(HttpStatusCode.BadRequest, response.status, "expected 400 for $request")
             assertTrue(response.body<ErrorResponse>().error.isNotEmpty())
         }
+        // Removed detections do not count toward the live-hole cap.
+        val noisy = series().copy(holes = List(MAX_HOLES) { hole } + List(20) { hole.copy(deleted = true) })
+        val ok = client.post("/series") {
+            bearerAuth(token); contentType(ContentType.Application.Json); setBody(noisy)
+        }
+        assertEquals(HttpStatusCode.Created, ok.status, ok.bodyAsText())
     }
 
     /** No vocabulary on the server: every label the app has, and one it has not yet, are all just labels. */
