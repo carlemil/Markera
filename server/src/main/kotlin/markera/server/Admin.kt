@@ -31,7 +31,13 @@ import java.util.Locale
 fun Route.adminRoutes(db: Db, images: File, password: String) {
     get("/admin") {
         if (unauthorized(password)) return@get
-        val rows = db.listUsers().joinToString("") { u ->
+        val allUsers = db.listUsers()
+        val perProvider = allUsers.groupingBy { it.provider }.eachCount().toSortedMap()
+            .entries.joinToString(", ") { "${esc(it.key)} ${it.value}" }
+        val noun = if (allUsers.size == 1) "user" else "users"
+        val counts = """<p id="user-counts">${allUsers.size} $noun""" +
+            (if (perProvider.isEmpty()) "" else ", by sign-in provider: $perProvider") + "</p>"
+        val rows = allUsers.joinToString("") { u ->
             val link = """<a href="/admin/users/${u.id}">"""
             row(
                 "$link${u.id}</a>",
@@ -47,7 +53,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         respondHtml(
             page(
                 "Users",
-                """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
+                counts + """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
                     """<label style="margin-left:16px"><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
