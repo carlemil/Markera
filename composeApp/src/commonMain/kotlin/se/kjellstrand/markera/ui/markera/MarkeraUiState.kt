@@ -14,6 +14,11 @@ data class MarkeraUiState(
     val ring: FittedEllipse? = null,
     /** Per-hole ring scores, inner-X first; hole `i` fills picker `i`. */
     val scores: List<HitScore> = emptyList(),
+    /**
+     * Detected holes the user long-pressed away on this frozen frame: possible false positives,
+     * saved with the series as deleted holes. Emptied by a rescan or [MarkeraViewModel.clearResults].
+     */
+    val removedDetections: List<HitScore> = emptyList(),
     val imageWidth: Int = 0,
     val imageHeight: Int = 0,
     val phase: ScanPhase = ScanPhase.IDLE,

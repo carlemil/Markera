@@ -67,7 +67,7 @@ class TargetScanController(
      * host, so free marking and the competition wizard both feed the same
      * recorder.
      */
-    var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?) -> Unit)? = null
+    var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?, List<HitScore>) -> Unit)? = null
 
     /** Called as a scan claims the detector, before anything of it is published. */
     var onScanStarted: (() -> Unit)? = null
@@ -231,6 +231,7 @@ class TargetScanController(
             viewModel.uiState.value.scores,
             snapshot,
             geometryDto(centre, ring),
+            viewModel.uiState.value.removedDetections,
         )
     }
 
@@ -305,6 +306,7 @@ class TargetScanController(
                 viewModel.uiState.value.scores,
                 snapshot,
                 ring?.let { geometryDto(centre, it) },
+                emptyList(),
             )
         }
     }

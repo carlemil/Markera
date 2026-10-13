@@ -86,7 +86,12 @@ class SeriesRecorder(
      * A scanned series and the frame it was scored from (uploaded once the series has an id).
      * [committed] once [commit] asked for the save; until then a caliber choice only stores it.
      */
-    private class Pending(var request: SeriesRequest, val image: PlatformImage?) {
+    private class Pending(
+        var request: SeriesRequest,
+        val image: PlatformImage?,
+        /** Detections the user removed on the frozen frame; appended as deleted holes at commit. */
+        val removed: List<HoleDto> = emptyList(),
+    ) {
         var committed = false
     }
 
@@ -130,14 +135,23 @@ class SeriesRecorder(
      */
     var takenAt: String? = null
 
-    fun onSeriesDetected(scores: List<HitScore>, image: PlatformImage, geometry: GeometryDto?) {
+    fun onSeriesDetected(
+        scores: List<HitScore>,
+        image: PlatformImage,
+        geometry: GeometryDto?,
+        removed: List<HitScore> = emptyList(),
+    ) {
         if (session.auth.value == null) {
             pending = null
             _status.value = SaveStatus.SignedOut
             return
         }
         // A fresh scan waits for its own commit.
-        pending = Pending(seriesRequest(scores, _caliber.value, takenAt ?: nowIso(), geometry), image)
+        pending = Pending(
+            seriesRequest(scores, _caliber.value, takenAt ?: nowIso(), geometry),
+            image,
+            removed.filterNot { it.manual }.map { it.toHoleDto().copy(deleted = true) },
+        )
         _status.value = SaveStatus.Pending
     }
 
@@ -148,7 +162,8 @@ class SeriesRecorder(
      */
     fun commit(topScores: List<Int>) {
         val p = pending ?: return
-        p.request = p.request.withPicks(topScores)
+        // After withPicks, so the picker slots stay aligned with the holes that are still there.
+        p.request = p.request.withPicks(topScores).let { it.copy(holes = it.holes + p.removed) }
         p.committed = true
         val caliber = _caliber.value
         if (caliber == Caliber.NONE) {

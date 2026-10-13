@@ -489,6 +489,25 @@ class SeriesRecorderTest {
     }
 
     @Test
+    fun aRemovedDetectionIsPostedAsADeletedHoleAndNeverCached() {
+        val recorder = recorder(stored = Caliber.LR22)
+        val gone = HitScore(7f, 8f, 0f, 90.0, 6, false, boxW = 20f, boxH = 22f, conf = 0.4f)
+        val handPlaced = HitScore(9f, 9f, 0f, 90.0, 6, false, manual = true)
+
+        recorder.onSeriesDetected(scores, image, null, removed = listOf(gone, handPlaced))
+        recorder.commit(listOf(10, 8))
+
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertTrue(
+            """"detectedX":7.0,"detectedY":8.0,"detectedW":20.0,"detectedH":22.0,"detectedConf":0.4""" in sentBody,
+            sentBody,
+        )
+        assertEquals(1, Regex(""""deleted":true""").findAll(sentBody).count(), sentBody)
+        assertEquals(2, repository.series.value.single().holes.size)
+        assertTrue(repository.series.value.single().holes.none { it.deleted })
+    }
+
+    @Test
     fun theChosenTagRidesAlongWithTheSeriesAndIsRemembered() {
         val recorder = recorder(stored = Caliber.LR22)
 
