@@ -102,6 +102,9 @@ const val MAX_AUTH_BYTES = 16 * 1024
 /** More holes than any series has; a cap so one request cannot store an unbounded list. */
 const val MAX_HOLES = 50
 
+/** Removed detections one request may carry besides its live holes (a noisy scan can have many). */
+const val MAX_DELETED_HOLES = 200
+
 /**
  * Series one user may create per 24 h; each can carry a [MAX_IMAGE_BYTES] image, so this also caps the disk
  * one account can fill in a day (~3 GB). A busy range day is a few dozen.
@@ -133,6 +136,10 @@ data class Hole(
     /** Where the detector put the hole; [x]/[y] differing from it means the user dragged the marker. */
     val detectedX: Double? = null,
     val detectedY: Double? = null,
+    /** The detector's box size (source px) and confidence, so a false positive can be exported as a box. */
+    val detectedW: Double? = null,
+    val detectedH: Double? = null,
+    val detectedConf: Double? = null,
     /** Removed by the user: stored for training, hidden from every read (the app never sees it again). */
     val deleted: Boolean = false,
 )
@@ -453,15 +460,17 @@ internal fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seri
 internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
     val error = when {
         !CALIBER_SHAPE.matches(req.caliber) -> "caliber must be 1-16 characters of letters, digits, space and . , / -"
-        req.holes.isEmpty() -> "holes must not be empty"
-        req.holes.size > MAX_HOLES -> "at most $MAX_HOLES holes"
+        // Deleted holes are removed detections kept for training: they neither make a series nor count to its cap.
+        req.holes.none { !it.deleted } -> "holes must not be empty"
+        req.holes.count { !it.deleted } > MAX_HOLES -> "at most $MAX_HOLES holes"
+        req.holes.count { it.deleted } > MAX_DELETED_HOLES -> "at most $MAX_DELETED_HOLES removed holes"
         req.holes.any { it.ring !in 0..10 } -> "ring must be 0..10"
         req.holes.any { it.innerTen && it.ring != 10 } -> "innerTen needs ring 10"
         req.holes.any { h -> h.detectedRing?.let { it !in 0..10 } == true || (h.detectedInnerTen == true && h.detectedRing != 10) } ->
             "detected score out of range"
         // Negative x/y are fine (a hole off the frame's edge), NaN and infinities are not.
         req.holes.any { h ->
-            listOfNotNull(h.x, h.y, h.distanceMm, h.detectedX, h.detectedY).any { !it.isFinite() } || (h.distanceMm ?: 0.0) < 0
+            listOfNotNull(h.x, h.y, h.distanceMm, h.detectedX, h.detectedY, h.detectedW, h.detectedH, h.detectedConf).any { !it.isFinite() } || (h.distanceMm ?: 0.0) < 0
         } -> "hole coordinates must be finite"
         runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
         req.geometry?.let { it.ringSemiMajor <= 0 || it.ringSemiMinor <= 0 } == true ->

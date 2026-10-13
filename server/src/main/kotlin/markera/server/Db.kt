@@ -158,6 +158,13 @@ class Db(dbPath: String) : AutoCloseable {
             if ("deleted" !in holeColumns && "detected_ring" in holeColumns) {
                 st.executeUpdate("ALTER TABLE holes ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
             }
+            // Databases created before the detector's box was kept (a rebuilt table already has them).
+            val withBox = st.executeQuery("PRAGMA table_info(holes)").use { rs ->
+                buildList { while (rs.next()) add(rs.getString("name")) }
+            }
+            for (column in listOf("detected_w", "detected_h", "detected_conf")) {
+                if (column !in withBox) st.executeUpdate("ALTER TABLE holes ADD COLUMN $column REAL")
+            }
             // The app's suggestion box. user_id is null for a signed-out sender; mailed_at stays null while the
             // mail has not gone out (no SMTP configured, or it failed).
             st.executeUpdate(
@@ -316,14 +323,40 @@ class Db(dbPath: String) : AutoCloseable {
             it.executeUpdate()
         }
         execute("DELETE FROM holes WHERE series_id = ? AND deleted = 0", seriesId)
-        insertHoles(seriesId, req.holes)
+        // A removed detection that is back among the live holes (the admin page's Undo) is no false
+        // positive any more; one that is already stored deleted is not stored twice if a client re-sends it.
+        val stored = storedDeletedSpots(seriesId)
+        for (h in req.holes) {
+            val spot = h.detectedX?.let { x -> h.detectedY?.let { y -> x to y } } ?: continue
+            if (!h.deleted && spot in stored) {
+                conn.prepareStatement(
+                    "DELETE FROM holes WHERE series_id = ? AND deleted = 1 AND detected_x = ? AND detected_y = ?"
+                ).use { it.setLong(1, seriesId); it.setDouble(2, spot.first); it.setDouble(3, spot.second); it.executeUpdate() }
+            }
+        }
+        val kept = storedDeletedSpots(seriesId)
+        insertHoles(
+            seriesId,
+            req.holes.filterNot { h ->
+                h.deleted && h.detectedX != null && h.detectedY != null && (h.detectedX to h.detectedY) in kept
+            },
+        )
+    }
+
+    private fun storedDeletedSpots(seriesId: Long): Set<Pair<Double, Double>> = buildSet {
+        conn.prepareStatement(
+            "SELECT detected_x, detected_y FROM holes WHERE series_id = ? AND deleted = 1 AND detected_x IS NOT NULL AND detected_y IS NOT NULL"
+        ).use { st ->
+            st.setLong(1, seriesId)
+            st.executeQuery().use { rs -> while (rs.next()) add(rs.getDouble(1) to rs.getDouble(2)) }
+        }
     }
 
     private fun insertHoles(seriesId: Long, holes: List<Hole>) {
         conn.prepareStatement(
             """INSERT INTO holes(series_id, x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten,
-                                 detected_x, detected_y, deleted)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+                                 detected_x, detected_y, deleted, detected_w, detected_h, detected_conf)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         ).use { st ->
             for (h in holes) {
                 st.setLong(1, seriesId)
@@ -337,6 +370,9 @@ class Db(dbPath: String) : AutoCloseable {
                 st.setObject(9, h.detectedX)
                 st.setObject(10, h.detectedY)
                 st.setInt(11, if (h.deleted) 1 else 0)
+                st.setObject(12, h.detectedW)
+                st.setObject(13, h.detectedH)
+                st.setObject(14, h.detectedConf)
                 st.addBatch()
             }
             st.executeBatch()
@@ -384,6 +420,14 @@ class Db(dbPath: String) : AutoCloseable {
                 if (!rs.next()) return null
                 return seriesRow(rs, tombstone = false).copy(holes = holesOf(seriesId, includeDeleted))
             }
+        }
+    }
+
+    /** Ids of every series that is not soft-deleted, any user's: the training export's input. */
+    @Synchronized
+    fun liveSeriesIds(): List<Long> = conn.createStatement().use { st ->
+        st.executeQuery("SELECT id FROM series WHERE deleted_at IS NULL ORDER BY id").use { rs ->
+            buildList { while (rs.next()) add(rs.getLong(1)) }
         }
     }
 
@@ -578,7 +622,7 @@ class Db(dbPath: String) : AutoCloseable {
         val holes = mutableListOf<Hole>()
         conn.prepareStatement(
             """SELECT x, y, ring, inner_ten, distance_mm, detected_ring, detected_inner_ten, detected_x, detected_y,
-                      deleted
+                      deleted, detected_w, detected_h, detected_conf
                FROM holes WHERE series_id = ? ${if (includeDeleted) "" else "AND deleted = 0 "}ORDER BY id"""
         ).use { st ->
             st.setLong(1, seriesId)
@@ -588,6 +632,8 @@ class Db(dbPath: String) : AutoCloseable {
                         rs.doubleOrNull(1), rs.doubleOrNull(2), rs.getInt(3), rs.getInt(4) != 0, rs.doubleOrNull(5),
                         rs.intOrNull(6), rs.intOrNull(7)?.let { it != 0 }, rs.doubleOrNull(8), rs.doubleOrNull(9),
                         deleted = rs.getInt(10) != 0,
+                        detectedW = rs.doubleOrNull(11), detectedH = rs.doubleOrNull(12),
+                        detectedConf = rs.doubleOrNull(13),
                     )
                 }
             }
@@ -646,7 +692,10 @@ class Db(dbPath: String) : AutoCloseable {
                detected_inner_ten INTEGER,
                detected_x REAL,
                detected_y REAL,
-               deleted INTEGER NOT NULL DEFAULT 0"""
+               deleted INTEGER NOT NULL DEFAULT 0,
+               detected_w REAL,
+               detected_h REAL,
+               detected_conf REAL"""
     }
 }
 

@@ -38,6 +38,10 @@ data class HoleDto(
     /** Where the detector put the hole; null for a hand-placed or typed one. */
     val detectedX: Double? = null,
     val detectedY: Double? = null,
+    /** The detector's box size (source px) and confidence; null for older series and hand-placed holes. */
+    val detectedW: Double? = null,
+    val detectedH: Double? = null,
+    val detectedConf: Double? = null,
     /**
      * Removed by the user. Sent once so the backend keeps the detection as
      * training data; the server never returns it and the cache never holds it.
@@ -177,6 +181,9 @@ fun HitScore.toHoleDto(): HoleDto {
         detectedInnerTen = detected?.isInnerTen,
         detectedX = detected?.centerXpx?.toDouble(),
         detectedY = detected?.centerYpx?.toDouble(),
+        detectedW = detected?.boxW?.toDouble(),
+        detectedH = detected?.boxH?.toDouble(),
+        detectedConf = detected?.conf?.toDouble(),
     )
 }
 
@@ -289,6 +296,9 @@ fun List<HoleDto>.moveHole(
                 detectedInnerTen = hole.detectedInnerTen,
                 detectedX = hole.detectedX,
                 detectedY = hole.detectedY,
+                detectedW = hole.detectedW,
+                detectedH = hole.detectedH,
+                detectedConf = hole.detectedConf,
             )
         }
     }.sortedWith(HOLE_ORDER)

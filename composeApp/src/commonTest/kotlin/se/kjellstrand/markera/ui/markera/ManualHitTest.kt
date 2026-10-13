@@ -110,6 +110,23 @@ class ManualHitTest {
     }
 
     @Test
+    fun aRemovedDetectionIsRememberedButAHandPlacedOneIsNot() {
+        val vm = MarkeraViewModelImpl()
+        vm.onHolesDetected(
+            listOf(box(0f, 0f, 10f), box(100f, 0f, 10f)),
+            listOf(hit(ring = 9), hit(ring = 8)),
+        )
+        vm.addManualHit(box(50f, 50f, 10f), hit(ring = 10, manual = true))
+        // Sorted: the manual 10 first, then the 9, then the 8.
+        vm.removeHit(0)
+        assertEquals(emptyList(), vm.uiState.value.removedDetections)
+        vm.removeHit(0)
+        assertEquals(listOf(9), vm.uiState.value.removedDetections.map { it.ring })
+        vm.clearResults()
+        assertEquals(emptyList(), vm.uiState.value.removedDetections)
+    }
+
+    @Test
     fun aTouchGrabsTheNearestHoleInReach() {
         val holes = listOf(box(100f, 100f, 10f), box(300f, 100f, 10f))
         assertEquals(1, nearestDetectionIndex(310f, 100f, holes, maxDist = 24f))

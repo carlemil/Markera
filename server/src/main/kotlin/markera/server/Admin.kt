@@ -6,6 +6,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
+import io.ktor.server.response.respondOutputStream
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
@@ -54,6 +55,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Users",
                 counts + """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
+                    """ <a href="/admin/training-export.zip">training export (zip)</a>""" +
                     """<label style="margin-left:16px"><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
@@ -205,6 +207,16 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (db.getUser(userId) == null) return@delete notFound("Unknown user")
         db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
         call.respond(HttpStatusCode.NoContent)
+    }
+
+    // Every user's photos with the confirmed holes as YOLO labels, plus the false positives (see TrainingExport.kt).
+    get("/admin/training-export.zip") {
+        if (unauthorized(password)) return@get
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"markera-training.zip\"")
+        call.respondOutputStream(ContentType.Application.Zip) {
+            val series = db.liveSeriesIds().asSequence().mapNotNull { db.getSeries(it, includeDeleted = true) }
+            writeTrainingZip(this, series) { imageFile(images, it) }
+        }
     }
 
     get("/admin/series/{id}/image") {
@@ -597,8 +609,12 @@ function save() {
                           tag: S.tag,
                           // Removed rows are flagged (Undo brings them back); a positionless hole nobody gave a score is an "Add hole" left behind;
                           // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
-                          holes: S.holes.filter(h => h && !h.deleted && !h.removed &&
-                                                     !(h.x == null && h.detectedRing == null && h.ring === 0))});
+                          holes: S.holes.filter(h => h && !h.deleted &&
+                                                     !(h.x == null && h.detectedRing == null && h.ring === 0))
+                                         // A removed detection goes along flagged deleted: a false positive for training.
+                                         // A removed hand-placed hole just goes.
+                                         .filter(h => !h.removed || h.detectedRing != null)
+                                         .map(h => h.removed ? Object.assign({}, h, {deleted: true, removed: undefined}) : h)});
   queue = queue.then(() => fetch(location.pathname, {
     method: 'PUT',
     credentials: 'include',

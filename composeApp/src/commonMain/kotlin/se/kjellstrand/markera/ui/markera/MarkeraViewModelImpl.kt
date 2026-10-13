@@ -26,6 +26,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 centre = null,
                 ring = null,
                 scores = emptyList(),
+                removedDetections = emptyList(),
                 imageWidth = 0,
                 imageHeight = 0,
                 phase = ScanPhase.GEOMETRY,
@@ -90,10 +91,11 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
             if (index !in state.scores.indices || index !in state.detections.indices) {
                 return@update state
             }
+            val gone = state.scores[index]
             state.withHoles(
                 state.detections.toMutableList().apply { removeAt(index) },
                 state.scores.toMutableList().apply { removeAt(index) },
-            )
+            ).let { if (gone.manual) it else it.copy(removedDetections = it.removedDetections + gone) }
         }
     }
 
@@ -105,6 +107,7 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
                 centre = null,
                 ring = null,
                 scores = emptyList(),
+                removedDetections = emptyList(),
                 imageWidth = 0,
                 imageHeight = 0,
                 phase = ScanPhase.IDLE,

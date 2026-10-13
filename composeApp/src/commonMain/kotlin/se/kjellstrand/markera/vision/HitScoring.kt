@@ -61,6 +61,10 @@ data class HitScore(
      * the user selected is never overwritten.
      */
     val typed: Boolean = false,
+    /** The detector's box (image px) and confidence, kept so a false positive can be exported as a box. */
+    val boxW: Float? = null,
+    val boxH: Float? = null,
+    val conf: Float? = null,
 )
 
 /**
@@ -155,6 +159,9 @@ fun scoreHits(
             distanceMm = distMm,
             ring = ring,
             isInnerTen = innerTen,
+            boxW = d.right - d.left,
+            boxH = d.bottom - d.top,
+            conf = d.conf,
         )
     }
 }

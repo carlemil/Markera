@@ -76,7 +76,7 @@ fun privacyPage(contactEmail: String?): String {
         "Integritetspolicy – Markera / Privacy policy – Markera",
         """<h1>Integritetspolicy – Markera</h1>
 <p>Personuppgiftsansvarig är appens utvecklare, Carl-Emil Kjellstrand, Sverige. Kontakt: $svContact.</p>
-<p>Gäller från: 2026-10-03.</p>
+<p>Gäller från: 2026-10-13.</p>
 <h2 style="font-size:16px">Vad som lagras</h2>
 <p>Ingenting lagras på servern om du använder appen utan att logga in, utom förslag du själv skickar (se
 nedan). Loggar du in med Google eller Apple lagras:</p>
@@ -89,6 +89,8 @@ lagras aldrig; Apple lämnar varken namn eller adress). Inget lösenord ses elle
 visa det som skrivits på tavlan).</li>
 <li><strong>Sessioner</strong> (inloggningstoken) så att appen förblir inloggad.</li>
 </ul>
+<p>Sparade foton och träffar (även sådana du tagit bort eller flyttat efter detekteringen) kan användas för att
+förbättra träffdetekteringen, det vill säga för att träna om modellen.</p>
 <h2 style="font-size:16px">Förslag</h2>
 <p>Skickar du ett förslag från appens meny (<strong>Förslag</strong>) lagras rubriken, texten, appens plattform
 och version, ditt konto-id om du är inloggad, och e-postadressen om du anger en. Adressen är frivillig och
@@ -121,7 +123,7 @@ lämnas till Integritetsskyddsmyndigheten (IMY) i Sverige.</p>
 
 <h2>Privacy policy – Markera</h2>
 <p>The controller is the app's developer, Carl-Emil Kjellstrand, Sweden. Contact: $enContact.</p>
-<p>Effective date: 2026-10-03.</p>
+<p>Effective date: 2026-10-13.</p>
 <h2 style="font-size:16px">What is stored</h2>
 <p>Nothing is stored on the server if you use the app without signing in, apart from suggestions you choose
 to send (see below). When you sign in with Google or Apple, the following is stored:</p>
@@ -135,6 +137,8 @@ or stored.</li>
 show whatever was written on the target).</li>
 <li><strong>Session tokens</strong> so the app stays signed in.</li>
 </ul>
+<p>Saved photos and holes (including detections you removed or moved afterwards) may be used to improve hole
+detection, that is, to retrain the model.</p>
 <h2 style="font-size:16px">Suggestions</h2>
 <p>When you send a suggestion from the app's menu (<strong>Suggestion</strong>), its title, text, the app's
 platform and version, your account id if you are signed in, and the e-mail address if you give one are

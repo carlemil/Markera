@@ -132,7 +132,8 @@ class SeriesRepository(
                     id = id,
                     timestamp = req.timestamp,
                     caliber = req.caliber,
-                    holes = req.holes,
+                    // Removed detections go up for training and never come back down.
+                    holes = req.holes.filterNot { it.deleted },
                     geometry = req.geometry,
                     tag = req.tag,
                 ),

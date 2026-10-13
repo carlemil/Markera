@@ -62,6 +62,30 @@ class SeriesDtosTest {
     }
 
     @Test
+    fun theDetectorsBoxRidesAlongAndSurvivesADrag() {
+        val detected = HitScore(12f, 34f, 30f, 42.5, 9, false, boxW = 20f, boxH = 24f, conf = 0.5f)
+        val hole = detected.toHoleDto()
+        assertEquals(20.0, hole.detectedW)
+        assertEquals(24.0, hole.detectedH)
+        assertEquals(0.5, hole.detectedConf)
+        // Dragged: the new HitScore has its own box, but detected* still say what the model said.
+        val moved = detected.copy(centerXpx = 50f, boxW = 99f, original = detected).toHoleDto()
+        assertEquals(20.0, moved.detectedW)
+        // A hand-placed hole never claims a detector box.
+        assertNull(detected.copy(manual = true).toHoleDto().detectedW)
+    }
+
+    @Test
+    fun moveAndRestoreHoleKeepTheDetectorsBox() {
+        val hole = HoleDto(1.0, 1.0, 9, false, 30.0, 9, false, 1.0, 1.0, 20.0, 24.0, 0.5)
+        val moved = listOf(hole).moveHole(0, 105.0, 100.0, geometry, Caliber.NONE).single()
+        assertEquals(listOf(20.0, 24.0, 0.5), listOf(moved.detectedW, moved.detectedH, moved.detectedConf))
+        val back = listOf(moved).restoreHole(0, geometry).single()
+        assertEquals(listOf(20.0, 24.0, 0.5), listOf(back.detectedW, back.detectedH, back.detectedConf))
+        assertTrue(""""detectedW":20.0""" in seriesJson.encodeToString(hole.copy(deleted = true)))
+    }
+
+    @Test
     fun aMovedManualHoleStillCarriesNoDetectedValues() {
         val placed = HitScore(1f, 2f, 0f, 5.0, 10, true, manual = true)
         val moved = placed.copy(centerXpx = 9f, distanceMm = 8.0, ring = 9, original = placed)
