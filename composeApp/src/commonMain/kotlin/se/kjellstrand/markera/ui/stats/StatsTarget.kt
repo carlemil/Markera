@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -117,6 +118,51 @@ private fun handleAt(centre: Offset, limitMm: Double?, mmScale: Float): Offset {
 
 private const val HALF_SQRT2 = 0.70710677f
 
+/**
+ * Where the handle is drawn and grabbed, in layer coordinates: its natural place
+ * ([handleAt]) nudged so that on screen (`pos * zoom + pan`) it stays [margin] px
+ * inside a [width] x [height] viewport. Unzoomed it never moves.
+ */
+internal fun clampHandle(
+    natural: Offset,
+    zoom: Float,
+    pan: Offset,
+    width: Float,
+    height: Float,
+    margin: Float,
+): Offset {
+    val sx = (natural.x * zoom + pan.x).coerceIn(margin, (width - margin).coerceAtLeast(margin))
+    val sy = (natural.y * zoom + pan.y).coerceIn(margin, (height - margin).coerceAtLeast(margin))
+    return Offset((sx - pan.x) / zoom, (sy - pan.y) / zoom)
+}
+
+/** Where the handle is on screen, and whether [clampHandle] pulled it off its ring to get there. */
+private class HandlePlace(val screen: Offset, val offRing: Boolean)
+
+/**
+ * The handle's on-screen place in a [width] x [height] canvas whose layer is scaled
+ * by [zoom] about its top-left and shifted by [pan]: the one rule the touch and the
+ * drawing share, so the dot you see is the dot you grab.
+ */
+private fun handlePlace(width: Float, height: Float, limitMm: Double?, zoom: Float, pan: Offset, margin: Float): HandlePlace {
+    val mmScale = min(width, height) / 2f / PLOT_RADIUS_MM
+    val natural = handleAt(Offset(width / 2f, height / 2f), limitMm, mmScale)
+    val screen = clampHandle(natural, zoom, pan, width, height, margin) * zoom + pan
+    // Half a px of slack: the clamp's round trip through layer coordinates is not exact.
+    return HandlePlace(screen, (screen - (natural * zoom + pan)).getDistance() > 0.5f)
+}
+
+/**
+ * The radius a handle drag sets: [startMm] plus how far the finger has moved out
+ * from the centre since the grab ([distPx] - [startDistPx], at [pxPerMm]). Null is
+ * all the way out. Relative, so a handle clamped off its ring does not make the
+ * ring jump to the finger on the grab.
+ */
+internal fun draggedLimitMm(startMm: Float, startDistPx: Float, distPx: Float, pxPerMm: Float): Double? {
+    val mm = startMm + (distPx - startDistPx) / pxPerMm
+    return mm.roundToInt().takeIf { it < PLOT_RADIUS_MM }?.coerceAtLeast(1)?.toDouble()
+}
+
 /** Marker geometry, shared by the target and the legend (see [drawMark]). */
 private val MARK_ARM = 5.dp
 private val MARK_HALO = 2.dp
@@ -173,15 +219,26 @@ internal fun TargetCanvas(
                     // scaled about its top-left by `zoom` and shifted by `pan`.
                     val mmScale = min(size.width, size.height) / 2f / PLOT_RADIUS_MM
                     val layerCentre = Offset(size.width / 2f, size.height / 2f)
-                    val handle = handleAt(layerCentre, currentLimit, mmScale) * zoom + pan
-                    if ((down.position - handle).getDistance() <= HANDLE_TOUCH.toPx()) {
+                    val handle = handlePlace(
+                        size.width.toFloat(), size.height.toFloat(), currentLimit, zoom, pan, HANDLE_TOUCH.toPx() / 2f,
+                    )
+                    if ((down.position - handle.screen).getDistance() <= HANDLE_TOUCH.toPx()) {
                         val screenCentre = layerCentre * zoom + pan
+                        val pxPerMm = mmScale * zoom
+                        val startDist = (down.position - screenCentre).getDistance()
+                        // On its ring the ring follows the finger, as it always has; clamped
+                        // off it, the drag moves the ring by how far the finger moves instead.
+                        val startMm = if (handle.offRing) {
+                            currentLimit?.toFloat() ?: PLOT_RADIUS_MM
+                        } else {
+                            startDist / pxPerMm
+                        }
                         down.consume()
                         do {
                             val event = awaitPointerEvent()
                             val p = event.changes.first()
-                            val mm = (p.position - screenCentre).getDistance() / (mmScale * zoom)
-                            currentOnLimit(mm.roundToInt().takeIf { it < PLOT_RADIUS_MM }?.coerceAtLeast(1)?.toDouble())
+                            val dist = (p.position - screenCentre).getDistance()
+                            currentOnLimit(draggedLimitMm(startMm, startDist, dist, pxPerMm))
                             event.changes.forEach { it.consume() }
                         } while (event.changes.any { it.pressed })
                         return@awaitEachGesture
@@ -204,6 +261,26 @@ internal fun TargetCanvas(
                         }
                     } while (event.changes.any { it.pressed })
                 }
+            }
+            // The handle, and its radius in a pill beside it (left of it near the right edge).
+            // Drawn here, outside the zoomed layer, in screen px: it keeps its size, stays in
+            // view, and a pinch frame redraws only this, not the whole target in the layer.
+            .drawWithContent {
+                drawContent()
+                val handle = handlePlace(size.width, size.height, limitMm, zoom, pan, HANDLE_TOUCH.toPx() / 2f).screen
+                drawCircle(BLACK, radius = HANDLE.toPx() + 1.5f, center = handle)
+                drawCircle(LIMIT_RING, radius = HANDLE.toPx(), center = handle)
+                val pill = textMeasurer.measure(limitText, TextStyle(color = LIMIT_RING, fontSize = 12.sp))
+                val padX = 6.dp.toPx()
+                val pillW = pill.size.width + 2 * padX
+                val pillH = pill.size.height + 2.dp.toPx()
+                val right = handle.x + HANDLE.toPx() + 4.dp.toPx()
+                val pillX = if (right + pillW <= size.width) right else handle.x - HANDLE.toPx() - 4.dp.toPx() - pillW
+                // A large font scale makes the pill taller than the clamp margin: keep it in view.
+                val pillY = (handle.y - pillH / 2f).coerceIn(0f, (size.height - pillH).coerceAtLeast(0f))
+                val pillTop = Offset(pillX, pillY)
+                drawRoundRect(PILL, topLeft = pillTop, size = Size(pillW, pillH), cornerRadius = CornerRadius(pillH / 2f))
+                drawText(pill, topLeft = pillTop + Offset(padX, 1.dp.toPx()))
             }
             .graphicsLayer {
                 scaleX = zoom
@@ -282,20 +359,6 @@ internal fun TargetCanvas(
                 style = Stroke(width = 3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
             )
         }
-        // The handle, and its radius in a pill beside it (left of it near the right edge).
-        val handle = handleAt(centre, limitMm, scale)
-        drawCircle(BLACK, radius = HANDLE.toPx() + 1.5f, center = handle)
-        drawCircle(LIMIT_RING, radius = HANDLE.toPx(), center = handle)
-        val pill = textMeasurer.measure(limitText, TextStyle(color = LIMIT_RING, fontSize = 12.sp))
-        val padX = 6.dp.toPx()
-        val pillW = pill.size.width + 2 * padX
-        val pillH = pill.size.height + 2.dp.toPx()
-        val right = handle.x + HANDLE.toPx() + 4.dp.toPx()
-        val pillX = if (right + pillW <= size.width) right else handle.x - HANDLE.toPx() - 4.dp.toPx() - pillW
-        val pillTop = Offset(pillX, handle.y - pillH / 2f)
-        drawRoundRect(PILL, topLeft = pillTop, size = Size(pillW, pillH), cornerRadius = CornerRadius(pillH / 2f))
-        drawText(pill, topLeft = pillTop + Offset(padX, 1.dp.toPx()))
-
         // Mean (+) and median (×) point of impact, on top of the hits.
         if (stats != null) {
             drawMark(
