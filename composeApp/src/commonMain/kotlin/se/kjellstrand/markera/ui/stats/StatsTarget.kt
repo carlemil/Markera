@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -117,6 +118,24 @@ private fun handleAt(centre: Offset, limitMm: Double?, mmScale: Float): Offset {
 
 private const val HALF_SQRT2 = 0.70710677f
 
+/**
+ * Where the handle is drawn and grabbed, in layer coordinates: its natural place
+ * ([handleAt]) nudged so that on screen (`pos * zoom + pan`) it stays [margin] px
+ * inside a [width] x [height] viewport. Unzoomed it never moves.
+ */
+internal fun clampHandle(
+    natural: Offset,
+    zoom: Float,
+    pan: Offset,
+    width: Float,
+    height: Float,
+    margin: Float,
+): Offset {
+    val sx = (natural.x * zoom + pan.x).coerceIn(margin, (width - margin).coerceAtLeast(margin))
+    val sy = (natural.y * zoom + pan.y).coerceIn(margin, (height - margin).coerceAtLeast(margin))
+    return Offset((sx - pan.x) / zoom, (sy - pan.y) / zoom)
+}
+
 /** Marker geometry, shared by the target and the legend (see [drawMark]). */
 private val MARK_ARM = 5.dp
 private val MARK_HALO = 2.dp
@@ -173,7 +192,10 @@ internal fun TargetCanvas(
                     // scaled about its top-left by `zoom` and shifted by `pan`.
                     val mmScale = min(size.width, size.height) / 2f / PLOT_RADIUS_MM
                     val layerCentre = Offset(size.width / 2f, size.height / 2f)
-                    val handle = handleAt(layerCentre, currentLimit, mmScale) * zoom + pan
+                    val handle = clampHandle(
+                        handleAt(layerCentre, currentLimit, mmScale), zoom, pan,
+                        size.width.toFloat(), size.height.toFloat(), HANDLE_TOUCH.toPx() / 2f,
+                    ) * zoom + pan
                     if ((down.position - handle).getDistance() <= HANDLE_TOUCH.toPx()) {
                         val screenCentre = layerCentre * zoom + pan
                         down.consume()
@@ -283,18 +305,28 @@ internal fun TargetCanvas(
             )
         }
         // The handle, and its radius in a pill beside it (left of it near the right edge).
-        val handle = handleAt(centre, limitMm, scale)
-        drawCircle(BLACK, radius = HANDLE.toPx() + 1.5f, center = handle)
-        drawCircle(LIMIT_RING, radius = HANDLE.toPx(), center = handle)
-        val pill = textMeasurer.measure(limitText, TextStyle(color = LIMIT_RING, fontSize = 12.sp))
-        val padX = 6.dp.toPx()
-        val pillW = pill.size.width + 2 * padX
-        val pillH = pill.size.height + 2.dp.toPx()
-        val right = handle.x + HANDLE.toPx() + 4.dp.toPx()
-        val pillX = if (right + pillW <= size.width) right else handle.x - HANDLE.toPx() - 4.dp.toPx() - pillW
-        val pillTop = Offset(pillX, handle.y - pillH / 2f)
-        drawRoundRect(PILL, topLeft = pillTop, size = Size(pillW, pillH), cornerRadius = CornerRadius(pillH / 2f))
-        drawText(pill, topLeft = pillTop + Offset(padX, 1.dp.toPx()))
+        // Drawn at a fixed screen size (the layer is scaled by zoom, so undo it) and kept in view.
+        val handle = clampHandle(
+            handleAt(centre, limitMm, scale), zoom, pan, size.width, size.height, HANDLE_TOUCH.toPx() / 2f,
+        )
+        withTransform({
+            translate(handle.x, handle.y)
+            scale(1f / zoom, 1f / zoom, pivot = Offset.Zero)
+        }) {
+            drawCircle(BLACK, radius = HANDLE.toPx() + 1.5f, center = Offset.Zero)
+            drawCircle(LIMIT_RING, radius = HANDLE.toPx(), center = Offset.Zero)
+            val pill = textMeasurer.measure(limitText, TextStyle(color = LIMIT_RING, fontSize = 12.sp))
+            val padX = 6.dp.toPx()
+            val pillW = pill.size.width + 2 * padX
+            val pillH = pill.size.height + 2.dp.toPx()
+            val gap = HANDLE.toPx() + 4.dp.toPx()
+            // Flip to the left when it would leave the view (screen px: local x + handle on screen).
+            val screenX = handle.x * zoom + pan.x
+            val pillX = if (screenX + gap + pillW <= size.width) gap else -gap - pillW
+            val pillTop = Offset(pillX, -pillH / 2f)
+            drawRoundRect(PILL, topLeft = pillTop, size = Size(pillW, pillH), cornerRadius = CornerRadius(pillH / 2f))
+            drawText(pill, topLeft = pillTop + Offset(padX, 1.dp.toPx()))
+        }
 
         // Mean (+) and median (×) point of impact, on top of the hits.
         if (stats != null) {
