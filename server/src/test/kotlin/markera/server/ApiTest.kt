@@ -1060,6 +1060,14 @@ class ApiTest {
     }
 
     @Test
+    fun adminUsersPageCountsUsersPerProvider() = apiTest(adminPassword = ADMIN_PW) { client ->
+        client.devAuth("a")
+        client.devAuth("b")
+        val users = client.admin("/admin").bodyAsText()
+        assertTrue("""<p id="user-counts">2 users: dev 2</p>""" in users, users)
+    }
+
+    @Test
     fun adminShowsTheLoginNameFormatsNumbersAndTimestamps() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("alice")
         val id = client.createSeries(
