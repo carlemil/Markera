@@ -34,8 +34,9 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val allUsers = db.listUsers()
         val perProvider = allUsers.groupingBy { it.provider }.eachCount().toSortedMap()
             .entries.joinToString(", ") { "${esc(it.key)} ${it.value}" }
-        val counts = """<p id="user-counts">${allUsers.size} users""" +
-            (if (perProvider.isEmpty()) "" else ": $perProvider") + "</p>"
+        val noun = if (allUsers.size == 1) "user" else "users"
+        val counts = """<p id="user-counts">${allUsers.size} $noun""" +
+            (if (perProvider.isEmpty()) "" else ", by sign-in provider: $perProvider") + "</p>"
         val rows = allUsers.joinToString("") { u ->
             val link = """<a href="/admin/users/${u.id}">"""
             row(
