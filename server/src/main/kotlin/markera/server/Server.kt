@@ -133,6 +133,10 @@ data class Hole(
     /** Where the detector put the hole; [x]/[y] differing from it means the user dragged the marker. */
     val detectedX: Double? = null,
     val detectedY: Double? = null,
+    /** The detector's box size (source px) and confidence, so a false positive can be exported as a box. */
+    val detectedW: Double? = null,
+    val detectedH: Double? = null,
+    val detectedConf: Double? = null,
     /** Removed by the user: stored for training, hidden from every read (the app never sees it again). */
     val deleted: Boolean = false,
 )
@@ -461,7 +465,7 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
             "detected score out of range"
         // Negative x/y are fine (a hole off the frame's edge), NaN and infinities are not.
         req.holes.any { h ->
-            listOfNotNull(h.x, h.y, h.distanceMm, h.detectedX, h.detectedY).any { !it.isFinite() } || (h.distanceMm ?: 0.0) < 0
+            listOfNotNull(h.x, h.y, h.distanceMm, h.detectedX, h.detectedY, h.detectedW, h.detectedH, h.detectedConf).any { !it.isFinite() } || (h.distanceMm ?: 0.0) < 0
         } -> "hole coordinates must be finite"
         runCatching { Instant.parse(req.timestamp) }.isFailure -> "timestamp must be an ISO-8601 instant"
         req.geometry?.let { it.ringSemiMajor <= 0 || it.ringSemiMinor <= 0 } == true ->

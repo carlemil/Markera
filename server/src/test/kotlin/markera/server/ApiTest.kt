@@ -149,6 +149,9 @@ class ApiTest {
         // No contact address configured: point at the Play listing instead of a dead mailto.
         assertTrue(!body.contains("mailto:"), body)
         assertTrue(body.contains("Google Play"), body)
+        // Photos and holes may train the detector: said in both languages.
+        assertTrue(body.contains("förbättra träffdetekteringen"), body)
+        assertTrue(body.contains("may be used to improve hole"), body)
     }
 
     @Test
@@ -544,6 +547,82 @@ class ApiTest {
         val stored = client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes
         assertEquals(listOf(old, new), stored)
         assertEquals(null, stored[0].detectedX)
+    }
+
+    @Test
+    fun theDetectorsBoxIsStoredAndASoftDeletedFalsePositiveKeepsIt() {
+        val dbFile = File.createTempFile("markera-box", ".db").also { it.delete(); it.deleteOnExit() }
+        val boxed = Hole(1.0, 2.0, 9, false, 31.2, 9, false, 1.0, 2.0, 20.0, 22.0, 0.61)
+        val gone = Hole(5.0, 6.0, 0, false, 80.0, 7, false, 5.0, 6.0, 18.0, 19.0, 0.3, deleted = true)
+        Db(dbFile.path).use { db ->
+            val user = db.upsertUser("dev", "me", null)
+            val id = db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", listOf(boxed, gone))
+            assertEquals(listOf(boxed), db.getSeries(id)?.holes)
+            assertEquals(listOf(boxed, gone), db.getSeries(id, includeDeleted = true)?.holes)
+        }
+        // Reopening is idempotent for the ALTER TABLE migration.
+        Db(dbFile.path).use { }
+    }
+
+    @Test
+    fun aRemovedDetectionIsStoredOnceAndAnUndoDropsItAgain() {
+        val dbFile = File.createTempFile("markera-undo", ".db").also { it.delete(); it.deleteOnExit() }
+        val keep = Hole(1.0, 2.0, 9, false, 31.2, 9, false, 1.0, 2.0)
+        val gone = Hole(5.0, 6.0, 7, false, 80.0, 7, false, 5.0, 6.0)
+        Db(dbFile.path).use { db ->
+            val user = db.upsertUser("dev", "me", null)
+            val id = db.insertSeries(user, "2026-09-06T12:34:56Z", "9mm", listOf(keep, gone))
+            val removed = SeriesRequest("2026-09-06T12:34:56Z", "9mm", listOf(keep, gone.copy(deleted = true)))
+            db.replaceSeries(id, removed)
+            db.replaceSeries(id, removed)
+            assertEquals(1, db.getSeries(id, includeDeleted = true)!!.holes.count { it.deleted })
+            // The admin page's Undo: the hole is live again, so it is no false positive.
+            db.replaceSeries(id, SeriesRequest("2026-09-06T12:34:56Z", "9mm", listOf(keep, gone)))
+            assertEquals(listOf(keep, gone), db.getSeries(id, includeDeleted = true)?.holes)
+        }
+    }
+
+    @Test
+    fun theAdminEditorSendsARemovedDetectionAsDeleted() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val id = client.createSeries(me.token, series().copy(holes = listOf(Hole(1.0, 2.0, 9, false, 31.2, 9, false, 1.0, 2.0))))
+        val page = client.admin("/admin/series/$id").bodyAsText()
+        assertTrue("deleted: true, removed: undefined" in page, page)
+        assertTrue("h.detectedRing != null" in page, page)
+    }
+
+    @Test
+    fun theTrainingExportIsAdminOnlyAndCoversEveryUsersPhotos() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val a = client.devAuth("a")
+        val b = client.devAuth("b")
+        val holes = listOf(
+            Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, 20.0, 20.0, 0.7),
+            Hole(300.0, 80.0, 0, false, 10.0, 7, false, 300.0, 80.0, 20.0, 20.0, 0.4, deleted = true),
+        )
+        val ids = listOf(a, b).map { user ->
+            val id = client.createSeries(user.token, series().copy(holes = holes))
+            client.putImage(user.token, id, jpeg(), query = "?width=1000&height=500")
+            id
+        }
+        val gone = client.createSeries(a.token, series().copy(holes = holes))
+        client.putImage(a.token, gone, jpeg(), query = "?width=1000&height=500")
+        client.delete("/series/$gone") { bearerAuth(a.token) }
+
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/training-export.zip").status)
+        assertTrue("/admin/training-export.zip" in client.admin("/admin").bodyAsText())
+
+        val response = client.admin("/admin/training-export.zip")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val entries = mutableMapOf<String, String>()
+        java.util.zip.ZipInputStream(response.bodyAsBytes().inputStream()).use { zip ->
+            generateSequence { zip.nextEntry }.forEach { entries[it.name] = String(zip.readBytes(), Charsets.ISO_8859_1) }
+        }
+        // Both users' photos, no soft-deleted series.
+        assertEquals(
+            (ids.flatMap { listOf("images/$it.jpg", "labels/$it.txt") } + listOf("data.yaml", "negatives.csv", "nudges.csv")).toSet(),
+            entries.keys,
+        )
+        assertEquals(1, entries.getValue("negatives.csv").lines().count { it.endsWith(";deleted") } / ids.size)
     }
 
     @Test
