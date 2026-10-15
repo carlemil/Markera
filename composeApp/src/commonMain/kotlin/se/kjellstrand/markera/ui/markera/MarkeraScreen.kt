@@ -86,6 +86,9 @@ import se.kjellstrand.markera.ui.TotalBadge
 import se.kjellstrand.markera.ui.PrimaryActionButton
 import se.kjellstrand.markera.ui.SecondaryActionButton
 
+/** Continuous scan is not working yet: false hides its toggle and help everywhere. The code stays. */
+private const val SHOW_CONTINUOUS_SCAN = false
+
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
  * the pickers. The detectors and frame source are hoisted by the caller (the
@@ -195,7 +198,7 @@ fun MarkeraScreen(
     // unchanged, still scene runs the scan the button runs. The snapshot-state
     // reads are current on every tick, so the loop never has to restart.
     // Detection off stops it too: its switch is hidden then, so nothing else could.
-    val watching = continuous && detectHoles && frameSource.supportsContinuousScan
+    val watching = SHOW_CONTINUOUS_SCAN && continuous && detectHoles && frameSource.supportsContinuousScan
     // Debug builds only: what the watch loop saw on its last tick, drawn over the viewport.
     var watchDebug by remember { mutableStateOf<WatchDebug?>(null) }
     LaunchedEffect(watching, frameSource) {
@@ -338,9 +341,9 @@ fun MarkeraScreen(
                     onSetScore = onSetScore,
                     detectHoles = detectHoles,
                     onToggleDetectHoles = { detectHoles = it },
-                    // Debug builds only until it is proven on a real range (the switch starts off,
-                    // so hiding it keeps the watch off in release).
-                    continuousAvailable = isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
+                    // Hidden everywhere while SHOW_CONTINUOUS_SCAN is false; once shown again, debug
+                    // builds only until it is proven on a real range (the switch starts off).
+                    continuousAvailable = SHOW_CONTINUOUS_SCAN && isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
                     continuous = continuous,
                     onToggleContinuous = { continuous = it },
                     onContinuousHelp = { showingContinuousHelp = true },
@@ -391,7 +394,7 @@ fun MarkeraScreen(
                 Res.string.help_scan_score to Res.string.help_scan_score_body,
                 Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
                 Res.string.help_scan_save to Res.string.help_scan_save_body,
-                if (isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
+                if (SHOW_CONTINUOUS_SCAN && isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
                 // Its menu entry exists in debug builds only.
                 if (isDebugBuild) Res.string.help_scan_debug to Res.string.help_scan_debug_body else null,
             ),
