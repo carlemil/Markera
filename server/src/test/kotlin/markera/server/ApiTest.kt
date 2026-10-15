@@ -589,6 +589,8 @@ class ApiTest {
         val page = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("deleted: true, removed: undefined" in page, page)
         assertTrue("h.detectedRing != null" in page, page)
+        // A hole whose delete was Undone carries `removed: false`; the server rejects unknown keys (400), so it is stripped too.
+        assertTrue(": {removed: undefined}" in page, page)
     }
 
     @Test

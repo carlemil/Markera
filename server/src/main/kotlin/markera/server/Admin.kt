@@ -614,7 +614,9 @@ function save() {
                                          // A removed detection goes along flagged deleted: a false positive for training.
                                          // A removed hand-placed hole just goes.
                                          .filter(h => !h.removed || h.detectedRing != null)
-                                         .map(h => h.removed ? Object.assign({}, h, {deleted: true, removed: undefined}) : h)});
+                                         // `removed` is this page's own flag and never goes to the server (it rejects unknown keys),
+                                         // also not as `removed: false` on a hole whose delete was undone.
+                                         .map(h => Object.assign({}, h, h.removed ? {deleted: true, removed: undefined} : {removed: undefined}))});
   queue = queue.then(() => fetch(location.pathname, {
     method: 'PUT',
     credentials: 'include',
