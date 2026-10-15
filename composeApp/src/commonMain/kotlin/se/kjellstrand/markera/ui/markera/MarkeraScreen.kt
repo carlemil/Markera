@@ -95,6 +95,9 @@ import se.kjellstrand.markera.ui.SecondaryActionButton
  * instead, one per turn: Save or Skip moves on; in auto mode a scan that scored
  * is saved without stopping (see [importDecision]).
  */
+/** Continuous scan is not working yet: false hides its toggle and help everywhere. The code stays. */
+const val SHOW_CONTINUOUS_SCAN = false
+
 @Composable
 fun MarkeraScreen(
     frameSource: FrameSource = rememberFrameSource(),
@@ -340,7 +343,7 @@ fun MarkeraScreen(
                     onToggleDetectHoles = { detectHoles = it },
                     // Debug builds only until it is proven on a real range (the switch starts off,
                     // so hiding it keeps the watch off in release).
-                    continuousAvailable = isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
+                    continuousAvailable = SHOW_CONTINUOUS_SCAN && isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
                     continuous = continuous,
                     onToggleContinuous = { continuous = it },
                     onContinuousHelp = { showingContinuousHelp = true },
@@ -391,7 +394,7 @@ fun MarkeraScreen(
                 Res.string.help_scan_score to Res.string.help_scan_score_body,
                 Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
                 Res.string.help_scan_save to Res.string.help_scan_save_body,
-                if (isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
+                if (SHOW_CONTINUOUS_SCAN && isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
                 // Its menu entry exists in debug builds only.
                 if (isDebugBuild) Res.string.help_scan_debug to Res.string.help_scan_debug_body else null,
             ),
