@@ -86,6 +86,9 @@ import se.kjellstrand.markera.ui.TotalBadge
 import se.kjellstrand.markera.ui.PrimaryActionButton
 import se.kjellstrand.markera.ui.SecondaryActionButton
 
+/** Continuous scan is not working yet: false hides its toggle and help everywhere. The code stays. */
+private const val SHOW_CONTINUOUS_SCAN = false
+
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
  * the pickers. The detectors and frame source are hoisted by the caller (the
@@ -95,9 +98,6 @@ import se.kjellstrand.markera.ui.SecondaryActionButton
  * instead, one per turn: Save or Skip moves on; in auto mode a scan that scored
  * is saved without stopping (see [importDecision]).
  */
-/** Continuous scan is not working yet: false hides its toggle and help everywhere. The code stays. */
-const val SHOW_CONTINUOUS_SCAN = false
-
 @Composable
 fun MarkeraScreen(
     frameSource: FrameSource = rememberFrameSource(),
@@ -198,7 +198,7 @@ fun MarkeraScreen(
     // unchanged, still scene runs the scan the button runs. The snapshot-state
     // reads are current on every tick, so the loop never has to restart.
     // Detection off stops it too: its switch is hidden then, so nothing else could.
-    val watching = continuous && detectHoles && frameSource.supportsContinuousScan
+    val watching = SHOW_CONTINUOUS_SCAN && continuous && detectHoles && frameSource.supportsContinuousScan
     // Debug builds only: what the watch loop saw on its last tick, drawn over the viewport.
     var watchDebug by remember { mutableStateOf<WatchDebug?>(null) }
     LaunchedEffect(watching, frameSource) {
@@ -341,8 +341,8 @@ fun MarkeraScreen(
                     onSetScore = onSetScore,
                     detectHoles = detectHoles,
                     onToggleDetectHoles = { detectHoles = it },
-                    // Debug builds only until it is proven on a real range (the switch starts off,
-                    // so hiding it keeps the watch off in release).
+                    // Hidden everywhere while SHOW_CONTINUOUS_SCAN is false; once shown again, debug
+                    // builds only until it is proven on a real range (the switch starts off).
                     continuousAvailable = SHOW_CONTINUOUS_SCAN && isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
                     continuous = continuous,
                     onToggleContinuous = { continuous = it },
