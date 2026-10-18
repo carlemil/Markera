@@ -204,6 +204,7 @@ try {
             # A valid body edit emits a new unused internal function each time, forcing
             # new bytecode without changing target scoring behavior or assertions.
             $edit = "`r`ninternal fun benchmark709matched20261018${scope}${trial}(): Int = $trial`r`n"
+            if ((Get-FileHash $source).Hash -ne $originalHash) { throw 'Concurrent source modification: refusing benchmark edit' }
             [IO.File]::WriteAllText($source, $originalText + $edit, $utf8)
             $expectedHash = (Get-FileHash $source).Hash
             $paths = if ($trial % 2) { @('android','jvm') } else { @('jvm','android') }
@@ -261,8 +262,9 @@ combined with the controlled matrix or treated as a stable machine guarantee.
 
 ## Final validation
 
-Only this Markdown report is retained. Tracked production/configuration inputs
-match the source revision exactly; guarded byte restoration passed. There is no
+Only this Markdown report is retained. Production sources match the measured revision; guarded byte restoration passed.
+The later master merge adds #706 cache defaults to `gradle.properties`; the
+matrix used explicit matching flags before that merge, as described above. There is no
 app/backend deployment for this evidence-only change. A repository test-file
 reference search for this report returned no matches. Final review uses the
 Tickets docs-only rule; the benchmark trials above are measurement evidence,
