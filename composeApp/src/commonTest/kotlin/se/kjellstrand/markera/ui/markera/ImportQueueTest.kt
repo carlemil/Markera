@@ -10,11 +10,21 @@ class ImportQueueTest {
 
     @Test
     fun autoImportSavesOnlyAScoredSaveableScan() {
-        assertEquals(ImportDecision.Save, importDecision(true, true, Caliber.LR22, true))
-        assertEquals(ImportDecision.Review, importDecision(true, false, Caliber.LR22, true))
-        assertEquals(ImportDecision.Review, importDecision(true, true, Caliber.NONE, true))
-        assertEquals(ImportDecision.Review, importDecision(true, true, Caliber.LR22, false))
-        assertEquals(ImportDecision.Review, importDecision(false, true, Caliber.LR22, true))
+        assertEquals(ImportDecision.Save, importDecision(true, true, Caliber.LR22))
+        assertEquals(ImportDecision.Review, importDecision(true, false, Caliber.LR22))
+        assertEquals(ImportDecision.Review, importDecision(true, true, Caliber.NONE))
+        assertEquals(ImportDecision.Review, importDecision(false, true, Caliber.LR22))
+    }
+
+    @Test
+    fun autoPassSavesScoredImagesWithoutAnAccount() {
+        val queue = ImportQueue(listOf("first", "second"), auto = true)
+        while (queue.current != null) {
+            queue.next(importDecision(queue.auto, hasScores = true, caliber = Caliber.LR22))
+        }
+        assertEquals(2, queue.saved)
+        assertEquals(0, queue.skipped)
+        assertNull(queue.current)
     }
 
     @Test

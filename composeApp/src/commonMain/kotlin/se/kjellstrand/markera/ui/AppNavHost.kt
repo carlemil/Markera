@@ -303,7 +303,6 @@ fun AppNavHost(
             scanController = scanController,
             onBack = pop,
             importQueue = screen.queue,
-            signedIn = backendAuth != null,
         )
 
         // Both list screens read the cached flow; they only ask for a delta on open.

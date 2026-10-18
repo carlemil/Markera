@@ -104,7 +104,6 @@ fun MarkeraScreen(
     scanController: TargetScanController,
     onBack: (() -> Unit)? = null,
     importQueue: ImportQueue<PickedImage>? = null,
-    signedIn: Boolean = true,
 ) {
     // An import keeps its own pair, so a frame frozen in free marking never shows up in it.
     val vmKey = importQueue?.let { "import" }
@@ -175,7 +174,7 @@ fun MarkeraScreen(
         // Leaving the frozen frame is what saves the scan, with the edited scores.
         recorder?.commit(picks)
         frameSource.onResumeLive()
-        importQueue?.next(if (scored && signedIn) ImportDecision.Save else ImportDecision.Skip)
+        importQueue?.next(if (scored) ImportDecision.Save else ImportDecision.Skip)
     }
     // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
     // In an import that is Skip: the next image.
@@ -188,7 +187,7 @@ fun MarkeraScreen(
         importQueue?.next(ImportDecision.Skip)
     }
     if (importQueue != null && frameSource is ImportFrameSource && recorder != null) {
-        ImportRunner(importQueue, frameSource, scanController, viewModel, snapshotVm, recorder, signedIn, errorInference, onBack)
+        ImportRunner(importQueue, frameSource, scanController, viewModel, snapshotVm, recorder, errorInference, onBack)
     }
     // Hand edits are work: throwing them away asks first.
     var confirmingReset by remember { mutableStateOf(false) }
@@ -743,7 +742,6 @@ private fun ImportRunner(
     viewModel: MarkeraViewModelImpl,
     snapshotVm: MarkeraSnapshotViewModel,
     recorder: SeriesRecorder,
-    signedIn: Boolean,
     errorMessage: String,
     onBack: (() -> Unit)?,
 ) {
@@ -759,7 +757,7 @@ private fun ImportRunner(
             return@LaunchedEffect
         }
         // A commit that waits for the caliber dialog would be dropped by the next scan: ask up front.
-        if (signedIn && recorder.caliber.value == Caliber.NONE) {
+        if (recorder.caliber.value == Caliber.NONE) {
             recorder.openCaliberDialog()
             recorder.caliber.first { it != Caliber.NONE }
         }
@@ -774,7 +772,7 @@ private fun ImportRunner(
         while (!scanController.startScan(source, snapshotVm, viewModel, scope, errorMessage)) delay(100)
         val state = viewModel.uiState.first { it.phase == ScanPhase.IDLE }
         if (!queue.auto) return@LaunchedEffect
-        val decision = importDecision(true, state.scores.isNotEmpty(), recorder.caliber.value, signedIn)
+        val decision = importDecision(true, state.scores.isNotEmpty(), recorder.caliber.value)
         if (decision == ImportDecision.Save) recorder.commit(state.topScores)
         snapshotVm.clear()
         viewModel.clearResults()
