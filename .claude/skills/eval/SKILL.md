@@ -22,10 +22,10 @@ Perform these steps in order. Stop and report if any step fails.
 Base command (run from the project root with the Bash or PowerShell tool):
 
 ```
-.\gradlew.bat :eval:test --tests "eval.HoleDetectionMosaicTest" --rerun-tasks
+.\gradlew.bat :eval:mosaic
 ```
 
-`--rerun-tasks` forces the test to re-run even when Gradle thinks nothing changed (inputs are external image files), so the mosaic is always regenerated.
+`:eval:mosaic` always runs fresh inference and consumes the current external model and image files. Its prerequisite compilation remains incremental; do not add `--rerun-tasks`. Missing assets fail this explicit request instead of silently skipping it.
 
 Append system properties from the arguments:
 - If `<seed>` was given: add `-Dmosaic.seed=<seed>`
@@ -33,7 +33,7 @@ Append system properties from the arguments:
 
 Example with both: 
 ```
-.\gradlew.bat :eval:test --tests "eval.HoleDetectionMosaicTest" --rerun-tasks -Dmosaic.seed=7 -Dmosaic.images="D:/ml/holes/dataset/images/val"
+.\gradlew.bat :eval:mosaic -Dmosaic.seed=7 -Dmosaic.images="D:/ml/holes/dataset/images/val"
 ```
 
 ---
