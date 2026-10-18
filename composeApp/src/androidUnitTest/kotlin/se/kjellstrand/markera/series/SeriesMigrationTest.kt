@@ -65,6 +65,17 @@ class LocalSeriesMigrationTest {
                 }
                 assertEquals(emptyList(), q.selectLocal().executeAsList())
             }
+            // Verify the migration preserved durable data, not just this connection's view.
+            JdbcSqliteDriver("jdbc:sqlite:$file").use { driver ->
+                val q = MarkeraDb(driver).seriesQueries
+                assertEquals(listOf(17L), q.selectAll().executeAsList().map { it.id })
+                assertEquals("2026-10-01 10:00:00.000", q.lastSync().executeAsOne().last_sync)
+                assertEquals(listOf(null, 17L), q.outboxFor("1").executeAsList().map { it.series_id })
+                q.outboxFor("1").executeAsList().forEach {
+                    kotlin.test.assertContentEquals(byteArrayOf(3,2,1), it.image)
+                }
+                assertEquals(emptyList(), q.selectLocal().executeAsList())
+            }
         } finally { java.nio.file.Files.deleteIfExists(file) }
     }
     @Test fun adoptionMovesLegacyBlobsToLocalFilesWithoutChangingOwnerOrClientIdAndIsIdempotent() = kotlinx.coroutines.runBlocking {
