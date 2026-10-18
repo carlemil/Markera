@@ -52,10 +52,16 @@ function Measure-Edit([string]$Label, [string]$RelativePath, [string]$Before, [s
     $bytes = [IO.File]::ReadAllBytes($path)
     $text = [Text.Encoding]::UTF8.GetString($bytes)
     if (!$text.Contains($Before)) { throw "Edit anchor missing: $RelativePath" }
+    $backup = Join-Path $out ($Label + '-original.bin')
+    [IO.File]::WriteAllBytes($backup, $bytes)
+    $edited = [Text.UTF8Encoding]::new($false).GetBytes($text.Replace($Before, $After))
     try {
-        [IO.File]::WriteAllText($path, $text.Replace($Before, $After), [Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllBytes($path, $edited)
         Measure-Gradle $Label $gate
     } finally {
+        if ([Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) -cne [Convert]::ToBase64String($edited)) {
+            throw "Source changed during profiling; preserved current file: $RelativePath. Original bytes: $backup"
+        }
         [IO.File]::WriteAllBytes($path, $bytes)
         $restored = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) -ceq [Convert]::ToBase64String($bytes)
         "$RelativePath restored=$restored" | Add-Content (Join-Path $out 'restoration.txt')
@@ -64,6 +70,10 @@ function Measure-Edit([string]$Label, [string]$RelativePath, [string]$Before, [s
 }
 Push-Location $repo
 try {
+    if ($Scenario -in @('All', 'Edits')) {
+        $dirty = @(git status --porcelain --untracked-files=no)
+        if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Edit scenarios require a clean tracked checkout.' }
+    }
     @("commit=$(git rev-parse HEAD)", "status=$(git status --porcelain)", "started=$(Get-Date -Format o)",
       'State: existing user dependency cache and daemon; forced means rerun tasks, not clean caches.') |
         Set-Content (Join-Path $out 'environment.txt')

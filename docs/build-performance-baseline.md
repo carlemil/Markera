@@ -140,8 +140,11 @@ The runner writes ignored `build/profiling/<timestamp>/` logs, environment,
 profiles also remain in `build/reports/profile`. `-Scenario` selects Test,
 Assemble, Gate or Edits. At least three warm runs are enforced. No app setting or
 dependency cache is changed. Failure stops the matrix, records the exit code and
-restores an active edited source before propagating the error. Output directories
-must be within this checkout's `build/`. Local raw evidence for this run is
+restores an active edited source before propagating the error.
+For edit scenarios the tracked checkout must be clean. Original source bytes are
+also backed up in the output directory. If a source changes concurrently, the
+runner preserves its current bytes and reports the backup path for reconciliation.
+Output directories must be within this checkout's `build/`. Local raw evidence for this run is
 `build/profiling/baseline/`; it is intentionally not committed.
 
 Method: [Gradle performance guide](https://docs.gradle.org/current/userguide/performance.html).
