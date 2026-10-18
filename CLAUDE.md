@@ -17,6 +17,23 @@ goal and a history of detection approaches tried (and which are in use vs. aband
 ./gradlew :composeApp:testDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```
 
+### Tickets verification and test map
+
+Follow [the project verification guide](docs/ticket-verification.md) for the
+changed-area test map, final gate and artifact reuse rules. Development uses
+targeted tests; independent final review retains the full relevant suite. When
+Android tests and packaging are both required, use one PowerShell invocation:
+
+```powershell
+.\gradlew.bat :composeApp:testDebugUnitTest :composeApp:assembleDebug
+```
+
+Keep incremental outputs and daemons in normal iteration; no routine `clean`,
+`--rerun-tasks` or daemon shutdown. Reuse a verified APK only with evidence for
+the exact source, build inputs and artifact hash. Later fixes, changed integration
+sources or configuration invalidate earlier verification; the guide details the
+checks. Documentation-only changes follow the Tickets docs-only reference check.
+
 ### Release build
 
 `release` is minified + resource-shrunk (R8). Keep-rules live in
@@ -48,9 +65,13 @@ The `:eval` module is a JVM tool that evaluates the hole-detection ONNX model ag
 dataset images (the `/eval` project skill drives it):
 
 ```sh
-./gradlew :eval:test --tests "eval.HoleDetectionMosaicTest" --rerun-tasks \
+./gradlew :eval:mosaic \
   -Dmosaic.seed=42   # optional; also -Dmosaic.images=<dir>, -Dmosaic.model=<path>
 ```
+
+The explicit `:eval:mosaic` task always runs fresh inference (including with a fixed seed),
+while unchanged compilation remains reusable. It fails if the external model or images
+are missing. The ordinary `:eval:test` suite keeps optional-asset skips.
 
 It compiles the app's real `vision/` sources straight from `commonMain` (excluding the
 expect/actual platform files, with a desktop ONNX Runtime standing in), so edits to
