@@ -412,7 +412,7 @@ fun SeriesDetailScreen(
                             androidx.compose.material3.TextButton(enabled = saving == 0, onClick = {
                                 saving++
                                 scope.launch {
-                                    try { services.repository.retry(-series.id); onBack() }
+                                    try { services.repository.retrySeries(series.id); onBack() }
                                     catch (e: CancellationException) { throw e }
                                     catch (_: Exception) { toast(failedText) }
                                     finally { saving-- }

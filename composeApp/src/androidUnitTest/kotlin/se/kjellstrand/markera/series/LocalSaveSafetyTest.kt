@@ -19,6 +19,10 @@ class LocalSaveSafetyTest {
         val cache = FakeImageCache()
         var offline = false
         var failTokenWrite = false
+        var imageStatus = HttpStatusCode.OK
+        var imagePosts = 0
+        var seriesPosts = 0
+        var deleted = false
         var atPublication: () -> Unit = {}
         var saved: BackendAuth? = BackendAuth("old", 1, "dev")
         val store = object : BackendTokenStore {
@@ -33,9 +37,17 @@ class LocalSaveSafetyTest {
         lateinit var session: BackendSessionRepository
         val api = SeriesApi(createSeriesHttpClient(MockEngine { req ->
             if (offline) throw IOException("offline")
+            if (req.method == HttpMethod.Post && req.url.encodedPath.endsWith("/image")) {
+                imagePosts++
+                return@MockEngine respond("", imageStatus)
+            }
+            if (req.method == HttpMethod.Post && req.url.encodedPath == "/series") seriesPosts++
+            if (req.method == HttpMethod.Delete && req.url.encodedPath == "/series/100") deleted = true
             val body = when {
                 req.url.encodedPath == "/auth/dev" -> """{"token":"new","userId":2}"""
                 req.method == HttpMethod.Post && req.url.encodedPath == "/series" -> """{"id":100}"""
+                req.method == HttpMethod.Get && req.url.encodedPath == "/series" && seriesPosts > 0 && !deleted ->
+                    seriesJson.encodeToString(listOf(SeriesDto(100, "2026-10-18T10:00:00Z", "22lr", emptyList(), hasImage = false)))
                 else -> "[]"
             }
             respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
@@ -118,5 +130,38 @@ class LocalSaveSafetyTest {
         f.repo.delete(-id)
         assertNull(local.read(id))
         assertTrue(f.repo.series.value.isEmpty())
+    }
+
+    @Test fun refusedPhotoIsVisibleAndDetailRetriesPositiveIdWithoutPostingMetadataAgain() = runBlocking {
+        val f = Fixture()
+        f.imageStatus = HttpStatusCode.PayloadTooLarge
+        val id = f.repo.keepLocal(request(), EncodedImage(byteArrayOf(1), 10, 10), owner = 1)
+        assertFailsWith<SeriesApiException> { f.repo.send(id) }
+        assertEquals(100L, f.repo.series.value.single().id)
+        assertEquals(LocalMark.REFUSED, f.repo.series.value.single().local)
+        f.repo.refresh() // The server metadata truthfully says the refused photo has not arrived.
+        assertTrue(f.repo.series.value.single().hasImage, "Durable local photo stays visible/exportable after refresh")
+        assertContentEquals(byteArrayOf(1), f.repo.image(100))
+        val priorImagePosts = f.imagePosts
+        f.imageStatus = HttpStatusCode.OK
+        f.repo.retrySeries(100)
+        assertEquals(1, f.seriesPosts)
+        assertEquals(priorImagePosts + 1, f.imagePosts)
+        assertNull(f.repo.series.value.single().local)
+        assertTrue(f.db.seriesQueries.selectLocal().executeAsList().isEmpty())
+    }
+
+    @Test fun deletingAcknowledgedSeriesCancelsPendingPhotoAndRemovesDurableFile() = runBlocking {
+        val local = FakeImageCache()
+        val f = Fixture(local)
+        f.imageStatus = HttpStatusCode.Forbidden
+        val id = f.repo.keepLocal(request(), EncodedImage(byteArrayOf(1), 10, 10), owner = 1)
+        assertFailsWith<SeriesApiException> { f.repo.send(id) }
+        f.repo.delete(100)
+        assertTrue(f.db.seriesQueries.selectLocal().executeAsList().isEmpty())
+        assertNull(local.read(id))
+        assertTrue(f.repo.series.value.isEmpty())
+        f.repo.refresh()
+        assertEquals(1, f.imagePosts, "Deleted series must never retry their pending photo")
     }
 }

@@ -69,6 +69,13 @@ class SeriesRepository(
         q.localById(localId).executeAsOneOrNull()?.server_id != null
     }
     suspend fun retry(localId: Long) { send(localId) }
+    /** Detail may show the acknowledged server id while its photo is still refused. */
+    suspend fun retrySeries(id: Long) = locked {
+        val localId = if (id < 0) -id else q.selectLocal().executeAsList().first {
+            it.server_id == id && it.owner_user_id == session.auth.value?.userId?.toString()
+        }.local_id
+        sendLocked(localId)
+    }
     suspend fun deleteLocal(localId: Long) = locked { deleteLocalLocked(localId); reload() }
 
     private fun deleteLocalLocked(id: Long) {
@@ -329,6 +336,11 @@ class SeriesRepository(
             return@locked
         }
         api.deleteSeries(id)
+        // An acknowledged row can still own a refused/pending photo. Deleting the
+        // series must cancel that upload too, rather than retrying a deleted id.
+        q.selectLocal().executeAsList().filter {
+            it.server_id == id && it.owner_user_id == session.auth.value?.userId?.toString()
+        }.forEach { deleteLocalLocked(it.local_id) }
         withContext(Dispatchers.Default) {
             q.deleteById(id)
             images.delete(id)
@@ -424,7 +436,19 @@ class SeriesRepository(
                 else -> LocalMark.QUEUED
             })
         }
-        _series.value = (good + local).sortedByDescending { it.timestamp }
+        val pendingPhotos = q.selectLocal().executeAsList().filter {
+            it.server_id != null &&
+                it.owner_user_id == session.auth.value?.userId?.toString()
+        }.associateBy { it.server_id }
+        _series.value = (good.map {
+            val pendingPhoto = pendingPhotos[it.id]
+            if (pendingPhoto != null) it.copy(
+                hasImage = it.hasImage || pendingPhoto.has_image != 0L,
+                imageWidth = it.imageWidth ?: pendingPhoto.image_width?.toInt(),
+                imageHeight = it.imageHeight ?: pendingPhoto.image_height?.toInt(),
+                local = if (pendingPhoto.state == "refused") LocalMark.REFUSED else null,
+            ) else it
+        } + local).sortedByDescending { it.timestamp }
     }
 
     private fun wipe() {
