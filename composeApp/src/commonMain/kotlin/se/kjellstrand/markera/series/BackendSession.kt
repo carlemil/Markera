@@ -60,8 +60,21 @@ class BackendSessionRepository(
 ) {
     private val _pendingAuth = MutableStateFlow<BackendAuth?>(null)
     val pendingAuth: StateFlow<BackendAuth?> = _pendingAuth.asStateFlow()
-    suspend fun confirmPending(): BackendAuth? = TODO("#654")
-    suspend fun discardPending(): Unit = TODO("#654")
+    suspend fun confirmPending(): BackendAuth? {
+        val pending = _pendingAuth.value ?: return null
+        // Persistence precedes public state: observers may start refresh immediately.
+        store.write(pending)
+        _auth.value = pending
+        _pendingAuth.value = null
+        return pending
+    }
+    suspend fun discardPending() {
+        val pending = _pendingAuth.value ?: return
+        _pendingAuth.value = null
+        try { api.revokeSession(pending.token) }
+        catch (e: CancellationException) { throw e }
+        catch (_: Exception) { /* Best effort, never persist the held token. */ }
+    }
     private val _auth = MutableStateFlow<BackendAuth?>(null)
     val auth: StateFlow<BackendAuth?> = _auth.asStateFlow()
 
@@ -87,6 +100,7 @@ class BackendSessionRepository(
      * never leave the user signed in; the server-side revoke after it is best effort.
      */
     suspend fun signOut() {
+        discardPending()
         val token = currentToken
         _auth.value = null
         store.clear()
@@ -101,11 +115,18 @@ class BackendSessionRepository(
     }
 
     private suspend fun publish(provider: String, response: BackendAuthResponse): BackendAuth {
-        // Existing callers retain their login path until #654 wires the claim flow.
-        if (claimGate != null) TODO("#654")
         val auth = BackendAuth(response.token, response.userId, provider)
-        _auth.value = auth
+        if ((claimGate?.needsDecision(auth) ?: 0) > 0) {
+            discardPending()
+            // Switching providers/accounts cannot leave the previous login active
+            // behind a dialog promising to stay signed out.
+            _auth.value = null
+            store.clear()
+            _pendingAuth.value = auth
+            return auth
+        }
         store.write(auth)
+        _auth.value = auth
         return auth
     }
 }

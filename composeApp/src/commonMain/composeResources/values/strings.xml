@@ -212,7 +212,7 @@
     <string name="help_history_export">Export</string>
     <string name="help_history_export_body">Export in the menu packs the series the filter shows into a zip: series.csv and holes.csv (open in Excel) plus the saved photos.</string>
     <string name="help_history_offline">Offline</string>
-    <string name="help_history_offline_body">The list and the photos stay on the phone and are shown without a connection too.</string>
+    <string name="help_history_offline_body">The list and the photos stay on the phone and are shown without a connection too. Unsent series and photos stay on this device until uploaded. Uninstalling the app or clearing its data loses them. Your system backup may include app data; do not rely on it to recover unsent work. On sign-in, you choose whether to add other local series to the account. A lost server response followed by adding the same series to a different account can leave one copy in each account.</string>
 
     <!-- Help: series detail -->
     <string name="help_detail_title">About the series</string>
@@ -343,10 +343,19 @@
     <string name="import_files">Files</string>
     <string name="import_auto">Auto import</string>
     <string name="import_auto_body">Saves every image that scores without stopping; the ones that don’t are shown afterwards.</string>
-    <string name="import_auto_signed_out">Sign in to auto-save</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Skip</string>
     <string name="import_summary">%1$d saved, %2$d skipped</string>
     <string name="help_home_import">Import images</string>
     <string name="help_home_import_body">In the menu: score photos already on the phone, from the gallery or from files. Each image is scanned and its results shown, to save or skip. With Auto import on, every image that scores is saved on its own with the date the photo was taken; the rest are shown one by one afterwards.</string>
+    <string name="series_status_phone">Saved on this device</string>
+    <string name="series_not_uploaded">Not uploaded</string>
+    <string name="stats_not_uploaded">%1$d series not uploaded</string>
+    <string name="local_claim_title">Series on this device</string>
+    <string name="local_claim_body">%1$d series were saved signed out or for another account. Add them to this account, delete them from this device, or stay signed out.</string>
+    <string name="local_claim_add">Add to account</string>
+    <string name="local_claim_delete">Delete from device</string>
+    <string name="local_claim_delete_body">Delete %1$d series and their photos from this device? This cannot be undone. They have not been uploaded to this account.</string>
+    <string name="local_claim_stay">Stay signed out</string>
+    <string name="local_claim_error">The operation could not finish. Your remaining series are still on this device. Close and try signing in again.</string>
 </resources>

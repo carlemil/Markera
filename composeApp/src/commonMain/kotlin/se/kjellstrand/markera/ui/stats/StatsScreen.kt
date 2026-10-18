@@ -144,7 +144,6 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
 
     // The cache holds every series already; opening only asks for the delta.
     LaunchedEffect(auth, reload) {
-        if (auth == null) return@LaunchedEffect
         loading = true
         error = services.repository.refresh()?.userMessage()
         loading = false
@@ -185,7 +184,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 }
             }
             when {
-                auth == null -> if (signingIn) StateMessage(loading = true) else StateMessage(
+                auth == null && series.isEmpty() -> if (signingIn) StateMessage(loading = true) else StateMessage(
                     icon = Icons.Default.AccountCircle,
                     title = stringResource(Res.string.stats_signed_out),
                     hint = stringResource(Res.string.signed_out_hint),
@@ -227,6 +226,12 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         filter = selection,
                         onFilter = ::onSelection,
                         onPickDates = { pickingDates = true },
+                    )
+                    val localCount = plotted.count { it.series.local != null }
+                    if (localCount > 0) Text(
+                        stringResource(Res.string.stats_not_uploaded, localCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (plotted.isEmpty()) {
                         StateMessage(

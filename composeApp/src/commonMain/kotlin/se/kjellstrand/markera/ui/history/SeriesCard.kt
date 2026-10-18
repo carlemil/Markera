@@ -114,6 +114,11 @@ internal fun SeriesCard(
                     )
                 }
                 TotalBadge(series.total(), series.caliber, series.tag, compact = true)
+                if (series.local != null) Text(
+                    stringResource(Res.string.series_not_uploaded),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

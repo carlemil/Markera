@@ -212,7 +212,7 @@
     <string name="help_history_export">Exportera</string>
     <string name="help_history_export_body">Exportera i menyn packar serierna filtret visar i en zip: series.csv och holes.csv (öppnas i Excel) samt de sparade bilderna.</string>
     <string name="help_history_offline">Utan nät</string>
-    <string name="help_history_offline_body">Listan och bilderna finns kvar på telefonen och visas även utan uppkoppling.</string>
+    <string name="help_history_offline_body">Listan och bilderna finns kvar på telefonen och visas även utan uppkoppling. Serier och foton som inte laddats upp finns kvar på den här enheten. De försvinner om du avinstallerar appen eller rensar dess data. Systemets säkerhetskopia kan innehålla appdata; förlita dig inte på den för att återställa osänt arbete. Vid inloggning väljer du om andra lokala serier ska läggas till på kontot. Ett förlorat serversvar följt av att samma serie läggs till på ett annat konto kan ge en kopia på varje konto.</string>
 
     <!-- Hjälp: seriedetaljen -->
     <string name="help_detail_title">Om serien</string>
@@ -343,10 +343,19 @@
     <string name="import_files">Filer</string>
     <string name="import_auto">Autoimport</string>
     <string name="import_auto_body">Sparar varje bild som ger poäng utan att stanna; de som inte gör det visas efteråt.</string>
-    <string name="import_auto_signed_out">Logga in för att autospara</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Hoppa över</string>
     <string name="import_summary">%1$d sparade, %2$d överhoppade</string>
     <string name="help_home_import">Importera bilder</string>
     <string name="help_home_import_body">I menyn: räkna poäng på foton som redan finns i telefonen, från galleriet eller från filer. Varje bild skannas och resultatet visas, för att spara eller hoppa över. Med Autoimport på sparas varje bild som ger poäng av sig själv, med datumet då fotot togs; resten visas en i taget efteråt.</string>
+    <string name="series_status_phone">Sparad på den här enheten</string>
+    <string name="series_not_uploaded">Inte uppladdad</string>
+    <string name="stats_not_uploaded">%1$d serier inte uppladdade</string>
+    <string name="local_claim_title">Serier på den här enheten</string>
+    <string name="local_claim_body">%1$d serier sparades utloggat eller för ett annat konto. Lägg till dem på det här kontot, radera dem från enheten eller förbli utloggad.</string>
+    <string name="local_claim_add">Lägg till på kontot</string>
+    <string name="local_claim_delete">Radera från enheten</string>
+    <string name="local_claim_delete_body">Radera %1$d serier och deras foton från den här enheten? Det går inte att ångra. De har inte laddats upp till det här kontot.</string>
+    <string name="local_claim_stay">Förbli utloggad</string>
+    <string name="local_claim_error">Åtgärden kunde inte slutföras. Dina återstående serier finns kvar på enheten. Stäng och försök logga in igen.</string>
 </resources>

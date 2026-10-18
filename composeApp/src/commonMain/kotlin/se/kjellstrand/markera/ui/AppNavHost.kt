@@ -40,6 +40,7 @@ import se.kjellstrand.markera.series.SaveStatus
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.series.LocalClaimController
 import se.kjellstrand.markera.series.encodeSeriesJpeg
 import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.ui.markera.FrameSource
@@ -188,6 +189,12 @@ fun AppNavHost(
     val seriesServices = app.series
     val scope = rememberCoroutineScope()
 
+    val claimController = remember(seriesServices) {
+        LocalClaimController(seriesServices.repository, seriesServices.session, scope)
+    }
+    DisposableEffect(claimController) { onDispose { claimController.dispose() } }
+    LocalClaimDialog(claimController)
+
     val snackbarHostState = remember { SnackbarHostState() }
     // A new message replaces the one on screen instead of queueing behind it.
     val toast: (String) -> Unit = { msg ->
@@ -213,6 +220,7 @@ fun AppNavHost(
     // The only save feedback, for both screens: one toast per outcome. Collected
     // (not read from the current value), so a recomposition never repeats it.
     val savedText = stringResource(Res.string.series_status_saved)
+    val savedOnPhoneText = stringResource(Res.string.series_status_phone)
     val queuedText = stringResource(Res.string.series_status_queued)
     val signInText = stringResource(Res.string.home_sign_in)
     val expiredText = stringResource(Res.string.session_expired)
@@ -220,6 +228,7 @@ fun AppNavHost(
         recorder.status.collect { status ->
             val message = when (status) {
                 is SaveStatus.Saved -> savedText
+                is SaveStatus.SavedOnPhone -> savedOnPhoneText
                 SaveStatus.Queued -> queuedText
                 is SaveStatus.Failed -> status.error.userMessage()
                     ?.let { getString(Res.string.series_status_failed, getString(it)) }

@@ -29,9 +29,8 @@ interface ImageCache {
  * [series] from SQLite and never pages the backend, and [refresh] pulls only
  * what changed since the stored `updatedAt` stamp (tombstones included).
  *
- * Writes go to the server first and to the cache after, so a failed write
- * leaves nothing behind; a failed *read* (offline) keeps the cached rows and is
- * reported, never thrown. Refreshes and writes take turns ([lock]), so a save
+ * Committed scans and photos are durable locally before HTTP. A failed read
+ * keeps cached rows, and local work survives sign-out and account switches. Refreshes and writes take turns ([lock]), so a save
  * can never land in the middle of a full load that then wipes it.
  */
 class SeriesRepository(
@@ -39,18 +38,133 @@ class SeriesRepository(
     db: MarkeraDb,
     private val images: ImageCache,
     private val session: BackendSessionRepository,
-    private val localImages: ImageCache = UnconfiguredLocalImageStore,
+    private val localImages: ImageCache,
 ) : ClaimGate {
-    // Compile-only contracts shared by #650–#653. Implemented together in #654.
-    suspend fun keepLocal(request: SeriesRequest, image: EncodedImage?, owner: Long? = null): Long = TODO("#654")
-    suspend fun send(localId: Long): Long = TODO("#654")
-    suspend fun retry(localId: Long): Unit = TODO("#654")
-    suspend fun deleteLocal(localId: Long): Unit = TODO("#654")
-    suspend fun claimLocal(userId: Long): Unit = TODO("#654")
-    suspend fun localCount(userId: Long): Int = TODO("#654")
-    suspend fun deleteOfferedLocal(userId: Long): Unit = TODO("#654")
-    suspend fun adoptLegacyOutbox(): Unit = TODO("#654")
-    override suspend fun needsDecision(auth: BackendAuth): Int = TODO("#654")
+    @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+    private fun newClientId() = kotlin.uuid.Uuid.random().toString()
+    /** SQLite commits only after the durable JPEG has been written. An interrupted write
+     * can leave an orphan file, but never a committed row pointing at a partial JPEG. */
+    suspend fun keepLocal(request: SeriesRequest, image: EncodedImage?, owner: Long? = null): Long = locked {
+        keepLocalLocked(request, image, owner).also { reload() }
+    }
+
+    private fun keepLocalLocked(request: SeriesRequest, image: EncodedImage?, owner: Long?): Long {
+        val req = if (request.clientId == null) request.copy(clientId = newClientId()) else request
+        var id = 0L
+        q.transaction {
+            q.insertLocal(req.clientId!!, owner?.toString(), seriesJson.encodeToString(req),
+                image?.width?.toLong(), image?.height?.toLong(), 0, req.timestamp)
+            val row = q.localByClient(req.clientId).executeAsOne()
+            id = row.local_id
+            if (image != null && row.has_image == 0L) {
+                localImages.write(id, image.bytes)
+                q.localPhoto(image.width.toLong(), image.height.toLong(), id)
+            }
+        }
+        return id
+    }
+
+    suspend fun send(localId: Long): Long = locked { sendLocked(localId) }
+    internal suspend fun acknowledged(localId: Long): Boolean = locked {
+        q.localById(localId).executeAsOneOrNull()?.server_id != null
+    }
+    suspend fun retry(localId: Long) { send(localId) }
+    suspend fun deleteLocal(localId: Long) = locked { deleteLocalLocked(localId); reload() }
+
+    private fun deleteLocalLocked(id: Long) {
+        // A failed file removal leaves the row available for another Delete attempt.
+        localImages.delete(id)
+        q.removeLocal(id)
+    }
+
+    /** Transfer the entire offer before publishing auth. Process death after publication
+     * therefore resumes this user's queue without asking for the same decision again. */
+    suspend fun claimLocal(userId: Long) = locked {
+        adoptLegacyLocked()
+        q.transaction { q.claimOffered(userId.toString(), userId.toString()) }
+        reload()
+    }
+    suspend fun localCount(userId: Long): Int = locked {
+        adoptLegacyLocked()
+        q.selectLocal().executeAsList().count { it.owner_user_id != userId.toString() }
+    }
+    suspend fun deleteOfferedLocal(userId: Long) = locked {
+        adoptLegacyLocked()
+        q.selectLocal().executeAsList().filter { it.owner_user_id != userId.toString() }
+            .forEach { deleteLocalLocked(it.local_id) }
+        reload()
+    }
+    suspend fun adoptLegacyOutbox() = locked { adoptLegacyLocked(); reload() }
+    override suspend fun needsDecision(auth: BackendAuth): Int = locked {
+        adoptLegacyLocked()
+        val count = q.selectLocal().executeAsList().count { it.owner_user_id != auth.userId.toString() }
+        // A held login is signed out. Do not expose the previous account's read cache
+        // behind the dialog or after Stay/dismiss, even if sign-in began while signed in.
+        if (count > 0) wipe()
+        reload()
+        count
+    }
+
+    private fun adoptLegacyLocked() {
+        for (row in q.allOutbox().executeAsList()) {
+            q.transaction {
+                // Older outbox rows may predate clientId. Derive one from their stable
+                // database id, so a crash after the file write adopts the very same row.
+                val old = seriesJson.decodeFromString<SeriesRequest>(row.request)
+                val req = if (old.clientId == null) old.copy(clientId = "legacy-outbox-${row.id}") else old
+                val photo = row.image?.let { bytes -> EncodedImage(bytes,
+                    row.image_width?.toInt() ?: 0, row.image_height?.toInt() ?: 0) }
+                val id = keepLocalLocked(req, photo, row.user_id.toLong())
+                if (row.series_id != null) q.localPosted(row.series_id, id)
+                q.outboxDone(row.id)
+            }
+        }
+    }
+
+    private val refusedRetried = mutableSetOf<Long>()
+
+    private suspend fun sendLocked(localId: Long): Long {
+        val row = q.localById(localId).executeAsOneOrNull() ?: error("Local series no longer exists")
+        check(row.owner_user_id != null && row.owner_user_id == session.auth.value?.userId?.toString()) {
+            "Local series belongs to another account"
+        }
+        val req = seriesJson.decodeFromString<SeriesRequest>(row.request)
+        try {
+            val id = row.server_id ?: api.postSeries(req).also { serverId ->
+                q.transaction {
+                    insert(dto(serverId, req, row.has_image != 0L, row.image_width, row.image_height))
+                    q.localPosted(serverId, localId)
+                }
+                reload()
+            }
+            // After a crash/switch the acknowledged row may no longer be in the read cache.
+            if (_series.value.none { it.id == id }) insert(dto(id, req, row.has_image != 0L, row.image_width, row.image_height))
+            if (row.has_image != 0L) {
+                val bytes = localImages.read(localId) ?: error("Local photo unavailable")
+                api.postSeriesImage(id, bytes, row.image_width!!.toInt(), row.image_height!!.toInt())
+                images.write(id, bytes)
+            }
+            deleteLocalLocked(localId)
+            reload()
+            return id
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val status = (e as? SeriesApiException)?.status
+            val refused = status != null && status in 400..499 && status != 401 && status != 429
+            q.localFailure(if (refused) "refused" else "queued", status?.toLong(),
+                if (refused) 1 else row.reported, localId)
+            if (refused && row.reported == 0L) ErrorLog.report("local-series-refused", e,
+                mapOf("status" to status.toString()))
+            reload()
+            throw e
+        }
+    }
+
+    private fun dto(id: Long, req: SeriesRequest, hasImage: Boolean, width: Long?, height: Long?) = SeriesDto(
+        id, req.timestamp, req.caliber, req.holes.filterNot { it.deleted }, hasImage = hasImage,
+        imageWidth = width?.toInt(), imageHeight = height?.toInt(), geometry = req.geometry, tag = req.tag,
+    )
 
     private val q = db.seriesQueries
 
@@ -92,15 +206,16 @@ class SeriesRepository(
     }
 
     private suspend fun refreshLocked(): Throwable? {
-        val user = session.auth.value?.userId?.toString() ?: return null
+        adoptLegacyLocked()
+        val user = session.auth.value?.userId?.toString() ?: run { reload(); return null }
         val stamp = q.lastSync().executeAsOneOrNull()
         // A different account on this device: its rows and images are not ours.
         if (stamp != null && stamp.user_id != user) wipe()
-        val since = stamp?.takeIf { it.user_id == user }?.last_sync
+        val since = stamp?.takeIf { it.user_id == user }?.last_sync?.takeIf { it.isNotEmpty() }
         reload()
         try {
             // First, so what it sends comes back in the load below like any other series.
-            drainOutbox(user)
+            drainLocal(user)
             if (since == null) fullLoad(user) else applyDelta(api.listSeriesSince(since), user)
             reload()
             return null
@@ -109,6 +224,19 @@ class SeriesRepository(
         } catch (e: Throwable) {
             if (e is SeriesApiException && e.isUnauthorized) expire()
             return e
+        }
+    }
+
+    private suspend fun drainLocal(user: String) {
+        for (row in q.selectLocal().executeAsList().filter { it.owner_user_id == user }) {
+            if (row.state == "refused" && !refusedRetried.add(row.local_id)) continue
+            try {
+                sendLocked(row.local_id)
+            } catch (e: SeriesApiException) {
+                if (e.status == 429) return
+                if (e.isUnauthorized || e.isRetryable) throw e
+                // A refused row stays visible but does not block the following rows.
+            }
         }
     }
 
@@ -131,28 +259,12 @@ class SeriesRepository(
         _sessionExpired.tryEmit(Unit)
     }
 
-    /**
-     * POSTs a scanned series and caches it at once, so History shows it without
-     * a round trip. The row carries no `updatedAt` yet — the next [refresh]
-     * delta returns it and fills that in.
-     */
+    /** Compatibility convenience for metadata-only callers; the same durable-first path. */
     suspend fun save(req: SeriesRequest): Long = locked {
-        val id = api.postSeries(req)
-        withContext(Dispatchers.Default) {
-            insert(
-                SeriesDto(
-                    id = id,
-                    timestamp = req.timestamp,
-                    caliber = req.caliber,
-                    // Removed detections go up for training and never come back down.
-                    holes = req.holes.filterNot { it.deleted },
-                    geometry = req.geometry,
-                    tag = req.tag,
-                ),
-            )
-            reload()
-        }
-        id
+        val owner = session.auth.value?.userId
+        val id = keepLocalLocked(req, null, owner)
+        reload()
+        if (owner == null) -id else sendLocked(id)
     }
 
     /**
@@ -164,30 +276,6 @@ class SeriesRepository(
         val user = session.auth.value?.userId?.toString() ?: return
         withContext(Dispatchers.Default) {
             q.enqueue(user, seriesJson.encodeToString(req), seriesId, image?.bytes, image?.width?.toLong(), image?.height?.toLong())
-        }
-    }
-
-    /**
-     * Sends [user]'s outbox in order. A network failure, 5xx or 429 stops it (the rest waits for the next
-     * refresh); a 4xx other than 401 can never succeed, so that row is dropped rather than block the rest.
-     */
-    private suspend fun drainOutbox(user: String) {
-        for (row in q.outboxFor(user).executeAsList()) {
-            try {
-                val id = row.series_id ?: api.postSeries(seriesJson.decodeFromString<SeriesRequest>(row.request))
-                    .also { q.outboxPosted(it, row.id) }
-                val bytes = row.image
-                if (bytes != null && row.image_width != null && row.image_height != null) {
-                    api.postSeriesImage(id, bytes, row.image_width.toInt(), row.image_height.toInt())
-                    images.write(id, bytes)
-                }
-            } catch (e: SeriesApiException) {
-                // Over today's quota: the rest waits, but the refresh itself still goes through.
-                if (e.status == 429) return
-                if (e.isUnauthorized || e.isRetryable) throw e
-                ErrorLog.report("outbox-dropped", e, mapOf("status" to e.status.toString()))
-            }
-            q.outboxDone(row.id)
         }
     }
 
@@ -204,6 +292,18 @@ class SeriesRepository(
     }
 
     suspend fun update(id: Long, req: SeriesRequest) = locked {
+        if (id < 0) {
+            val row = q.localById(-id).executeAsOne()
+            val original = seriesJson.decodeFromString<SeriesRequest>(row.request)
+            val stillRemoved = original.holes.filter { old -> old.deleted && req.holes.none { next ->
+                !next.deleted && old.detectedX != null && old.detectedY != null &&
+                    next.detectedX == old.detectedX && next.detectedY == old.detectedY
+            } }
+            q.editLocal(seriesJson.encodeToString(req.copy(clientId = original.clientId,
+                holes = (req.holes + stillRemoved).distinct())), -id)
+            reload()
+            return@locked
+        }
         api.updateSeries(id, req)
         // Deleted holes go up for training and never come back down.
         val kept = req.holes.filterNot { it.deleted }
@@ -223,6 +323,11 @@ class SeriesRepository(
     }
 
     suspend fun delete(id: Long) = locked {
+        if (id < 0) {
+            deleteLocalLocked(-id)
+            reload()
+            return@locked
+        }
         api.deleteSeries(id)
         withContext(Dispatchers.Default) {
             q.deleteById(id)
@@ -233,6 +338,10 @@ class SeriesRepository(
 
     /** The stored JPEG: the cached file, else downloaded once and kept. Null if it can't be had. */
     suspend fun image(id: Long): ByteArray? {
+        if (id < 0) return withContext(Dispatchers.Default) { localImages.read(-id) }
+        q.selectLocal().executeAsList().firstOrNull {
+            it.server_id == id && it.owner_user_id == session.auth.value?.userId?.toString()
+        }?.let { localImages.read(it.local_id)?.let { bytes -> return bytes } }
         withContext(Dispatchers.Default) { images.read(id) }?.let { return it }
         return try {
             api.getSeriesImage(id).also { withContext(Dispatchers.Default) { images.write(id, it) } }
@@ -245,10 +354,12 @@ class SeriesRepository(
 
     /** The list thumbnail JPEG: the cached one, else cut from [image] once and kept. */
     suspend fun thumbnail(id: Long, maxDim: Int): ByteArray? {
-        withContext(Dispatchers.Default) { images.readThumb(id) }?.let { return it }
+        val store = if (id < 0) localImages else images
+        val key = if (id < 0) -id else id
+        withContext(Dispatchers.Default) { store.readThumb(key) }?.let { return it }
         val full = image(id) ?: return null
         return withContext(Dispatchers.Default) {
-            thumbnailJpeg(full, maxDim)?.also { images.writeThumb(id, it) }
+            thumbnailJpeg(full, maxDim)?.also { store.writeThumb(key, it) }
         }
     }
 
@@ -285,14 +396,16 @@ class SeriesRepository(
 
     /** The newest stamp seen is what the next delta asks from; an empty answer changes nothing. */
     private fun stamp(seen: List<SeriesDto>, user: String) {
-        seen.mapNotNull { it.updatedAt }.maxOrNull()?.let { q.setLastSync(user, it) }
+        val newest = seen.mapNotNull { it.updatedAt }.maxOrNull()
+        if (newest != null) q.setLastSync(user, newest)
+        else if (q.lastSync().executeAsOneOrNull() == null) q.setLastSync(user, "")
     }
 
-    private fun insert(dto: SeriesDto) = q.upsert(
-        id = dto.id,
-        timestamp = dto.timestamp,
-        json = seriesJson.encodeToString(dto),
-    )
+    private fun insert(dto: SeriesDto) {
+        val owner = session.auth.value?.userId?.toString()
+        if (owner != null && q.lastSync().executeAsOneOrNull() == null) q.setLastSync(owner, "")
+        q.upsert(id = dto.id, timestamp = dto.timestamp, json = seriesJson.encodeToString(dto))
+    }
 
     /** Never throws: an undecodable row is dropped, and the stamp with it so the next refresh reloads it whole. */
     private fun reload() {
@@ -303,7 +416,15 @@ class SeriesRepository(
             rows.filter { it.id !in kept }.forEach { q.deleteById(it.id) }
             q.clearSync()
         }
-        _series.value = good
+        val local = q.selectLocal().executeAsList().filter { it.server_id == null }.map { row ->
+            val req = seriesJson.decodeFromString<SeriesRequest>(row.request)
+            dto(-row.local_id, req, row.has_image != 0L, row.image_width, row.image_height).copy(local = when {
+                row.owner_user_id == null -> LocalMark.UNCLAIMED
+                row.state == "refused" -> LocalMark.REFUSED
+                else -> LocalMark.QUEUED
+            })
+        }
+        _series.value = (good + local).sortedByDescending { it.timestamp }
     }
 
     private fun wipe() {

@@ -78,3 +78,31 @@ SELECT * FROM local_series ORDER BY local_id;
 
 localById:
 SELECT * FROM local_series WHERE local_id = ?;
+
+localByClient:
+SELECT * FROM local_series WHERE client_id = ?;
+
+insertLocal:
+INSERT OR IGNORE INTO local_series(client_id, owner_user_id, request, image_width, image_height, has_image, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+localPhoto:
+UPDATE local_series SET has_image = 1, image_width = ?, image_height = ? WHERE local_id = ?;
+
+localPosted:
+UPDATE local_series SET server_id = ? WHERE local_id = ?;
+
+localFailure:
+UPDATE local_series SET state = ?, last_status = ?, reported = ? WHERE local_id = ?;
+
+editLocal:
+UPDATE local_series SET request = ? WHERE local_id = ?;
+
+removeLocal:
+DELETE FROM local_series WHERE local_id = ?;
+
+claimOffered:
+UPDATE local_series SET owner_user_id = ?, server_id = NULL WHERE owner_user_id IS NULL OR owner_user_id != ?;
+
+allOutbox:
+SELECT * FROM outbox ORDER BY id;

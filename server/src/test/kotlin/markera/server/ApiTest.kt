@@ -152,6 +152,10 @@ class ApiTest {
         // Photos and holes may train the detector: said in both languages.
         assertTrue(body.contains("förbättra träffdetekteringen"), body)
         assertTrue(body.contains("may be used to improve hole"), body)
+        assertTrue(body.contains("avinstallerar appen eller rensar dess data"), body)
+        assertTrue(body.contains("Uninstalling the app or clearing its data loses them"), body)
+        assertTrue(body.contains("Systemets säkerhetskopia kan innehålla"), body)
+        assertTrue(body.contains("Your system backup may include app data"), body)
     }
 
     @Test

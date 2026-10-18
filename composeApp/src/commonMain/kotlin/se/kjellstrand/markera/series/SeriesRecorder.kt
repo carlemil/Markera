@@ -142,11 +142,6 @@ class SeriesRecorder(
         geometry: GeometryDto?,
         removed: List<HitScore> = emptyList(),
     ) {
-        if (session.auth.value == null) {
-            pending = null
-            _status.value = SaveStatus.SignedOut
-            return
-        }
         // A fresh scan waits for its own commit.
         pending = Pending(
             seriesRequest(scores, _caliber.value, takenAt ?: nowIso(), geometry),
@@ -272,63 +267,50 @@ class SeriesRecorder(
         inFlight = p
         _status.value = SaveStatus.Saving
         scope.launch(saves) {
-            val id = try {
-                repository.save(request)
-            } catch (e: CancellationException) {
-                throw e // dispose() cancelled us; the screen is gone.
-            } catch (e: Exception) {
-                if (inFlight === p) inFlight = null
-                when {
-                    e is SeriesApiException && e.isUnauthorized -> {
-                        // The repository signed out and toasts it; a Failed would be a second toast.
-                        pending = null
-                        _status.value = SaveStatus.Idle
-                    }
-                    // Offline or a server hiccup: into the outbox, which the next refresh sends, so
-                    // the next scan replacing [pending] loses nothing.
-                    e !is SeriesApiException || e.isRetryable -> {
-                        repository.enqueue(request, image?.let { encodeOrNull(it) })
-                        queued = true
-                        if (pending === p) pending = null
-                        _status.value = SaveStatus.Queued
-                    }
-                    // Refused (a 4xx): retrying the same body cannot help. Still pending for the chip.
-                    else -> _status.value = SaveStatus.Failed(e)
-                }
-                return@launch
-            }
-            if (inFlight === p) inFlight = null
-            // A series scanned while this one was posting stays pending.
-            if (pending === p) pending = null
-            _status.value = SaveStatus.Saved(caliber)
-            // The server is reachable again: send what an earlier failure left behind.
-            if (queued) {
-                queued = false
-                scope.launch { repository.refresh() }
-            }
-            // The snapshot never downgrades an already-saved series; a failed upload waits in the outbox.
-            val encoded = image?.let { encodeOrNull(it) } ?: return@launch
             try {
-                repository.uploadImage(id, encoded.bytes, encoded.width, encoded.height)
+                val owner = session.auth.value?.userId
+                val encoded = image?.let {
+                    try { encodeJpeg(it) }
+                    catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { ErrorLog.report("image-encode", e); null }
+                }
+                val localId = repository.keepLocal(request, encoded, owner)
+                // Once durable, a later scan or process loss cannot discard this save.
+                if (pending === p) pending = null
+                if (owner == null) {
+                    _status.value = SaveStatus.SavedOnPhone(caliber)
+                } else {
+                    try {
+                        repository.send(localId)
+                        _status.value = SaveStatus.Saved(caliber)
+                        if (queued) {
+                            queued = false
+                            scope.launch { repository.refresh() }
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        if (repository.acknowledged(localId)) {
+                            // The series is saved; a pending photo never downgrades it.
+                            queued = true
+                            _status.value = SaveStatus.Saved(caliber)
+                        } else if (e is SeriesApiException && !e.isRetryable) {
+                            _status.value = SaveStatus.SavedOnPhone(caliber)
+                        } else {
+                            queued = true
+                            _status.value = SaveStatus.Queued
+                        }
+                    }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (e is SeriesApiException && !e.isRetryable) ErrorLog.report("image-upload", e, mapOf("status" to e.status.toString()))
-                else ErrorLog.breadcrumb("series", "image upload failed, queued: $e")
-                if (e !is SeriesApiException || e.isRetryable) {
-                    repository.enqueue(request, encoded, seriesId = id)
-                    queued = true
-                }
+                // Encoding or durable storage failed: retain the scan for Save again.
+                _status.value = SaveStatus.Failed(e)
+            } finally {
+                if (inFlight === p) inFlight = null
             }
         }
     }
 
-    private suspend fun encodeOrNull(image: PlatformImage): EncodedImage? = try {
-        encodeJpeg(image)
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        ErrorLog.report("image-encode", e)
-        null
-    }
 }
