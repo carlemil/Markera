@@ -56,7 +56,12 @@ interface BackendTokenStore {
 class BackendSessionRepository(
     private val api: SeriesApi,
     private val store: BackendTokenStore,
+    var claimGate: ClaimGate? = null,
 ) {
+    private val _pendingAuth = MutableStateFlow<BackendAuth?>(null)
+    val pendingAuth: StateFlow<BackendAuth?> = _pendingAuth.asStateFlow()
+    suspend fun confirmPending(): BackendAuth? = TODO("#654")
+    suspend fun discardPending(): Unit = TODO("#654")
     private val _auth = MutableStateFlow<BackendAuth?>(null)
     val auth: StateFlow<BackendAuth?> = _auth.asStateFlow()
 
@@ -96,6 +101,8 @@ class BackendSessionRepository(
     }
 
     private suspend fun publish(provider: String, response: BackendAuthResponse): BackendAuth {
+        // Existing callers retain their login path until #654 wires the claim flow.
+        if (claimGate != null) TODO("#654")
         val auth = BackendAuth(response.token, response.userId, provider)
         _auth.value = auth
         store.write(auth)

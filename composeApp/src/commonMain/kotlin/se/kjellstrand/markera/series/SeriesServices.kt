@@ -19,6 +19,7 @@ class SeriesServices(
     val store: BackendTokenStore,
     driver: SqlDriver,
     val cacheDir: Path,
+    val filesDir: Path,
 ) {
     val session: BackendSessionRepository
     val api: SeriesApi
@@ -35,6 +36,7 @@ class SeriesServices(
             db = MarkeraDb(driver),
             images = FileImageCache(Path(cacheDir, "series")),
             session = repo,
+            localImages = LocalImageStore(filesDir),
         )
     }
 }

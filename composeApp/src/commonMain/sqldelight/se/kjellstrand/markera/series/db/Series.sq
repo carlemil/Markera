@@ -26,6 +26,20 @@ CREATE TABLE outbox (
     image_height INTEGER
 );
 
+CREATE TABLE local_series (
+    local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id TEXT NOT NULL UNIQUE,
+    owner_user_id TEXT,
+    request TEXT NOT NULL,
+    server_id INTEGER,
+    image_width INTEGER,
+    image_height INTEGER,
+    has_image INTEGER NOT NULL DEFAULT 0,
+    state TEXT NOT NULL DEFAULT 'queued',
+    last_status INTEGER,
+    reported INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
 selectAll:
 SELECT id, json FROM series ORDER BY timestamp DESC;
 
@@ -58,3 +72,9 @@ UPDATE outbox SET series_id = ? WHERE id = ?;
 
 outboxDone:
 DELETE FROM outbox WHERE id = ?;
+
+selectLocal:
+SELECT * FROM local_series ORDER BY local_id;
+
+localById:
+SELECT * FROM local_series WHERE local_id = ?;

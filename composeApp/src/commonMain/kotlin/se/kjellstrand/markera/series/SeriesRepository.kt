@@ -39,7 +39,19 @@ class SeriesRepository(
     db: MarkeraDb,
     private val images: ImageCache,
     private val session: BackendSessionRepository,
-) {
+    private val localImages: ImageCache = UnconfiguredLocalImageStore,
+) : ClaimGate {
+    // Compile-only contracts shared by #650–#653. Implemented together in #654.
+    suspend fun keepLocal(request: SeriesRequest, image: EncodedImage?, owner: Long? = null): Long = TODO("#654")
+    suspend fun send(localId: Long): Long = TODO("#654")
+    suspend fun retry(localId: Long): Unit = TODO("#654")
+    suspend fun deleteLocal(localId: Long): Unit = TODO("#654")
+    suspend fun claimLocal(userId: Long): Unit = TODO("#654")
+    suspend fun localCount(userId: Long): Int = TODO("#654")
+    suspend fun deleteOfferedLocal(userId: Long): Unit = TODO("#654")
+    suspend fun adoptLegacyOutbox(): Unit = TODO("#654")
+    override suspend fun needsDecision(auth: BackendAuth): Int = TODO("#654")
+
     private val q = db.seriesQueries
 
     private val _series = MutableStateFlow<List<SeriesDto>>(emptyList())

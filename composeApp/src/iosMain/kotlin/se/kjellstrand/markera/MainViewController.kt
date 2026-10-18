@@ -6,6 +6,7 @@ import io.ktor.client.engine.darwin.Darwin
 import kotlinx.io.files.Path
 import platform.Foundation.NSBundle
 import platform.Foundation.NSCachesDirectory
+import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
 import platform.UIKit.UIViewController
@@ -28,6 +29,10 @@ private val app by lazy {
             driver = NativeSqliteDriver(MarkeraDb.Schema, "markera-series.db"),
             cacheDir = Path(
                 NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, true)
+                    .first() as String,
+            ),
+            filesDir = Path(
+                NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, true)
                     .first() as String,
             ),
         ),

@@ -22,6 +22,7 @@ sealed interface SaveStatus {
     data object NeedsCaliber : SaveStatus
     data object Saving : SaveStatus
     data class Saved(val caliber: Caliber) : SaveStatus
+    data class SavedOnPhone(val caliber: Caliber) : SaveStatus
 
     /** The server could not be reached: kept on the phone, sent by a later refresh. */
     data object Queued : SaveStatus
