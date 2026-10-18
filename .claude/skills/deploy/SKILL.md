@@ -10,18 +10,36 @@ Builds the debug APK, installs it on the physically connected Android phone over
 adb, launches it, and verifies it reached the foreground. The app needs a back
 camera.
 
-Perform these steps in order. The build (Step 1) and the device check (Step 2)
-are independent — run them in parallel; the build takes the longest.
+Perform these steps in order. The build/evidence check (Step 1) and device check
+(Step 2) are independent and may run in parallel.
 
 ---
 
 ## Step 1 — Build
 
-From the project root (background it; it takes ~30 s warm, a few minutes cold):
+First check whether the current workflow already produced a verified debug APK.
+Reuse it only when the successful final gate included `assembleDebug`, the exact
+reviewed source tree and all configuration/build inputs still match, the workflow
+permits reuse, and its recorded APK SHA-256 matches the file to install. Follow
+`docs/ticket-verification.md` for evidence and invalidation rules. An existing APK
+or a matching commit alone does not qualify. Missing evidence or changed inputs
+requires the appropriate final gate again; never skip the initial build blindly.
+
+When tests and packaging are both required, run once from the project root:
+
+```powershell
+.\gradlew.bat :composeApp:testDebugUnitTest :composeApp:assembleDebug
+```
+
+For a standalone deploy requiring only packaging, build from the project root:
 
 ```
 .\gradlew.bat :composeApp:assembleDebug
 ```
+
+Do not routinely clean, force task reruns or stop daemons. Record the successful
+command, source/configuration evidence and APK hash before reuse. Reuse removes
+only duplicate Gradle work: all device/install/foreground checks below still run.
 
 If the build fails with "model not found"-style asset errors, the ONNX model is
 missing at `composeApp/src/androidMain/assets/best.onnx` (~40 MB, not in git);
@@ -57,15 +75,20 @@ Expect a serial with state `device`. Troubleshooting, in order:
    phone.
 3. Still nothing — the user must check cable/port; stop and report.
 
-Use `adb -s <serial> ...` for every later command in case more devices appear.
+Use the USB OnePlus 9 Pro, serial `34282ee3`; do not start an emulator. Use
+`adb -s 34282ee3 ...` for every later command in case more devices appear.
 
 ---
 
 ## Step 3 — Install
 
 ```
-adb -s <serial> install -r "D:\source\Markera\composeApp\build\outputs\apk\debug\composeApp-debug.apk"
+adb -s 34282ee3 install -r "<absolute path to the built or verified debug APK>"
 ```
+
+Use the actual build checkout's APK path (including a card worktree when applicable),
+not an unrelated APK in the main checkout. Recheck its recorded hash before install
+when reusing an artifact.
 
 Expect `Success`. `INSTALL_FAILED_UPDATE_INCOMPATIBLE` means a Play-signed or
 differently-signed build is on the phone — ask the user before uninstalling
