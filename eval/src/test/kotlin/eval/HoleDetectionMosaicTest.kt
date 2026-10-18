@@ -15,7 +15,7 @@ import javax.imageio.ImageIO
  * annotated mosaic for eyeballing how well holes are detected.
  *
  * Override defaults with -D flags, e.g.:
- *   ./gradlew :eval:test -Dmosaic.seed=7 -Dmosaic.images="D:/ml/holes/dataset/images/val"
+ *   ./gradlew :eval:mosaic -Dmosaic.seed=7 -Dmosaic.images="D:/ml/holes/dataset/images/val"
  */
 class HoleDetectionMosaicTest {
 
@@ -34,9 +34,9 @@ class HoleDetectionMosaicTest {
     @Test
     fun `marks holes on a random 3x3 sample and writes a mosaic`() {
         val dir = File(imagesDir)
-        assumeTrue("images dir not found: $imagesDir", dir.isDirectory)
+        requireAsset("images dir not found: $imagesDir", dir.isDirectory)
         val model = File(modelPath)
-        assumeTrue("model not found: $modelPath", model.isFile)
+        requireAsset("model not found: $modelPath", model.isFile)
 
         val all = dir.listFiles { f ->
             f.isFile && f.extension.lowercase() in setOf("jpg", "jpeg", "png", "bmp")
@@ -57,6 +57,11 @@ class HoleDetectionMosaicTest {
 
         println("[mosaic] wrote ${outFile.absolutePath} (${grid.width}x${grid.height})")
         assertTrue("mosaic was not written", outFile.isFile && outFile.length() > 0)
+    }
+
+    private fun requireAsset(message: String, present: Boolean) {
+        if (System.getProperty("mosaic.required") == "true") assertTrue(message, present)
+        else assumeTrue(message, present)
     }
 
     private fun processOne(file: File, detector: OnnxHoleDetector): java.awt.image.BufferedImage {
