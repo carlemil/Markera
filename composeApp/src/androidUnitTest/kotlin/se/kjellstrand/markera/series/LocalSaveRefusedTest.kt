@@ -213,7 +213,7 @@ class LocalSaveRefusedTest {
                     else -> assertEquals(SaveStatus.SavedOnPhone(Caliber.DEFAULT), status)
                 }
                 if (code != 201) {
-                    val row = f.db.seriesQueries.selectLocal().executeAsOne()
+                    val row = assertNotNull(f.db.seriesQueries.selectLocal().executeAsOneOrNull(), "Save must retain a durable local row before uploading")
                     assertEquals("17", row.owner_user_id)
                     assertContentEquals(jpeg, f.localImages.read(row.local_id))
                     assertNotNull(f.repository.series.value.single().local)
@@ -233,5 +233,6 @@ class LocalSaveRefusedTest {
     @Test fun recorderTimeoutSaysQueued() = recorderStatus(-1)
     @Test fun recorder201SaysUploaded() = recorderStatus(201)
 }
+
 
 
