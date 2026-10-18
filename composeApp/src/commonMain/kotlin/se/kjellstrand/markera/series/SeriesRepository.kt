@@ -88,7 +88,11 @@ class SeriesRepository(
      * therefore resumes this user's queue without asking for the same decision again. */
     suspend fun claimLocal(userId: Long) = locked {
         adoptLegacyLocked()
+        val offered = q.selectLocal().executeAsList().filter { it.owner_user_id != userId.toString() }
         q.transaction { q.claimOffered(userId.toString(), userId.toString()) }
+        // Add is an explicit fresh upload to the new account. A refusal already
+        // retried for the previous owner must not suppress that choice.
+        refusedRetried.removeAll(offered.map { it.local_id }.toSet())
         reload()
     }
     suspend fun localCount(userId: Long): Int = locked {

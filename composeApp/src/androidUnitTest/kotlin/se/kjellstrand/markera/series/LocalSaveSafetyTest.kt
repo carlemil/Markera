@@ -22,6 +22,7 @@ class LocalSaveSafetyTest {
         var imageStatus = HttpStatusCode.OK
         var imagePosts = 0
         var seriesPosts = 0
+        var seriesStatus = HttpStatusCode.OK
         var deleted = false
         var atPublication: () -> Unit = {}
         var saved: BackendAuth? = BackendAuth("old", 1, "dev")
@@ -50,7 +51,8 @@ class LocalSaveSafetyTest {
                     seriesJson.encodeToString(listOf(SeriesDto(100, "2026-10-18T10:00:00Z", "22lr", emptyList(), hasImage = false)))
                 else -> "[]"
             }
-            respond(body, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            respond(body, if (req.method == HttpMethod.Post && req.url.encodedPath == "/series") seriesStatus else HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"))
         }), "http://safety.test") { session.currentToken }
         val repo: SeriesRepository
         init {
@@ -163,5 +165,26 @@ class LocalSaveSafetyTest {
         assertTrue(f.repo.series.value.isEmpty())
         f.repo.refresh()
         assertEquals(1, f.imagePosts, "Deleted series must never retry their pending photo")
+    }
+
+    @Test fun explicitClaimToAnotherAccountRestartsPreviouslyExhaustedRefusalRetry() = runBlocking {
+        val f = Fixture()
+        f.seriesStatus = HttpStatusCode.BadRequest
+        val id = f.repo.keepLocal(request(), null, owner = 1)
+        assertFailsWith<SeriesApiException> { f.repo.send(id) }
+        f.repo.refresh() // Exhaust account 1's once-per-process refusal retry.
+        assertEquals(2, f.seriesPosts)
+        f.session.signOut()
+        f.session.signInDev("other")
+        f.repo.claimLocal(2)
+        val claimed = f.db.seriesQueries.localById(id).executeAsOne()
+        assertEquals("queued", claimed.state)
+        assertNull(claimed.last_status)
+        assertEquals(1L, claimed.reported, "A row still reports its refusal only once")
+        f.session.confirmPending()
+        f.seriesStatus = HttpStatusCode.OK
+        assertNull(f.repo.refresh())
+        assertEquals(3, f.seriesPosts, "Add must send immediately even after the previous owner's refusal")
+        assertTrue(f.db.seriesQueries.selectLocal().executeAsList().isEmpty())
     }
 }
