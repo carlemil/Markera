@@ -102,7 +102,7 @@ class LocalSaveRefusedTest {
     @Test fun timeoutRetainsSeriesAndPhoto() = failureRetains(error = SocketTimeoutException("lost response"))
 
     @Test fun transientQueueRetriesInInsertionOrderAndPublishesServerIdentity() = runBlocking {
-        for (code in listOf(500, 502, 503, 429, 0)) {
+        for (code in listOf(500, 502, 503, 429, 0, -1)) {
             val f = Fixture().also { it.code = code; if (code == 0) it.failure = IOException("offline"); if (code == -1) it.failure = SocketTimeoutException("timeout") }
             f.save("first"); f.save("second")
             f.posts.clear(); f.code = 200; f.failure = null
