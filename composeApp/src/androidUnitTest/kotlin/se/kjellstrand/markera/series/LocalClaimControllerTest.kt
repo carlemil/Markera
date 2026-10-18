@@ -18,18 +18,20 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import se.kjellstrand.markera.series.db.MarkeraDb
@@ -162,7 +164,25 @@ class LocalClaimControllerTest {
             if (photo) { local.write(id, byteArrayOf(id.toByte(), 2, 3)); local.writeThumb(id, byteArrayOf(9)) }
         }
 
-        suspend fun signIn(provider: Provider = Provider.GOOGLE) { provider.signIn(session); test.runCurrent() }
+        suspend fun signIn(provider: Provider = Provider.GOOGLE) {
+            val offered = snapshot().count { it.owner_user_id != user.toString() }
+            provider.signIn(session)
+            test.runCurrent()
+            if (offered > 0) withContext(Dispatchers.Default) {
+                withTimeout(5_000) { controller.state.first { it == ClaimState.Ask(offered) } }
+            }
+        }
+        suspend fun awaitChoiceFinished() {
+            test.runCurrent()
+            // The repository uses Dispatchers.Default for SQLite/image work. Virtual-time
+            // advanceUntilIdle alone can return while that real dispatcher is still running.
+            withContext(Dispatchers.Default) {
+                withTimeout(5_000) {
+                    controller.state.first { it == ClaimState.Hidden || it is ClaimState.Error }
+                }
+            }
+            test.runCurrent()
+        }
         fun assertHeld(count: Int) {
             assertNull(session.auth.value); assertNull(session.currentToken); assertNull(store.saved)
             assertTrue(store.writes.isEmpty()); assertEquals(user, session.pendingAuth.value?.userId)
@@ -228,7 +248,7 @@ class LocalClaimControllerTest {
 
     @Test fun addPreservesPayloadPhotosAndHistoryAndDoesNotPromptNextSignIn() = scenario { f ->
         f.seed(); f.seed(2, photo = false); f.signIn(); f.assertHeld(2)
-        f.controller.add(); advanceUntilIdle(); runCurrent()
+        f.controller.add(); f.awaitChoiceFinished()
         assertEquals(listOf(f.request(1), f.request(2)), f.posts)
         assertTrue(f.postTokens.all { it == "Bearer token-42" })
         assertTrue(f.snapshot().isEmpty()); assertTrue(f.local.files.isEmpty())
@@ -246,17 +266,18 @@ class LocalClaimControllerTest {
     @Test fun doubleTapWhileFirstPostIsSuspendedDoesNotUploadTwice() = scenario { f ->
         f.seed(); f.signIn(); f.holdPost = CompletableDeferred()
         f.controller.add(); runCurrent()
-        // No awaiting an unbounded signal: fail immediately if Add never reached the HTTP boundary.
-        assertTrue(f.postEntered.isCompleted, "Add must start its first upload")
+        // Wait for the boundary even when repository work crosses to Dispatchers.Default.
+        // The real-time timeout is bounded and does not race the test scheduler's clock.
+        withContext(Dispatchers.Default) { withTimeout(5_000) { f.postEntered.await() } }
         assertEquals(ClaimState.Working, f.controller.state.value)
         f.controller.add(); runCurrent(); assertEquals(1, f.posts.size)
-        f.holdPost!!.complete(Unit); advanceUntilIdle(); runCurrent()
+        f.holdPost!!.complete(Unit); f.awaitChoiceFinished()
         assertEquals(listOf("claim-1"), f.posts.map { it.clientId }); assertTrue(f.snapshot().isEmpty())
     }
 
     @Test fun thirdOfFiveFailingLeavesRemainingOwnedQueueWithStableClientIds() = scenario { f ->
         (1L..5L).forEach { f.seed(it) }; f.signIn(); f.failPost = 3
-        f.controller.add(); advanceUntilIdle(); runCurrent()
+        f.controller.add(); f.awaitChoiceFinished()
         assertEquals(listOf("claim-1", "claim-2", "claim-3"), f.posts.map { it.clientId })
         assertEquals(listOf("claim-3", "claim-4", "claim-5"), f.snapshot().map { it.client_id })
         assertTrue(f.snapshot().all { it.owner_user_id == "42" }); assertEquals(2, f.successful.size)
@@ -282,7 +303,7 @@ class LocalClaimControllerTest {
 
     @Test fun confirmedDeleteRemovesOnlyOfferedRowsAndPhotosBeforePublishingAuth() = scenario { f ->
         f.seed(); f.seed(2, owner = 99); f.seed(3, owner = 42)
-        f.signIn(); f.controller.askDelete(); runCurrent(); f.controller.confirmDelete(); advanceUntilIdle(); runCurrent()
+        f.signIn(); f.controller.askDelete(); runCurrent(); f.controller.confirmDelete(); f.awaitChoiceFinished()
         assertEquals(listOf(3L), f.snapshot().map { it.local_id })
         assertEquals(setOf(3L), f.local.files.keys); assertEquals(setOf(3L), f.local.thumbs.keys)
         assertEquals(listOf(listOf(3L)), f.rowIdsAtPublication)
@@ -295,7 +316,7 @@ class LocalClaimControllerTest {
     private fun abandon(dismiss: Boolean) = scenario { f ->
         f.seed(); val rows = f.snapshot(); f.signIn(); f.assertHeld(1)
         if (dismiss) f.controller.dismiss() else f.controller.staySignedOut()
-        advanceUntilIdle(); runCurrent()
+        f.awaitChoiceFinished()
         assertNull(f.session.auth.value); assertNull(f.session.pendingAuth.value); assertNull(f.store.saved)
         assertTrue(f.store.writes.isEmpty()); assertEquals(rows, f.snapshot())
         assertContentEquals(byteArrayOf(1, 2, 3), f.local.read(1)); assertTrue(f.posts.isEmpty())
@@ -320,7 +341,7 @@ class LocalClaimControllerTest {
         f.db.seriesQueries.setLastSync("99", "2026-09-01T00:00:00Z"); f.synced.write(900, byteArrayOf(7))
         val rows = f.snapshot(); f.signIn(); f.assertHeld(2)
         assertEquals(rows, f.snapshot()); assertTrue(f.posts.isEmpty())
-        f.controller.askDelete(); runCurrent(); f.controller.confirmDelete(); advanceUntilIdle(); runCurrent()
+        f.controller.askDelete(); runCurrent(); f.controller.confirmDelete(); f.awaitChoiceFinished()
         // Isolate the account-switch wipe from queue draining: leave the current-account row offline.
         f.failPost = 1; f.repository.refresh()
         assertTrue(f.db.seriesQueries.selectAll().executeAsList().none { it.id == 900L })
