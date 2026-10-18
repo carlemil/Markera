@@ -48,9 +48,13 @@ The `:eval` module is a JVM tool that evaluates the hole-detection ONNX model ag
 dataset images (the `/eval` project skill drives it):
 
 ```sh
-./gradlew :eval:test --tests "eval.HoleDetectionMosaicTest" --rerun-tasks \
+./gradlew :eval:mosaic \
   -Dmosaic.seed=42   # optional; also -Dmosaic.images=<dir>, -Dmosaic.model=<path>
 ```
+
+The explicit `:eval:mosaic` task always runs fresh inference (including with a fixed seed),
+while unchanged compilation remains reusable. It fails if the external model or images
+are missing. The ordinary `:eval:test` suite keeps optional-asset skips.
 
 It compiles the app's real `vision/` sources straight from `commonMain` (excluding the
 expect/actual platform files, with a desktop ONNX Runtime standing in), so edits to

@@ -25,7 +25,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
-tasks.test {
+tasks.withType<Test>().configureEach {
     useJUnit()
     // Nine full-resolution (12 MP) images plus annotated RGB copies blow past
     // the default worker heap.
@@ -42,4 +42,19 @@ tasks.test {
         showStandardStreams = true
         events("passed", "failed", "skipped")
     }
+}
+
+// An explicit evaluation is fresh work, even with a fixed seed. Only this task
+// reruns: Kotlin compilation and dependency/resource tasks remain incremental.
+// Always executing also consumes external model/image changes without stale results.
+tasks.register<Test>("mosaic") {
+    description = "Run fresh hole-detection inference and write the evaluation mosaic."
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    filter { includeTestsMatching("eval.HoleDetectionMosaicTest") }
+    systemProperty("mosaic.required", "true")
+    outputs.dir(layout.buildDirectory.dir("mosaic"))
+    outputs.upToDateWhen { false }
+    outputs.cacheIf { false }
 }
