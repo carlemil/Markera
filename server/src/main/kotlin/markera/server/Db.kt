@@ -126,6 +126,17 @@ class Db(dbPath: String) : AutoCloseable {
             if ("client_id" !in seriesColumns) st.executeUpdate("ALTER TABLE series ADD COLUMN client_id TEXT")
             st.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS series_user_client ON series(user_id, client_id)")
             st.executeUpdate("CREATE TABLE IF NOT EXISTS holes ($HOLE_COLUMNS)")
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                series_id INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+                owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                at TEXT NOT NULL, actor_type TEXT NOT NULL, actor_id TEXT NOT NULL,
+                operation TEXT NOT NULL, baseline INTEGER NOT NULL,
+                before_state TEXT, after_state TEXT NOT NULL)""")
+            st.executeUpdate("CREATE INDEX IF NOT EXISTS audit_series ON series_audit(series_id, id)")
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_photo_baseline (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                fingerprint TEXT NOT NULL)""")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
             val holeColumns = st.executeQuery("PRAGMA table_info(holes)").use { rs ->
@@ -274,7 +285,11 @@ class Db(dbPath: String) : AutoCloseable {
                 it.executeQuery().use { rs -> if (rs.next()) return rs.getLong(1) }
             }
         }
-        return transaction { insertSeriesRow(userId, timestamp, caliber, holes, geometry, tag, clientId) }
+        return transaction {
+            insertSeriesRow(userId, timestamp, caliber.trim(), holes, geometry, tag?.trim()?.ifEmpty { null }, clientId).also {
+                recordAudit(it, AuditActor.app(userId), "created baseline", null, baseline = true)
+            }
+        }
     }
 
     private fun insertSeriesRow(
@@ -310,13 +325,14 @@ class Db(dbPath: String) : AutoCloseable {
      * Holes flagged [Hole.deleted] are stored but never read back, so earlier ones stay put (training data).
      */
     @Synchronized
-    fun replaceSeries(seriesId: Long, req: SeriesRequest) = transaction {
+    fun replaceSeries(seriesId: Long, req: SeriesRequest, actor: AuditActor = AuditActor.Admin) = transaction {
+        val before = stateOf(seriesId)
         conn.prepareStatement(
             "UPDATE series SET timestamp = ?, caliber = ?, tag = ?, updated_at = $NOW, " +
                 "${GEOMETRY_COLUMNS.joinToString(", ") { "$it = ?" }} WHERE id = ?"
         ).use {
             it.setString(1, req.timestamp)
-            it.setString(2, req.caliber)
+            it.setString(2, req.caliber.trim())
             it.setString(3, req.normalisedTag())
             it.setGeometry(4, req.geometry)
             it.setLong(11, seriesId)
@@ -341,6 +357,7 @@ class Db(dbPath: String) : AutoCloseable {
                 h.deleted && h.detectedX != null && h.detectedY != null && (h.detectedX to h.detectedY) in kept
             },
         )
+        recordAudit(seriesId, actor, "updated", before)
     }
 
     private fun storedDeletedSpots(seriesId: Long): Set<Pair<Double, Double>> = buildSet {
@@ -503,17 +520,130 @@ class Db(dbPath: String) : AutoCloseable {
      * stay (the admin page can restore it); only [deleteAccount] removes them.
      */
     @Synchronized
-    fun deleteSeries(seriesId: Long) {
-        execute("UPDATE series SET deleted_at = $NOW, updated_at = $NOW WHERE id = ?", seriesId)
+    fun deleteSeries(seriesId: Long, actor: AuditActor = AuditActor.Admin) = transaction {
+        val before = stateOf(seriesId)
+        execute("UPDATE series SET deleted_at = $NOW, updated_at = $NOW WHERE id = ? AND deleted_at IS NULL", seriesId)
+        recordAudit(seriesId, actor, "deleted", before)
     }
 
     /** Undoes [deleteSeries] (the admin page). The new `updated_at` puts it back in the delta as a live series. */
     @Synchronized
-    fun restoreSeries(seriesId: Long) {
+    fun restoreSeries(seriesId: Long, actor: AuditActor = AuditActor.Admin) = transaction {
+        val before = stateOf(seriesId)
         execute("UPDATE series SET deleted_at = NULL, updated_at = $NOW WHERE id = ? AND deleted_at IS NOT NULL", seriesId)
+        recordAudit(seriesId, actor, "restored", before)
     }
 
     private fun liveOnly(includeDeleted: Boolean) = if (includeDeleted) "" else " AND deleted_at IS NULL"
+
+    private fun fingerprint(id: Long): String? = conn.prepareStatement(
+        "SELECT fingerprint FROM series_photo_baseline WHERE series_id = ?"
+    ).use { it.setLong(1, id); it.executeQuery().use { rs -> if (rs.next()) rs.getString(1) else null } }
+
+    private fun stateOf(id: Long): String? = getSeries(id, includeDeleted = true)?.let { auditState(it, fingerprint(id)) }
+
+    private fun recordAudit(id: Long, actor: AuditActor, operation: String, before: String?, baseline: Boolean = false) {
+        val after = stateOf(id) ?: return
+        if (!baseline && before == after) return
+        val owner = seriesOwner(id, includeDeleted = true) ?: return
+        require(actor == AuditActor.Admin || actor == AuditActor.app(owner)) { "invalid audit actor" }
+        conn.prepareStatement("""INSERT INTO series_audit(series_id, owner_id, at, actor_type, actor_id,
+            operation, baseline, before_state, after_state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""").use {
+            it.setLong(1, id); it.setLong(2, owner); it.setString(3, auditTime.format(java.time.Instant.now()))
+            it.setString(4, actor.type); it.setString(5, actor.id); it.setString(6, operation)
+            it.setInt(7, if (baseline) 1 else 0); it.setString(8, before); it.setString(9, after); it.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun auditEvents(id: Long): List<AuditEvent> = conn.prepareStatement(
+        "SELECT * FROM series_audit WHERE series_id = ? ORDER BY at DESC, id DESC"
+    ).use { st -> st.setLong(1, id); st.executeQuery().use { rs -> buildList {
+        while (rs.next()) add(AuditEvent(rs.getLong("id"), id, rs.getLong("owner_id"), rs.getString("at"),
+            AuditActor(rs.getString("actor_type"), rs.getString("actor_id")), rs.getString("operation"),
+            rs.getInt("baseline") != 0, rs.getString("before_state"), rs.getString("after_state")))
+    } } }
+
+    @Synchronized
+    fun reviewPage(includeDeleted: Boolean, offset: Int): List<ReviewRow> {
+        val ids = conn.prepareStatement("""SELECT s.id FROM series s
+            LEFT JOIN (SELECT series_id, MAX(at) latest_at, MAX(id) latest_id FROM series_audit
+                       WHERE baseline = 0 GROUP BY series_id) a ON a.series_id = s.id
+            WHERE (${if (includeDeleted) "1" else "s.deleted_at IS NULL"}) AND
+                (a.latest_id IS NOT NULL OR EXISTS (SELECT 1 FROM holes h WHERE h.series_id = s.id AND ($EDITED_HOLE_SQL)))
+            ORDER BY a.latest_at DESC, a.latest_id DESC, s.id DESC LIMIT 51 OFFSET ?""").use { st ->
+            st.setInt(1, offset.coerceAtLeast(0))
+            st.executeQuery().use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
+        }
+        return ids.map { id -> ReviewRow(getSeries(id, includeDeleted = true)!!,
+            getUser(seriesOwner(id, includeDeleted = true)!!)!!, auditEvents(id).filterNot { it.baseline }) }
+    }
+
+    /** Recover an interrupted file replacement before serving requests. The committed hash decides which file wins. */
+    @Synchronized
+    fun recoverPhotos(images: File) {
+        images.listFiles()?.filter { it.name.matches(Regex("[0-9]+\\.journal")) }?.forEach { journal ->
+            val id = journal.name.substringBefore('.').toLong()
+            val target = imageFile(images, id)
+            val backup = File(images, "$id.previous")
+            if (seriesOwner(id, includeDeleted = true) == null) {
+                target.delete(); backup.delete()
+            } else if (!target.isFile || fingerprint(id) != photoHash(target.readBytes())) {
+                if (journal.readText() == "present") {
+                    check(backup.isFile) { "Missing photo recovery file for $id" }
+                    java.nio.file.Files.move(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                } else java.nio.file.Files.deleteIfExists(target.toPath())
+            }
+            java.nio.file.Files.deleteIfExists(backup.toPath())
+            java.nio.file.Files.deleteIfExists(journal.toPath())
+        }
+    }
+
+    /** Serialize uploads with every DB mutation. Journal + old file survive process death; rollback restores bytes. */
+    @Synchronized
+    fun storePhoto(images: File, id: Long, bytes: ByteArray, width: Int?, height: Int?, actor: AuditActor) {
+        val owner = seriesOwner(id) ?: error("Unknown series")
+        require(actor == AuditActor.app(owner))
+        recoverPhotos(images)
+        val target = imageFile(images, id)
+        val backup = File(images, "$id.previous")
+        val journal = File(images, "$id.journal")
+        val tmp = java.nio.file.Files.createTempFile(images.toPath(), "upload-", ".tmp")
+        try {
+            java.nio.file.Files.write(tmp, bytes)
+            if (target.isFile) java.nio.file.Files.copy(target.toPath(), backup.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            journal.writeText(if (target.isFile) "present" else "absent")
+            transaction {
+                val previousHash = fingerprint(id)
+                // Existing JPEGs are historical baselines, never invented historical edits.
+                if (previousHash == null && target.isFile) {
+                    setFingerprint(id, photoHash(target.readBytes()))
+                    recordAudit(id, actor, "historical photo baseline", null, baseline = true)
+                }
+                val before = stateOf(id)
+                val first = previousHash == null && !target.isFile
+                java.nio.file.Files.move(tmp, target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                imageStored(id, width, height)
+                setFingerprint(id, photoHash(bytes))
+                recordAudit(id, actor, if (first) "photo baseline" else "photo updated", before, baseline = first)
+            }
+        } catch (failure: Throwable) {
+            // The DB transaction rolled back. Recovery either restores the old file or removes a new one.
+            runCatching { recoverPhotos(images) }.exceptionOrNull()?.let { failure.addSuppressed(it) }
+            if (!journal.exists()) runCatching { java.nio.file.Files.deleteIfExists(backup.toPath()) }
+            throw failure
+        } finally {
+            java.nio.file.Files.deleteIfExists(tmp)
+        }
+        // Cleanup is recoverable after a committed upload; don't report a failed upload for cleanup alone.
+        runCatching { recoverPhotos(images) }
+    }
+
+    private fun setFingerprint(id: Long, hash: String) {
+        conn.prepareStatement("INSERT OR REPLACE INTO series_photo_baseline(series_id, fingerprint) VALUES (?, ?)").use {
+            it.setLong(1, id); it.setString(2, hash); it.executeUpdate()
+        }
+    }
 
     /** Drops the user, their sessions and every series; returns the deleted series ids so the caller can drop images. */
     @Synchronized
@@ -524,6 +654,8 @@ class Db(dbPath: String) : AutoCloseable {
             st.executeQuery().use { rs -> while (rs.next()) ids += rs.getLong(1) }
         }
         execute("DELETE FROM holes WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM series_audit WHERE owner_id = ?", userId)
+        execute("DELETE FROM series_photo_baseline WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
         // They may carry the user's e-mail address: gone with the account, like everything else of theirs.
