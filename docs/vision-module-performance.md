@@ -83,7 +83,10 @@ build scheduling. Preserve all observations including slower rows.
 
 Use the [verification guide](ticket-verification.md) for final gates. Development
 integration passed both library targets, all 314 remaining app tests, APK packaging
-and eval's real inference test. A fixed-seed fresh mosaic and native/framework/Xcode
-checks validate dependency wiring separately; independent review and the real
+and eval's real inference test. Fresh seed-42 mosaic passed (nine images, kept
+counts 4/6/5/5/5/4/5/6/6). Mac verification in a separate clone passed 69 vision
+and 283 app native tests (zero failures/errors/skips), static framework linking
+and Xcode's Swift/ORT host build. Existing app installations were preserved.
+These checks validate dependency wiring separately; independent review and the real
 USB-phone scoring/photo check remain required before landing. Pure JVM timings
 cannot establish platform correctness.
