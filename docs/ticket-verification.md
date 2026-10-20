@@ -5,6 +5,11 @@ Tests are under `composeApp/src/commonTest/kotlin/se/kjellstrand/markera/` unles
 stated otherwise. Include changed tests and callers affected by the change; this
 is a starting map, not permission to omit relevant coverage.
 
+The six pure vision suites live in `vision/src/commonTest/kotlin/se/kjellstrand/markera/vision`.
+Use `:vision:jvmTest` during pure-code iteration; `composeApp` retains adapter and
+integration tests (including `DigitDetectorTest` and `ManualHitTest`). The JVM
+shortcut never substitutes for Android/native coverage after module wiring changes.
+
 | Changed area | Development tests |
 |---|---|
 | `vision/` geometry, scoring, image operations | Matching `vision/*Test` classes; geometry changes include `CentreEstimatorTest`, `RingProbeTest`, `TargetPlaneTest`, `HitScoringTest` and `ui/markera/ManualHitTest` |
@@ -20,7 +25,7 @@ is a starting map, not permission to omit relevant coverage.
 Example: targeted development tests may share one invocation:
 
 ```powershell
-.\gradlew.bat :composeApp:testDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest" --tests "se.kjellstrand.markera.vision.TargetPlaneTest"
+.\gradlew.bat :vision:jvmTest --tests "se.kjellstrand.markera.vision.HitScoringTest" --tests "se.kjellstrand.markera.vision.TargetPlaneTest"
 ```
 
 ## Final review and gate
@@ -30,7 +35,7 @@ the full relevant suite once on the final reviewed commit. Development tests do
 not replace that gate. Android app changes that need tests and an APK use:
 
 ```powershell
-.\gradlew.bat :composeApp:testDebugUnitTest :composeApp:assembleDebug
+.\gradlew.bat :vision:jvmTest :vision:testDebugUnitTest :composeApp:testDebugUnitTest :composeApp:assembleDebug
 ```
 
 Server-only changes use the standalone project, from `server/`:
@@ -45,6 +50,13 @@ not establish camera, native or release behavior. No store upload is authorized
 by a Tickets gate. Keep outputs, configuration cache and daemons during normal
 iteration. Reserve `clean`, `--rerun-tasks` or daemon stops for a specific diagnosed
 problem or an explicit benchmark, and state why they were needed.
+
+Changes to the vision dependency or its build also run `:eval:test` and fresh
+`:eval:mosaic -Dmosaic.seed=42`, plus `:vision:iosSimulatorArm64Test`,
+`:composeApp:iosSimulatorArm64Test`, framework and Xcode builds on the Mac.
+Reconcile the moved tests: the extraction baseline is 69 vision tests plus
+314 remaining app tests = 383 unique tests (the Android/JVM vision runs each
+execute those same 69 tests, not 138 different assertions).
 
 Pure Markdown skips execution only when the Tickets docs-only rule holds: every
 changed path ends in `.md` and no test quotes a changed filename/path as a string

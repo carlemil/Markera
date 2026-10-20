@@ -13,8 +13,9 @@ goal and a history of detection approaches tried (and which are in use vs. aband
 ./gradlew :composeApp:installDebug
 
 ./gradlew :composeApp:testDebugUnitTest # JVM unit tests
+./gradlew :vision:jvmTest              # fast pure geometry/scoring tests (69)
 # single test class:
-./gradlew :composeApp:testDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
+./gradlew :vision:jvmTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```
 
 ### Tickets verification and test map
@@ -25,7 +26,7 @@ targeted tests; independent final review retains the full relevant suite. When
 Android tests and packaging are both required, use one PowerShell invocation:
 
 ```powershell
-.\gradlew.bat :composeApp:testDebugUnitTest :composeApp:assembleDebug
+.\gradlew.bat :vision:jvmTest :vision:testDebugUnitTest :composeApp:testDebugUnitTest :composeApp:assembleDebug
 ```
 
 Keep incremental outputs and daemons in normal iteration; no routine `clean`,
@@ -73,9 +74,9 @@ The explicit `:eval:mosaic` task always runs fresh inference (including with a f
 while unchanged compilation remains reusable. It fails if the external model or images
 are missing. The ordinary `:eval:test` suite keeps optional-asset skips.
 
-It compiles the app's real `vision/` sources straight from `commonMain` (excluding the
-expect/actual platform files, with a desktop ONNX Runtime standing in), so edits to
-`vision/` affect both the app and `:eval`. The training dataset lives outside the repo
+It consumes the same `:vision` KMP library as the app, with a desktop ONNX Runtime
+detector standing in for the app's platform adapter. There is one production
+geometry/scoring pipeline. The training dataset lives outside the repo
 at `D:/ml/holes/dataset/images/train` (the default `mosaic.images`).
 
 Project skills exist for the routine workflows: `/deploy` (build + adb install/launch on
@@ -111,9 +112,11 @@ export) is **not** committed. Place it at
 
 ## Architecture
 
-Single `:composeApp` KMP module — `commonMain` / `androidMain` / `iosMain`. All
-screens, navigation (`AppNavHost`), view models, strings (`composeResources`, `Res`)
-and the scoring pipeline live in commonMain; `AppServices` (services + model path +
+`:composeApp` KMP app plus the pure `:vision` KMP library. Both have Android and
+iOS targets; `:vision` also has a JVM target for fast iteration and `:eval`.
+All screens, navigation (`AppNavHost`), view models, strings (`composeResources`, `Res`)
+live in the app's commonMain; geometry/scoring live in `vision/src/commonMain`.
+`AppServices` (services + model path +
 share) is built by `MainActivity` / `MainViewController`. Platform edges are
 `expect`/`actual`: `HoleDetector`, `DigitDetector`, `PlatformImage` (`Bitmap` /
 `UIImage`), `rememberFrameSource`, `rememberCameraPermission`, `rememberSignIn`,
@@ -153,8 +156,11 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
 centre — the ellipse only provides scale/shape. The README's "Approaches" section
 records the earlier ring methods (their code was removed).
 
-`vision/` is pure-Kotlin `commonMain` (JVM-unit-tested: `HitScoringTest`,
-`CentreEstimatorTest`, `DetectionPostProcessTest`). Platform edges are `expect`/`actual`:
+`:vision` owns ten pure Kotlin production files and six common test suites.
+Run `:vision:jvmTest` for fast iteration, `:vision:testDebugUnitTest` for Android
+coverage and `:vision:iosSimulatorArm64Test` on the Mac. The app exports its
+vision dependency in the static framework so Swift-facing types remain available.
+Platform edges stay in `composeApp` as `expect`/`actual`:
 `HoleDetector`, `DigitDetector`, `PlatformImage` (= `android.graphics.Bitmap` on Android).
 
 ### Detection runtime notes (hard-won)

@@ -24,5 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Markera"
 include(":composeApp")
+include(":vision")
 include(":eval")
  
