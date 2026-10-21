@@ -91,7 +91,7 @@ No iPhone: the iOS app is built and verified on the simulator over ssh
 ```sh
 sh scripts/mac-sync.sh                         # mirror HEAD + uncommitted files to the Mac
 sh scripts/mac.sh 'sh gradlew -q :composeApp:linkDebugFrameworkIosSimulatorArm64'
-sh scripts/mac.sh 'sh gradlew :composeApp:iosSimulatorArm64Test'   # the commonTest suite on K/N
+sh scripts/mac.sh 'sh gradlew :vision:iosSimulatorArm64Test :composeApp:iosSimulatorArm64Test'   # both commonTest suites on K/N
 sh scripts/mac.sh 'bash scripts/mac-build.sh'  # xcodegen + xcodebuild + simctl install/launch
 ```
 

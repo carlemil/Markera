@@ -18,7 +18,7 @@ shortcut never substitutes for Android/native coverage after module wiring chang
 | `webshooter/`, competition wizard | `webshooter/*Test`, `ui/competition/MarkingWizardViewModelTest`, Android DTO/serializer tests when wire data changes |
 | Scan/import/history/stats UI logic | Matching `ui/markera/*Test`, `ui/history/HistoryFilterTest`, `ui/stats/*Test`; continuous scan also includes Android `ContinuousScanReplayTest` |
 | Android image/cache/sign-in platform code | Matching `androidUnitTest` tests; JPEG/device behavior also needs applicable `androidInstrumentedTest` tests on USB phone `34282ee3` |
-| iOS platform code or shared behavior affecting iOS | Relevant tests above plus `:composeApp:iosSimulatorArm64Test` and simulator build via the Mac recipes in `iosApp/README.md` |
+| iOS platform code or shared behavior affecting iOS | Relevant tests above plus `:vision:iosSimulatorArm64Test` and `:composeApp:iosSimulatorArm64Test` and simulator build via the Mac recipes in `iosApp/README.md` |
 | Standalone `server/` | Matching `server/src/test/kotlin/markera/server/*Test` during development; final standalone server suite |
 | Build files, dependencies, shared fixtures, unmapped code | Full affected suite; app build configuration changes also require packaging |
 

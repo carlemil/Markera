@@ -184,9 +184,10 @@ only as the fallback when no plane can be built (centre outside the ellipse).
 
 ## Technical overview
 
-The app is a single `:composeApp` KMP module with `commonMain`, `androidMain`,
-and `iosMain` source sets (plus a small `:eval` module used to evaluate the
-hole-detection model). Hole detection runs a YOLOv8 ONNX model on the **default
+The app is a `:composeApp` KMP module with `commonMain`, `androidMain`,
+and `iosMain` source sets, plus a `:vision` KMP library holding the pure
+geometry/scoring pipeline and a small `:eval` module used to evaluate the
+hole-detection model. Hole detection runs a YOLOv8 ONNX model on the **default
 CPU execution provider** — XNNPACK's fp16 path caused intermittent native
 crashes in `OrtSession.run` on-device and was slower on the test hardware.
 Detection is guarded against concurrent runs (the native inference can't be
@@ -209,7 +210,7 @@ Install on a device (API 24+); the app needs a back camera.
 ### Running tests
 
 ```sh
-./gradlew :composeApp:testDebugUnitTest
+./gradlew :vision:jvmTest :composeApp:testDebugUnitTest
 ```
 
 ### iOS
