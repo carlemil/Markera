@@ -162,7 +162,6 @@ internal fun HomeScreen(
 
     if (showingImport) {
         ImportDialog(
-            signedIn = backendAuth != null,
             onPick = { source, auto ->
                 showingImport = false
                 importAuto = auto
@@ -197,9 +196,9 @@ private var autoImportChoice = false
  * tag the series get.
  */
 @Composable
-private fun ImportDialog(signedIn: Boolean, onPick: (ImageSource, Boolean) -> Unit, onDismiss: () -> Unit) {
+private fun ImportDialog( onPick: (ImageSource, Boolean) -> Unit, onDismiss: () -> Unit) {
     var auto by remember { mutableStateOf(autoImportChoice) }
-    val on = auto && signedIn
+    val on = auto
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.import_images)) },
@@ -209,7 +208,7 @@ private fun ImportDialog(signedIn: Boolean, onPick: (ImageSource, Boolean) -> Un
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth().toggleable(on, enabled = signedIn, role = Role.Switch) {
+                    modifier = Modifier.fillMaxWidth().toggleable(on, role = Role.Switch) {
                         auto = it
                         autoImportChoice = it
                     },
@@ -217,12 +216,12 @@ private fun ImportDialog(signedIn: Boolean, onPick: (ImageSource, Boolean) -> Un
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(Res.string.import_auto), style = MaterialTheme.typography.titleSmall)
                         Text(
-                            stringResource(if (signedIn) Res.string.import_auto_body else Res.string.import_auto_signed_out),
+                            stringResource(Res.string.import_auto_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(checked = on, onCheckedChange = null, enabled = signedIn)
+                    Switch(checked = on, onCheckedChange = null)
                 }
             }
         },

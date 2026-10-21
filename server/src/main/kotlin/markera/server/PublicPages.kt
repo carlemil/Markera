@@ -104,6 +104,10 @@ telefonmodell och systemversion samt de senaste stegen i appen. Den innehåller 
 e-postadress, ditt konto-id, några foton eller serier, och IP-adressen lagras inte. Rapporterna används bara
 för att hitta och rätta fel och raderas automatiskt efter Sentrys lagringstid (högst 90 dagar).</p>
 <h2 style="font-size:16px">Sådant som bara sker i telefonen</h2>
+<p>Serier och foton som inte har laddats upp sparas lokalt på enheten, även när du är utloggad.
+De försvinner om du avinstallerar appen eller rensar dess data. Systemets säkerhetskopia kan innehålla
+appdata; förlita dig inte på den för att återställa osänt arbete. När du loggar in väljer du om andra
+lokala serier ska läggas till på kontot. En lokal serie som raderas tas bort med sitt foto från enheten.</p>
 <p>Träffdetekteringen (ett neuralt nätverk som körs på enheten) och avläsningen av ringsiffrorna
 (textigenkänning på enheten, Google ML Kit) sker lokalt. Kamerabilder skickas ingenstans om du inte
 sparar en serie.</p>
@@ -152,6 +156,10 @@ model and system version, and the last few steps taken in the app. It does not h
 address, account id, any photos or series, and the IP address is not stored. The reports are used only to
 find and fix faults and are deleted automatically after Sentry's retention period (at most 90 days).</p>
 <h2 style="font-size:16px">Processing that happens only on the phone</h2>
+<p>Unsent series and photos are stored locally on this device, including while signed out.
+Uninstalling the app or clearing its data loses them. Your system backup may include app data;
+do not rely on it to recover unsent work. On sign-in, you choose whether to add other local series
+to the account. Deleting a local series removes it and its photo from the device.</p>
 <p>Hole detection (an on-device neural network) and ring-digit reading (on-device text recognition, Google
 ML Kit) run locally. Camera frames are not sent anywhere unless you save a series.</p>
 <h2 style="font-size:16px">Sharing, location and retention</h2>

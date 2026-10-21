@@ -405,6 +405,23 @@ fun SeriesDetailScreen(
                 }
 
                 // Own column: the rows sit tight, the 16 dp outside stays
+                if (series.local != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(Res.string.series_not_uploaded), modifier = Modifier.weight(1f))
+                        if (series.local == se.kjellstrand.markera.series.LocalMark.REFUSED) {
+                            androidx.compose.material3.TextButton(enabled = saving == 0, onClick = {
+                                saving++
+                                scope.launch {
+                                    try { services.repository.retrySeries(series.id); onBack() }
+                                    catch (e: CancellationException) { throw e }
+                                    catch (_: Exception) { toast(failedText) }
+                                    finally { saving-- }
+                                }
+                            }) { Text(stringResource(Res.string.retry)) }
+                        }
+                    }
+                }
+                // Own column: the rows sit tight, the 16 dp outside stays
                 // between the photo and header blocks.
                 Column {
                     holes.value.forEachIndexed { i, hole ->

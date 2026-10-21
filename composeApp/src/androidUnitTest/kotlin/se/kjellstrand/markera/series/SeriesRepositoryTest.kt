@@ -45,7 +45,7 @@ class SeriesRepositoryTest {
             respondWith(request)
         }
         val api = SeriesApi(createSeriesHttpClient(engine), "http://host:8090") { "tok" }
-        return SeriesRepository(api, db, images, testSession(api, userId))
+        return SeriesRepository(api, db, images, testSession(api, userId), FakeImageCache())
     }
 
     private fun MockRequestHandleScope.json(
@@ -207,7 +207,7 @@ class SeriesRepositoryTest {
     }
 
     @Test
-    fun theOutboxDropsARefusedRowSendsTheRestAndStopsWhenOffline() = runBlocking {
+    fun adoptedOutboxRetainsARefusedRowAndSendsTheRest() = runBlocking {
         val db = testSeriesDb()
         var postStatus = HttpStatusCode.BadRequest
         val repo = repo(db = db) { request ->
@@ -223,10 +223,11 @@ class SeriesRepositoryTest {
 
         assertNull(repo.refresh())
 
-        // The 400 is gone for good, the second went up with its photo, and nothing is left.
+        // #649 adopts the legacy outbox; a refused row now stays durable instead of being dropped.
         assertEquals(listOf("/series", "/series", "/series/5/image"), recorded.filter { it.method == HttpMethod.Post }.map { it.url.encodedPath })
         assertEquals(listOf<Byte>(1), images.files[5]?.toList())
         assertTrue(db.seriesQueries.outboxFor("1").executeAsList().isEmpty())
+        assertEquals("refused", db.seriesQueries.selectLocal().executeAsOne().state)
     }
 
     @Test
@@ -237,7 +238,8 @@ class SeriesRepositoryTest {
 
         assertNotNull(repo.refresh())
 
-        assertEquals(1, db.seriesQueries.outboxFor("1").executeAsList().size)
+        assertTrue(db.seriesQueries.outboxFor("1").executeAsList().isEmpty())
+        assertEquals(1, db.seriesQueries.selectLocal().executeAsList().size)
     }
 
     @Test
@@ -250,7 +252,8 @@ class SeriesRepositoryTest {
 
         assertNull(repo.refresh())
 
-        assertEquals(1, db.seriesQueries.outboxFor("1").executeAsList().size)
+        assertTrue(db.seriesQueries.outboxFor("1").executeAsList().isEmpty())
+        assertEquals(1, db.seriesQueries.selectLocal().executeAsList().size)
     }
 
     @Test

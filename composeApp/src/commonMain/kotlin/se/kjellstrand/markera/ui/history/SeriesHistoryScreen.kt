@@ -108,7 +108,6 @@ fun SeriesHistoryScreen(
     val toast = LocalToast.current
 
     LaunchedEffect(auth, reload) {
-        if (auth == null) return@LaunchedEffect
         loading = true
         error = services.repository.refresh()?.userMessage()
         loading = false
@@ -163,7 +162,7 @@ fun SeriesHistoryScreen(
                         MenuItem(
                             Icons.Default.Backup,
                             stringResource(Res.string.history_export),
-                            enabled = !exporting && auth != null && shown.isNotEmpty(),
+                            enabled = !exporting && shown.isNotEmpty(),
                         ) {
                             exporting = true
                             scope.launch {
@@ -194,7 +193,7 @@ fun SeriesHistoryScreen(
                 }
             }
             when {
-                auth == null -> if (signingIn) StateMessage(loading = true) else StateMessage(
+                auth == null && series.isEmpty() -> if (signingIn) StateMessage(loading = true) else StateMessage(
                     icon = Icons.Default.AccountCircle,
                     title = stringResource(Res.string.history_signed_out),
                     hint = stringResource(Res.string.signed_out_hint),
