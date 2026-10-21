@@ -56,11 +56,43 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "Users",
                 counts + """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
                     """ <a href="/admin/training-export.zip">training export (zip)</a>""" +
+                    """ <a href="/admin/review">review changed series</a>""" +
                     """<label style="margin-left:16px"><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
             )
         )
+    }
+
+    get("/admin/review") {
+        if (unauthorized(password)) return@get
+        val deleted = call.request.queryParameters["deleted"] == "1"
+        val offset = (call.request.queryParameters["offset"]?.toIntOrNull() ?: 0).coerceAtLeast(0)
+        val matches = db.reviewPage(deleted, offset)
+        val rows = matches.take(50).joinToString("") { (s, user, events) ->
+            val owner = user.id
+            val signals = s.holes.flatMap(::holeSignals).distinct()
+            val tracked = events.flatMap { it.reasons }.distinct().joinToString(", ")
+            val actors = events.map { "${it.actor.type} ${it.actor.id}" }.distinct().joinToString(", ")
+            row("""<a href="/admin/series/${s.id}">${s.id}</a>""",
+                """<a href="/admin/users/$owner">${esc(user.name ?: "user")} (#$owner)</a>""",
+                time(s.timestamp), esc(s.caliber), s.holes.filterNot { it.deleted }.sumOf { it.ring },
+                (if (events.isEmpty()) "" else "Tracked: ${esc(tracked)} (${esc(actors)})<br>") +
+                    (if (signals.isEmpty()) "" else "Inferred hole signals (unknown provenance): ${esc(signals.joinToString(", "))}"),
+                events.firstOrNull()?.at?.let(::time) ?: "unknown", if (s.deleted) "deleted" else "live",
+                href = "/admin/series/${s.id}", gone = s.deleted)
+        }
+        val query = "deleted=${if (deleted) 1 else 0}"
+        val paging = (if (offset > 0) """<a href="?${query}&amp;offset=${(offset - 50).coerceAtLeast(0)}">Previous</a> """ else "") +
+            (if (matches.size > 50) """<a href="?${query}&amp;offset=${offset.toLong() + 50}">Next</a>""" else "")
+        respondHtml(page("Review changed series", """<a href="/admin">Users</a> &middot;
+            <a href="/admin/training-export.zip">Training export</a> &middot;
+            <a href="?deleted=${if (deleted) 0 else 1}">${if (deleted) "Live only" else "Include deleted series"}</a>""" +
+            "<p>Tracking starts with this server version. Initial saves and first photo attachments are baselines, not edits. " +
+            "Existing hole signals are inferred; historical metadata/photo edits and their authors cannot be reconstructed. " +
+            "The shared admin login identifies a role, not an individual. A later reversal keeps its earlier tracked history.</p>" +
+            (if (matches.isEmpty()) "<p>No matching series.</p>" else table(
+                listOf("series", "owner", "timestamp", "caliber", "total", "evidence / reasons", "latest tracked change", "status"), rows)) + paging))
     }
 
     // The suggestion box, newest first: the record of every suggestion, including any whose mail never went out.
@@ -165,7 +197,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
-                    script,
+                    script + auditSummary(db.auditEvents(seriesId)),
             )
         )
     }
@@ -177,7 +209,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (db.seriesOwner(seriesId) == null) return@put notFound("Unknown series")
         val req = receiveSeries() ?: return@put
         if (invalid(req)) return@put
-        db.replaceSeries(seriesId, req)
+        db.replaceSeries(seriesId, req, AuditActor.Admin)
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -186,7 +218,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password) || notFromPage()) return@delete
         val seriesId = pathId()
         if (db.seriesOwner(seriesId) == null) return@delete notFound("Unknown series")
-        db.deleteSeries(seriesId)
+        db.deleteSeries(seriesId, AuditActor.Admin)
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -195,7 +227,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password) || notFromPage()) return@post
         val seriesId = pathId()
         if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
-        db.restoreSeries(seriesId)
+        db.restoreSeries(seriesId, AuditActor.Admin)
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -205,7 +237,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password) || notFromPage()) return@delete
         val userId = pathId()
         if (db.getUser(userId) == null) return@delete notFound("Unknown user")
-        db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
+        db.deleteAccount(userId).forEach { deleteSeriesPhotos(images, it) }
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -348,6 +380,7 @@ private fun jsString(value: String) = stateJson.encodeToString(value).replace("<
 
 /** Empty for an untouched detection; everything else is training signal (and what the "edited" count counts). */
 private fun kind(h: Hole): String {
+    if (holeSignals(h).isEmpty()) return ""
     if (h.deleted) return "deleted"
     val score = when {
         h.detectedRing == null -> if (h.x == null) "typed" else "manual"
@@ -359,6 +392,15 @@ private fun kind(h: Hole): String {
     if (h.detectedX == null || (h.x == h.detectedX && h.y == h.detectedY)) return score
     return if (score.isEmpty()) "moved" else "$score, moved"
 }
+
+private fun auditSummary(events: List<AuditEvent>): String = "<h2>Tracked changes and baselines</h2>" +
+    "<p>Tracking starts with this server version; earlier provenance is unknown. Admin means the shared role.</p>" +
+    events.joinToString("", "<ul>", "</ul>") { e ->
+        "<li>#${e.id} ${time(e.at)} &mdash; ${esc(e.actor.type)} ${esc(e.actor.id)}: ${esc(e.operation)}" +
+            (if (e.baseline) " (baseline, not an edit)" else " &mdash; ${esc(e.reasons.joinToString(", "))}") +
+            // JSON is escaped as text, never injected into scripts or the editor's first table.
+            "<details><summary>Persisted values</summary><pre>Before: ${esc(e.before ?: "unknown")}\nAfter: ${esc(e.after)}</pre></details></li>"
+    }
 
 private fun score(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()
 

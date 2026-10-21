@@ -37,6 +37,88 @@ import kotlin.test.assertTrue
 
 class ApiTest {
 
+    @Test fun `review requires admin shows inferred signals and tracked actor and escapes owner`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("review")
+        val raw = Hole(1.0, 2.0, 9, false, 3.0, 9, false, 1.0, 2.0)
+        val untouched = client.createSeries(auth.token, series().copy(holes = listOf(raw)))
+        val signals = listOf(raw.copy(ring = 10, innerTen = true), raw.copy(x = 2.0), raw.copy(deleted = true),
+            Hole(3.0, 4.0, 8, false), Hole(ring = 7, innerTen = false))
+        val ids = signals.map { h -> client.createSeries(auth.token, series().copy(holes = listOf(raw, h))) }
+        sql { it.executeUpdate("UPDATE users SET name = '<script>owner</script>' WHERE id = ${auth.userId}") }
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/review").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/review") { bearerAuth(auth.token) }.status)
+        val inferred = client.admin("/admin/review").bodyAsText()
+        assertTrue(inferred.contains("&lt;script&gt;owner&lt;/script&gt;"))
+        assertFalse(inferred.contains("<script>owner</script>"))
+        assertFalse(inferred.contains("href=\"/admin/series/$untouched\""))
+        ids.forEach { assertTrue(inferred.contains("href=\"/admin/series/$it\"")) }
+        listOf("score/inner-X override", "moved hole", "deleted detection", "manual hole", "typed hole", "unknown provenance")
+            .forEach { assertTrue(inferred.contains(it), it) }
+        assertTrue(inferred.contains("href=\"/admin/users/${auth.userId}\""))
+        assertEquals(HttpStatusCode.NoContent, client.put("/series/$untouched") {
+            bearerAuth(auth.token); contentType(ContentType.Application.Json); setBody(series().copy(holes = listOf(raw), tag = "<changed>"))
+        }.status)
+        val appTracked = client.admin("/admin/review").bodyAsText()
+        assertTrue(appTracked.contains("app-user ${auth.userId}"), appTracked)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Put, "/admin/series/$untouched", series().copy(holes = listOf(raw), tag = "admin")).status)
+        val tracked = client.admin("/admin/review").bodyAsText()
+        assertTrue(tracked.contains("admin admin"))
+        val editor = client.admin("/admin/series/$untouched").bodyAsText()
+        assertTrue(editor.contains("&lt;changed&gt;"))
+        assertTrue(editor.contains("Persisted values"))
+        assertTrue(client.admin("/admin").bodyAsText().contains("href=\"/admin/review\""))
+        assertFalse(client.get("/series") { bearerAuth(auth.token) }.bodyAsText().contains("before_state"))
+        client.adminWrite(HttpMethod.Delete, "/admin/series/$untouched")
+        assertFalse(client.admin("/admin/review").bodyAsText().contains("href=\"/admin/series/$untouched\""))
+        assertTrue(client.admin("/admin/review?deleted=1").bodyAsText().contains("href=\"/admin/series/$untouched\""))
+        client.adminWrite(HttpMethod.Post, "/admin/series/$untouched/restore")
+        assertTrue(client.admin("/admin/review").bodyAsText().contains("href=\"/admin/series/$untouched\""))
+    }
+
+    @Test fun `rejected requests reads and repeated upload add no audit corrections`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val a = client.devAuth("audit-a")
+        val b = client.devAuth("audit-b")
+        val req = series().copy(holes = listOf(Hole(1.0, 2.0, 9, false, detectedRing = 9)), clientId = "same")
+        val id = client.createSeries(a.token, req)
+        fun count() = sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_audit WHERE baseline = 0").use { it.next(); it.getInt(1) } }
+        assertEquals(id, client.createSeries(a.token, req))
+        assertEquals(HttpStatusCode.NotFound, client.put("/series/$id") { bearerAuth(b.token); contentType(ContentType.Application.Json); setBody(req.copy(tag = "wrong")) }.status)
+        assertEquals(HttpStatusCode.Unauthorized, client.put("/series/$id") { contentType(ContentType.Application.Json); setBody(req) }.status)
+        assertEquals(HttpStatusCode.BadRequest, client.put("/series/$id") { bearerAuth(a.token); contentType(ContentType.Application.Json); setBody(req.copy(holes = emptyList())) }.status)
+        assertEquals(HttpStatusCode.Forbidden, client.adminWrite(HttpMethod.Put, "/admin/series/$id", req, xAdmin = false).status)
+        client.admin("/admin/review"); client.admin("/admin/series/$id")
+        client.putImage(a.token, id, jpeg(), query = "?width=100&height=100")
+        client.putImage(a.token, id, jpeg(), query = "?width=100&height=100")
+        assertEquals(0, count())
+        client.putImage(a.token, id, jpeg().also { it[3] = 1 }, query = "?width=100&height=100")
+        assertEquals(1, count())
+        client.putImage(a.token, id, byteArrayOf(1, 2))
+        assertEquals(1, count())
+        assertTrue(client.admin("/admin/review").bodyAsText().contains("photo"))
+        File(imagesDir, "$id.previous").writeBytes(jpeg())
+        File(imagesDir, "$id.journal").writeText("present")
+        client.delete("/account") { bearerAuth(a.token) }
+        assertEquals(0, count())
+        assertFalse(imageFile(imagesDir, id).exists())
+        assertFalse(File(imagesDir, "$id.previous").exists())
+        assertFalse(File(imagesDir, "$id.journal").exists())
+    }
+
+    @Test fun `review pages at most fifty deterministic matches and admin account deletion erases audit`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("paging")
+        val ids = (1..51).map { client.createSeries(auth.token) }
+        val page = client.admin("/admin/review").bodyAsText()
+        assertTrue(page.contains("offset=50"))
+        assertTrue(page.contains("href=\"/admin/series/${ids.last()}\""))
+        assertFalse(page.contains("href=\"/admin/series/${ids.first()}\""))
+        val next = client.admin("/admin/review?offset=50").bodyAsText()
+        assertTrue(next.contains("href=\"/admin/series/${ids.first()}\""))
+        assertFalse(next.contains("href=\"/admin/series/${ids.last()}\""))
+        client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
+        assertTrue(client.admin("/admin/review").bodyAsText().contains("No matching series"))
+        sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_audit").use { it.next(); assertEquals(0, it.getInt(1)) } }
+    }
+
     private lateinit var imagesDir: File
     private lateinit var dbFile: File
 
@@ -1183,8 +1265,8 @@ class ApiTest {
         val local = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
             .format(Instant.parse("2026-09-06T12:34:56Z"))
         assertTrue(local in seriesPage, "expected '$local' in $seriesPage")
-        // The raw instant survives only in the state blob the editor PUTs back, never as visible text.
-        assertEquals(1, Regex("2026-09-06T12:34:56Z").findAll(seriesPage).count(), seriesPage)
+        // The editor's primary timestamp is local; raw persisted values also appear inside audit details.
+        assertEquals(1, Regex("2026-09-06T12:34:56Z").findAll(seriesPage.substringBefore("<h2>Tracked changes")).count(), seriesPage)
     }
 
     @Test

@@ -32,8 +32,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.time.Instant
 
 data class Config(
@@ -251,6 +249,7 @@ fun Application.markeraModule(
     }
 
     val images = File(config.imagesDir).also { it.mkdirs() }
+    db.recoverPhotos(images)
     val google = config.googleClientId?.let { googleVerifier(it) }
     // Native iOS tokens carry `aud = <bundle id>`, the browser flow's `aud = <services id>`.
     val apple = listOfNotNull(config.appleBundleId, config.appleWeb?.servicesId)
@@ -366,7 +365,7 @@ fun Application.markeraModule(
             val seriesId = ownedSeries(db) ?: return@put
             val req = receiveSeries() ?: return@put
             if (invalid(req)) return@put
-            db.replaceSeries(seriesId, req)
+            db.replaceSeries(seriesId, req, AuditActor.app(authenticate(db) ?: return@put))
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -386,7 +385,7 @@ fun Application.markeraModule(
         delete("/series/{id}") {
             val seriesId = ownedSeries(db) ?: return@delete
             // Soft: the holes and the image stay on the server until the account is deleted.
-            db.deleteSeries(seriesId)
+            db.deleteSeries(seriesId, AuditActor.app(authenticate(db) ?: return@delete))
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -399,7 +398,7 @@ fun Application.markeraModule(
 
         delete("/account") {
             val userId = authenticate(db) ?: return@delete
-            db.deleteAccount(userId).forEach { imageFile(images, it).delete() }
+            db.deleteAccount(userId).forEach { deleteSeriesPhotos(images, it) }
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -423,19 +422,11 @@ fun Application.markeraModule(
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("not a JPEG"))
                 return@post
             }
-            // A unique temp file in the same directory: two uploads cannot share it, and the move stays atomic.
-            val tmp = Files.createTempFile(images.toPath(), "upload-", ".tmp")
-            try {
-                Files.write(tmp, bytes)
-                Files.move(tmp, imageFile(images, seriesId).toPath(), StandardCopyOption.REPLACE_EXISTING)
-            } finally {
-                Files.deleteIfExists(tmp)
-            }
             // ?width=&height= is the size of the frame the hole coordinates were measured in, so the admin
             // page can place markers on the (downscaled but same-aspect) JPEG. Nonsense values are ignored.
             val width = call.request.queryParameters["width"]?.toIntOrNull()?.takeIf { it > 0 }
             val height = call.request.queryParameters["height"]?.toIntOrNull()?.takeIf { it > 0 }
-            db.imageStored(seriesId, width, height)
+            db.storePhoto(images, seriesId, bytes, width, height, AuditActor.app(authenticate(db) ?: return@post))
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -455,6 +446,11 @@ fun Application.markeraModule(
 }
 
 internal fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seriesId.jpg")
+
+/** Include recovery remnants: account erasure must not retain an earlier private photo. */
+internal fun deleteSeriesPhotos(imagesDir: File, seriesId: Long) {
+    listOf("jpg", "previous", "journal").forEach { File(imagesDir, "$seriesId.$it").delete() }
+}
 
 /** Responds 400 (and returns true) for a series body that cannot be stored. */
 internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
