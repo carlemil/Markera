@@ -323,7 +323,7 @@ class SeriesRecorder(
                 local.complete(false)
                 _status.value = SaveStatus.Failed(e)
             } finally {
-                local.cancel()
+                local.complete(false) // a cancelled save is not kept; never leave a waiter hanging or throwing
                 if (inFlight === p) inFlight = null
             }
         }
