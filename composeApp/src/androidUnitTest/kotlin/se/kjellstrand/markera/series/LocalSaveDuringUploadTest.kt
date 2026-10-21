@@ -18,15 +18,15 @@ class LocalSaveDuringUploadTest {
 
     @Test fun keepLocalCompletesWhileAPostIsHeldAndSendsStaySerial() = runBlocking {
         val gate = CompletableDeferred<Unit>()
-        val posted = mutableListOf<String>()
-        var inFlight = 0
-        var maxInFlight = 0
+        val posted = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val inFlight = java.util.concurrent.atomic.AtomicInteger()
+        val maxInFlight = java.util.concurrent.atomic.AtomicInteger()
         val api = SeriesApi(createSeriesHttpClient(MockEngine { req ->
             if (req.method == HttpMethod.Post && req.url.encodedPath == "/series") {
-                inFlight++; maxInFlight = maxOf(maxInFlight, inFlight)
+                maxInFlight.accumulateAndGet(inFlight.incrementAndGet(), ::maxOf)
                 posted += req.url.toString()
                 gate.await()
-                inFlight--
+                inFlight.decrementAndGet()
                 respond("""{"id":${100 + posted.size}}""", HttpStatusCode.OK,
                     headersOf(HttpHeaders.ContentType, "application/json"))
             } else respond("[]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
@@ -49,7 +49,7 @@ class LocalSaveDuringUploadTest {
         assertEquals(1, posted.size, "the next send waits its turn")
         gate.complete(Unit)
         firstSend.await(); secondSend.await()
-        assertEquals(1, maxInFlight)
+        assertEquals(1, maxInFlight.get())
         assertEquals(2, posted.size)
     }
 }
