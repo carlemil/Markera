@@ -295,18 +295,33 @@ private suspend fun RoutingContext.notFromPage(): Boolean {
 private fun markers(series: Series): String {
     val width = series.imageWidth ?: return ""
     val height = series.imageHeight ?: return ""
-    return series.holes.mapIndexed { i, h ->
-        val x = h.x ?: return@mapIndexed ""
-        val y = h.y ?: return@mapIndexed ""
-        val color = when {
-            h.deleted -> DELETED_COLOR
-            byHand(h) -> BY_HAND_COLOR
-            else -> DETECTED_COLOR
-        }
-        """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
-            """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}""" +
-            """<span class="lbl">${holeLabel(i)}</span></div>"""
-    }.joinToString("")
+    return series.holes.mapIndexed { i, h -> ghost(i, h, width, height) + marker(i, h, width, height) }.joinToString("")
+}
+
+/**
+ * Where the detector put a hole that has since been dragged away: a faint dashed outline, drawn under the markers
+ * and deaf to the pointer. A deleted hole that never moved needs none, its own marker is already dashed and faint.
+ */
+private fun ghost(i: Int, h: Hole, width: Int, height: Int): String {
+    val dx = h.detectedX ?: return ""
+    val dy = h.detectedY ?: return ""
+    if (h.x == dx && h.y == dy) return ""
+    val color = if (h.deleted) DELETED_COLOR else DETECTED_COLOR
+    return """<div class="ghost" data-g="$i" style="left:${round2(dx / width * 100)}%;""" +
+        """top:${round2(dy / height * 100)}%;border-color:$color"></div>"""
+}
+
+private fun marker(i: Int, h: Hole, width: Int, height: Int): String {
+    val x = h.x ?: return ""
+    val y = h.y ?: return ""
+    val color = when {
+        h.deleted -> DELETED_COLOR
+        byHand(h) -> BY_HAND_COLOR
+        else -> DETECTED_COLOR
+    }
+    return """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
+        """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}""" +
+        """<span class="lbl">${holeLabel(i)}</span></div>"""
 }
 
 /**
@@ -515,7 +530,10 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
-.hit.gone{border-style:dashed;cursor:default}
+.hit.gone{border-style:dashed;cursor:default;opacity:.6}
+/* A detection's original spot, once its hole was dragged off it or removed here. */
+.ghost{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px dashed;border-radius:50%;
+opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
 .lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:11px;line-height:1;font-style:normal;
 pointer-events:none}
@@ -598,7 +616,26 @@ function refresh(i) {
     // Orange as soon as the hole is no longer the detector's own, like the app; kind() is empty exactly then.
     m.style.borderColor = m.style.color = kind(h) ? '$BY_HAND_COLOR' : '$DETECTED_COLOR';
   }
+  ghost(i);
   total();
+}
+
+// The detection's original spot, shown while the hole sits elsewhere or was removed here (see ghost() on the server).
+function ghost(i) {
+  const h = S.holes[i];
+  let g = shot && shot.querySelector('.ghost[data-g="' + i + '"]');
+  const show = placeable && h.detectedX != null && h.detectedY != null &&
+               (h.removed || h.x !== h.detectedX || h.y !== h.detectedY);
+  if (!show) { if (g) g.remove(); return; }
+  if (!g) {
+    g = document.createElement('div');
+    g.className = 'ghost';
+    g.dataset.g = i;
+    shot.insertBefore(g, img.nextSibling);
+  }
+  g.style.borderColor = h.removed ? '$DELETED_COLOR' : '$DETECTED_COLOR';
+  g.style.left = (h.detectedX / S.imageWidth * 100) + '%';
+  g.style.top = (h.detectedY / S.imageHeight * 100) + '%';
 }
 
 function addHole(x, y) {
@@ -644,6 +681,7 @@ const setRemoved = (i, removed) => {
   h.removed = removed;
   tr.hidden = removed;
   if (m) m.hidden = removed;
+  ghost(i);
   undo.disabled = undone.length === 0;
   total();
   save();

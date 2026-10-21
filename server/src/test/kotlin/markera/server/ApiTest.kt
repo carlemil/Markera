@@ -405,6 +405,9 @@ class ApiTest {
         assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d">7<span class="lbl">b</span></div>""" in page, page)
         assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d">8<span class="lbl">d</span></div>""" in page, page)
         assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d">6<span class="lbl">e</span></div>""" in page, page)
+        // Only the dragged detection leaves a ghost, at the detector's spot.
+        assertTrue("""<div class="ghost" data-g="4" style="left:70%;top:50%;border-color:#9ccc65"></div>""" in page, page)
+        assertEquals(1, Regex("""class="ghost"""").findAll(page).count(), page)
         // The table names every hole, the typed one (no marker) included.
         listOf("a", "b", "c", "d", "e").forEachIndexed { i, l -> assertTrue("""<tr data-i="$i"><td>$l</td>""" in page, l) }
         assertEquals(4, Regex("""class="hit"""").findAll(page).count(), page)
@@ -770,13 +773,13 @@ class ApiTest {
         val me = client.devAuth("me")
         val other = client.devAuth("other")
         client.createSeries(me.token, series().copy(tag = "bana 3"))
-        client.createSeries(other.token, series().copy(tag = "elsewhere"))
+        client.createSeries(other.token, series().copy(tag = "other users tag"))
         val id = client.createSeries(me.token, series())
 
         val editor = client.admin("/admin/series/$id").bodyAsText()
         assertTrue(editor.contains("""<input id="tag" value="""""), editor)
         listOf("träning", "tävling", "bana 3").forEach { assertTrue(editor.contains("""<option value="$it">"""), it) }
-        assertFalse(editor.contains("elsewhere"))
+        assertFalse(editor.contains("other users tag"))
 
         assertEquals(HttpStatusCode.NoContent,
             client.adminWrite(HttpMethod.Put, "/admin/series/$id", series().copy(tag = "bana 3")).status)
