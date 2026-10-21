@@ -122,14 +122,16 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password)) return@get
         val user = db.getUser(pathId()) ?: return@get notFound("Unknown user")
         // Soft-deleted series ride along greyed, so they can be opened and restored.
-        val series = db.listSeries(user.id, includeDeleted = true)
+        val series = db.listSeries(user.id, includeDeleted = true, deletedHoles = true)
         val rows = series.joinToString("") { s ->
+            val live = s.holes.filterNot { it.deleted }
             row(
                 """<a href="/admin/series/${s.id}">${s.id}</a>""",
                 time(s.timestamp),
                 esc(s.caliber),
-                s.holes.size,
-                s.holes.sumOf { it.ring },
+                live.size,
+                live.sumOf { it.ring },
+                // Every hole that is training signal: deleted, placed or typed by hand, rescored, or moved.
                 s.holes.count { kind(it).isNotEmpty() },
                 if (imageFile(images, s.id).isFile) "&#10003;" else "",
                 if (s.deleted) time(s.updatedAt) else "",

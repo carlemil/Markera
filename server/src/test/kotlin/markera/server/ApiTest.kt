@@ -431,6 +431,8 @@ class ApiTest {
                     Hole(1.0, 2.0, 10, true, 8.0, 10, false),   // 10 -> X
                     Hole(-3.5, 4.25, 7, false, 60.0),           // manual
                     Hole(null, null, 5, false, null),           // typed
+                    Hole(1.0, 2.0, 6, false, 50.0, 6, false, detectedX = 3.0, detectedY = 2.0), // moved only
+                    Hole(5.0, 5.0, 8, false, 40.0, 8, false, detectedX = 5.0, detectedY = 5.0, deleted = true),
                 ),
             ),
         )
@@ -440,8 +442,10 @@ class ApiTest {
         assertTrue("<td>10 &rarr; X</td>" in seriesPage, seriesPage)
         assertTrue("<td>manual</td>" in seriesPage && "<td>typed</td>" in seriesPage, seriesPage)
 
-        // The four non-plain holes are counted on the user's series list.
-        assertTrue("<td>4</td>" in client.admin("/admin/users/${me.userId}").bodyAsText())
+        // On the user's series list: holes and total leave the deleted one out; edited counts the six non-plain
+        // holes, the moved-only and the deleted one included.
+        val userPage = client.admin("/admin/users/${me.userId}").bodyAsText()
+        assertTrue("<td>6</td><td>46</td><td>6</td>" in userPage, userPage)
     }
 
     @Test

@@ -475,7 +475,8 @@ class Db(dbPath: String) : AutoCloseable {
     /**
      * Newest id first — the order the `id < before` cursor pages in; the app sorts by timestamp itself.
      * [beforeId] is the last id of the previous page. [includeDeleted] (the admin page) lists soft-deleted series
-     * too, as full rows flagged [Series.deleted].
+     * too, as full rows flagged [Series.deleted]; [deletedHoles] (also the admin page) adds the soft-deleted holes,
+     * flagged [Hole.deleted].
      */
     @Synchronized
     fun listSeries(
@@ -483,6 +484,7 @@ class Db(dbPath: String) : AutoCloseable {
         limit: Int = Int.MAX_VALUE,
         beforeId: Long? = null,
         includeDeleted: Boolean = false,
+        deletedHoles: Boolean = false,
     ): List<Series> {
         val series = mutableListOf<Series>()
         val before = if (beforeId == null) "" else " AND id < ?"
@@ -495,7 +497,7 @@ class Db(dbPath: String) : AutoCloseable {
             st.setInt(i, limit)
             st.executeQuery().use { rs -> while (rs.next()) series += seriesRow(rs, tombstone = false) }
         }
-        return series.map { it.copy(holes = holesOf(it.id)) }
+        return series.map { it.copy(holes = holesOf(it.id, includeDeleted = deletedHoles)) }
     }
 
     /** Every tag the user has filed a live series under, alphabetical: the admin editor's suggestions. */
