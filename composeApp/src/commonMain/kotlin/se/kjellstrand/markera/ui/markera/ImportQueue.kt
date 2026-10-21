@@ -9,12 +9,12 @@ import se.kjellstrand.markera.series.Caliber
 enum class ImportDecision { Save, Review, Skip }
 
 /**
- * Auto import saves a scan only when it scored and can be saved as it is (signed in,
- * a caliber chosen); everything else goes to the user, image by image. Without
+ * Auto import saves a scored scan locally when a caliber is chosen, regardless of
+ * account state; everything else goes to the user, image by image. Without
  * auto import every image is reviewed.
  */
-fun importDecision(auto: Boolean, hasScores: Boolean, caliber: Caliber, signedIn: Boolean): ImportDecision =
-    if (auto && hasScores && signedIn && caliber != Caliber.NONE) ImportDecision.Save else ImportDecision.Review
+fun importDecision(auto: Boolean, hasScores: Boolean, caliber: Caliber): ImportDecision =
+    if (auto && hasScores && caliber != Caliber.NONE) ImportDecision.Save else ImportDecision.Review
 
 /**
  * The images picked for import, worked through one at a time. In [auto] mode the

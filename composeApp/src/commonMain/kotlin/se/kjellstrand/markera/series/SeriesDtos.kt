@@ -135,7 +135,10 @@ data class SeriesDto(
     val deleted: Boolean = false,
     /** Free-text label the user tagged the series with, see [normalizeTag]. Null = untagged. */
     val tag: String? = null,
+    @kotlinx.serialization.Transient val local: LocalMark? = null,
 )
+
+enum class LocalMark { UNCLAIMED, QUEUED, REFUSED }
 
 @Serializable
 data class BackendAuthResponse(val token: String, val userId: Long)

@@ -19,6 +19,7 @@ class SeriesServices(
     val store: BackendTokenStore,
     driver: SqlDriver,
     val cacheDir: Path,
+    val filesDir: Path,
 ) {
     val session: BackendSessionRepository
     val api: SeriesApi
@@ -35,12 +36,14 @@ class SeriesServices(
             db = MarkeraDb(driver),
             images = FileImageCache(Path(cacheDir, "series")),
             session = repo,
+            localImages = LocalImageStore(filesDir),
         )
+        session.claimGate = repository
     }
 }
 
 /** The cached series JPEGs under `cacheDir/series/`: `<id>.jpg` and its thumbnail `<id>.thumb.jpg`. */
-class FileImageCache(private val dir: Path) : ImageCache {
+class FileImageCache(private val dir: Path, private val durable: Boolean = false) : ImageCache {
 
     private fun file(id: Long) = Path(dir, "$id.jpg")
     private fun thumb(id: Long) = Path(dir, "$id.thumb.jpg")
@@ -61,10 +64,18 @@ class FileImageCache(private val dir: Path) : ImageCache {
             SystemFileSystem.createDirectories(dir)
             SystemFileSystem.sink(tmp).buffered().use { it.write(bytes) }
             SystemFileSystem.atomicMove(tmp, path)
-        }.onFailure { runCatching { SystemFileSystem.delete(tmp, mustExist = false) } }
+        }.onFailure {
+            runCatching { SystemFileSystem.delete(tmp, mustExist = false) }
+            if (durable) throw it
+        }
     }
 
     override fun delete(id: Long) {
+        if (durable) {
+            SystemFileSystem.delete(file(id), mustExist = false)
+            SystemFileSystem.delete(thumb(id), mustExist = false)
+            return
+        }
         runCatching { SystemFileSystem.delete(file(id), mustExist = false) }
         runCatching { SystemFileSystem.delete(thumb(id), mustExist = false) }
     }

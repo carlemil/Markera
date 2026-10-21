@@ -58,6 +58,7 @@ kotlin {
         // The local series cache runs on a real (in-memory) SQLite in the JVM tests.
         androidUnitTest.dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            implementation(libs.kotlinx.coroutines.test)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)

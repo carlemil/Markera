@@ -26,6 +26,7 @@ class MarkeraApplication : Application() {
             store = DataStoreBackendTokenStore(this),
             driver = AndroidSqliteDriver(MarkeraDb.Schema, this, "markera-series.db"),
             cacheDir = Path(cacheDir.path),
+            filesDir = Path(filesDir.path),
         )
     }
 }

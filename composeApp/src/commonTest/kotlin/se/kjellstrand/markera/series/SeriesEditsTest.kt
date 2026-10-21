@@ -35,6 +35,7 @@ class SeriesEditsTest {
             testSeriesDb(),
             FakeImageCache(),
             BackendSessionRepository(api, InMemoryBackendTokenStore(BackendAuth("tok", 1, "dev"))),
+            FakeImageCache(),
         )
     }
     private val edits = SeriesEdits(repository, base)

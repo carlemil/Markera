@@ -33,7 +33,9 @@ import se.kjellstrand.markera.vision.PlatformImage
 // instead of assuming a dispatcher.
 class SeriesRecorderTest {
 
-    private val recorded = mutableListOf<HttpRequestData>()
+    // Appended from the repository's Default-dispatcher HTTP while the test thread polls it:
+    // an immutable snapshot swapped per request, so a read never sees a list mid-append.
+    @kotlin.concurrent.Volatile private var recorded = listOf<HttpRequestData>()
     private val written = mutableListOf<Caliber>()
     private val writtenTags = mutableListOf<String?>()
     private val writtenCustom = mutableListOf<List<Caliber>>()
@@ -100,7 +102,7 @@ class SeriesRecorderTest {
         )
         // The recorder saves through the cache now; a real in-memory one, so
         // the request counts below are still exactly what goes over the wire.
-        repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session)
+        repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session, FakeImageCache())
         return runBlocking {
             session.restore()
             SeriesRecorder(
@@ -124,7 +126,7 @@ class SeriesRecorderTest {
 
     /** The recorder saves off-thread; wait for a terminal status. */
     private fun SeriesRecorder.awaitDone(): SaveStatus = runBlocking {
-        status.first { it is SaveStatus.Saved || it is SaveStatus.Failed || it == SaveStatus.Queued }
+        withTimeout(5_000) { status.first { it is SaveStatus.Saved || it is SaveStatus.SavedOnPhone || it is SaveStatus.Failed || it == SaveStatus.Queued } }
     }
 
     /** The image upload runs after the status turns Saved, so wait for it too. */
@@ -226,16 +228,19 @@ class SeriesRecorderTest {
     }
 
     @Test
-    fun signedOutReportsSignedOutAndPostsNothing() {
-        val recorder = recorder(signedIn = false)
+    fun signedOutSavesOnPhoneAndPostsNothing() {
+        // #649 replaces dropping signed-out scans with durable local storage.
+        val recorder = recorder(signedIn = false, stored = Caliber.LR22)
 
         recorder.onSeriesDetected(scores, image, null)
 
-        assertEquals(SaveStatus.SignedOut, recorder.status.value)
+        assertEquals(SaveStatus.Pending, recorder.status.value)
         assertFalse(recorder.caliberDialogOpen.value)
 
         recorder.commit(noPicks)
 
+        assertEquals(SaveStatus.SavedOnPhone(Caliber.LR22), recorder.awaitDone())
+        assertTrue(repository.series.value.single().id < 0)
         assertTrue(recorded.isEmpty())
     }
 
@@ -364,13 +369,13 @@ class SeriesRecorderTest {
     }
 
     @Test
-    fun aRefusedSeriesReportsFailed() {
+    fun aRefusedSeriesReportsSavedOnPhone() {
         val recorder = recorder(stored = Caliber.MM9, status = HttpStatusCode.BadRequest)
 
         recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
 
-        assertIs<SaveStatus.Failed>(recorder.awaitDone())
+        assertEquals(SaveStatus.SavedOnPhone(Caliber.MM9), recorder.awaitDone())
     }
 
     @Test
@@ -652,15 +657,15 @@ class SeriesRecorderTest {
     }
 
     @Test
-    fun aRetryAfterAFailedSaveKeepsItsClientId() {
+    fun aRetryOfARefusedLocalSaveKeepsItsClientId() = runBlocking {
+        // #649 moves retries from the transient scan/caliber chip to durable Detail.
         val recorder = recorder(stored = Caliber.LR22, firstStatus = HttpStatusCode.Conflict)
         recorder.onSeriesDetected(scores, image, null)
         recorder.commit(noPicks)
-        assertIs<SaveStatus.Failed>(recorder.awaitDone())
-
-        recorder.selectCaliber(Caliber.LR22)
-
-        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals(SaveStatus.SavedOnPhone(Caliber.LR22), recorder.awaitDone())
+        val localId = -repository.series.value.single().id
+        repository.retry(localId)
+        assertTrue(repository.series.value.single().id > 0)
         assertEquals(2, seriesPosts.size)
         assertEquals(1, clientIds().toSet().size)
     }
@@ -674,7 +679,9 @@ class SeriesRecorderTest {
 
         withTimeout(5_000) {
             expired.await()
-            assertEquals(SaveStatus.Idle, recorder.status.first { it == SaveStatus.Idle || it is SaveStatus.Failed })
+            // #649 retains the 401 row/photo and reports local success after sign-out.
+            assertEquals(SaveStatus.SavedOnPhone(Caliber.LR22), recorder.status.first { it is SaveStatus.SavedOnPhone || it is SaveStatus.Failed })
+            assertTrue(repository.series.value.single().id < 0)
         }
         assertNull(session.auth.value)
     }

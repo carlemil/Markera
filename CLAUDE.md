@@ -218,29 +218,55 @@ feeds every scored scan to the recorder (hoisted in `AppNavHost`, exposed via
 wizard) merges the picker values into the pending request via `withPicks` — so a `HoleDto`'s
 `ring`/`innerTen` are what the user confirmed and `detectedRing`/`detectedInnerTen` what the
 detector said (null for a hand-placed or typed-in hole) — then
-saves it: signed out → toast, caliber `-` → chooser dialog (a device that never chose one starts on `22lr`, `Caliber.fromStored`), else POST, then the scanned frame
-goes up as a ≤3072 px q90 JPEG (`POST /series/{id}/image`; a failed upload never fails the
-series). A rescan `clear()`s the pending series. Save feedback is one toast (`AppNavHost`).
+saves it: caliber `-` still opens the chooser; otherwise the recorder encodes the frame and
+writes the request and JPEG to durable local storage before any HTTP. Signed-out saves return
+`SavedOnPhone`; signed-in saves send the same persisted `clientId`. Encoding errors are reported
+and still keep the series metadata, as before. A rescan `clear()`s only the pending scan; a
+committed save survives the next scan. Feedback is one toast (`AppNavHost`).
 **False positives.** A `HoleDto` also stores the detector's box (`detectedW/H/Conf`, from `HitScore.boxW/boxH/conf`). A detection the user long-presses away on the scan screen goes into `MarkeraUiState.removedDetections` (emptied by a rescan/`clearResults`), is passed with `onSeriesDetected`, and `commit` appends it after `withPicks` as `HoleDto(deleted = true)` (the cache never holds it; the server keeps it, like the detail screen's deleted holes; the admin editor's removals do the same, and `replaceSeries` drops a stored deleted copy again when that detection is live in a later PUT, i.e. an Undo). `GET /admin/training-export.zip` (`server/.../TrainingExport.kt`, all users' non-deleted series with a photo) is the next training round's data: `images/<id>.jpg`, `labels/<id>.txt` (YOLO, confirmed holes, classes `Hole 0..10`, `Hole X`), `negatives.csv` (`image;cx;cy;w;h;conf;reason`: deleted / moved more than a diameter / scored 0 by hand), `nudges.csv` (moved less than a diameter) and `data.yaml`; a hole without a stored box gets a caliber-sized one. The privacy page says saved photos and holes may be used to improve hole detection.
 The history screen (`ui/history/`) lists series with thumbnails.
 `Screen.SeriesDetail` carries the walk order (`ids`, the filtered list it was opened from) and its
 previous/next arrows step with `replace`, so Back still returns to the list.
 
-**Local cache.** Nothing fetches per screen any more: `SeriesRepository`
-(commonMain, hoisted in `AppNavHost` beside `SeriesServices`) is the single source —
-`series: StateFlow<List<SeriesDto>>` read from **SQLDelight** (`series` + `sync` tables,
-`commonMain/sqldelight/.../series/db/Series.sq`, the whole `SeriesDto` kept as `json`).
-`refresh()` sends the stored `updatedAt` stamp as `GET /series?since=`, upserts what came
-back and deletes the tombstones (no stamp yet → a full paged load); it returns the failure
-instead of throwing, so offline keeps the cached rows. Writes go to the server first, the
-cache after; `SeriesRecorder` saves through it and hands the uploaded JPEG straight to the
-image cache (`cacheDir/series/<id>.jpg`, the `ImageCache` interface), so History never
-re-downloads what the phone just took. A save that fails offline or on a 5xx (or a photo upload that
-does) goes to the SQLDelight `outbox` table (`SaveStatus.Queued`), which the next `refresh()` sends
-first; a 4xx stays `Failed`. History/Statistik/Detail read the flow (Detail looks
-its series up by id); `refresh()` runs at startup, on those screens opening, and after
-sign-in. Sign-out, account deletion and a different user `clear()` both tables and the
-image dir. JVM-tested in `SeriesRepositoryTest` (in-memory SQLite + `ktor-client-mock`).
+**Local cache and durable local saves.** `SeriesRepository` is the single read source:
+`series: StateFlow<List<SeriesDto>>` merges the SQLDelight server read cache (`series` + `sync`)
+with `local_series`, newest first, also while signed out. Local DTOs use `id = -local_id` and
+a transient `LocalMark` (`UNCLAIMED`, `QUEUED`, `REFUSED`). Their JPEGs and thumbnails use
+`LocalImageStore` at durable `filesDir/local-series/`; synced images remain evictable at
+`cacheDir/series/`. Negative IDs route image, edits, deletion, statistics and export locally.
+Deleted-hole provenance and the persisted clientId survive local edits.
+
+Every save first commits a local request and an atomic JPEG file. `send` serializes with refresh
+and edits; acknowledgement atomically caches the server row and sets `server_id` before photo
+upload. The photo-pending local row is hidden from the merge, but still supplies that positive
+ID's image until upload succeeds. Success removes the local row/file. Offline, 5xx and 429 keep
+queued rows for every refresh; other 4xx keep refused rows, retry once per repository/process
+start and through Detail's Try again. Each row reports a refusal once. A 401 signs out without
+deleting the owned local request/photo. `refresh()` sends only the current account's queue in
+local-id order, then applies the server's `updatedAt` delta/tombstones to the server cache only.
+Schema v4 retains the old outbox until restart-safe adoption moves each request and BLOB photo
+to the local store; a failed file write never deletes the outbox row.
+
+Sign-out, account deletion and account switch clear only `series`, `sync` and the synced image
+cache. Local work survives. All sign-in providers go through the held-auth gate: the token is
+not persisted or published while rows saved signed out or for another account need a decision.
+The shared `LocalClaimController`/dialog offers Add, confirmed Delete, or Stay signed out;
+dismiss means Stay. Add transfers every offered row in one transaction before publishing auth,
+then refresh sends them. Partial failures stay in that account's queue. Own-account rows resume
+silently. A row another account's server already acknowledged (only its photo pending) is never
+offered: it waits for that account, so Add cannot copy it across accounts. Process death while the decision is open leaves no saved token and changes no rows.
+Residual limit: a lost 201 under A followed by claiming the same request for B can create one
+copy per account (the server deduplicates only within one user).
+
+**Local data and system backups.** Uninstall/clear-data loses unsent work in the active app
+storage. Android currently uses `android:allowBackup="true"` with default platform backup rules;
+iOS uses Application Support for durable JPEGs and SQLDelight's application database directory,
+without backup exclusion. OS backups/device migration may therefore include app data. Help and
+privacy explicitly disclose that possibility and say not to rely on backups to recover unsent
+series. This feature does not introduce or promise a cloud backup service. Privacy source prose
+requires a separately authorized backend publish to become public; no API/deployment change is
+needed by the clientId protocol.
+
 History's share action exports everything as one zip (`series.csv` + `holes.csv`,
 semicolon/CRLF/BOM so Excel opens them, plus `images/<id>.jpg`): the CSV text is pure
 `series/SeriesExport.kt`, the zip and `ACTION_SEND` are `series/SeriesExportAndroid.kt`,
