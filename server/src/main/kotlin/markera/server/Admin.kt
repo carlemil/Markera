@@ -195,7 +195,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></p>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
-                    table(listOf("x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
+                    table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
                     script + auditSummary(db.auditEvents(seriesId)),
@@ -304,7 +304,8 @@ private fun markers(series: Series): String {
             else -> DETECTED_COLOR
         }
         """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
-            """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
+            """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}""" +
+            """<span class="lbl">${holeLabel(i)}</span></div>"""
     }.joinToString("")
 }
 
@@ -332,11 +333,28 @@ private fun geometrySvg(series: Series): String {
  * or re-saved.
  */
 private fun holeRow(i: Int, h: Hole, readOnly: Boolean = h.deleted) =
-    """<tr data-i="$i"${if (readOnly) """ class="gone"""" else ""}><td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
+    """<tr data-i="$i"${if (readOnly) """ class="gone"""" else ""}><td>${holeLabel(i)}</td>""" +
+        """<td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
         """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td>""" +
         """<td>${if (readOnly) score(h.ring, h.innerTen) else manualSelect(h)}</td>""" +
         """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td>""" +
         """<td>${if (readOnly) "" else """<button class="del">Delete</button>"""}</td></tr>"""
+
+/**
+ * The hole's name in the table and on its marker: a..z, then aa, ab, ... by its index in the series (deleted
+ * holes keep theirs, so a label never moves to another hole). The editor's `lbl` is the same sequence.
+ */
+internal fun holeLabel(i: Int): String {
+    if (i < 0) return ""
+    var n = i + 1
+    val s = StringBuilder()
+    while (n > 0) {
+        n--
+        s.insert(0, 'a' + n % 26)
+        n /= 26
+    }
+    return s.toString()
+}
 
 /** The marker and row colour of a hole the user deleted in the app. */
 private const val DELETED_COLOR = "#8a6fb3"
@@ -498,6 +516,9 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
 .hit.gone{border-style:dashed;cursor:default}
+/* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
+.lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:11px;line-height:1;font-style:normal;
+pointer-events:none}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
 .sortable th{cursor:pointer;user-select:none}
@@ -522,6 +543,8 @@ const num = v => v == null ? '' : String(Math.round(v));
 const total = () => document.getElementById('total').textContent =
     S.holes.reduce((t, h) => t + (h && !h.deleted && !h.removed ? h.ring : 0), 0);
 const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
+// holeLabel on the server: a..z, aa, ab, ... by index.
+const lbl = i => { let s = ''; for (let n = Number(i) + 1; n > 0; n = Math.floor(n / 26)) { n--; s = String.fromCharCode(97 + n % 26) + s; } return s; };
 
 // The un-projection from scoreHits (TargetPlane.of in the app): the digit centre's polar line with respect to
 // the 6/7 ellipse is the vanishing line; sending it to infinity leaves an ellipse centred on the centre, whose
@@ -562,15 +585,16 @@ function kind(h) {
 
 function refresh(i) {
   const h = S.holes[i], r = tb.querySelector('tr[data-i="' + i + '"]'), m = mark(i);
-  r.cells[0].textContent = num(h.x);
-  r.cells[1].textContent = num(h.y);
-  r.cells[2].classList.toggle('dim', r.querySelector('select.manual').value !== '');
-  r.cells[4].textContent = num(h.distanceMm);
-  r.cells[5].textContent = kind(h);
+  r.cells[0].textContent = lbl(i);
+  r.cells[1].textContent = num(h.x);
+  r.cells[2].textContent = num(h.y);
+  r.cells[3].classList.toggle('dim', r.querySelector('select.manual').value !== '');
+  r.cells[5].textContent = num(h.distanceMm);
+  r.cells[6].textContent = kind(h);
   if (m) {
     m.style.left = (h.x / S.imageWidth * 100) + '%';
     m.style.top = (h.y / S.imageHeight * 100) + '%';
-    m.textContent = sc(h.ring, h.innerTen);
+    m.firstChild.nodeValue = sc(h.ring, h.innerTen);
     // Orange as soon as the hole is no longer the detector's own, like the app; kind() is empty exactly then.
     m.style.borderColor = m.style.color = kind(h) ? '$BY_HAND_COLOR' : '$DETECTED_COLOR';
   }
@@ -589,6 +613,11 @@ function addHole(x, y) {
     const m = document.createElement('div');
     m.className = 'hit';
     m.dataset.i = i;
+    // Score text first (refresh rewrites it), then the label, as on the server-rendered markers.
+    const l = document.createElement('span');
+    l.className = 'lbl';
+    l.textContent = lbl(i);
+    m.append('', l);
     shot.appendChild(m);
   }
   refresh(i);

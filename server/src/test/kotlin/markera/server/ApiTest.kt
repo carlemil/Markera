@@ -401,11 +401,19 @@ class ApiTest {
         assertEquals(100 to 200, stored.imageWidth to stored.imageHeight)
 
         val page = client.admin("/admin/series/$id").bodyAsText()
-        assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65">9</div>""" in page, page)
-        assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d">7</div>""" in page, page)
-        assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d">8</div>""" in page, page)
-        assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d">6</div>""" in page, page)
+        assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65">9<span class="lbl">a</span></div>""" in page, page)
+        assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d">7<span class="lbl">b</span></div>""" in page, page)
+        assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d">8<span class="lbl">d</span></div>""" in page, page)
+        assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d">6<span class="lbl">e</span></div>""" in page, page)
+        // The table names every hole, the typed one (no marker) included.
+        listOf("a", "b", "c", "d", "e").forEachIndexed { i, l -> assertTrue("""<tr data-i="$i"><td>$l</td>""" in page, l) }
         assertEquals(4, Regex("""class="hit"""").findAll(page).count(), page)
+    }
+
+    @Test
+    fun holeLabelsRunPastZ() {
+        assertEquals(listOf("a", "b", "z", "aa", "ab", "az", "ba", "zz", "aaa"),
+            listOf(0, 1, 25, 26, 27, 51, 52, 701, 702).map(::holeLabel))
     }
 
     @Test
@@ -1316,20 +1324,20 @@ class ApiTest {
         assertTrue("<th>detected</th><th>manual</th>" in page, page)
         // Unedited detection: plain detected cell, and the manual select sits on its empty option.
         assertTrue(
-            """<tr data-i="0"><td>25</td><td>50</td><td>9</td>""" +
+            """<tr data-i="0"><td>a</td><td>25</td><td>50</td><td>9</td>""" +
                 """<td><select class="manual"><option value="" selected></option>""" in page,
             page,
         )
         // Overridden: the detected cell is struck through and the confirmed X is selected.
         assertTrue(
-            """<tr data-i="1"><td>30</td><td>60</td><td class="dim">8</td>""" +
+            """<tr data-i="1"><td>b</td><td>30</td><td>60</td><td class="dim">8</td>""" +
                 """<td><select class="manual"><option value=""></option>""" in page,
             page,
         )
         assertTrue("""<option value="X" selected>X</option>""" in page, page)
         // Manual hole: nothing detected, and no empty option to fall back to.
         assertTrue(
-            """<tr data-i="2"><td>75</td><td>50</td><td></td>""" +
+            """<tr data-i="2"><td>c</td><td>75</td><td>50</td><td></td>""" +
                 """<td><select class="manual"><option value="0">0</option>""" in page,
             page,
         )
@@ -1565,7 +1573,7 @@ class ApiTest {
         assertTrue("""<p class="gone">Deleted """ in body, body)
         assertTrue("""<button id="restore">Restore</button>""" in body, body)
         assertTrue("""id="delete"""" !in body && "method: 'PUT'" !in body && """id="caliber"""" !in body, body)
-        assertTrue("""<tr data-i="0" class="gone"><td>1</td><td>2</td><td></td><td>9</td>""" in body, body)
+        assertTrue("""<tr data-i="0" class="gone"><td>a</td><td>1</td><td>2</td><td></td><td>9</td>""" in body, body)
         assertTrue("""<tr data-i="1" class="gone">""" in body, body)
         assertTrue("""class="manual"""" !in body && """class="del"""" !in body, body)
         assertTrue("""<img src="/admin/series/$doomed/image">""" in body, body)
