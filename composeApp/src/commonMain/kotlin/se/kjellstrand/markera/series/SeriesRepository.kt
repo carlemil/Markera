@@ -3,6 +3,7 @@ package se.kjellstrand.markera.series
 import se.kjellstrand.markera.diag.ErrorLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -31,7 +32,7 @@ interface ImageCache {
  * what changed since the stored `updatedAt` stamp (tombstones included).
  *
  * Committed scans and photos are durable locally before HTTP. A failed read
- * keeps cached rows, and local work survives sign-out and account switches. Refreshes and writes take turns ([lock]), so a save
+ * keeps cached rows, and local work survives sign-out and account switches. Refreshes and writes take turns ([netLock] and [dbLock]), so a save
  * can never land in the middle of a full load that then wipes it.
  */
 class SeriesRepository(
@@ -45,9 +46,12 @@ class SeriesRepository(
     private fun newClientId() = kotlin.uuid.Uuid.random().toString()
     /** SQLite commits only after the durable JPEG has been written. An interrupted write
      * can leave an orphan file, but never a committed row pointing at a partial JPEG. */
-    suspend fun keepLocal(request: SeriesRequest, image: EncodedImage?, owner: Long? = null): Long = locked {
-        keepLocalLocked(request, image, owner).also { reload() }
-    }
+    suspend fun keepLocal(request: SeriesRequest, image: EncodedImage?, owner: Long? = null): Long =
+        // Only the store lock: a send or refresh waiting on the network has released it ([offLock]),
+        // so a local save never waits for an upload.
+        dbLock.withLock {
+            withContext(Dispatchers.Default) { keepLocalLocked(request, image, owner).also { reload() } }
+        }
 
     private fun keepLocalLocked(request: SeriesRequest, image: EncodedImage?, owner: Long?): Long {
         val req = if (request.clientId == null) request.copy(clientId = newClientId()) else request
@@ -152,7 +156,7 @@ class SeriesRepository(
         }
         val req = seriesJson.decodeFromString<SeriesRequest>(row.request)
         try {
-            val id = row.server_id ?: api.postSeries(req).also { serverId ->
+            val id = row.server_id ?: offLock { api.postSeries(req) }.also { serverId ->
                 q.transaction {
                     insert(dto(serverId, req, row.has_image != 0L, row.image_width, row.image_height))
                     q.localPosted(serverId, localId)
@@ -163,7 +167,7 @@ class SeriesRepository(
             if (_series.value.none { it.id == id }) insert(dto(id, req, row.has_image != 0L, row.image_width, row.image_height))
             if (row.has_image != 0L) {
                 val bytes = localImages.read(localId) ?: error("Local photo unavailable")
-                api.postSeriesImage(id, bytes, row.image_width!!.toInt(), row.image_height!!.toInt())
+                offLock { api.postSeriesImage(id, bytes, row.image_width!!.toInt(), row.image_height!!.toInt()) }
                 images.write(id, bytes)
             }
             deleteLocalLocked(localId)
@@ -200,7 +204,13 @@ class SeriesRepository(
     /** The server answered 401: signed out and wiped already, the UI only has to say so. */
     val sessionExpired: SharedFlow<Unit> = _sessionExpired
 
-    private val lock = Mutex()
+    /** Held by everything that talks to the network or hands rows between accounts (sends, refresh,
+     * claim, clear, edits), so one clientId is never in flight twice. Always taken before [dbLock]. */
+    private val netLock = Mutex()
+
+    /** Guards the store (rows, files, the published list). Released around each network call
+     * ([offLock]); [keepLocal] needs only this one. */
+    private val dbLock = Mutex()
 
     /** Held while a [refresh] runs, so one asked for meanwhile joins it instead of starting another. */
     private val refreshing = Mutex()
@@ -221,7 +231,7 @@ class SeriesRepository(
             return lastRefresh
         }
         return try {
-            withContext(Dispatchers.Default) { lock.withLock { refreshLocked() } }.also { lastRefresh = it }
+            withContext(Dispatchers.Default) { netLock.withLock { dbLock.withLock { refreshLocked() } } }.also { lastRefresh = it }
         } finally {
             refreshing.unlock()
         }
@@ -238,7 +248,7 @@ class SeriesRepository(
         try {
             // First, so what it sends comes back in the load below like any other series.
             drainLocal(user)
-            if (since == null) fullLoad(user) else applyDelta(api.listSeriesSince(since), user)
+            if (since == null) fullLoad(user) else applyDelta(offLock { api.listSeriesSince(since) }, user)
             reload()
             return null
         } catch (e: CancellationException) {
@@ -271,13 +281,27 @@ class SeriesRepository(
     }
 
     /** One write at a time, and never inside a refresh; a 401 signs out on the way. */
-    private suspend fun <T> locked(block: suspend () -> T): T = lock.withLock {
+    private suspend fun <T> locked(block: suspend () -> T): T = netLock.withLock {
+        dbLock.withLock {
+            try {
+                // SQLite and multi-MB JPEG file I/O: never on the caller's (often Main) thread.
+                withContext(Dispatchers.Default) { block() }
+            } catch (e: SeriesApiException) {
+                if (e.isUnauthorized) expire()
+                throw e
+            }
+        }
+    }
+
+    /** Runs a network call with [dbLock] released (the caller holds [netLock], so no other send
+     * or ownership change can run), letting [keepLocal] store meanwhile. Re-taken even when the
+     * call fails or is cancelled. */
+    private suspend fun <T> offLock(block: suspend () -> T): T {
+        dbLock.unlock()
         try {
-            // SQLite and multi-MB JPEG file I/O: never on the caller's (often Main) thread.
-            withContext(Dispatchers.Default) { block() }
-        } catch (e: SeriesApiException) {
-            if (e.isUnauthorized) expire()
-            throw e
+            return block()
+        } finally {
+            withContext(NonCancellable) { dbLock.lock() }
         }
     }
 
@@ -312,7 +336,7 @@ class SeriesRepository(
 
     /** The scanned frame for [id]: uploaded, then cached so it is never downloaded back. */
     suspend fun uploadImage(id: Long, bytes: ByteArray, width: Int, height: Int) = locked {
-        api.postSeriesImage(id, bytes, width, height)
+        offLock { api.postSeriesImage(id, bytes, width, height) }
         withContext(Dispatchers.Default) {
             images.write(id, bytes)
             _series.value.firstOrNull { it.id == id }?.let {
@@ -335,7 +359,7 @@ class SeriesRepository(
             reload()
             return@locked
         }
-        api.updateSeries(id, req)
+        offLock { api.updateSeries(id, req) }
         // Deleted holes go up for training and never come back down.
         val kept = req.holes.filterNot { it.deleted }
         withContext(Dispatchers.Default) {
@@ -359,7 +383,7 @@ class SeriesRepository(
             reload()
             return@locked
         }
-        api.deleteSeries(id)
+        offLock { api.deleteSeries(id) }
         // An acknowledged row can still own a refused/pending photo. Deleting the
         // series must cancel that upload too, rather than retrying a deleted id.
         q.selectLocal().executeAsList().filter {
@@ -413,7 +437,7 @@ class SeriesRepository(
         val all = mutableListOf<SeriesDto>()
         var before: Long? = null
         do {
-            val page = api.listSeries(before = before)
+            val page = offLock { api.listSeries(before = before) }
             all += page
             before = nextPageCursor(page)
         } while (before != null)
