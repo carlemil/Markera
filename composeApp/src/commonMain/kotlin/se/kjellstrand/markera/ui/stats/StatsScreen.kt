@@ -227,7 +227,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         onFilter = ::onSelection,
                         onPickDates = { pickingDates = true },
                     )
-                    val localCount = plotted.count { it.series.local != null }
+                    // Only series the server lacks: an acknowledged one waiting for its photo is uploaded.
+                    val localCount = plotted.count { it.series.local != null && it.series.id < 0 }
                     if (localCount > 0) Text(
                         stringResource(Res.string.stats_not_uploaded, localCount),
                         style = MaterialTheme.typography.bodySmall,

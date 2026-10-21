@@ -33,7 +33,9 @@ import se.kjellstrand.markera.vision.PlatformImage
 // instead of assuming a dispatcher.
 class SeriesRecorderTest {
 
-    private val recorded = mutableListOf<HttpRequestData>()
+    // Appended from the repository's Default-dispatcher HTTP while the test thread polls it:
+    // an immutable snapshot swapped per request, so a read never sees a list mid-append.
+    @kotlin.concurrent.Volatile private var recorded = listOf<HttpRequestData>()
     private val written = mutableListOf<Caliber>()
     private val writtenTags = mutableListOf<String?>()
     private val writtenCustom = mutableListOf<List<Caliber>>()

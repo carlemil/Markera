@@ -187,4 +187,32 @@ class LocalSaveSafetyTest {
         assertEquals(3, f.seriesPosts, "Add must send immediately even after the previous owner's refusal")
         assertTrue(f.db.seriesQueries.selectLocal().executeAsList().isEmpty())
     }
+
+    @Test fun acknowledgedRowAwaitingPhotoStaysWithItsAccountOnSignInAsAnother() = runBlocking {
+        val f = Fixture()
+        f.imageStatus = HttpStatusCode.ServiceUnavailable
+        val id = f.repo.keepLocal(request(), EncodedImage(byteArrayOf(1), 10, 10), owner = 1)
+        assertFailsWith<SeriesApiException> { f.repo.send(id) }
+        f.session.signOut()
+        f.session.signInDev("other") // nothing to offer: account 1's series is on its server already
+        assertEquals(2L, f.session.auth.value?.userId)
+        assertEquals(0, f.repo.localCount(2))
+        f.repo.claimLocal(2)
+        val row = f.db.seriesQueries.localById(id).executeAsOne()
+        assertEquals("1", row.owner_user_id)
+        assertEquals(100L, row.server_id)
+        assertEquals(1, f.seriesPosts, "Must not post account 1's series again to account 2")
+    }
+
+    @Test fun missingLocalPhotoDoesNotBlockRefreshOrLaterRows() = runBlocking {
+        val local = FakeImageCache()
+        val f = Fixture(local)
+        val broken = f.repo.keepLocal(request(), EncodedImage(byteArrayOf(1), 10, 10), owner = 1)
+        local.delete(broken)
+        val next = f.repo.keepLocal(request().copy(clientId = "next"), null, owner = 1)
+        assertNull(f.repo.refresh())
+        assertNull(f.db.seriesQueries.localById(next).executeAsOneOrNull(), "The following row was sent")
+        assertNotNull(f.db.seriesQueries.localById(broken).executeAsOneOrNull(), "The defective row is kept")
+        Unit
+    }
 }

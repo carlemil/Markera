@@ -101,9 +101,11 @@ UPDATE local_series SET request = ? WHERE local_id = ?;
 removeLocal:
 DELETE FROM local_series WHERE local_id = ?;
 
+-- A row another account's server already acknowledged (only its photo pending) stays with
+-- that account: posting it again to the new one would copy the series across accounts.
 claimOffered:
-UPDATE local_series SET owner_user_id = ?, server_id = NULL, state = 'queued', last_status = NULL
-WHERE owner_user_id IS NULL OR owner_user_id != ?;
+UPDATE local_series SET owner_user_id = ?, state = 'queued', last_status = NULL
+WHERE (owner_user_id IS NULL OR owner_user_id != ?) AND server_id IS NULL;
 
 allOutbox:
 SELECT * FROM outbox ORDER BY id;
