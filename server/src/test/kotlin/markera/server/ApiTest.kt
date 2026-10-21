@@ -753,6 +753,26 @@ class ApiTest {
     }
 
     @Test
+    fun theAdminEditorOffersTheOwnersTagsAndRetags() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val other = client.devAuth("other")
+        client.createSeries(me.token, series().copy(tag = "bana 3"))
+        client.createSeries(other.token, series().copy(tag = "elsewhere"))
+        val id = client.createSeries(me.token, series())
+
+        val editor = client.admin("/admin/series/$id").bodyAsText()
+        assertTrue(editor.contains("""<input id="tag" value="""""), editor)
+        listOf("träning", "tävling", "bana 3").forEach { assertTrue(editor.contains("""<option value="$it">"""), it) }
+        assertFalse(editor.contains("elsewhere"))
+
+        assertEquals(HttpStatusCode.NoContent,
+            client.adminWrite(HttpMethod.Put, "/admin/series/$id", series().copy(tag = "bana 3")).status)
+        assertEquals(listOf("bana 3", "bana 3"),
+            client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().map { it.tag })
+        assertTrue(client.admin("/admin/series/$id").bodyAsText().contains("""<input id="tag" value="bana 3""""))
+    }
+
+    @Test
     fun aSeriesPostedWithoutATagIsUntagged() = apiTest { client ->
         val me = client.devAuth("me")
         // The shape an app build from before tags posts: no `tag` field at all.

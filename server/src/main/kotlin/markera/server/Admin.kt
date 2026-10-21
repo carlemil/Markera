@@ -176,6 +176,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 """"Add hole" adds one without a position.</p>"""
         }
         val caliber = if (series.deleted) esc(series.caliber) else caliberInput(series.caliber)
+        val tag = if (series.deleted) esc(series.tag ?: "no tag") else tagInput(series.tag, db.tagsOf(userId!!))
         val actions = if (series.deleted) """<button id="restore">Restore</button>""" else {
             """$add<button id="undo" disabled>Undo delete</button> <button id="delete" data-user="$userId">Delete</button>"""
         }
@@ -190,7 +191,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "Series ${series.id}",
                 """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
-                    "<p>${time(series.timestamp)} &middot; $caliber &middot; " +
+                    "<p>${time(series.timestamp)} &middot; $caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></p>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
@@ -365,6 +366,19 @@ private fun sel(selected: Boolean) = if (selected) " selected" else ""
 
 /** Free text: the server checks only the label's shape, and a bad one comes back as a 400 in `#msg`. */
 private fun caliberInput(current: String) = """<input id="caliber" value="${esc(current)}" maxlength="16" size="8">"""
+
+/**
+ * Free text like the app's tag chip: pick one of the owner's tags (or the app's two defaults) from the list,
+ * or type a new one; emptying it untags the series.
+ */
+private fun tagInput(current: String?, ownerTags: List<String>) =
+    """<input id="tag" value="${esc(current.orEmpty())}" maxlength="$MAX_TAG_LENGTH" size="10" """ +
+        """placeholder="tag" list="tags"><datalist id="tags">""" +
+        (DEFAULT_TAGS + ownerTags).distinct().joinToString("") { """<option value="${esc(it)}">""" } +
+        "</datalist>"
+
+/** The tags the app offers before the user has made any of their own. */
+private val DEFAULT_TAGS = listOf("träning", "tävling")
 
 /** Defaults included, so the script sees every field (a missing `innerTen` would read as undefined). */
 private val stateJson = Json { encodeDefaults = true }
@@ -640,6 +654,7 @@ if (add) add.onclick = () => addHole(null, null);
 // Every edit saves at once — there is no Save button. The state stays local, so no reload afterwards.
 // Each PUT waits for the one before it: two in flight could land out of order and leave the older state stored.
 document.getElementById('caliber').onchange = () => save();
+document.getElementById('tag').onchange = () => save();
 let queue = Promise.resolve();
 function save() {
   const msg = document.getElementById('msg');
@@ -647,8 +662,7 @@ function save() {
   // Snapshotted now, not when the PUT finally goes: it is this edit's state.
   const body = JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,
                           geometry: S.geometry,
-                          // The editor cannot change the tag, but the PUT replaces the series, so it must carry it back.
-                          tag: S.tag,
+                          tag: document.getElementById('tag').value,
                           // Removed rows are flagged (Undo brings them back); a positionless hole nobody gave a score is an "Add hole" left behind;
                           // the app's soft-deleted holes stay in the database on their own and must not be re-sent.
                           holes: S.holes.filter(h => h && !h.deleted &&

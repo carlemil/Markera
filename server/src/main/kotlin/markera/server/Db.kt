@@ -498,6 +498,19 @@ class Db(dbPath: String) : AutoCloseable {
         return series.map { it.copy(holes = holesOf(it.id)) }
     }
 
+    /** Every tag the user has filed a live series under, alphabetical: the admin editor's suggestions. */
+    @Synchronized
+    fun tagsOf(userId: Long): List<String> {
+        val tags = mutableListOf<String>()
+        conn.prepareStatement(
+            "SELECT DISTINCT tag FROM series WHERE user_id = ? AND tag IS NOT NULL${liveOnly(false)} ORDER BY tag"
+        ).use { st ->
+            st.setLong(1, userId)
+            st.executeQuery().use { rs -> while (rs.next()) tags += rs.getString(1) }
+        }
+        return tags
+    }
+
     /**
      * The sync delta: every series of the user touched at or after [since] (inclusive — the client dedupes
      * by id), deleted ones as tombstones. Unpaged; a client only ever asks for what changed since its last
