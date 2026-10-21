@@ -56,7 +56,9 @@ Changes to the vision dependency or its build also run `:eval:test` and fresh
 `:composeApp:iosSimulatorArm64Test`, framework and Xcode builds on the Mac.
 Reconcile the moved tests: the extraction baseline is 69 vision tests plus
 314 remaining app tests = 383 unique tests (the Android/JVM vision runs each
-execute those same 69 tests, not 138 different assertions).
+execute those same 69 tests, not 138 different assertions). After #654 merged
+in, `composeApp` holds 387 Android unit tests, so the current total is
+69 + 387 = 456 unique tests.
 
 Pure Markdown skips execution only when the Tickets docs-only rule holds: every
 changed path ends in `.md` and no test quotes a changed filename/path as a string
