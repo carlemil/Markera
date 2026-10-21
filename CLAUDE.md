@@ -247,7 +247,8 @@ not persisted or published while rows saved signed out or for another account ne
 The shared `LocalClaimController`/dialog offers Add, confirmed Delete, or Stay signed out;
 dismiss means Stay. Add transfers every offered row in one transaction before publishing auth,
 then refresh sends them. Partial failures stay in that account's queue. Own-account rows resume
-silently. Process death while the decision is open leaves no saved token and changes no rows.
+silently. A row another account's server already acknowledged (only its photo pending) is never
+offered: it waits for that account, so Add cannot copy it across accounts. Process death while the decision is open leaves no saved token and changes no rows.
 Residual limit: a lost 201 under A followed by claiming the same request for B can create one
 copy per account (the server deduplicates only within one user).
 
