@@ -44,7 +44,7 @@
     <string name="home_history">Historik</string>
     <string name="home_stats">Statistik</string>
     <string name="home_latest_series">Senaste serien · %1$s</string>
-    <string name="home_sign_in">Logga in för att spara serier</string>
+    <string name="home_sign_in">Logga in för att ladda upp serier</string>
     <string name="home_signed_in">Inloggad via %1$s</string>
     <string name="home_sign_out">Logga ut</string>
     <string name="snackbar_sign_in">Logga in</string>
@@ -350,9 +350,9 @@
     <string name="help_home_import_body">I menyn: räkna poäng på foton som redan finns i telefonen, från galleriet eller från filer. Varje bild skannas och resultatet visas, för att spara eller hoppa över. Med Autoimport på sparas varje bild som ger poäng av sig själv, med datumet då fotot togs; resten visas en i taget efteråt.</string>
     <string name="series_status_phone">Sparad på den här enheten</string>
     <string name="series_not_uploaded">Inte uppladdad</string>
-    <string name="stats_not_uploaded">%1$d serier inte uppladdade</string>
+    <string name="stats_not_uploaded">Inte uppladdade: %1$d serier</string>
     <string name="local_claim_title">Serier på den här enheten</string>
-    <string name="local_claim_body">%1$d serier sparades utloggat eller för ett annat konto. Lägg till dem på det här kontot, radera dem från enheten eller förbli utloggad.</string>
+    <string name="local_claim_body">Serier sparade på enheten utloggat eller för ett annat konto: %1$d. Lägg till dem på det här kontot, radera dem från enheten eller förbli utloggad.</string>
     <string name="local_claim_add">Lägg till på kontot</string>
     <string name="local_claim_delete">Radera från enheten</string>
     <string name="local_claim_delete_body">Radera %1$d serier och deras foton från den här enheten? Det går inte att ångra. De har inte laddats upp till det här kontot.</string>

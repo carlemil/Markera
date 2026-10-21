@@ -44,7 +44,7 @@
     <string name="home_history">History</string>
     <string name="home_stats">Statistics</string>
     <string name="home_latest_series">Latest series · %1$s</string>
-    <string name="home_sign_in">Sign in to save series</string>
+    <string name="home_sign_in">Sign in to upload series</string>
     <string name="home_signed_in">Signed in with %1$s</string>
     <string name="home_sign_out">Sign out</string>
     <string name="snackbar_sign_in">Sign in</string>
@@ -350,9 +350,9 @@
     <string name="help_home_import_body">In the menu: score photos already on the phone, from the gallery or from files. Each image is scanned and its results shown, to save or skip. With Auto import on, every image that scores is saved on its own with the date the photo was taken; the rest are shown one by one afterwards.</string>
     <string name="series_status_phone">Saved on this device</string>
     <string name="series_not_uploaded">Not uploaded</string>
-    <string name="stats_not_uploaded">%1$d series not uploaded</string>
+    <string name="stats_not_uploaded">Not uploaded: %1$d series</string>
     <string name="local_claim_title">Series on this device</string>
-    <string name="local_claim_body">%1$d series were saved signed out or for another account. Add them to this account, delete them from this device, or stay signed out.</string>
+    <string name="local_claim_body">Series saved on this device signed out or for another account: %1$d. Add them to this account, delete them from this device, or stay signed out.</string>
     <string name="local_claim_add">Add to account</string>
     <string name="local_claim_delete">Delete from device</string>
     <string name="local_claim_delete_body">Delete %1$d series and their photos from this device? This cannot be undone. They have not been uploaded to this account.</string>
