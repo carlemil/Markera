@@ -32,8 +32,9 @@ interface ImageCache {
  * what changed since the stored `updatedAt` stamp (tombstones included).
  *
  * Committed scans and photos are durable locally before HTTP. A failed read
- * keeps cached rows, and local work survives sign-out and account switches. Refreshes and writes take turns ([netLock] and [dbLock]), so a save
- * can never land in the middle of a full load that then wipes it.
+ * keeps cached rows, and local work survives sign-out and account switches. Refreshes, sends and edits take turns ([netLock]).
+ * A local save ([keepLocal], [dbLock] only) may land between the pages of a full load or between
+ * drained sends; that is safe because a load only replaces the server cache, never `local_series`.
  */
 class SeriesRepository(
     private val api: SeriesApi,
@@ -156,18 +157,22 @@ class SeriesRepository(
         }
         val req = seriesJson.decodeFromString<SeriesRequest>(row.request)
         try {
+            var posted = row
             val id = row.server_id ?: offLock { api.postSeries(req) }.also { serverId ->
+                // keepLocal may have run during the POST (it attaches a photo to a photo-less row
+                // with the same clientId), so act on the row as it is now, not as it was read.
+                posted = q.localById(localId).executeAsOneOrNull() ?: row
                 q.transaction {
-                    insert(dto(serverId, req, row.has_image != 0L, row.image_width, row.image_height))
+                    insert(dto(serverId, req, posted.has_image != 0L, posted.image_width, posted.image_height))
                     q.localPosted(serverId, localId)
                 }
                 reload()
             }
             // After a crash/switch the acknowledged row may no longer be in the read cache.
-            if (_series.value.none { it.id == id }) insert(dto(id, req, row.has_image != 0L, row.image_width, row.image_height))
-            if (row.has_image != 0L) {
+            if (_series.value.none { it.id == id }) insert(dto(id, req, posted.has_image != 0L, posted.image_width, posted.image_height))
+            if (posted.has_image != 0L) {
                 val bytes = localImages.read(localId) ?: error("Local photo unavailable")
-                offLock { api.postSeriesImage(id, bytes, row.image_width!!.toInt(), row.image_height!!.toInt()) }
+                offLock { api.postSeriesImage(id, bytes, posted.image_width!!.toInt(), posted.image_height!!.toInt()) }
                 images.write(id, bytes)
             }
             deleteLocalLocked(localId)
@@ -305,8 +310,9 @@ class SeriesRepository(
         }
     }
 
+    /** Called with both locks held; the sign-out revokes over the network, so [dbLock] is let go for it. */
     private suspend fun expire() {
-        session.signOut()
+        offLock { session.signOut() }
         withContext(Dispatchers.Default) {
             wipe()
             reload()
