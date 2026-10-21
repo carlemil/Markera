@@ -35,7 +35,7 @@ actual object LocalAppLocale {
         val owner = LocalLifecycleOwner.current
         DisposableEffect(owner, value) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME && Locale.getDefault() != locale(value)) {
+                if (event == Lifecycle.Event.ON_RESUME && Locale.getDefault().language != locale(value).language) {
                     apply(value)
                     drift++
                 }
