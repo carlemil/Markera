@@ -389,6 +389,9 @@ class ApiTest {
                     Hole(25.0, 50.0, 9, false, 31.2, detectedRing = 9),  // detected: green
                     Hole(75.0, 50.0, 7, false, 60.0),                    // manual: orange
                     Hole(null, null, 5, false, null),                    // typed: no position, no marker
+                    Hole(25.0, 100.0, 8, false, 40.0, detectedRing = 6), // rescored: orange
+                    Hole(75.0, 100.0, 6, false, 50.0, detectedRing = 6,  // dragged: orange
+                        detectedX = 70.0, detectedY = 100.0),
                 ),
             ),
         )
@@ -400,7 +403,9 @@ class ApiTest {
         val page = client.admin("/admin/series/$id").bodyAsText()
         assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65">9</div>""" in page, page)
         assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d">7</div>""" in page, page)
-        assertEquals(2, Regex("""class="hit"""").findAll(page).count(), page)
+        assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d">8</div>""" in page, page)
+        assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d">6</div>""" in page, page)
+        assertEquals(4, Regex("""class="hit"""").findAll(page).count(), page)
     }
 
     @Test

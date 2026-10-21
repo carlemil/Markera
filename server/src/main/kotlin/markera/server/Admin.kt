@@ -300,8 +300,8 @@ private fun markers(series: Series): String {
         val y = h.y ?: return@mapIndexed ""
         val color = when {
             h.deleted -> DELETED_COLOR
-            h.detectedRing == null -> "#ffb74d"
-            else -> "#9ccc65"
+            byHand(h) -> BY_HAND_COLOR
+            else -> DETECTED_COLOR
         }
         """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
             """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}</div>"""
@@ -340,6 +340,14 @@ private fun holeRow(i: Int, h: Hole, readOnly: Boolean = h.deleted) =
 
 /** The marker and row colour of a hole the user deleted in the app. */
 private const val DELETED_COLOR = "#8a6fb3"
+
+/** The detector's untouched hole, and every other one: the app's green and orange markers. */
+private const val DETECTED_COLOR = "#9ccc65"
+private const val BY_HAND_COLOR = "#ffb74d"
+
+/** The app's `HoleDto.byHand`: placed or typed by hand, rescored, or dragged off the detection. */
+private fun byHand(h: Hole) =
+    h.detectedRing == null || overridden(h) || (h.detectedX != null && (h.x != h.detectedX || h.y != h.detectedY))
 
 /** The confirmed score differs from the detected one, i.e. the manual column overrides the detected cell. */
 private fun overridden(h: Hole) =
@@ -562,6 +570,8 @@ function refresh(i) {
     m.style.left = (h.x / S.imageWidth * 100) + '%';
     m.style.top = (h.y / S.imageHeight * 100) + '%';
     m.textContent = sc(h.ring, h.innerTen);
+    // Orange as soon as the hole is no longer the detector's own, like the app; kind() is empty exactly then.
+    m.style.borderColor = m.style.color = kind(h) ? '$BY_HAND_COLOR' : '$DETECTED_COLOR';
   }
   total();
 }
@@ -578,7 +588,6 @@ function addHole(x, y) {
     const m = document.createElement('div');
     m.className = 'hit';
     m.dataset.i = i;
-    m.style.borderColor = m.style.color = '#ffb74d';
     shot.appendChild(m);
   }
   refresh(i);
