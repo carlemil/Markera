@@ -496,6 +496,7 @@ font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;curso
 stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
+tr.gone{text-decoration:line-through}
 .hit.gone{border-style:dashed;cursor:default}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
