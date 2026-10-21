@@ -5,6 +5,11 @@ Tests are under `composeApp/src/commonTest/kotlin/se/kjellstrand/markera/` unles
 stated otherwise. Include changed tests and callers affected by the change; this
 is a starting map, not permission to omit relevant coverage.
 
+The six pure vision suites live in `vision/src/commonTest/kotlin/se/kjellstrand/markera/vision`.
+Use `:vision:jvmTest` during pure-code iteration; `composeApp` retains adapter and
+integration tests (including `DigitDetectorTest` and `ManualHitTest`). The JVM
+shortcut never substitutes for Android/native coverage after module wiring changes.
+
 | Changed area | Development tests |
 |---|---|
 | `vision/` geometry, scoring, image operations | Matching `vision/*Test` classes; geometry changes include `CentreEstimatorTest`, `RingProbeTest`, `TargetPlaneTest`, `HitScoringTest` and `ui/markera/ManualHitTest` |
@@ -13,14 +18,14 @@ is a starting map, not permission to omit relevant coverage.
 | `webshooter/`, competition wizard | `webshooter/*Test`, `ui/competition/MarkingWizardViewModelTest`, Android DTO/serializer tests when wire data changes |
 | Scan/import/history/stats UI logic | Matching `ui/markera/*Test`, `ui/history/HistoryFilterTest`, `ui/stats/*Test`; continuous scan also includes Android `ContinuousScanReplayTest` |
 | Android image/cache/sign-in platform code | Matching `androidUnitTest` tests; JPEG/device behavior also needs applicable `androidInstrumentedTest` tests on USB phone `34282ee3` |
-| iOS platform code or shared behavior affecting iOS | Relevant tests above plus `:composeApp:iosSimulatorArm64Test` and simulator build via the Mac recipes in `iosApp/README.md` |
+| iOS platform code or shared behavior affecting iOS | Relevant tests above plus `:vision:iosSimulatorArm64Test` and `:composeApp:iosSimulatorArm64Test` and simulator build via the Mac recipes in `iosApp/README.md` |
 | Standalone `server/` | Matching `server/src/test/kotlin/markera/server/*Test` during development; final standalone server suite |
 | Build files, dependencies, shared fixtures, unmapped code | Full affected suite; app build configuration changes also require packaging |
 
 Example: targeted development tests may share one invocation:
 
 ```powershell
-.\gradlew.bat :composeApp:testDebugUnitTest --tests "se.kjellstrand.markera.vision.HitScoringTest" --tests "se.kjellstrand.markera.vision.TargetPlaneTest"
+.\gradlew.bat :vision:jvmTest --tests "se.kjellstrand.markera.vision.HitScoringTest" --tests "se.kjellstrand.markera.vision.TargetPlaneTest"
 ```
 
 ## Final review and gate
@@ -30,7 +35,7 @@ the full relevant suite once on the final reviewed commit. Development tests do
 not replace that gate. Android app changes that need tests and an APK use:
 
 ```powershell
-.\gradlew.bat :composeApp:testDebugUnitTest :composeApp:assembleDebug
+.\gradlew.bat :vision:jvmTest :vision:testDebugUnitTest :composeApp:testDebugUnitTest :composeApp:assembleDebug
 ```
 
 Server-only changes use the standalone project, from `server/`:
@@ -45,6 +50,15 @@ not establish camera, native or release behavior. No store upload is authorized
 by a Tickets gate. Keep outputs, configuration cache and daemons during normal
 iteration. Reserve `clean`, `--rerun-tasks` or daemon stops for a specific diagnosed
 problem or an explicit benchmark, and state why they were needed.
+
+Changes to the vision dependency or its build also run `:eval:test` and fresh
+`:eval:mosaic -Dmosaic.seed=42`, plus `:vision:iosSimulatorArm64Test`,
+`:composeApp:iosSimulatorArm64Test`, framework and Xcode builds on the Mac.
+Reconcile the moved tests: the extraction baseline is 69 vision tests plus
+314 remaining app tests = 383 unique tests (the Android/JVM vision runs each
+execute those same 69 tests, not 138 different assertions). After #654 and
+#725 (five more `SeriesRecorderTest` cases) merged in, `composeApp` holds 392
+Android unit tests, so the current total is 69 + 392 = 461 unique tests.
 
 Pure Markdown skips execution only when the Tickets docs-only rule holds: every
 changed path ends in `.md` and no test quotes a changed filename/path as a string

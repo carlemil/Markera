@@ -31,7 +31,7 @@ Framework-only checks without Xcode (faster, from Windows):
 ```sh
 sh scripts/mac.sh 'sh gradlew -q :composeApp:linkDebugFrameworkIosSimulatorArm64'
 sh scripts/mac.sh 'sh gradlew -q :composeApp:linkDebugFrameworkIosArm64'      # device
-sh scripts/mac.sh 'sh gradlew :composeApp:iosSimulatorArm64Test'             # commonTest on K/N
+sh scripts/mac.sh 'sh gradlew :vision:iosSimulatorArm64Test :composeApp:iosSimulatorArm64Test'  # commonTest on K/N
 ```
 
 Kotlin/Native rejects backtick test names containing `,` or `()`.

@@ -1,5 +1,9 @@
 # Lightweight vision test boundary benchmark (#709)
 
+Historical prototype report. The later [#723 integrated module measurements](vision-module-performance.md)
+record the real extraction and its current commands; reproduction below intentionally
+uses the old recorded revision and paths.
+
 Measured on 18 October 2026 in `card/709`, production source revision
 `356a9292f4ce73d948673c2adc99083e326f0829`. This is an evidence-only prototype;
 no production module, source set, scoring algorithm or platform wiring changed.

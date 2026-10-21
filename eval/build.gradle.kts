@@ -5,21 +5,12 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(17)
-}
-
-// Reuse the *real* pure-Kotlin vision pipeline (post-processing, ring probes,
-// hit scoring, …) straight from commonMain so this evaluation
-// harness exercises the same code the app runs. The expect/actual files
-// (HoleDetector: onnxruntime-android, DigitDetector/PlatformImage: ML Kit)
-// cannot compile in a plain JVM module, so we exclude them; a desktop ONNX
-// Runtime detector stands in.
-sourceSets["main"].kotlin {
-    srcDir("../composeApp/src/commonMain/kotlin/se/kjellstrand/markera/vision")
-    exclude("**/HoleDetector.kt", "**/DigitDetector.kt", "**/PlatformImage.kt")
+    // Consume the same Java 21 vision artifact as the app; no copied source tree.
+    jvmToolchain(21)
 }
 
 dependencies {
+    implementation(project(":vision"))
     // Desktop ONNX Runtime (bundles the win-x64 native libs).
     implementation("com.microsoft.onnxruntime:onnxruntime:1.19.2")
     testImplementation("junit:junit:4.13.2")
