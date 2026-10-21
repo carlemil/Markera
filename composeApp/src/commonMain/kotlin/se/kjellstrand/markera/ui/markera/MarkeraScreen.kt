@@ -772,8 +772,9 @@ private fun ImportRunner(
         while (!scanController.startScan(source, snapshotVm, viewModel, scope, errorMessage)) delay(100)
         val state = viewModel.uiState.first { it.phase == ScanPhase.IDLE }
         if (!queue.auto) return@LaunchedEffect
-        val decision = importDecision(true, state.scores.isNotEmpty(), recorder.caliber.value)
-        if (decision == ImportDecision.Save) recorder.commit(state.topScores)
+        var decision = importDecision(true, state.scores.isNotEmpty(), recorder.caliber.value)
+        // Counted saved only once its row and photo are durably kept; otherwise reviewed by hand.
+        if (decision == ImportDecision.Save && !recorder.commit(state.topScores).await()) decision = ImportDecision.Review
         snapshotVm.clear()
         viewModel.clearResults()
         source.image = null
