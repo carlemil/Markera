@@ -237,7 +237,7 @@ a transient `LocalMark` (`UNCLAIMED`, `QUEUED`, `REFUSED`). Their JPEGs and thum
 Deleted-hole provenance and the persisted clientId survive local edits.
 
 Every save first commits a local request and an atomic JPEG file. `send` serializes with refresh
-and edits; acknowledgement atomically caches the server row and sets `server_id` before photo
+and edits (`netLock`; the store lock `dbLock` is released around each network call, so `keepLocal` never waits for an upload); acknowledgement atomically caches the server row and sets `server_id` before photo
 upload. The photo-pending local row is hidden from the merge, but still supplies that positive
 ID's image until upload succeeds. Success removes the local row/file. Offline, 5xx and 429 keep
 queued rows for every refresh; other 4xx keep refused rows, retry once per repository/process
