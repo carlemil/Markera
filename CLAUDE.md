@@ -315,7 +315,7 @@ Each `PickedImage` is decoded only on its turn. `Screen.Import(ImportQueue)` is 
 with an `ImportFrameSource` (the picked image is the frame, so the normal crop/store/upload apply)
 and its own view-model key; `ImportRunner` sets `SeriesRecorder.takenAt` (EXIF date taken via
 `exifInstant`, else now) and scans. Manual: Save/Skip move on. Auto: `importDecision` saves what
-scored, holds the rest, and those are reviewed by hand after the pass; one summary toast, back to Home.
+scored (counted saved only once `recorder.commit` reports its row/photo durably kept; a local storage failure sends the image to review, never waiting for the upload), holds the rest, and those are reviewed by hand after the pass; one summary toast, back to Home.
 A caliber `-` is asked for before the first scan (a commit waiting on the dialog would be dropped by
 the next scan's `clear()`).
 Every screen but Home uses the one `AppTopBar` (`ui/AppTopBar.kt`): back button (left of the menu

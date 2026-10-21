@@ -73,6 +73,7 @@ class SeriesRecorderTest {
         // What the first series POST answers instead of [status].
         firstStatus: HttpStatusCode? = null,
         storedCustom: List<Caliber> = emptyList(),
+        localImages: ImageCache = FakeImageCache(),
     ): SeriesRecorder {
         var posts = 0
         val engine = MockEngine { request ->
@@ -102,7 +103,7 @@ class SeriesRecorderTest {
         )
         // The recorder saves through the cache now; a real in-memory one, so
         // the request counts below are still exactly what goes over the wire.
-        repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session, FakeImageCache())
+        repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session, localImages)
         return runBlocking {
             session.restore()
             SeriesRecorder(
@@ -684,5 +685,62 @@ class SeriesRecorderTest {
             assertTrue(repository.series.value.single().id < 0)
         }
         assertNull(session.auth.value)
+    }
+
+    @Test
+    fun commitReportsLocalPersistenceSignedInBeforeTheUploadFinishes() = runBlocking<Unit> {
+        val gate = CompletableDeferred<Unit>()
+        val recorder = recorder(stored = Caliber.LR22, encodeJpeg = { encoded }, gate = gate)
+        recorder.onSeriesDetected(scores, image, null)
+        val local = recorder.commit(noPicks)
+        // The POST is held, yet the row and photo are already kept.
+        assertTrue(withTimeout(5_000) { local.await() })
+        assertEquals(SaveStatus.Saving, recorder.status.value)
+        gate.complete(Unit)
+        recorder.awaitDone()
+    }
+
+    @Test
+    fun commitReportsLocalPersistenceSignedOut() = runBlocking<Unit> {
+        val recorder = recorder(signedIn = false, stored = Caliber.LR22, encodeJpeg = { encoded })
+        recorder.onSeriesDetected(scores, image, null)
+        assertTrue(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        assertEquals(SaveStatus.SavedOnPhone(Caliber.LR22), recorder.awaitDone())
+    }
+
+    @Test
+    fun commitReportsFalseWhenStorageFailsAndTheScanIsRetained() = runBlocking<Unit> {
+        var fail = true
+        val flaky = object : ImageCache by FakeImageCache() {
+            override fun write(id: Long, bytes: ByteArray) { if (fail) error("disk full") }
+        }
+        val recorder = recorder(signedIn = false, stored = Caliber.LR22, encodeJpeg = { encoded }, localImages = flaky)
+        recorder.onSeriesDetected(scores, image, null)
+        assertFalse(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        assertIs<SaveStatus.Failed>(recorder.awaitDone())
+        // Save again once storage works: the same pending scan is kept.
+        fail = false
+        assertTrue(withTimeout(5_000) { recorder.commit(noPicks).await() })
+    }
+
+    @Test
+    fun commitReportsFalseWithoutACaliberOrAPendingScan() = runBlocking<Unit> {
+        val recorder = recorder(stored = Caliber.NONE)
+        assertFalse(recorder.commit(noPicks).await())
+        recorder.onSeriesDetected(scores, image, null)
+        assertFalse(recorder.commit(noPicks).await())
+        assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
+    }
+
+    @Test
+    fun eachRequestHasItsOwnLocalResult() = runBlocking<Unit> {
+        val recorder = recorder(signedIn = false, stored = Caliber.LR22, encodeJpeg = { encoded })
+        recorder.onSeriesDetected(scores, image, null)
+        val first = recorder.commit(noPicks)
+        assertTrue(withTimeout(5_000) { first.await() })
+        recorder.onSeriesDetected(scores, image, null)
+        val second = recorder.commit(noPicks)
+        assertTrue(withTimeout(5_000) { second.await() })
+        assertEquals(2, repository.series.first { it.size == 2 }.size)
     }
 }

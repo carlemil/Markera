@@ -2,7 +2,9 @@ package se.kjellstrand.markera.series
 
 import se.kjellstrand.markera.diag.ErrorLog
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,6 +96,9 @@ class SeriesRecorder(
         val removed: List<HoleDto> = emptyList(),
     ) {
         var committed = false
+
+        /** The running or last save attempt's local-persistence outcome; per request, not the shared status. */
+        var local: CompletableDeferred<Boolean>? = null
     }
 
     /** The scanned series waiting for a caliber (or for its POST to finish). */
@@ -155,9 +160,14 @@ class SeriesRecorder(
      * Back to the live view: save what is pending (asking for a caliber first).
      * [topScores] are the picker values as the user left them — merged in here,
      * so the caliber dialog's later [selectCaliber] posts the edited series too.
+     *
+     * Returns this request's own local-persistence result: true once its row and photo are
+     * durably kept (not waiting for the upload), false when nothing could be saved (no pending
+     * series, still waiting for a caliber, or storage failed). Unlike [status] it cannot be
+     * overwritten by another request.
      */
-    fun commit(topScores: List<Int>) {
-        val p = pending ?: return
+    fun commit(topScores: List<Int>): Deferred<Boolean> {
+        val p = pending ?: return CompletableDeferred(false)
         // After withPicks, so the picker slots stay aligned with the holes that are still there.
         // A repeated commit (caliber dialog dismissed, then Spara again) starts from the live holes, so the removed
         // ones are neither re-picked nor appended twice.
@@ -168,9 +178,10 @@ class SeriesRecorder(
         if (caliber == Caliber.NONE) {
             _status.value = SaveStatus.NeedsCaliber
             _caliberDialogOpen.value = true
-        } else {
-            startSave(caliber)
+            return CompletableDeferred(false)
         }
+        startSave(caliber)
+        return p.local ?: CompletableDeferred(false)
     }
 
     /** Chosen in the dialog or from the chip: stored, and saves a series [commit] is waiting for. */
@@ -265,6 +276,8 @@ class SeriesRecorder(
         val request = p.request.copy(caliber = caliber.label, tag = _tag.value)
         val image = p.image
         inFlight = p
+        val local = CompletableDeferred<Boolean>()
+        p.local = local
         _status.value = SaveStatus.Saving
         scope.launch(saves) {
             try {
@@ -277,6 +290,7 @@ class SeriesRecorder(
                 val localId = repository.keepLocal(request, encoded, owner)
                 // Once durable, a later scan or process loss cannot discard this save.
                 if (pending === p) pending = null
+                local.complete(true)
                 if (owner == null) {
                     _status.value = SaveStatus.SavedOnPhone(caliber)
                 } else {
@@ -306,8 +320,10 @@ class SeriesRecorder(
                 throw e
             } catch (e: Exception) {
                 // Encoding or durable storage failed: retain the scan for Save again.
+                local.complete(false)
                 _status.value = SaveStatus.Failed(e)
             } finally {
+                local.cancel()
                 if (inFlight === p) inFlight = null
             }
         }
