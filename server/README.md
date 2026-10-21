@@ -67,3 +67,40 @@ The score is split in two columns: a read-only `detected` one (struck through on
 editable `manual` one, whose empty option reverts the hole to the detected score.
 Every other `/admin` page is read-only, and all of them round millimetres and pixel positions to whole
 numbers.
+
+## Admin correction review and audit
+
+`/admin/review` (linked beside training export) lists corrected series across owners,
+50 rows per page, with an option to include soft-deleted series. Rows open the usual
+series editor. The editor also shows escaped persisted before/after values, event IDs,
+UTC change times (displayed in server local time), and actor provenance.
+
+Tracking begins with this server version. An initial series save and its first photo
+attachment establish separately labelled baselines, not edits. Existing JPEGs are
+adopted lazily as historical baselines on their next upload. Migration creates no
+invented history. Existing score/inner-X overrides, moved/deleted detections, and
+manual/typed holes remain **inferred signals with unknown provenance**, including
+corrections already present in an initial save. Historical metadata/photo changes
+and their authors cannot be reconstructed; `updatedAt` alone is never evidence.
+
+Successful effective changes to timestamp, trimmed caliber/tag, geometry, all hole
+datapoints, JPEG SHA-256/frame dimensions, and series deletion/restoration are audited.
+Canonical hole multisets retain duplicates and removed detections, ignoring request
+order and database row IDs. Repeated uploads, normalized no-op PUTs, client-ID retries,
+failed requests and reads do not create correction events. Reversing a correction
+does not erase its earlier history. App actors are validated owner IDs; the shared
+Basic login is recorded as the **admin role**, not an identified individual.
+
+Audit records contain only series datapoints and photo fingerprints, never binary
+images, credentials, tokens or request logs. They are admin-only and excluded from
+app sync and training export formats. Soft deletion retains them; either account
+hard-deletion route erases owned audit/baseline rows and photo recovery remnants.
+
+Database mutations and audit inserts share one transaction. Photo upload serializes
+with database writes and journals its previous file before replacement. A failed DB
+write restores the old bytes; startup recovers an interrupted upload by comparing
+the installed file with the committed fingerprint. A committed match keeps the new
+file, otherwise the previous file is restored (or a first attachment removed).
+The protocol covers process interruption and normal I/O/DB failures; it does not
+claim distributed transactions across multiple server processes. Run one server
+against a database/images directory, as with the existing single-connection server.
