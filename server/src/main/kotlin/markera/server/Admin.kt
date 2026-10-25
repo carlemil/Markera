@@ -54,10 +54,10 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         respondHtml(
             page(
                 "Users",
-                counts + """<a href="/admin/suggestions">suggestions ($suggestions)</a>""" +
-                    """ <a href="/admin/training-export.zip">training export (zip)</a>""" +
-                    """ <a href="/admin/review">review changed series</a>""" +
-                    """<label style="margin-left:16px"><input type="checkbox" id="hide-empty"> hide users with 0 series</label>""" +
+                counts + """<div><a href="/admin/suggestions">suggestions ($suggestions)</a></div>""" +
+                    """<div><a href="/admin/training-export.zip">training export (zip)</a></div>""" +
+                    """<div><a href="/admin/review">review changed series</a></div>""" +
+                    """<div><label><input type="checkbox" id="hide-empty"> hide users with 0 series</label></div>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
                     "<script>$USERS_JS</script>",
             )
