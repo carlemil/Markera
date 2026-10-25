@@ -83,16 +83,18 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 href = "/admin/series/${s.id}", gone = s.deleted)
         }
         val query = "deleted=${if (deleted) 1 else 0}"
-        val paging = (if (offset > 0) """<a href="?${query}&amp;offset=${(offset - 50).coerceAtLeast(0)}">Previous</a> """ else "") +
-            (if (matches.size > 50) """<a href="?${query}&amp;offset=${offset.toLong() + 50}">Next</a>""" else "")
+        val paging = pagingButtons(
+            "?${query}&amp;offset=${(offset - 50).coerceAtLeast(0)}".takeIf { offset > 0 }, "previous",
+            "?${query}&amp;offset=${offset.toLong() + 50}".takeIf { matches.size > 50 }, "next",
+        )
         respondHtml(page("Review changed series", """<div><a href="/admin">&larr; users</a></div>""" +
             """<div><a href="/admin/training-export.zip">training export (zip)</a></div>""" +
             """<div><a href="?deleted=${if (deleted) 0 else 1}">${if (deleted) "Live only" else "Include deleted series"}</a></div>""" +
             "<p>Tracking starts with this server version. Initial saves and first photo attachments are baselines, not edits. " +
             "Existing hole signals are inferred; historical metadata/photo edits and their authors cannot be reconstructed. " +
             "The shared admin login identifies a role, not an individual. A later reversal keeps its earlier tracked history.</p>" +
-            (if (matches.isEmpty()) "<p>No matching series.</p>" else table(
-                listOf("series", "owner", "timestamp", "caliber", "total", "evidence / reasons", "latest tracked change", "status"), rows)) + paging))
+            (if (matches.isEmpty()) "<p>No matching series.</p>" else paging + table(
+                listOf("series", "owner", "timestamp", "caliber", "total", "evidence / reasons", "latest tracked change", "status"), rows))))
     }
 
     // The suggestion box, newest first: the record of every suggestion, including any whose mail never went out.
@@ -190,17 +192,19 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         }
         // Step through the owner's series in time: previous is the next older one, next the next newer one.
         val (newer, older) = db.adjacentSeries(userId!!, seriesId)
-        val prev = older?.let { """<a href="/admin/series/$it">&larr; previous (#$it)</a>""" } ?: "&larr; previous"
-        val next = newer?.let { """<a href="/admin/series/$it">next (#$it) &rarr;</a>""" } ?: "next &rarr;"
+        val paging = pagingButtons(
+            older?.let { "/admin/series/$it" }, "previous" + older?.let { " (#$it)" }.orEmpty(),
+            newer?.let { "/admin/series/$it" }, "next" + newer?.let { " (#$it)" }.orEmpty(),
+        )
         respondHtml(
             page(
                 "Series ${series.id}",
-                """<div><a href="/admin/users/$userId">&larr; user $userId</a></div><div>$prev</div><div>$next</div>""" +
+                """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""" +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
                     "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
-                    """<div class="cols"><div>""" +
+                    """<div class="cols"><div>""" + paging +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
@@ -462,6 +466,13 @@ private fun auditSummary(events: List<AuditEvent>): String = "<h2>Tracked change
             // JSON is escaped as text, never injected into scripts or the editor's first table.
             "<details><summary>Persisted values</summary><pre>Before: ${esc(e.before ?: "unknown")}\nAfter: ${esc(e.after)}</pre></details></li>"
     }
+
+/** Previous/next as a pair of buttons side by side; a null href (no page that way) leaves its button disabled. */
+private fun pagingButtons(prevHref: String?, prevLabel: String, nextHref: String?, nextLabel: String): String {
+    fun button(href: String?, label: String) =
+        if (href == null) "<button disabled>$label</button>" else """<button onclick="location.href='$href'">$label</button>"""
+    return "<p>${button(prevHref, "&larr; $prevLabel")} ${button(nextHref, "$nextLabel &rarr;")}</p>"
+}
 
 private fun score(ring: Int, innerTen: Boolean) = if (innerTen) "X" else ring.toString()
 
