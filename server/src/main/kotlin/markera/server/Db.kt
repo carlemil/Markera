@@ -500,6 +500,21 @@ class Db(dbPath: String) : AutoCloseable {
         return series.map { it.copy(holes = holesOf(it.id, includeDeleted = deletedHoles)) }
     }
 
+    /**
+     * The series either side of [seriesId] in the admin user page's list (newest id first, soft-deleted ones
+     * included): the row above (the next newer id) and the row below (the next older id), null at either end.
+     */
+    @Synchronized
+    fun adjacentSeries(userId: Long, seriesId: Long): Pair<Long?, Long?> {
+        fun one(sql: String): Long? = conn.prepareStatement(sql).use { st ->
+            st.setLong(1, userId)
+            st.setLong(2, seriesId)
+            st.executeQuery().use { rs -> if (rs.next()) rs.getLong(1).takeUnless { rs.wasNull() } else null }
+        }
+        return one("SELECT MIN(id) FROM series WHERE user_id = ? AND id > ?") to
+            one("SELECT MAX(id) FROM series WHERE user_id = ? AND id < ?")
+    }
+
     /** Every tag the user has filed a live series under, alphabetical: the admin editor's suggestions. */
     @Synchronized
     fun tagsOf(userId: Long): List<String> {

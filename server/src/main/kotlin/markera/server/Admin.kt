@@ -188,10 +188,14 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "</script>" +
                 "<script>$EDITOR_JS</script>"
         }
+        // Step through the owner's series in the user page's order: previous is the row above, next the row below.
+        val (newer, older) = db.adjacentSeries(userId!!, seriesId)
+        val prev = newer?.let { """<a href="/admin/series/$it">&larr; previous (#$it)</a>""" } ?: "&larr; previous"
+        val next = older?.let { """<a href="/admin/series/$it">next (#$it) &rarr;</a>""" } ?: "next &rarr;"
         respondHtml(
             page(
                 "Series ${series.id}",
-                """<a href="/admin/users/$userId">&larr; user $userId</a>""" +
+                """<p class="nav"><a href="/admin/users/$userId">&larr; user $userId</a> &middot; $prev &middot; $next</p>""" +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
                     "<p>${time(series.timestamp)} &middot; $caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></p>""" +

@@ -793,6 +793,26 @@ class ApiTest {
     }
 
     @Test
+    fun theAdminSeriesPageStepsThroughTheOwnersSeries() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("me")
+        val other = client.devAuth("other")
+        val first = client.createSeries(me.token, series())
+        client.createSeries(other.token, series())
+        val middle = client.createSeries(me.token, series())
+        val last = client.createSeries(me.token, series())
+        // A soft-deleted series is a row of the user page too, so the walk passes through it.
+        client.delete("/series/$middle") { bearerAuth(me.token) }
+
+        val page = client.admin("/admin/series/$middle").bodyAsText()
+        assertTrue(page.contains("""<a href="/admin/series/$last">&larr; previous (#$last)</a>"""), page)
+        assertTrue(page.contains("""<a href="/admin/series/$first">next (#$first) &rarr;</a>"""), page)
+        val newest = client.admin("/admin/series/$last").bodyAsText()
+        assertTrue(newest.contains("&middot; &larr; previous &middot;"), newest)
+        assertTrue(newest.contains("""next (#$middle)"""), newest)
+        assertTrue(client.admin("/admin/series/$first").bodyAsText().contains("&middot; next &rarr;</p>"))
+    }
+
+    @Test
     fun aSeriesPostedWithoutATagIsUntagged() = apiTest { client ->
         val me = client.devAuth("me")
         // The shape an app build from before tags posts: no `tag` field at all.
