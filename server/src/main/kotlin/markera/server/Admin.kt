@@ -85,9 +85,9 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val query = "deleted=${if (deleted) 1 else 0}"
         val paging = (if (offset > 0) """<a href="?${query}&amp;offset=${(offset - 50).coerceAtLeast(0)}">Previous</a> """ else "") +
             (if (matches.size > 50) """<a href="?${query}&amp;offset=${offset.toLong() + 50}">Next</a>""" else "")
-        respondHtml(page("Review changed series", """<a href="/admin">Users</a> &middot;
-            <a href="/admin/training-export.zip">Training export</a> &middot;
-            <a href="?deleted=${if (deleted) 0 else 1}">${if (deleted) "Live only" else "Include deleted series"}</a>""" +
+        respondHtml(page("Review changed series", """<div><a href="/admin">&larr; users</a></div>""" +
+            """<div><a href="/admin/training-export.zip">training export (zip)</a></div>""" +
+            """<div><a href="?deleted=${if (deleted) 0 else 1}">${if (deleted) "Live only" else "Include deleted series"}</a></div>""" +
             "<p>Tracking starts with this server version. Initial saves and first photo attachments are baselines, not edits. " +
             "Existing hole signals are inferred; historical metadata/photo edits and their authors cannot be reconstructed. " +
             "The shared admin login identifies a role, not an individual. A later reversal keeps its earlier tracked history.</p>" +
@@ -112,7 +112,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         respondHtml(
             page(
                 "Suggestions",
-                """<a href="/admin">&larr; users</a>""" +
+                """<div><a href="/admin">&larr; users</a></div>""" +
                     table(listOf("id", "received", "suggestion", "e-mail", "user", "app", "mailed"), rows),
             )
         )
@@ -147,7 +147,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         respondHtml(
             page(
                 label,
-                """<a href="/admin">&larr; users</a>""" +
+                """<div><a href="/admin">&larr; users</a></div>""" +
                     table(listOf("id", "timestamp", "caliber", "holes", "total", "edited", "image", "deleted", "tag"), rows) +
                     """<p><button id="delete-user">Delete user</button> <span id="msg"></span></p>""" +
                     """<script>const MSG = ${jsString(confirm)};$DELETE_USER_JS</script>""",
@@ -195,10 +195,10 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         respondHtml(
             page(
                 "Series ${series.id}",
-                """<p class="nav"><a href="/admin/users/$userId">&larr; user $userId</a> &middot; $prev &middot; $next</p>""" +
+                """<div><a href="/admin/users/$userId">&larr; user $userId</a></div><div>$prev</div><div>$next</div>""" +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
-                    "<p>${time(series.timestamp)} &middot; $caliber &middot; $tag &middot; " +
-                    """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></p>""" +
+                    "<div>${time(series.timestamp)}</div><div>$caliber</div><div>$tag</div>" +
+                    """<div>total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +

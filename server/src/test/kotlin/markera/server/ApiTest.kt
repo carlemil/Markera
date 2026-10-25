@@ -807,9 +807,9 @@ class ApiTest {
         assertTrue(page.contains("""<a href="/admin/series/$first">&larr; previous (#$first)</a>"""), page)
         assertTrue(page.contains("""<a href="/admin/series/$last">next (#$last) &rarr;</a>"""), page)
         val oldest = client.admin("/admin/series/$first").bodyAsText()
-        assertTrue(oldest.contains("&middot; &larr; previous &middot;"), oldest)
+        assertTrue(oldest.contains("<div>&larr; previous</div>"), oldest)
         assertTrue(oldest.contains("""next (#$middle)"""), oldest)
-        assertTrue(client.admin("/admin/series/$last").bodyAsText().contains("&middot; next &rarr;</p>"))
+        assertTrue(client.admin("/admin/series/$last").bodyAsText().contains("<div>next &rarr;</div>"))
     }
 
     @Test
