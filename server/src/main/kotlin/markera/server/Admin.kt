@@ -197,8 +197,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "Series ${series.id}",
                 """<div><a href="/admin/users/$userId">&larr; user $userId</a></div><div>$prev</div><div>$next</div>""" +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
-                    "<div>${time(series.timestamp)}</div><div>$caliber</div><div>$tag</div>" +
-                    """<div>total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
+                    "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
+                    """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
                     """<div class="cols"><div>""" +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
