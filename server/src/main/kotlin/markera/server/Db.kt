@@ -501,8 +501,8 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     /**
-     * The series either side of [seriesId] in the admin user page's list (newest id first, soft-deleted ones
-     * included): the row above (the next newer id) and the row below (the next older id), null at either end.
+     * The owner's series either side of [seriesId], soft-deleted ones included (they are rows of the admin user
+     * page too): the next newer id and the next older id, null at either end.
      */
     @Synchronized
     fun adjacentSeries(userId: Long, seriesId: Long): Pair<Long?, Long?> {

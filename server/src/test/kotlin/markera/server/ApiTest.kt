@@ -804,12 +804,12 @@ class ApiTest {
         client.delete("/series/$middle") { bearerAuth(me.token) }
 
         val page = client.admin("/admin/series/$middle").bodyAsText()
-        assertTrue(page.contains("""<a href="/admin/series/$last">&larr; previous (#$last)</a>"""), page)
-        assertTrue(page.contains("""<a href="/admin/series/$first">next (#$first) &rarr;</a>"""), page)
-        val newest = client.admin("/admin/series/$last").bodyAsText()
-        assertTrue(newest.contains("&middot; &larr; previous &middot;"), newest)
-        assertTrue(newest.contains("""next (#$middle)"""), newest)
-        assertTrue(client.admin("/admin/series/$first").bodyAsText().contains("&middot; next &rarr;</p>"))
+        assertTrue(page.contains("""<a href="/admin/series/$first">&larr; previous (#$first)</a>"""), page)
+        assertTrue(page.contains("""<a href="/admin/series/$last">next (#$last) &rarr;</a>"""), page)
+        val oldest = client.admin("/admin/series/$first").bodyAsText()
+        assertTrue(oldest.contains("&middot; &larr; previous &middot;"), oldest)
+        assertTrue(oldest.contains("""next (#$middle)"""), oldest)
+        assertTrue(client.admin("/admin/series/$last").bodyAsText().contains("&middot; next &rarr;</p>"))
     }
 
     @Test
