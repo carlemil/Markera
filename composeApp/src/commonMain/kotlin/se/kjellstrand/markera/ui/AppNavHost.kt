@@ -55,6 +55,7 @@ import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
 import se.kjellstrand.markera.ui.markera.rememberTargetScanController
 import se.kjellstrand.markera.ui.settings.AppSettings
+import se.kjellstrand.markera.ui.settings.LocalAppSettings
 import se.kjellstrand.markera.ui.settings.LocalAppLocale
 import se.kjellstrand.markera.ui.settings.SettingsScreen
 import se.kjellstrand.markera.ui.settings.SystemBarsForTheme
@@ -159,7 +160,7 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
         localeReady = true
     }
     if (!localeReady) return
-    CompositionLocalProvider(LocalAppLocale provides applied) {
+    CompositionLocalProvider(LocalAppLocale provides applied, LocalAppSettings provides settings) {
         key(applied) {
             MarkeraTheme(dark) {
                 SystemBarsForTheme(dark)

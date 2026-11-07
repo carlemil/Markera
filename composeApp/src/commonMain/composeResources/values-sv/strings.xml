@@ -325,6 +325,11 @@
     <string name="error_server">Servern svarade med ett fel. Försök igen senare.</string>
     <string name="error_generic">Något gick fel. Försök igen.</string>
     <string name="markera_error_camera">Kameran kunde inte starta.</string>
+    <string name="guide_color_title">Siktesfärg</string>
+    <string name="guide_color_hue">Nyans</string>
+    <string name="guide_color_brightness">Ljusstyrka</string>
+    <string name="guide_color_reset">Standard</string>
+    <string name="guide_color_done">Klar</string>
     <string name="ios_pick_photo">Välj foto</string>
     <!-- Shared empty / loading / error states (StateMessage) -->
     <string name="state_error_title">Kunde inte hämta</string>

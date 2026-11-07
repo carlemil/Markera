@@ -29,6 +29,7 @@ private object Keys {
     val tag = stringPreferencesKey("tag")
     val theme = stringPreferencesKey("theme")
     val language = stringPreferencesKey("language")
+    val guideColor = longPreferencesKey("guide_color")
 }
 
 /** Moves a login saved before [authDataStore] existed out of the settings file. */
@@ -77,6 +78,12 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeLanguage(value: String?) {
         dataStore.edit { it[Keys.language] = value ?: "" }
+    }
+
+    override suspend fun readGuideColor(): Long? = dataStore.data.first()[Keys.guideColor]
+
+    override suspend fun writeGuideColor(argb: Long) {
+        dataStore.edit { it[Keys.guideColor] = argb }
     }
 
     override suspend fun readCaliber(): Caliber =

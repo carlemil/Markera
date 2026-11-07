@@ -18,7 +18,13 @@ class UserDefaultsBackendTokenStore(
         const val TAG = "markera.backend.tag"
         const val THEME = "markera.settings.theme"
         const val LANGUAGE = "markera.settings.language"
+        const val GUIDE_COLOR = "markera.settings.guideColor"
     }
+
+    // Stored as a string: NSUserDefaults integers can't express "absent".
+    override suspend fun readGuideColor(): Long? = defaults.stringForKey(Keys.GUIDE_COLOR)?.toLongOrNull()
+
+    override suspend fun writeGuideColor(argb: Long) = defaults.setObject(argb.toString(), Keys.GUIDE_COLOR)
 
     // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
     override suspend fun readTag(): String? = normalizeTag(defaults.stringForKey(Keys.TAG))

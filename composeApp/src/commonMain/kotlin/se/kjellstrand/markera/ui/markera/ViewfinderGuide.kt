@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.max
 import kotlin.math.min
 import se.kjellstrand.markera.res.*
+import se.kjellstrand.markera.ui.settings.DEFAULT_GUIDE_COLOR
 import se.kjellstrand.markera.vision.INNER_RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.height
@@ -28,8 +29,10 @@ import se.kjellstrand.markera.vision.width
  * centre. Purely a framing aid — it does not affect detection.
  */
 @Composable
-internal fun ViewfinderGuide(modifier: Modifier = Modifier) {
-    val guideColor = Color(0xCCFFFFFF)
+internal fun ViewfinderGuide(
+    modifier: Modifier = Modifier,
+    guideColor: Color = Color(DEFAULT_GUIDE_COLOR),
+) {
     val textMeasurer = rememberTextMeasurer()
     Canvas(modifier = modifier) {
         val centre = Offset(size.width / 2f, size.height / 2f)

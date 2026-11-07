@@ -39,9 +39,16 @@ import se.kjellstrand.markera.series.BackendTokenStore
 import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.LocalOpenSettings
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import se.kjellstrand.markera.ui.SectionHeader
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+/** The viewfinder guide's colour until the user picks one: 80% white. */
+const val DEFAULT_GUIDE_COLOR: Long = 0xCCFFFFFF
+
+/** The device preferences, provided by [se.kjellstrand.markera.ui.MarkeraApp]; null in previews. */
+val LocalAppSettings = staticCompositionLocalOf<AppSettings?> { null }
 
 /** The UI languages; the names stay in their own language so they are findable from either. */
 val LANGUAGES = listOf("en" to "English", "sv" to "Svenska")
@@ -58,6 +65,10 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     private val _language = MutableStateFlow<String?>(null)
     val language: StateFlow<String?> = _language.asStateFlow()
 
+    /** The live viewfinder guide's colour (circles, digits, cross) as ARGB. */
+    private val _guideColor = MutableStateFlow(DEFAULT_GUIDE_COLOR)
+    val guideColor: StateFlow<Long> = _guideColor.asStateFlow()
+
     private val _loaded = MutableStateFlow(false)
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
@@ -65,8 +76,14 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
         scope.launch {
             _theme.value = ThemeMode.entries.firstOrNull { it.name == store.readTheme() } ?: ThemeMode.SYSTEM
             _language.value = store.readLanguage()?.takeIf { code -> LANGUAGES.any { it.first == code } }
+            _guideColor.value = store.readGuideColor() ?: DEFAULT_GUIDE_COLOR
             _loaded.value = true
         }
+    }
+
+    fun setGuideColor(argb: Long) {
+        _guideColor.value = argb
+        scope.launch { store.writeGuideColor(argb) }
     }
 
     fun setTheme(mode: ThemeMode) {

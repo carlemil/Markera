@@ -27,6 +27,9 @@ import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesRecorder
+import se.kjellstrand.markera.ui.settings.DEFAULT_GUIDE_COLOR
+import se.kjellstrand.markera.ui.settings.LocalAppSettings
+import androidx.compose.ui.graphics.Color
 
 /**
  * Editing the holes on the frozen frame: add one where the user taps, move the
@@ -110,8 +113,21 @@ fun TargetScanner(
                 modifier = Modifier.fillMaxSize(),
             )
             // Framing guide on the live viewfinder only — a centred circle
-            // (~70% of the viewport) with a small crosshair at its centre.
-            if (frozen == null) ViewfinderGuide(modifier = Modifier.fillMaxSize())
+            // (~70% of the viewport) with a small crosshair at its centre, in
+            // the user's colour, picked from the palette button top right.
+            if (frozen == null) {
+                val settings = LocalAppSettings.current
+                val argb = settings?.guideColor?.collectAsState()?.value ?: DEFAULT_GUIDE_COLOR
+                val guideColor = Color(argb)
+                ViewfinderGuide(modifier = Modifier.fillMaxSize(), guideColor = guideColor)
+                if (settings != null) {
+                    GuideColorButton(
+                        color = guideColor,
+                        onPick = { settings.setGuideColor(it.toStoredArgb()) },
+                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    )
+                }
+            }
         }
         Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
             if (frozen != null) {

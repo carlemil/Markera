@@ -325,6 +325,11 @@
     <string name="error_server">The server had a problem. Try again later.</string>
     <string name="error_generic">Something went wrong. Try again.</string>
     <string name="markera_error_camera">The camera could not start.</string>
+    <string name="guide_color_title">Guide colour</string>
+    <string name="guide_color_hue">Hue</string>
+    <string name="guide_color_brightness">Brightness</string>
+    <string name="guide_color_reset">Default</string>
+    <string name="guide_color_done">Done</string>
     <string name="ios_pick_photo">Pick photo</string>
     <!-- Shared empty / loading / error states (StateMessage) -->
     <string name="state_error_title">Couldn't load</string>

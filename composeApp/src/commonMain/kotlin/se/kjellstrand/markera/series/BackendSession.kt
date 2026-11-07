@@ -42,6 +42,10 @@ interface BackendTokenStore {
     suspend fun writeTheme(value: String) {}
     suspend fun readLanguage(): String? = null
     suspend fun writeLanguage(value: String?) {}
+
+    /** The live viewfinder guide's colour as ARGB; a device preference, survives [clear]. Null = never chosen. */
+    suspend fun readGuideColor(): Long? = null
+    suspend fun writeGuideColor(argb: Long) {}
 }
 
 /**
