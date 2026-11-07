@@ -31,6 +31,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -134,7 +137,10 @@ fun MarkeraScreen(
     // Phone on a tripod: rescan by itself whenever the target changes, so the
     // scores follow the series shot by shot. Session-only, like the toggles above.
     var continuous by remember { mutableStateOf(false) }
+    // The scan found no ring or centre and the user is fitting one by hand; null otherwise.
+    var placing by remember { mutableStateOf<GeometryDraft?>(null) }
     val onDetectClick: () -> Unit = {
+        placing = null
         scanController.startScan(
             frameSource, snapshotVm, viewModel, coroutineScope, errorInference, detectHoles,
         )
@@ -169,6 +175,7 @@ fun MarkeraScreen(
         val picks = uiState.topScores
         val scored = uiState.scores.isNotEmpty()
         edited = false
+        placing = null
         snapshotVm.clear()
         viewModel.clearResults()
         // Leaving the frozen frame is what saves the scan, with the edited scores.
@@ -180,6 +187,7 @@ fun MarkeraScreen(
     // In an import that is Skip: the next image.
     val discard: () -> Unit = {
         edited = false
+        placing = null
         snapshotVm.clear()
         viewModel.clearResults()
         recorder?.clear()
@@ -316,6 +324,15 @@ fun MarkeraScreen(
                         keepPreviewAlive = watching,
                         modifier = Modifier.fillMaxSize(),
                     )
+                    placing?.let { draft ->
+                        GeometryPlacer(
+                            draft = draft,
+                            imageWidth = uiState.imageWidth,
+                            imageHeight = uiState.imageHeight,
+                            onChange = { placing = it },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                     watchDebug?.let { WatchDebugOverlay(it, Modifier.fillMaxSize()) }
                     // Over the photo, below the top bar it used to cover.
                     uiState.error?.let { msg ->
@@ -347,6 +364,16 @@ fun MarkeraScreen(
                     onToggleContinuous = { continuous = it },
                     onContinuousHelp = { showingContinuousHelp = true },
                     importing = importQueue != null,
+                    placing = placing != null,
+                    onManualMark = { placing = initialGeometryDraft(uiState) },
+                    onPlaceDone = {
+                        placing?.let { d ->
+                            edited = true
+                            scanController.applyManualGeometry(viewModel, snapshotVm.snapshot, d.cx, d.cy, d.radius)
+                        }
+                        placing = null
+                    },
+                    onPlaceCancel = { placing = null },
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }
@@ -435,10 +462,15 @@ private fun BottomArea(
     onToggleContinuous: (Boolean) -> Unit,
     onContinuousHelp: () -> Unit,
     importing: Boolean,
+    placing: Boolean,
+    onManualMark: () -> Unit,
+    onPlaceDone: () -> Unit,
+    onPlaceCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
         when {
+            placing -> PlacementContent(onPlaceDone, onPlaceCancel)
             // The chips stay up while the detector runs: caliber and tag are
             // read when the series is saved, so changing them mid-scan is safe.
             processing -> Column(
@@ -495,7 +527,41 @@ private fun BottomArea(
                     }
                 }
             }
-            else -> ResultsContent(uiState, onResume, onReset, onSetScore, importing, Modifier.fillMaxSize())
+            else -> ResultsContent(uiState, onResume, onReset, onSetScore, importing, onManualMark, Modifier.fillMaxSize())
+        }
+    }
+}
+
+/** While the user fits the 6/7 ring by hand: how, and Done / Cancel. */
+@Composable
+private fun PlacementContent(onDone: () -> Unit, onCancel: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = stringResource(Res.string.markera_place_hint),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SecondaryActionButton(
+                text = stringResource(Res.string.dialog_cancel),
+                icon = Icons.Default.Close,
+                onClick = onCancel,
+            )
+            PrimaryActionButton(
+                text = stringResource(Res.string.markera_place_done),
+                icon = Icons.Default.Check,
+                onClick = onDone,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -580,11 +646,13 @@ private fun ResultsContent(
     onReset: () -> Unit,
     onSetScore: (index: Int, pick: Int) -> Unit,
     importing: Boolean,
+    onManualMark: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // In an import a rescan would find the same: throwing the scan away is skipping the image.
     val resetText = stringResource(if (importing) Res.string.import_skip else Res.string.markera_reset)
-    // No ring or centre: nothing was scored and nothing can be, so say so and offer only a rescan.
+    // No ring or centre: nothing was scored, so say so and offer a rescan, or placing
+    // the ring and centre by hand (the holes the scan found are then scored against them).
     if (uiState.ring == null || uiState.centre?.method.let { it == null || it == CentreMethod.NONE }) {
         Column(
             modifier,
@@ -601,6 +669,14 @@ private fun ResultsContent(
                 icon = Icons.Default.PhotoCamera,
                 onClick = onReset,
             )
+            // Only a frame that actually froze can be marked (a failed capture has none).
+            if (uiState.imageWidth > 0 && uiState.imageHeight > 0) {
+                SecondaryActionButton(
+                    text = stringResource(Res.string.markera_manual_mark),
+                    icon = Icons.Default.Edit,
+                    onClick = onManualMark,
+                )
+            }
         }
         return
     }

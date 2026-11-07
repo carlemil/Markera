@@ -213,6 +213,35 @@ class TargetScanController(
         }
 
     /**
+     * The scan found no usable ring or centre and the user placed the 6/7 ring by
+     * hand: a circle at [cx],[cy] of radius [radius] (image px), its middle the
+     * centre. The holes the scan did find are scored against it, and the frame
+     * then edits and saves like any scored scan. Ignored without a frozen frame
+     * or mid-scan.
+     */
+    fun applyManualGeometry(
+        viewModel: MarkeraViewModel,
+        snapshot: PlatformImage?,
+        cx: Float,
+        cy: Float,
+        radius: Float,
+    ) {
+        val state = viewModel.uiState.value
+        if (snapshot == null || state.phase != ScanPhase.IDLE || radius <= 0f) return
+        val centre = CentreEstimate(cx, cy, CentreMethod.MANUAL)
+        val ring = FittedEllipse(cx, cy, radius, radius, 0f)
+        ErrorLog.breadcrumb("scan", "manual geometry, ${state.detections.size} holes")
+        viewModel.onManualGeometry(centre, ring, scoreHits(state.detections, centre, ring))
+        // Published even with no holes yet: hand-placed ones re-publish as they come.
+        onSeriesDetected?.invoke(
+            viewModel.uiState.value.scores,
+            snapshot,
+            geometryDto(centre, ring),
+            viewModel.uiState.value.removedDetections,
+        )
+    }
+
+    /**
      * Runs one hole edit against the frozen scan's geometry and re-publishes the
      * series, so the pending save carries the edit. Ignored without geometry or
      * mid-scan; [edit] returns false when it changed nothing.

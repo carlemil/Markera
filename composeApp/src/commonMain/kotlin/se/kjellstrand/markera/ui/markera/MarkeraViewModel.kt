@@ -50,6 +50,13 @@ interface MarkeraViewModel {
     /** The user long-pressed a hole: drop hole [index] and its score. */
     fun removeHit(index: Int)
 
+    /**
+     * The scan found no usable ring or centre and the user placed both by hand:
+     * publish them and the holes rescored against them ([scores], one per
+     * detection, in detection order).
+     */
+    fun onManualGeometry(centre: CentreEstimate, ring: FittedEllipse, scores: List<HitScore>)
+
     /** Clear detection overlay state. */
     fun clearResults()
 

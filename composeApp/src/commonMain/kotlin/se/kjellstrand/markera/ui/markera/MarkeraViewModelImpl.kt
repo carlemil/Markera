@@ -99,6 +99,12 @@ class MarkeraViewModelImpl : ViewModel(), MarkeraViewModel {
         }
     }
 
+    override fun onManualGeometry(centre: CentreEstimate, ring: FittedEllipse, scores: List<HitScore>) {
+        _uiState.update {
+            it.copy(centre = centre, ring = ring).withHoles(it.detections, scores).copy(error = null)
+        }
+    }
+
     override fun clearResults() {
         _uiState.update {
             it.copy(

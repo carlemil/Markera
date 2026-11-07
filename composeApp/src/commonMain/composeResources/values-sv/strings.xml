@@ -9,6 +9,9 @@
     <string name="markera_error_inference">Detekteringen misslyckades.</string>
     <string name="markera_no_ring">Hittade inte 6/7-ringen, så inget räknades. Skanna igen med hela svarta fältet och siffrorna i bild.</string>
     <string name="markera_rescan">Skanna igen</string>
+    <string name="markera_manual_mark">Manuell markering</string>
+    <string name="markera_place_hint">Lägg den orange cirkeln på kanten av det svarta (6/7) och korset i mitten. Dra inuti cirkeln för att flytta den, dra vid kanten för att ändra storlek. Hålen som hittades räknas sedan, och du kan lägga till, flytta eller ta bort hål som vanligt.</string>
+    <string name="markera_place_done">Klar</string>
     <string name="markera_edit_hint">Tryck i bilden för att lägga till · dra för att flytta · håll inne för att ta bort</string>
     <string name="markera_reset_title">Släng ändringarna?</string>
     <string name="markera_reset_message">De ändrade poängen slängs och inget sparas.</string>

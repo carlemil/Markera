@@ -46,6 +46,9 @@ enum class CentreMethod {
     /** Intersection of the lines fitted through the two digit rows. */
     LINE_INTERSECTION,
 
+    /** Placed by the user, with the 6/7 ring, after the scan found no ring or centre. */
+    MANUAL,
+
     /** Not enough digits to commit to a centre — caller should draw nothing. */
     NONE,
 }
