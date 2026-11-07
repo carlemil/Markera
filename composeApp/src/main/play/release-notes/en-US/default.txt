@@ -1,7 +1,7 @@
-New in 1.12.0:
-• Import target photos from your gallery or files. With Auto import, every photo that scores is saved on its own.
-• No more five-hit limit per series.
-• Step between series with the arrows on the Serie page.
-• Caliber and tag fields now have titles.
-• Fewer false hits from printed digits and text.
-Special thanks to Hakan for suggesting photo upload, the measuring ring and more than five hits per series!
+New in 1.13.0:
+• Save series without signing in. When you sign in, you can add them to your account.
+• If the 6/7 ring isn't found, mark manually: place the ring and center yourself and the hits are scored.
+• Pick the color of the camera guide.
+• Faster saving, even while the previous series is uploading.
+• The app no longer switches to English after Google sign-in.
+• The measuring-ring handle stays reachable when zoomed in.
