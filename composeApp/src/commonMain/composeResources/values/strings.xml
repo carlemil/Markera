@@ -10,7 +10,7 @@
     <string name="markera_no_ring">Couldn’t find the 6/7 ring, so nothing was scored. Scan again with the whole black and its digits in view.</string>
     <string name="markera_rescan">Scan again</string>
     <string name="markera_manual_mark">Mark manually</string>
-    <string name="markera_place_hint">Fit the orange circle to the edge of the black (6/7) and the cross to the centre. Drag inside the circle to move it, drag at its edge to resize it. The holes found are then scored, and you can add, move or remove holes as usual.</string>
+    <string name="markera_place_hint">Drag the four dots onto the edge of the black (6/7), each in line with the digits, so the orange ring follows the edge; then the cross to the centre. Drag anywhere else to move it all. The holes found are then scored, and you can add, move or remove holes as usual.</string>
     <string name="markera_place_done">Done</string>
     <string name="markera_edit_hint">Tap the photo to add a hit · drag to move · long-press to remove</string>
     <string name="markera_reset_title">Discard your changes?</string>

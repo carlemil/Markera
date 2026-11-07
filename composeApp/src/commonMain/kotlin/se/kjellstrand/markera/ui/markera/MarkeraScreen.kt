@@ -366,12 +366,15 @@ fun MarkeraScreen(
                     importing = importQueue != null,
                     placing = placing != null,
                     onManualMark = { placing = initialGeometryDraft(uiState) },
+                    canFinishPlacing = placing?.ring != null,
                     onPlaceDone = {
-                        placing?.let { d ->
+                        val d = placing
+                        val ring = d?.ring
+                        if (d != null && ring != null) {
                             edited = true
-                            scanController.applyManualGeometry(viewModel, snapshotVm.snapshot, d.cx, d.cy, d.radius)
+                            scanController.applyManualGeometry(viewModel, snapshotVm.snapshot, d.centre, ring)
+                            placing = null
                         }
-                        placing = null
                     },
                     onPlaceCancel = { placing = null },
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -463,6 +466,7 @@ private fun BottomArea(
     onContinuousHelp: () -> Unit,
     importing: Boolean,
     placing: Boolean,
+    canFinishPlacing: Boolean,
     onManualMark: () -> Unit,
     onPlaceDone: () -> Unit,
     onPlaceCancel: () -> Unit,
@@ -470,7 +474,7 @@ private fun BottomArea(
 ) {
     Box(modifier = modifier.padding(16.dp), contentAlignment = Alignment.Center) {
         when {
-            placing -> PlacementContent(onPlaceDone, onPlaceCancel)
+            placing -> PlacementContent(canFinishPlacing, onPlaceDone, onPlaceCancel)
             // The chips stay up while the detector runs: caliber and tag are
             // read when the series is saved, so changing them mid-scan is safe.
             processing -> Column(
@@ -532,9 +536,9 @@ private fun BottomArea(
     }
 }
 
-/** While the user fits the 6/7 ring by hand: how, and Done / Cancel. */
+/** While the user fits the 6/7 ring by hand: how, and Done (only while the points make an ellipse) / Cancel. */
 @Composable
-private fun PlacementContent(onDone: () -> Unit, onCancel: () -> Unit) {
+private fun PlacementContent(canFinish: Boolean, onDone: () -> Unit, onCancel: () -> Unit) {
     Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -560,6 +564,7 @@ private fun PlacementContent(onDone: () -> Unit, onCancel: () -> Unit) {
                 text = stringResource(Res.string.markera_place_done),
                 icon = Icons.Default.Check,
                 onClick = onDone,
+                enabled = canFinish,
                 modifier = Modifier.weight(1f),
             )
         }

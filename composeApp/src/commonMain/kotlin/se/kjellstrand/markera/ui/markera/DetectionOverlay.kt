@@ -269,7 +269,7 @@ fun DetectionOverlay(
  * axis-aligned oval, matching the (semiMajor, semiMinor, rotationRad)
  * parametrisation the fit and [ringOutline] both use.
  */
-private fun DrawScope.drawTargetRing(
+internal fun DrawScope.drawTargetRing(
     e: FittedEllipse,
     scale: Float,
     offsetX: Float,
