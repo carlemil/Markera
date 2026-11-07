@@ -12,7 +12,7 @@
     <string name="markera_manual_mark">Manuell markering</string>
     <string name="markera_place_hint">Dra de fyra prickarna till kanten av det svarta (6/7), var och en i linje med siffrorna, så att den orange ringen följer kanten; sedan korset till mitten. Dra någon annanstans för att flytta allt. Hålen som hittades räknas sedan, och du kan lägga till, flytta eller ta bort hål som vanligt.</string>
     <string name="markera_place_done">Klar</string>
-    <string name="markera_edit_hint">Tryck i bilden för att lägga till · dra för att flytta · håll inne för att ta bort</string>
+    <string name="markera_edit_hint">Tryck i bilden för att lägga till · dra för att flytta · longpressa för att ta bort</string>
     <string name="markera_reset_title">Släng ändringarna?</string>
     <string name="markera_reset_message">De ändrade poängen slängs och inget sparas.</string>
     <string name="markera_reset_confirm">Släng</string>
