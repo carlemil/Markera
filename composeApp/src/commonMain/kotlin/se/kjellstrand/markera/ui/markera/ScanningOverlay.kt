@@ -1,11 +1,5 @@
 package se.kjellstrand.markera.ui.markera
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -16,9 +10,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -34,7 +30,6 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.random.Random
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -75,25 +70,25 @@ internal fun ScanningOverlay(
     imageHeight: Int,
     modifier: Modifier = Modifier,
 ) {
-    val sweep = rememberInfiniteTransition(label = "scan")
-    val angle by sweep.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = SCAN_SWEEP_MS, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "angle",
-    )
+    // Driven by the frame clock, not an infinite transition: Compose scales
+    // animations by the system animator duration scale, and with animations
+    // off (Accessibility "Remove animations", or the developer option) a
+    // transition jumps to its end and the sweep freezes — which reads as a hang.
+    var angle by remember { mutableFloatStateOf(0f) }
     val green = MarkeraGreen
-    // Fresh blips once per lap, counted from its own clock: deriving the lap
-    // from `angle` would read the animation in composition and recompose every
-    // frame, while the detector already has the CPU.
-    var lap by remember { mutableStateOf(0) }
+    // Fresh blips once per lap. Only `lap` is read in composition, so it
+    // recomposes once per lap; `angle` is read in the Canvas draw and only
+    // redraws, while the detector already has the CPU.
+    var lap by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
+        val start = withFrameMillis { it }
         while (true) {
-            delay(SCAN_SWEEP_MS.toLong())
-            lap++
+            withFrameMillis { now ->
+                val elapsed = now - start
+                angle = (elapsed % SCAN_SWEEP_MS) * 360f / SCAN_SWEEP_MS
+                val l = (elapsed / SCAN_SWEEP_MS).toInt()
+                if (l != lap) lap = l
+            }
         }
     }
     val blips = remember(lap) { scanBlips(Random) }
