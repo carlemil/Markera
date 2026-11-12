@@ -175,7 +175,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val holes = series.holes.mapIndexed { i, h -> holeRow(i, h, readOnly = h.deleted || series.deleted) }.joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
         val photo = if (!hasImage) "" else {
-            """<div class="shot"><img src="/admin/series/$seriesId/image">${geometrySvg(series)}${markers(series)}</div>"""
+            """<div class="zoom"><div class="shot"><img src="/admin/series/$seriesId/image">""" +
+                """${geometrySvg(series)}${markers(series)}</div></div>"""
         }
         // Without the frame size there is nowhere to put a marker, so holes can only be added position-less.
         // With a placeable photo, clicking it is the only way to add a hole — a position-less
@@ -219,6 +220,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
+                    (if (hasImage) "<script>$ZOOM_JS</script>" else "") +
                     script + (if (embed) "" else auditSummary(db.auditEvents(seriesId))),
             )
         )
@@ -592,7 +594,11 @@ img{display:block;max-width:960px}
 /* Margin and border live on the box, not the img: markers and the ring are placed as percentages of
    this box, so its padding box must be exactly the image pixels for a click to land where it points. */
 .shot{position:relative;display:inline-block;margin-top:12px;border:1px solid #35402c}
-.hit{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid;border-radius:50%;
+/* Wheel zoom (ZOOM_JS) scales .shot inside this clipping box; --iz = 1/zoom keeps markers their screen size. */
+.zoom{display:inline-block;overflow:hidden;margin-top:12px;max-width:100%;vertical-align:top}
+.zoom .shot{display:block;margin-top:0;transform-origin:0 0;--iz:1}
+.zoom.panning,.zoom.panning *{cursor:grabbing}
+.hit{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));width:20px;height:20px;border:1px solid;border-radius:50%;
 font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:1;vector-effect:non-scaling-stroke}
@@ -601,7 +607,7 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 tr.gone{text-decoration:line-through}
 .hit.gone{border-style:dashed;cursor:default;opacity:.6}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
-.ghost{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border:1px dashed;border-radius:50%;
+.ghost{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));width:20px;height:20px;border:1px dashed;border-radius:50%;
 opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
 .lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:11px;line-height:1;font-style:normal;
@@ -841,6 +847,60 @@ del.onclick = () => {
                                 : r.text().then(t => msg.textContent = r.status + ' ' + t),
           e => msg.textContent = e);
 };
+"""
+
+/**
+ * Wheel zoom on the series photo, around the cursor (1x..12x); dragging the photo itself pans while zoomed.
+ * A drag that moved swallows its click, so panning never drops a hole; markers still drag as before
+ * (the editor's `at()` reads the transformed rect, so positions stay exact). No dollar sign: Kotlin would eat it.
+ */
+private const val ZOOM_JS = """
+(() => {
+  const box = document.querySelector('.zoom'), shot = box && box.querySelector('.shot');
+  if (!shot) return;
+  let z = 1, tx = 0, ty = 0, pan = null, moved = false;
+  function apply() {
+    const w = shot.offsetWidth, h = shot.offsetHeight;
+    z = Math.min(12, Math.max(1, z));
+    // Keep the photo covering the box: no empty margin at any zoom.
+    tx = Math.min(0, Math.max(w - w * z, tx));
+    ty = Math.min(0, Math.max(h - h * z, ty));
+    shot.style.transform = z === 1 ? '' : 'translate(' + tx + 'px,' + ty + 'px) scale(' + z + ')';
+    shot.style.setProperty('--iz', String(1 / z));
+    box.style.cursor = z > 1 ? 'grab' : '';
+  }
+  box.addEventListener('wheel', e => {
+    e.preventDefault();
+    const r = box.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    const cx = (px - tx) / z, cy = (py - ty) / z;
+    z *= Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015));
+    z = Math.min(12, Math.max(1, z));
+    tx = px - cx * z;
+    ty = py - cy * z;
+    apply();
+  }, {passive: false});
+  box.addEventListener('pointerdown', e => {
+    moved = false;
+    if (z === 1 || e.button !== 0 || e.target.closest('.hit')) return;
+    pan = {x: e.clientX, y: e.clientY, tx: tx, ty: ty, id: e.pointerId};
+  });
+  window.addEventListener('pointermove', e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+    if (!moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+    moved = true;
+    box.classList.add('panning');
+    tx = pan.tx + dx;
+    ty = pan.ty + dy;
+    apply();
+  });
+  window.addEventListener('pointerup', () => { pan = null; box.classList.remove('panning'); });
+  // Capture phase: runs before the editor's click-to-add on .shot.
+  box.addEventListener('click', e => { if (moved) { e.stopPropagation(); moved = false; } }, true);
+  // Zoomed in, the image's own drag would start a browser image drag instead of a pan.
+  box.addEventListener('dragstart', e => e.preventDefault());
+  window.addEventListener('resize', apply);
+})();
 """
 
 /**
