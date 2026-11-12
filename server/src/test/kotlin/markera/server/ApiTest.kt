@@ -171,6 +171,61 @@ class ApiTest {
         sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_curation").use { it.next(); assertEquals(0, it.getInt(1)) } }
     }
 
+    @Test fun `curate edits go to a training copy and never change the user's series`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("training-copy")
+        val live = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, 20.0, 20.0, 0.7)
+        val falsePositive = Hole(200.0, 60.0, 6, false, 10.0, 6, false, 200.0, 60.0, 20.0, 20.0, 0.5)
+        val appDeleted = Hole(300.0, 80.0, 0, false, 10.0, 7, false, 300.0, 80.0, 20.0, 20.0, 0.4, deleted = true)
+        val id = client.createSeries(auth.token, series().copy(holes = listOf(live, falsePositive, appDeleted)))
+        client.putImage(auth.token, id, jpeg(), query = "?width=1000&height=500")
+        suspend fun labels(): Pair<String, String> {
+            val entries = mutableMapOf<String, String>()
+            java.util.zip.ZipInputStream(client.admin("/admin/training-export.zip").bodyAsBytes().inputStream()).use { zip ->
+                generateSequence { zip.nextEntry }.forEach { entries[it.name] = String(zip.readBytes(), Charsets.ISO_8859_1) }
+            }
+            return entries.getValue("labels/$id.txt") to entries.getValue("negatives.csv")
+        }
+        val (userLabels, _) = labels()
+
+        // What the curate editor sends: the 9 rescored to 5, the 6 removed (a false positive), the app's own deletion left out.
+        val edit = series().copy(holes = listOf(live.copy(ring = 5), falsePositive.copy(deleted = true)), tag = "admin-only")
+        assertEquals(HttpStatusCode.Forbidden, client.adminWrite(HttpMethod.Put, "/admin/series/$id/training", edit, xAdmin = false).status)
+        assertEquals(HttpStatusCode.NotFound, client.adminWrite(HttpMethod.Put, "/admin/series/999/training", edit).status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Put, "/admin/series/$id/training", edit).status)
+        // A second save of the same page keeps both deletions without storing either twice.
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Put, "/admin/series/$id/training",
+            edit.copy(holes = listOf(live.copy(ring = 5)))).status)
+
+        // The user sees exactly what they saved, and no audit entry claims an admin edit.
+        val mine = client.get("/series") { bearerAuth(auth.token) }.body<List<Series>>().single { it.id == id }
+        assertEquals(listOf(9, 6), mine.holes.map { it.ring })
+        assertEquals(null, mine.tag)
+        sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_audit WHERE actor_type = 'admin'").use { it.next(); assertEquals(0, it.getInt(1)) } }
+
+        val copyPage = client.admin("/admin/series/$id?embed=1&training=1").bodyAsText()
+        assertTrue(copyPage.contains("Training copy (edited)"), copyPage)
+        assertTrue(copyPage.contains("data-put=\"/admin/series/$id/training\""))
+        assertFalse(copyPage.contains("id=\"delete\""))
+        assertTrue(copyPage.contains("id=\"reset\""))
+        assertTrue(client.admin("/admin/series/$id").bodyAsText().contains("edited training copy"))
+
+        // Training reads the copy: the rescored hole, and both deletions as negatives once each.
+        val (copyLabels, negatives) = labels()
+        assertTrue(userLabels.startsWith("9 "), userLabels)
+        assertTrue(copyLabels.startsWith("5 "), copyLabels)
+        assertEquals(1, copyLabels.trim().lines().size)
+        assertEquals(2, negatives.lines().count { it.startsWith("images/$id.jpg;") && it.endsWith(";deleted") }, negatives)
+
+        // Back to the user's version.
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Delete, "/admin/series/$id/training").status)
+        assertEquals(userLabels, labels().first)
+        assertFalse(client.admin("/admin/series/$id?embed=1&training=1").bodyAsText().contains("id=\"reset\""))
+
+        client.adminWrite(HttpMethod.Put, "/admin/series/$id/training", edit)
+        client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
+        sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_training").use { it.next(); assertEquals(0, it.getInt(1)) } }
+    }
+
     private lateinit var imagesDir: File
     private lateinit var dbFile: File
 
@@ -1398,7 +1453,7 @@ class ApiTest {
 
         val page = client.admin("/admin/series/$id").bodyAsText()
         // The starting state the script edits, holes and frame size included.
-        assertTrue("""<script type="application/json" id="series">""" in page, page)
+        assertTrue("""<script type="application/json" id="series" data-put="/admin/series/$id">""" in page, page)
         assertTrue(""""detectedX":25.0""" in page && """"imageWidth":100""" in page, page)
         assertTrue("<th>detected</th><th>manual</th>" in page, page)
         // Unedited detection: plain detected cell, and the manual select sits on its empty option.

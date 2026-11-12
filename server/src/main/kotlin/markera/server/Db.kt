@@ -8,6 +8,12 @@ import java.sql.DriverManager
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Statement
+import kotlinx.serialization.json.Json
+
+private fun Hole.spot() = detectedX?.let { x -> detectedY?.let { y -> x to y } }
+
+/** The stored training copy: every field written out, unknown ones tolerated so an older row still reads. */
+private val trainingJson = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
 /** A user plus how many series they have; only the admin pages need it. */
 data class UserRow(
@@ -141,6 +147,12 @@ class Db(dbPath: String) : AutoCloseable {
             st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_curation (
                 series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
                 status TEXT NOT NULL CHECK (status IN ('approved', 'rejected')),
+                at TEXT NOT NULL)""")
+            // The admin's own copy of a series for training (edits made in /admin/curate), a SeriesRequest as JSON.
+            // The user's series is never touched by it; no row = the training data is the user's version.
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_training (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                request TEXT NOT NULL,
                 at TEXT NOT NULL)""")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
@@ -499,6 +511,54 @@ class Db(dbPath: String) : AutoCloseable {
         ).use { rs -> buildList { while (rs.next()) add(curation(rs).copy(deleted = rs.getInt("gone") != 0)) } }
     }
 
+    /**
+     * Stores [req] as the admin's training copy of [seriesId], replacing an earlier one; the user's series stays as it is.
+     * The editor never re-sends the app's own soft-deleted holes (they are read-only there), so the user's are
+     * merged in unless the copy already holds that detection: they are false positives for training all the same.
+     */
+    @Synchronized
+    fun setTrainingCopy(seriesId: Long, req: SeriesRequest) {
+        // Likewise the copy's own earlier removals: once stored deleted they show read-only and are not re-sent.
+        val spots = req.holes.mapNotNull { it.spot() }.toMutableSet()
+        val earlier = (trainingCopy(seriesId)?.holes.orEmpty() + holesOf(seriesId, includeDeleted = true)).filter { it.deleted }
+        val kept = earlier.distinct().filter { h -> h.spot()?.let { spots.add(it) } ?: true }
+        val stored = req.copy(holes = req.holes + kept, clientId = null)
+        conn.prepareStatement(
+            "INSERT INTO series_training(series_id, request, at) VALUES (?, ?, ?) " +
+                "ON CONFLICT(series_id) DO UPDATE SET request = excluded.request, at = excluded.at"
+        ).use {
+            it.setLong(1, seriesId); it.setString(2, trainingJson.encodeToString(stored))
+            it.setString(3, auditTime.format(java.time.Instant.now()))
+            it.executeUpdate()
+        }
+    }
+
+    /** Drops the training copy: the training data is the user's own version again. */
+    @Synchronized
+    fun clearTrainingCopy(seriesId: Long) = execute("DELETE FROM series_training WHERE series_id = ?", seriesId)
+
+    @Synchronized
+    fun trainingCopy(seriesId: Long): SeriesRequest? = conn.prepareStatement(
+        "SELECT request FROM series_training WHERE series_id = ?"
+    ).use { st ->
+        st.setLong(1, seriesId)
+        st.executeQuery().use { rs -> if (rs.next()) trainingJson.decodeFromString<SeriesRequest>(rs.getString(1)) else null }
+    }
+
+    /**
+     * What training sees of [seriesId]: the user's series (photo, frame size, owner) with the admin's training copy's
+     * holes, geometry, caliber and tag on top when there is one. Deleted holes come along, flagged, as in [getSeries].
+     */
+    @Synchronized
+    fun trainingSeries(seriesId: Long): Series? {
+        val series = getSeries(seriesId, includeDeleted = true) ?: return null
+        val copy = trainingCopy(seriesId) ?: return series
+        return series.copy(
+            timestamp = copy.timestamp, caliber = copy.caliber.trim(), holes = copy.holes,
+            geometry = copy.geometry, tag = copy.normalisedTag(),
+        )
+    }
+
     private fun curation(rs: java.sql.ResultSet) = Curation(
         rs.getLong("series_id"), CurationStatus.entries.first { it.wire == rs.getString("status") }, rs.getString("at"),
     )
@@ -742,6 +802,7 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM series_audit WHERE owner_id = ?", userId)
         execute("DELETE FROM series_photo_baseline WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_curation WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM series_training WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
         // They may carry the user's e-mail address: gone with the account, like everything else of theirs.

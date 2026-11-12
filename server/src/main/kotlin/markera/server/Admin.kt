@@ -168,9 +168,13 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val seriesId = pathId()
         // Inside /admin/curate's frame: just the editor, no navigation or audit trail around it.
         val embed = call.request.queryParameters["embed"] == "1"
+        // ?training=1 (curate): the admin's training copy, edited apart from the user's series, which stays untouched.
+        val training = call.request.queryParameters["training"] == "1"
+        val hasCopy = db.trainingCopy(seriesId) != null
         // Deleted holes ride along greyed out: they are training data, not part of the series' score.
         // A soft-deleted series opens too, but read-only: no editor script, just Restore.
-        val series = db.getSeries(seriesId, includeDeleted = true) ?: return@get notFound("Unknown series")
+        val series = (if (training) db.trainingSeries(seriesId) else db.getSeries(seriesId, includeDeleted = true))
+            ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId, includeDeleted = true)
         val holes = series.holes.mapIndexed { i, h -> holeRow(i, h, readOnly = h.deleted || series.deleted) }.joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
@@ -189,12 +193,24 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         }
         val caliber = if (series.deleted) esc(series.caliber) else caliberInput(series.caliber)
         val tag = if (series.deleted) esc(series.tag ?: "no tag") else tagInput(series.tag, db.tagsOf(userId!!))
-        val actions = if (series.deleted) """<button id="restore">Restore</button>""" else {
-            """$add<button id="undo" disabled>Undo delete</button> <button id="delete" data-user="$userId">Delete</button>"""
+        val actions = when {
+            series.deleted -> """<button id="restore">Restore</button>"""
+            // No Delete here: that would remove the user's series. Reject keeps it out of training instead.
+            training -> """$add<button id="undo" disabled>Undo delete</button>""" +
+                (if (hasCopy) """ <button id="reset">Back to the user's version</button>""" else "")
+            else -> """$add<button id="undo" disabled>Undo delete</button> <button id="delete" data-user="$userId">Delete</button>"""
         }
+        val trainingNote = when {
+            training -> """<p class="note">Training copy${if (hasCopy) " (edited)" else ""}: edits here are stored for """ +
+                "training only, the user's series stays as the user left it.</p>"
+            hasCopy -> """<p class="note">This series has an edited training copy (<a href="/admin/curate?id=$seriesId">review</a>); """ +
+                "edits here change the user's series, not that copy.</p>"
+            else -> ""
+        }
+        val putUrl = if (training) "/admin/series/$seriesId/training" else "/admin/series/$seriesId"
         val script = if (series.deleted) "<script>$RESTORE_JS</script>" else {
             """<template id="row">${holeRow(-1, Hole(ring = 0, innerTen = false))}</template>""" +
-                """<script type="application/json" id="series">${blob(series.copy(hasImage = hasImage))}""" +
+                """<script type="application/json" id="series" data-put="$putUrl">${blob(series.copy(hasImage = hasImage))}""" +
                 "</script>" +
                 "<script>$EDITOR_JS</script>"
         }
@@ -212,7 +228,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Series ${series.id}",
                 (if (embed) "" else """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""") + verdict +
-                    (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
+                    (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") + trainingNote +
                     "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
@@ -234,6 +250,26 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val req = receiveSeries() ?: return@put
         if (invalid(req)) return@put
         db.replaceSeries(seriesId, req, AuditActor.Admin)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // The curate editor's save: the same body as the PUT above, stored as the training copy only.
+    put("/admin/series/{id}/training") {
+        if (unauthorized(password) || notFromPage()) return@put
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@put notFound("Unknown series")
+        val req = receiveSeries() ?: return@put
+        if (invalid(req)) return@put
+        db.setTrainingCopy(seriesId, req)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // Drops the training copy, so training uses the user's version again.
+    delete("/admin/series/{id}/training") {
+        if (unauthorized(password) || notFromPage()) return@delete
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@delete notFound("Unknown series")
+        db.clearTrainingCopy(seriesId)
         call.respond(HttpStatusCode.NoContent)
     }
 
@@ -272,7 +308,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         call.respondOutputStream(ContentType.Application.Zip) {
             // ?approved=1: only what /admin/curate approved.
             val ids = if (call.request.queryParameters["approved"] == "1") db.approvedSeriesIds() else db.liveSeriesIds()
-            val series = ids.asSequence().mapNotNull { db.getSeries(it, includeDeleted = true) }
+            // The admin's training copy where there is one, else the user's own version.
+            val series = ids.asSequence().mapNotNull { db.trainingSeries(it) }
             writeTrainingZip(this, series) { imageFile(images, it) }
         }
     }
@@ -628,6 +665,8 @@ th[data-sort=desc]::after{content:" \25BC"}
  */
 private const val EDITOR_JS = """
 const S = JSON.parse(document.getElementById('series').textContent);
+// Where edits go: the user's series, or (curate) the admin's separate training copy.
+const PUT_URL = document.getElementById('series').dataset.put;
 const tbl = document.querySelector('table'), tb = tbl.tBodies[0];
 const shot = document.querySelector('.shot'), img = shot ? shot.querySelector('img') : null;
 const placeable = !!(shot && S.imageWidth && S.imageHeight);
@@ -827,7 +866,7 @@ function save() {
                                          // `removed` is this page's own flag and never goes to the server (it rejects unknown keys),
                                          // also not as `removed: false` on a hole whose delete was undone.
                                          .map(h => Object.assign({}, h, h.removed ? {deleted: true, removed: undefined} : {removed: undefined}))});
-  queue = queue.then(() => fetch(location.pathname, {
+  queue = queue.then(() => fetch(PUT_URL, {
     method: 'PUT',
     credentials: 'include',
     headers: {'Content-Type': 'application/json', 'X-Admin': '1'},
@@ -837,8 +876,18 @@ function save() {
           e => msg.textContent = e));
 }
 
+// In curate's training mode: forget the training copy (after any save in flight) and show the user's version.
+const reset = document.getElementById('reset');
+if (reset) reset.onclick = () => {
+  if (!confirm('Drop the training edits of series ' + S.id + ' and use the user\'s version?')) return;
+  queue.then(() => fetch(PUT_URL, {method: 'DELETE', credentials: 'include', headers: {'X-Admin': '1'}}))
+    .then(r => r.status === 204 ? location.reload()
+                                : r.text().then(t => document.getElementById('msg').textContent = r.status + ' ' + t),
+          e => document.getElementById('msg').textContent = e);
+};
+
 const del = document.getElementById('delete');
-del.onclick = () => {
+if (del) del.onclick = () => {
   if (!confirm('Delete series ' + S.id + '?')) return;
   const msg = document.getElementById('msg');
   msg.textContent = 'deleting...';
@@ -1006,7 +1055,7 @@ function show(id, status) {
   history.replaceState(null, '', id == null ? location.pathname : '?id=' + id);
   frame.hidden = id == null;
   document.getElementById('none').hidden = id != null;
-  frame.src = id == null ? 'about:blank' : '/admin/series/' + id + '?embed=1';
+  frame.src = id == null ? 'about:blank' : '/admin/series/' + id + '?embed=1&training=1';
   cur.textContent = id == null ? '' : 'Series #' + id + ' — ' + (status || 'not reviewed');
   document.getElementById('approve').disabled = id == null;
   document.getElementById('reject').disabled = id == null;
