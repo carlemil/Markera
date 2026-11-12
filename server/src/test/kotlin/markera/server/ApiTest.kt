@@ -23,6 +23,11 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import java.io.File
 import java.sql.DriverManager
 import java.sql.Statement
@@ -117,6 +122,53 @@ class ApiTest {
         client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
         assertTrue(client.admin("/admin/review").bodyAsText().contains("No matching series"))
         sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_audit").use { it.next(); assertEquals(0, it.getInt(1)) } }
+    }
+
+    @Test fun `curate picks unreviewed series with a photo and keeps every verdict in its history`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("curate")
+        val first = client.createSeries(auth.token)
+        val second = client.createSeries(auth.token)
+        val noPhoto = client.createSeries(auth.token)
+        listOf(first, second).forEach { client.putImage(auth.token, it, jpeg(), query = "?width=100&height=100") }
+        fun next(json: String) = kotlinx.serialization.json.Json.parseToJsonElement(json).jsonObject
+        suspend fun pick(query: String = "") = next(client.admin("/admin/curate/next$query").bodyAsText())
+
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/curate").status)
+        assertTrue(client.admin("/admin/curate").bodyAsText().contains("Approve"))
+        assertTrue(client.admin("/admin").bodyAsText().contains("href=\"/admin/curate\""))
+        val open = pick()
+        assertEquals(2, open["remaining"]!!.jsonPrimitive.int)
+        assertTrue(open["id"]!!.jsonPrimitive.long in setOf(first, second))
+        // Skipping one of two always offers the other.
+        assertEquals(second, pick("?exclude=$first")["id"]!!.jsonPrimitive.long)
+
+        assertEquals(HttpStatusCode.Forbidden, client.adminWrite(HttpMethod.Post, "/admin/curate/$first?status=approved", xAdmin = false).status)
+        assertEquals(HttpStatusCode.BadRequest, client.adminWrite(HttpMethod.Post, "/admin/curate/$first?status=maybe").status)
+        assertEquals(HttpStatusCode.NotFound, client.adminWrite(HttpMethod.Post, "/admin/curate/999?status=approved").status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/curate/$first?status=approved").status)
+        val after = pick()
+        assertEquals(1, after["remaining"]!!.jsonPrimitive.int)
+        assertEquals(second, after["id"]!!.jsonPrimitive.long)
+        assertTrue(client.admin("/admin/series/$first").bodyAsText().contains("Training: approved"))
+
+        // A second verdict replaces the first; the series stays in the history, never back in the queue.
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$second?status=approved")
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$first?status=rejected")
+        val done = pick()
+        assertEquals(0, done["remaining"]!!.jsonPrimitive.int)
+        assertEquals(kotlinx.serialization.json.JsonNull, done["id"])
+        val history = kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/curate/history").bodyAsText()).jsonArray
+        assertEquals(listOf(first to "rejected", second to "approved"),
+            history.map { it.jsonObject["id"]!!.jsonPrimitive.long to it.jsonObject["status"]!!.jsonPrimitive.content })
+        assertFalse(history.any { it.jsonObject["id"]!!.jsonPrimitive.long == noPhoto })
+
+        // The embedded editor drops the navigation and the audit trail around it.
+        val embedded = client.admin("/admin/series/$second?embed=1").bodyAsText()
+        assertFalse(embedded.contains("Tracked changes"))
+        assertTrue(client.admin("/admin/series/$second").bodyAsText().contains("Tracked changes"))
+
+        client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
+        sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_curation").use { it.next(); assertEquals(0, it.getInt(1)) } }
     }
 
     private lateinit var imagesDir: File

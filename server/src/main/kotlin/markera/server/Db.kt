@@ -137,6 +137,11 @@ class Db(dbPath: String) : AutoCloseable {
             st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_photo_baseline (
                 series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
                 fingerprint TEXT NOT NULL)""")
+            // The admin's verdict on a series for the training data (/admin/curate); no row = not looked at yet.
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_curation (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                status TEXT NOT NULL CHECK (status IN ('approved', 'rejected')),
+                at TEXT NOT NULL)""")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
             val holeColumns = st.executeQuery("PRAGMA table_info(holes)").use { rs ->
@@ -448,6 +453,56 @@ class Db(dbPath: String) : AutoCloseable {
         }
     }
 
+    /** Live series nobody has approved or rejected yet, oldest first: what /admin/curate picks from. */
+    @Synchronized
+    fun uncuratedSeriesIds(): List<Long> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT id FROM series WHERE deleted_at IS NULL AND id NOT IN (SELECT series_id FROM series_curation) ORDER BY id"
+        ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
+    /** Live series approved for training, oldest first: the approved-only training export's input. */
+    @Synchronized
+    fun approvedSeriesIds(): List<Long> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT s.id FROM series s JOIN series_curation c ON c.series_id = s.id " +
+                "WHERE s.deleted_at IS NULL AND c.status = 'approved' ORDER BY s.id"
+        ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
+    /** Approves or rejects [seriesId] for training; a later verdict replaces the earlier one. */
+    @Synchronized
+    fun setCuration(seriesId: Long, status: CurationStatus) {
+        conn.prepareStatement(
+            "INSERT INTO series_curation(series_id, status, at) VALUES (?, ?, ?) " +
+                "ON CONFLICT(series_id) DO UPDATE SET status = excluded.status, at = excluded.at"
+        ).use {
+            it.setLong(1, seriesId); it.setString(2, status.wire); it.setString(3, auditTime.format(java.time.Instant.now())) // fixed width, so text order is time order
+            it.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun curationOf(seriesId: Long): Curation? = conn.prepareStatement(
+        "SELECT series_id, status, at FROM series_curation WHERE series_id = ?"
+    ).use { st ->
+        st.setLong(1, seriesId)
+        st.executeQuery().use { rs -> if (rs.next()) curation(rs) else null }
+    }
+
+    /** Every verdict, the latest first (soft-deleted series included, flagged). */
+    @Synchronized
+    fun curationHistory(): List<Curation> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT c.series_id, c.status, c.at, s.deleted_at IS NOT NULL AS gone FROM series_curation c " +
+                "JOIN series s ON s.id = c.series_id ORDER BY c.at DESC, c.series_id DESC"
+        ).use { rs -> buildList { while (rs.next()) add(curation(rs).copy(deleted = rs.getInt("gone") != 0)) } }
+    }
+
+    private fun curation(rs: java.sql.ResultSet) = Curation(
+        rs.getLong("series_id"), CurationStatus.entries.first { it.wire == rs.getString("status") }, rs.getString("at"),
+    )
+
     /**
      * A stored JPEG changes the series for the delta, so it bumps `updated_at` even when the upload carried
      * no size. [width]/[height] are the frame the app measured the hole coordinates in; null keeps the old ones.
@@ -686,6 +741,7 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM holes WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_audit WHERE owner_id = ?", userId)
         execute("DELETE FROM series_photo_baseline WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM series_curation WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
         // They may carry the user's e-mail address: gone with the account, like everything else of theirs.
@@ -889,3 +945,8 @@ private fun PreparedStatement.setGeometry(from: Int, g: Geometry?) {
 private fun ResultSet.doubleOrNull(index: Int) = getDouble(index).takeIf { !wasNull() }
 
 private fun ResultSet.intOrNull(index: Int) = getInt(index).takeIf { !wasNull() }
+
+/** The admin's training-data verdict on a series. */
+enum class CurationStatus(val wire: String) { APPROVED("approved"), REJECTED("rejected") }
+
+data class Curation(val seriesId: Long, val status: CurationStatus, val at: String, val deleted: Boolean = false)

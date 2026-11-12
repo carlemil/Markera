@@ -15,6 +15,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
@@ -55,7 +58,9 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             page(
                 "Users",
                 counts + """<div><a href="/admin/suggestions">suggestions ($suggestions)</a></div>""" +
-                    """<div><a href="/admin/training-export.zip">training export (zip)</a></div>""" +
+                    """<div><a href="/admin/training-export.zip">training export (zip)</a> &middot; """ +
+                    """<a href="/admin/training-export.zip?approved=1">approved only (zip)</a></div>""" +
+                    """<div><a href="/admin/curate">approve series for training</a></div>""" +
                     """<div><a href="/admin/review">review changed series</a></div>""" +
                     """<div><label><input type="checkbox" id="hide-empty"> hide users with 0 series</label></div>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
@@ -161,6 +166,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
     get("/admin/series/{id}") {
         if (unauthorized(password)) return@get
         val seriesId = pathId()
+        // Inside /admin/curate's frame: just the editor, no navigation or audit trail around it.
+        val embed = call.request.queryParameters["embed"] == "1"
         // Deleted holes ride along greyed out: they are training data, not part of the series' score.
         // A soft-deleted series opens too, but read-only: no editor script, just Restore.
         val series = db.getSeries(seriesId, includeDeleted = true) ?: return@get notFound("Unknown series")
@@ -196,19 +203,23 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
             older?.let { "/admin/series/$it" }, "previous" + older?.let { " (#$it)" }.orEmpty(),
             newer?.let { "/admin/series/$it" }, "next" + newer?.let { " (#$it)" }.orEmpty(),
         )
+        val curation = db.curationOf(seriesId)
+        val verdict = if (embed) "" else "<div>Training: " +
+            (curation?.let { "${it.status.wire} ${time(it.at)}" } ?: "not reviewed") +
+            """ &middot; <a href="/admin/curate?id=$seriesId">review</a></div>"""
         respondHtml(
             page(
                 "Series ${series.id}",
-                """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""" +
+                (if (embed) "" else """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""") + verdict +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") +
                     "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
-                    """<div class="cols"><div>""" + paging +
+                    """<div class="cols"><div>""" + (if (embed) "" else paging) +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
-                    script + auditSummary(db.auditEvents(seriesId)),
+                    script + (if (embed) "" else auditSummary(db.auditEvents(seriesId))),
             )
         )
     }
@@ -257,9 +268,48 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         if (unauthorized(password)) return@get
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"markera-training.zip\"")
         call.respondOutputStream(ContentType.Application.Zip) {
-            val series = db.liveSeriesIds().asSequence().mapNotNull { db.getSeries(it, includeDeleted = true) }
+            // ?approved=1: only what /admin/curate approved.
+            val ids = if (call.request.queryParameters["approved"] == "1") db.approvedSeriesIds() else db.liveSeriesIds()
+            val series = ids.asSequence().mapNotNull { db.getSeries(it, includeDeleted = true) }
             writeTrainingZip(this, series) { imageFile(images, it) }
         }
+    }
+
+    // Approve series for training one at a time: a random unreviewed one in the editor, the verdicts on the side.
+    get("/admin/curate") {
+        if (unauthorized(password)) return@get
+        respondHtml(page("Approve series for training", CURATE_BODY + "<script>$CURATE_JS</script>"))
+    }
+
+    // A random live series with a photo and no verdict yet ([exclude] is the one being skipped), and how many are left.
+    get("/admin/curate/next") {
+        if (unauthorized(password)) return@get
+        val exclude = call.request.queryParameters["exclude"]?.toLongOrNull()
+        val open = db.uncuratedSeriesIds().filter { imageFile(images, it).isFile }
+        val pick = open.filter { it != exclude }.randomOrNull() ?: open.firstOrNull()
+        respondJson(buildJsonObject { put("id", pick); put("remaining", open.size) }.toString())
+    }
+
+    get("/admin/curate/history") {
+        if (unauthorized(password)) return@get
+        respondJson(buildJsonArray {
+            db.curationHistory().forEach { c ->
+                add(buildJsonObject {
+                    put("id", c.seriesId); put("status", c.status.wire); put("at", time(c.at)); put("deleted", c.deleted)
+                })
+            }
+        }.toString())
+    }
+
+    // ?status=approved|rejected; a series already judged just gets the new verdict.
+    post("/admin/curate/{id}") {
+        if (unauthorized(password) || notFromPage()) return@post
+        val seriesId = pathId()
+        val status = CurationStatus.entries.firstOrNull { it.wire == call.request.queryParameters["status"] }
+            ?: return@post call.respondText("status must be approved or rejected", status = HttpStatusCode.BadRequest)
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
+        db.setCuration(seriesId, status)
+        call.respond(HttpStatusCode.NoContent)
     }
 
     get("/admin/series/{id}/image") {
@@ -482,6 +532,8 @@ private suspend fun RoutingContext.notFound(what: String) =
     call.respondText(page(what, ""), ContentType.Text.Html, HttpStatusCode.NotFound)
 
 private suspend fun RoutingContext.respondHtml(html: String) = call.respondText(html, ContentType.Text.Html)
+
+private suspend fun RoutingContext.respondJson(json: String) = call.respondText(json, ContentType.Application.Json)
 
 private fun esc(value: String) = value
     .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
@@ -750,6 +802,8 @@ if (add) add.onclick = () => addHole(null, null);
 document.getElementById('caliber').onchange = () => save();
 document.getElementById('tag').onchange = () => save();
 let queue = Promise.resolve();
+// For /admin/curate: a verdict waits until the edits made in this frame are stored.
+window.editorIdle = () => queue;
 function save() {
   const msg = document.getElementById('msg');
   msg.textContent = 'saving...';
@@ -849,4 +903,149 @@ t.tHead.addEventListener('input', apply);
 hide.onchange = () => { try { localStorage.hideEmpty = hide.checked ? '1' : '' } catch (e) {} apply(); };
 try { hide.checked = localStorage.hideEmpty === '1' } catch (e) {}
 apply();
+"""
+
+/** The curate page's frame: verdicts on the left, the verdict buttons over the embedded editor. */
+private const val CURATE_BODY = """<style>
+.curate{display:flex;gap:16px;align-items:flex-start;margin-top:12px}
+.curate aside{width:240px;flex:none;max-height:calc(100vh - 130px);overflow:auto;border:1px solid #35402c}
+#counts{padding:6px 8px;background:#1c2416;position:sticky;top:0}
+#history{list-style:none;margin:0;padding:0}
+#history li{padding:4px 8px;cursor:pointer;border-top:1px solid #35402c;white-space:nowrap}
+#history li:hover,#history li.active{background:#2a3622}
+#history li.approved b{color:#9ccc65}
+#history li.rejected b{color:#e57373}
+#history li.gone{text-decoration:line-through}
+.curate main{flex:1;min-width:0}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#approve{border-color:#9ccc65;color:#9ccc65}
+#reject{border-color:#e57373;color:#e57373}
+#frame{display:block;width:100%;height:calc(100vh - 160px);margin-top:8px;border:1px solid #35402c;background:#12160f}
+kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
+</style>
+<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a></div>
+<div class="curate"><aside><div id="counts"></div><ul id="history"></ul></aside><main>
+<div class="bar"><button id="approve">Approve <kbd>A</kbd></button><button id="reject">Reject <kbd>R</kbd></button>
+<button id="skip">Skip <kbd>S</kbd></button><span id="current"></span><span id="remaining"></span><span id="cmsg"></span></div>
+<p id="none" hidden>Every series with a photo has a verdict. Pick one on the left to change it.</p>
+<iframe id="frame" title="series editor"></iframe></main></div>"""
+
+/**
+ * The curate page. Edits happen in the embedded editor and save as usual; a verdict waits for them
+ * (`editorIdle`), stores the status and moves on to a fresh random series. No dollar sign anywhere: Kotlin would eat it.
+ */
+private const val CURATE_JS = """
+const frame = document.getElementById('frame'), hist = document.getElementById('history');
+const cur = document.getElementById('current'), msg = document.getElementById('cmsg');
+const get = url => fetch(url, {credentials: 'include'}).then(r => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.json(); });
+const fail = e => msg.textContent = '· ' + (e.message || e);
+let current = null, busy = false;
+
+function show(id, status) {
+  current = id;
+  history.replaceState(null, '', id == null ? location.pathname : '?id=' + id);
+  frame.hidden = id == null;
+  document.getElementById('none').hidden = id != null;
+  frame.src = id == null ? 'about:blank' : '/admin/series/' + id + '?embed=1';
+  cur.textContent = id == null ? '' : 'Series #' + id + ' — ' + (status || 'not reviewed');
+  document.getElementById('approve').disabled = id == null;
+  document.getElementById('reject').disabled = id == null;
+  // Skip is for the random pick; a series opened from the list is left with Approve/Reject or another click.
+  document.getElementById('skip').disabled = id == null || status != null;
+  markActive();
+}
+
+function remaining(n) { document.getElementById('remaining').textContent = '· ' + n + ' left'; }
+
+function next(exclude) {
+  return get('/admin/curate/next' + (exclude != null ? '?exclude=' + exclude : '')).then(j => { remaining(j.remaining); show(j.id, null); });
+}
+
+function loadHistory() {
+  return get('/admin/curate/history').then(list => {
+    hist.textContent = '';
+    let ok = 0;
+    list.forEach(c => {
+      if (c.status === 'approved') ok++;
+      const li = document.createElement('li');
+      li.dataset.id = c.id;
+      li.dataset.status = c.status;
+      li.className = c.status + (c.deleted ? ' gone' : '');
+      const b = document.createElement('b');
+      b.textContent = c.status === 'approved' ? '✓ ' : '✗ ';
+      li.append(b, '#' + c.id + '  ' + c.at);
+      li.onclick = () => show(c.id, c.status);
+      hist.appendChild(li);
+    });
+    document.getElementById('counts').textContent = ok + ' approved, ' + (list.length - ok) + ' rejected';
+    markActive();
+  });
+}
+
+function markActive() {
+  Array.from(hist.children).forEach(li => li.classList.toggle('active', li.dataset.id === String(current)));
+}
+
+// The editor's save queue: a verdict right after an edit must not race the PUT that stores it.
+function idle() {
+  try {
+    const w = frame.contentWindow;
+    return w && w.editorIdle ? w.editorIdle() : Promise.resolve();
+  } catch (e) { return Promise.resolve(); }
+}
+
+function verdict(status) {
+  if (current == null || busy) return;
+  busy = true;
+  const id = current;
+  msg.textContent = '· saving...';
+  idle().then(() => fetch('/admin/curate/' + id + '?status=' + status,
+                          {method: 'POST', credentials: 'include', headers: {'X-Admin': '1'}}))
+    .then(r => {
+      if (r.status !== 204) return r.text().then(t => { throw new Error(r.status + ' ' + t); });
+      msg.textContent = '· #' + id + ' ' + status;
+      return Promise.all([loadHistory(), next()]);
+    })
+    .catch(fail)
+    .finally(() => busy = false);
+}
+
+function skip() {
+  if (current == null || busy || document.getElementById('skip').disabled) return;
+  next(current).catch(fail);
+}
+
+document.getElementById('approve').onclick = () => verdict('approved');
+document.getElementById('reject').onclick = () => verdict('rejected');
+document.getElementById('skip').onclick = skip;
+
+// A, R and S anywhere on the page, the editor frame included, except while typing in one of its fields.
+function onKey(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const t = e.target;
+  if (t && t.closest && t.closest('input, select, textarea')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'a') verdict('approved');
+  else if (k === 'r') verdict('rejected');
+  else if (k === 's') skip();
+  else return;
+  e.preventDefault();
+}
+document.addEventListener('keydown', onKey);
+frame.addEventListener('load', () => {
+  try { frame.contentDocument.addEventListener('keydown', onKey); } catch (e) {}
+  // The editor's Delete leaves for the user page: that series is gone, so go on to the next one.
+  try {
+    const path = frame.contentWindow.location.pathname;
+    if (current != null && path.startsWith('/admin/') && !path.startsWith('/admin/series/')) loadHistory().then(() => next()).catch(fail);
+  } catch (e) {}
+});
+
+const start = new URLSearchParams(location.search).get('id');
+loadHistory().then(() => {
+  if (start == null) return next();
+  const li = hist.querySelector('li[data-id="' + Number(start) + '"]');
+  show(Number(start), li ? li.dataset.status : null);
+  return get('/admin/curate/next').then(j => remaining(j.remaining));
+}).catch(fail);
 """
