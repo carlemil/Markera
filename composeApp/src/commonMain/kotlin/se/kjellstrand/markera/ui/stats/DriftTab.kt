@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.stats.DayImpact
+import se.kjellstrand.markera.ui.AppChip
 
 /**
  * Old to new: a muted grey fading into a sharp blue, so the recent days stand out. The dark
@@ -87,16 +88,16 @@ internal fun DriftTab(
         DriftCanvas(days, showMean, showMedian)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Switching off the one still on would leave an empty target, so that chip just stays on.
-            FilterChip(
+            AppChip(
                 selected = showMean,
                 onClick = { if (!showMean || showMedian) onShow(!showMean, showMedian) },
-                label = { Text(stringResource(Res.string.stats_legend_mean)) },
+                label = stringResource(Res.string.stats_legend_mean),
                 leadingIcon = { Symbol(median = false) },
             )
-            FilterChip(
+            AppChip(
                 selected = showMedian,
                 onClick = { if (!showMedian || showMean) onShow(showMean, !showMedian) },
-                label = { Text(stringResource(Res.string.stats_legend_median)) },
+                label = stringResource(Res.string.stats_legend_median),
                 leadingIcon = { Symbol(median = true) },
             )
         }
@@ -173,10 +174,10 @@ private fun DrawScope.drawPath(days: List<DayImpact>, points: List<Offset>, k: F
     }
 }
 
-/** The chip's symbol: the same filled dot or ring as on the target, in the text colour. */
+/** The chip's symbol: the same filled dot or ring as on the target, in the chip's content colour. */
 @Composable
 private fun Symbol(median: Boolean) {
-    val colour = MaterialTheme.colorScheme.onSurface
+    val colour = LocalContentColor.current
     Canvas(Modifier.size(MEAN_DOT * 3)) {
         if (median) {
             drawCircle(colour, radius = MEDIAN_RING.toPx(), style = Stroke(2.dp.toPx()))
