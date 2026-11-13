@@ -172,7 +172,7 @@
     <string name="stats_drift_oldest">Oldest day</string>
     <string name="stats_drift_newest">Newest day</string>
     <string name="stats_help_drift">Drift</string>
-    <string name="stats_help_drift_body">The Drift tab shows how your point of impact moves over time. Every day you shot gets one mean point (filled dot) and one median point (ring), worked out from all of that day's hits together. A thin line joins the days in date order, solid for the mean and dashed for the median, and the colour runs from blue for the oldest day through yellow to red for the newest. Holes placed without a position are left out. Turn the mean or the median off with the buttons under the target. Pinch to zoom, double-tap to reset.</string>
+    <string name="stats_help_drift_body">The Drift tab shows how your point of impact moves over time. Every day you shot gets one mean point (filled dot) and one median point (ring), worked out from all of that day's hits together. A thin line joins the days in date order, solid for the mean and dashed for the median, and the colour runs from grey for the oldest day to a sharp blue for the newest. Holes placed without a position are left out. Turn the mean or the median off with the buttons under the target. Pinch to zoom, double-tap to reset.</string>
 
     <!-- Help: shared by every screen’s (?) dialog -->
     <string name="help">Help</string>

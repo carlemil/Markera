@@ -46,16 +46,13 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.stats.DayImpact
 
 /**
- * Old to new: blue, yellow, red. Bright enough to read on the black, and the dark halo
- * under every mark and line keeps the yellow readable on the paper.
+ * Old to new: a muted grey fading into a sharp blue, so the recent days stand out. The dark
+ * halo under every mark and line keeps the grey readable on the paper.
  */
-private val DRIFT_COLOURS = listOf(Color(0xFF2979FF), Color(0xFFFFD600), Color(0xFFFF3D00))
+private val DRIFT_COLOURS = listOf(Color(0xFFA0A4AA), Color(0xFF1E6BFF))
 
 /** A day's colour: [age] 0 (the oldest day shown) to 1 (the newest) along [DRIFT_COLOURS]. */
-internal fun driftColour(age: Float): Color {
-    val a = age.coerceIn(0f, 1f)
-    return if (a <= 0.5f) lerp(DRIFT_COLOURS[0], DRIFT_COLOURS[1], a * 2f) else lerp(DRIFT_COLOURS[1], DRIFT_COLOURS[2], (a - 0.5f) * 2f)
-}
+internal fun driftColour(age: Float): Color = lerp(DRIFT_COLOURS[0], DRIFT_COLOURS[1], age.coerceIn(0f, 1f))
 
 /**
  * How many mm from the centre the canvas shows: the farthest point with some room around

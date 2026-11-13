@@ -172,7 +172,7 @@
     <string name="stats_drift_oldest">Äldsta dagen</string>
     <string name="stats_drift_newest">Senaste dagen</string>
     <string name="stats_help_drift">Drift</string>
-    <string name="stats_help_drift_body">Fliken Drift visar hur träffpunkten flyttar sig över tid. Varje dag du skjutit får en medelpunkt (fylld prick) och en medianpunkt (ring), räknade på alla dagens träffar tillsammans. En tunn linje binder ihop dagarna i datumordning, hel för medel och streckad för median, och färgen går från blått för den äldsta dagen via gult till rött för den senaste. Hål utan position räknas inte. Slå av medel eller median med knapparna under tavlan. Nyp för att zooma, dubbeltryck för att återställa.</string>
+    <string name="stats_help_drift_body">Fliken Drift visar hur träffpunkten flyttar sig över tid. Varje dag du skjutit får en medelpunkt (fylld prick) och en medianpunkt (ring), räknade på alla dagens träffar tillsammans. En tunn linje binder ihop dagarna i datumordning, hel för medel och streckad för median, och färgen går från grått för den äldsta dagen till klarblått för den senaste. Hål utan position räknas inte. Slå av medel eller median med knapparna under tavlan. Nyp för att zooma, dubbeltryck för att återställa.</string>
 
     <!-- Hjälp: delas av alla skärmars (?)-dialog -->
     <string name="help">Hjälp</string>
