@@ -676,7 +676,7 @@ private fun ResultsContent(
             )
             // Only a frame that actually froze can be marked (a failed capture has none).
             if (uiState.imageWidth > 0 && uiState.imageHeight > 0) {
-                SecondaryActionButton(
+                PrimaryActionButton(
                     text = stringResource(Res.string.markera_manual_mark),
                     icon = Icons.Default.Edit,
                     onClick = onManualMark,
