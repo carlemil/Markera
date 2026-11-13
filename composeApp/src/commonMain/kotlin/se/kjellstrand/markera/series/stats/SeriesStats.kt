@@ -95,10 +95,11 @@ data class PlottedSeries(val series: SeriesDto, val hits: List<PlottedHit>, val 
  * The series [filter] keeps, oldest first, each un-projected to target mm.
  * Dropped: no geometry, an unpositioned hole, the wrong hole count, another
  * caliber outside [StatsFilter.calibers], a tag outside [StatsFilter.tags], a timestamp outside the window — or
- * one that won't parse at all.
+ * one that won't parse at all. [skipUnpositioned] (the Drift tab) keeps such a series and drops only its
+ * unpositioned holes instead.
  */
 @OptIn(ExperimentalTime::class)
-fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
+fun List<SeriesDto>.plotSeries(filter: StatsFilter, skipUnpositioned: Boolean = false): List<PlottedSeries> {
     val kept = mapNotNull { series ->
         val geometry = series.geometry ?: return@mapNotNull null
         if (filter.hits != null && series.holes.size != filter.hits) return@mapNotNull null
@@ -110,7 +111,8 @@ fun List<SeriesDto>.plotSeries(filter: StatsFilter): List<PlottedSeries> {
         }
         val centre = geometry.centre()
         val ring = geometry.ring()
-        val hits = series.holes.map { hole ->
+        val holes = if (skipUnpositioned) series.holes.filter { it.x != null && it.y != null } else series.holes
+        val hits = holes.map { hole ->
             val x = hole.x ?: return@mapNotNull null
             val y = hole.y ?: return@mapNotNull null
             val (xMm, yMm) = targetOffsetMm(x.toFloat(), y.toFloat(), centre, ring)

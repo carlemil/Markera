@@ -3,6 +3,8 @@ package se.kjellstrand.markera.ui.stats
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
@@ -82,8 +84,9 @@ internal const val PLOT_RADIUS_MM = 250f
 private const val MAX_ZOOM = 6f
 
 private val PAPER = Color(0xFFE8DEC8)
-private val BLACK = Color(0xFF15151A)
-private val LINE_ON_BLACK = Color(0xFFEDEDED)
+/** The target's black and the lines drawn on it; also the halo and outline of the Drift tab's points. */
+internal val BLACK = Color(0xFF15151A)
+internal val LINE_ON_BLACK = Color(0xFFEDEDED)
 private val LINE_ON_PAPER = Color(0xFF6B6455)
 /** Grey for a series with no caliber ("-"): it gets no slot in the palette. */
 private val NO_CALIBER = Color(0xFF9E9E9E)
@@ -243,23 +246,7 @@ internal fun TargetCanvas(
                         } while (event.changes.any { it.pressed })
                         return@awaitEachGesture
                     }
-                    do {
-                        val event = awaitPointerEvent()
-                        // One finger on the unzoomed target still scrolls the page.
-                        // The centroid is unspecified once the last finger lifts;
-                        // using it would turn the pan into NaN and blank the layer.
-                        val centroid = event.calculateCentroid()
-                        if (centroid.isSpecified && (event.changes.size > 1 || zoom > 1f)) {
-                            val newZoom = (zoom * event.calculateZoom()).coerceIn(1f, MAX_ZOOM)
-                            val moved = (pan - centroid) * (newZoom / zoom) + centroid + event.calculatePan()
-                            zoom = newZoom
-                            pan = Offset(
-                                moved.x.coerceIn(size.width * (1f - newZoom), 0f),
-                                moved.y.coerceIn(size.height * (1f - newZoom), 0f),
-                            )
-                            event.changes.forEach { it.consume() }
-                        }
-                    } while (event.changes.any { it.pressed })
+                    trackPinch({ zoom to pan }) { z, p -> zoom = z; pan = p }
                 }
             }
             // The handle, and its radius in a pill beside it (left of it near the right edge).
@@ -294,42 +281,7 @@ internal fun TargetCanvas(
         val centre = Offset(size.width / 2f, size.height / 2f)
         fun r(mm: Double) = mm.toFloat() * scale
 
-        drawRect(PAPER)
-        drawCircle(BLACK, radius = r(TARGET_BLACK_RING_RADIUS_MM), center = centre)
-        // Every ring line, plus the inner-ten circle.
-        (RING_RADII_MM.filter { it <= PLOT_RADIUS_MM } + INNER_TEN_RADIUS_MM).forEach { mm ->
-            drawCircle(
-                color = if (mm <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER,
-                radius = r(mm),
-                center = centre,
-                style = Stroke(width = 1.5f),
-            )
-        }
-
-        // Ring digits 1..9, centred in their band on all four axis arms.
-        val digitSize = 11f * scale
-        // Centred horizontally; the third of the text size centres vertically.
-        fun digit(ring: Int, colour: Color, x: Float, y: Float) {
-            val layout = textMeasurer.measure(
-                ring.toString(),
-                TextStyle(color = colour, fontSize = digitSize.toSp()),
-            )
-            drawText(
-                layout,
-                topLeft = Offset(
-                    x - layout.size.width / 2f,
-                    y + digitSize / 3f - layout.firstBaseline,
-                ),
-            )
-        }
-        for (ring in 1..9) {
-            val mid = ringDigitRadiusMm(ring)
-            val colour = if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER
-            digit(ring, colour, centre.x - r(mid), centre.y)
-            digit(ring, colour, centre.x + r(mid), centre.y)
-            digit(ring, colour, centre.x, centre.y - r(mid))
-            digit(ring, colour, centre.x, centre.y + r(mid))
-        }
+        drawTargetFace(textMeasurer, scale)
 
         plotted.forEach { series ->
             val caliber = Caliber.fromLabel(series.series.caliber, custom)
@@ -373,6 +325,77 @@ internal fun TargetCanvas(
             )
         }
     }
+}
+
+/**
+ * The paper, the black, every ring line up to ring 1 plus the inner ten, and the ring digits, centred in this
+ * scope at [scale] px per mm. Shared by Tavla and Drift, so both tabs show the same target.
+ */
+internal fun DrawScope.drawTargetFace(textMeasurer: TextMeasurer, scale: Float) {
+    val centre = Offset(size.width / 2f, size.height / 2f)
+    fun r(mm: Double) = mm.toFloat() * scale
+    drawRect(PAPER)
+    drawCircle(BLACK, radius = r(TARGET_BLACK_RING_RADIUS_MM), center = centre)
+    // Every ring line, plus the inner-ten circle.
+    (RING_RADII_MM.filter { it <= PLOT_RADIUS_MM } + INNER_TEN_RADIUS_MM).forEach { mm ->
+        drawCircle(
+            color = if (mm <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER,
+            radius = r(mm),
+            center = centre,
+            style = Stroke(width = 1.5f),
+        )
+    }
+
+    // Ring digits 1..9, centred in their band on all four axis arms.
+    val digitSize = 11f * scale
+    // Centred horizontally; the third of the text size centres vertically.
+    fun digit(ring: Int, colour: Color, x: Float, y: Float) {
+        val layout = textMeasurer.measure(
+            ring.toString(),
+            TextStyle(color = colour, fontSize = digitSize.toSp()),
+        )
+        drawText(
+            layout,
+            topLeft = Offset(
+                x - layout.size.width / 2f,
+                y + digitSize / 3f - layout.firstBaseline,
+            ),
+        )
+    }
+    for (ring in 1..9) {
+        val mid = ringDigitRadiusMm(ring)
+        val colour = if (mid <= TARGET_BLACK_RING_RADIUS_MM) LINE_ON_BLACK else LINE_ON_PAPER
+        digit(ring, colour, centre.x - r(mid), centre.y)
+        digit(ring, colour, centre.x + r(mid), centre.y)
+        digit(ring, colour, centre.x, centre.y - r(mid))
+        digit(ring, colour, centre.x, centre.y + r(mid))
+    }
+}
+
+/**
+ * Pinch-zoom and pan for a layer scaled about its top-left (1x..[MAX_ZOOM]), until the last finger lifts.
+ * One finger on the unzoomed target is left alone, so it still scrolls the page.
+ */
+internal suspend fun AwaitPointerEventScope.trackPinch(current: () -> Pair<Float, Offset>, onChange: (Float, Offset) -> Unit) {
+    do {
+        val event = awaitPointerEvent()
+        val (zoom, pan) = current()
+        // The centroid is unspecified once the last finger lifts;
+        // using it would turn the pan into NaN and blank the layer.
+        val centroid = event.calculateCentroid()
+        if (centroid.isSpecified && (event.changes.size > 1 || zoom > 1f)) {
+            val newZoom = (zoom * event.calculateZoom()).coerceIn(1f, MAX_ZOOM)
+            val moved = (pan - centroid) * (newZoom / zoom) + centroid + event.calculatePan()
+            onChange(
+                newZoom,
+                Offset(
+                    moved.x.coerceIn(size.width * (1f - newZoom), 0f),
+                    moved.y.coerceIn(size.height * (1f - newZoom), 0f),
+                ),
+            )
+            event.changes.forEach { it.consume() }
+        }
+    } while (event.changes.any { it.pressed })
 }
 
 /**

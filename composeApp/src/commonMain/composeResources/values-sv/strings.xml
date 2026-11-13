@@ -165,7 +165,14 @@
     <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d serier)</string>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
-    <string name="stats_help_trend_body">Fliken Trend ritar valfritt mått som en kurva över tid. Välj mått med knapparna, och om varje serie ska bli en punkt eller om serierna ska slås ihop per dag, vecka eller månad (då räknas måttet över alla serier i perioden). Dela per kaliber ger en kurva per kaliber. Filtren ovanför gäller båda flikarna. Tryck på en punkt för att läsa av den.</string>
+    <string name="stats_help_trend_body">Fliken Trend ritar valfritt mått som en kurva över tid. Välj mått med knapparna, och om varje serie ska bli en punkt eller om serierna ska slås ihop per dag, vecka eller månad (då räknas måttet över alla serier i perioden). Dela per kaliber ger en kurva per kaliber. Filtren ovanför gäller alla flikar. Tryck på en punkt för att läsa av den.</string>
+    <string name="stats_tab_drift">Drift</string>
+    <string name="stats_drift_description">Tavla med medel- och medianträffpunkt för %1$d dagar</string>
+    <string name="stats_drift_counts">%1$d dagar · %2$d serier · %3$d träffar</string>
+    <string name="stats_drift_oldest">Äldsta dagen</string>
+    <string name="stats_drift_newest">Senaste dagen</string>
+    <string name="stats_help_drift">Drift</string>
+    <string name="stats_help_drift_body">Fliken Drift visar hur träffpunkten flyttar sig över tid. Varje dag du skjutit får en medelpunkt (fylld prick) och en medianpunkt (ring), räknade på alla dagens träffar tillsammans. En tunn linje binder ihop dagarna i datumordning, hel för medel och streckad för median, och färgen går från blått för den äldsta dagen via gult till rött för den senaste. Hål utan position räknas inte. Slå av medel eller median med knapparna under tavlan. Nyp för att zooma, dubbeltryck för att återställa.</string>
 
     <!-- Hjälp: delas av alla skärmars (?)-dialog -->
     <string name="help">Hjälp</string>

@@ -165,7 +165,14 @@
     <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d series)</string>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">Trend</string>
-    <string name="stats_help_trend_body">The Trend tab plots any measure as a curve over time. Pick the measure with the buttons, and whether each series becomes a point or the series are merged per day, week or month (the measure is then computed over all series in the period). Per caliber draws one curve per caliber. The filters above apply to both tabs. Tap a point to read it.</string>
+    <string name="stats_help_trend_body">The Trend tab plots any measure as a curve over time. Pick the measure with the buttons, and whether each series becomes a point or the series are merged per day, week or month (the measure is then computed over all series in the period). Per caliber draws one curve per caliber. The filters above apply to all tabs. Tap a point to read it.</string>
+    <string name="stats_tab_drift">Drift</string>
+    <string name="stats_drift_description">Target with the mean and median point of impact for %1$d days</string>
+    <string name="stats_drift_counts">%1$d days · %2$d series · %3$d hits</string>
+    <string name="stats_drift_oldest">Oldest day</string>
+    <string name="stats_drift_newest">Newest day</string>
+    <string name="stats_help_drift">Drift</string>
+    <string name="stats_help_drift_body">The Drift tab shows how your point of impact moves over time. Every day you shot gets one mean point (filled dot) and one median point (ring), worked out from all of that day's hits together. A thin line joins the days in date order, solid for the mean and dashed for the median, and the colour runs from blue for the oldest day through yellow to red for the newest. Holes placed without a position are left out. Turn the mean or the median off with the buttons under the target. Pinch to zoom, double-tap to reset.</string>
 
     <!-- Help: shared by every screen’s (?) dialog -->
     <string name="help">Help</string>

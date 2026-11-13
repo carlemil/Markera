@@ -73,6 +73,7 @@ import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.stats.Metric
 import se.kjellstrand.markera.series.stats.SeriesStatistics
 import se.kjellstrand.markera.series.stats.StatsFilter
+import se.kjellstrand.markera.series.stats.dailyImpact
 import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.statistics
 import se.kjellstrand.markera.series.stats.window
@@ -136,8 +137,11 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     }
     var pickingDates by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
-    // 0 = the target with the hit cloud, 1 = the measurements charted over time.
+    // 0 = the target with the hit cloud, 1 = the measurements charted over time,
+    // 2 = the daily mean and median point of impact over time.
     var tab by remember { mutableIntStateOf(0) }
+    var driftMean by remember { mutableStateOf(true) }
+    var driftMedian by remember { mutableStateOf(true) }
     var metric by remember { mutableStateOf(Metric.SCORE) }
     var bucket by remember { mutableStateOf(Bucket.SERIES) }
     var splitByCaliber by remember { mutableStateOf(true) }
@@ -157,6 +161,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
     val stats = remember(plotted) { plotted.statistics() }
+    // Drift keeps a series with a typed-in hole: only that hole has nowhere to go.
+    val driftPlotted = remember(series, filter) { series.plotSeries(filter, skipUnpositioned = true) }
+    val days = remember(driftPlotted) { driftPlotted.dailyImpact() }
     // Tavla-only: the timeline knob sits on one series (an index into `plotted`, oldest
     // first, parked on the newest); switched on, the target and measurements show only
     // that series. Resets whenever `plotted` itself changes (a new filter, or a data
@@ -179,7 +186,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 menuItems = listOf(MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true }),
             )
             TabRow(selectedTabIndex = tab) {
-                listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend).forEachIndexed { i, label ->
+                listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend, Res.string.stats_tab_drift).forEachIndexed { i, label ->
                     Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label)) })
                 }
             }
@@ -234,7 +241,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (plotted.isEmpty()) {
+                    if (if (tab == 2) days.isEmpty() else plotted.isEmpty()) {
                         StateMessage(
                             icon = Icons.Default.FilterAltOff,
                             // Nothing has a ring to plot against at all, whatever the filter.
@@ -299,6 +306,14 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    } else if (tab == 2) {
+                        DriftTab(
+                            days = days,
+                            seriesCount = days.sumOf { it.seriesCount },
+                            showMean = driftMean,
+                            showMedian = driftMedian,
+                            onShow = { mean, median -> driftMean = mean; driftMedian = median },
+                        )
                     } else {
                         TrendTab(
                             plotted = plotted,
@@ -347,6 +362,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 Res.string.stats_mean_score to Res.string.stats_help_mean_score,
                 Res.string.stats_help_colours to Res.string.stats_help_colours_body,
                 Res.string.stats_help_trend to Res.string.stats_help_trend_body,
+                Res.string.stats_help_drift to Res.string.stats_help_drift_body,
             ),
             onDismiss = { showingHelp = false },
         )
