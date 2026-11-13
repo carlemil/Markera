@@ -3,10 +3,10 @@ import ComposeApp
 
 @main
 struct iOSApp: App {
-    /// One ~40 MB ORT session for the whole process; nil if the model is
-    /// missing or fails to load (the Kotlin side then detects nothing).
+    /// One ~40 MB ORT session for the whole process, opened in the background; nil if
+    /// the model is missing (a session that fails to open makes every scan fail).
     static let holeModel = Bundle.main.path(forResource: "best", ofType: "onnx")
-        .flatMap { OrtHoleModel(modelPath: $0) }
+        .map { OrtHoleModel(modelPath: $0) }
 
     init() {
         SentryReporter.start()

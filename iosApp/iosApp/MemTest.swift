@@ -31,9 +31,9 @@ enum MemTest {
         // `MARKERA_MEMTEST=arena` measures ORT's defaults instead of the app's lean session.
         let arena = ProcessInfo.processInfo.environment["MARKERA_MEMTEST"] == "arena"
         let loaded: OrtHoleModel? = arena
-            ? Bundle.main.path(forResource: "best", ofType: "onnx").flatMap { OrtHoleModel(modelPath: $0, lean: false) }
+            ? Bundle.main.path(forResource: "best", ofType: "onnx").map { OrtHoleModel(modelPath: $0, lean: false) }
             : iOSApp.holeModel
-        guard let model = loaded else { print("MEMTEST no model"); return }
+        guard let model = loaded, model.session() != nil else { print("MEMTEST no model"); return }
         print(String(format: "MEMTEST %@ session loaded: %.0f MB", arena ? "arena" : "lean", footprintMB()))
 
         let lock = NSLock()

@@ -8,20 +8,36 @@ import ComposeApp
 /// The session runs without ORT's CPU arena and memory pattern: with them an
 /// inference at 1536 px left the app at 1.3 GB and the next one peaked at 2.5 GB,
 /// which iOS answers by killing the app (MemTest.swift has the probe).
+///
+/// Opening the session (parsing ~40 MB and planning its memory) takes seconds, so it
+/// happens on a background queue: done on the main thread at launch it froze the first
+/// frame for over 2 s (a Sentry App Hang). `run` waits for it; it is only ever called
+/// off the main thread.
 final class OrtHoleModel: NSObject, HoleModel {
-    private let ort: OpaquePointer
+    private var ort: OpaquePointer?
+    private let opened = DispatchGroup()
 
     /// `lean: false` is the arena + memory pattern default, kept for MemTest to compare.
-    init?(modelPath: String, lean: Bool = true) {
-        guard let ort = markera_ort_open(modelPath, 4, lean ? 1 : 0) else {
-            print("OrtHoleModel: \(modelPath): \(String(cString: markera_ort_last_error()))")
-            return nil
-        }
-        self.ort = ort
+    init(modelPath: String, lean: Bool = true) {
         super.init()
+        opened.enter()
+        DispatchQueue.global(qos: .userInitiated).async { [self] in
+            ort = markera_ort_open(modelPath, 4, lean ? 1 : 0)
+            if ort == nil {
+                print("OrtHoleModel: \(modelPath): \(String(cString: markera_ort_last_error()))")
+            }
+            opened.leave()
+        }
+    }
+
+    /// Blocks until the session is open; nil if it failed to open.
+    func session() -> OpaquePointer? {
+        opened.wait()
+        return ort
     }
 
     func run(input: Data, inputSize: Int32) -> Data {
+        guard let ort = session() else { return Data() }
         var out: UnsafeMutablePointer<Float>? = nil
         let count = input.withUnsafeBytes { bytes in
             markera_ort_run(ort, bytes.bindMemory(to: Float.self).baseAddress, inputSize, &out)
