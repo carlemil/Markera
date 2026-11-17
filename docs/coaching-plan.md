@@ -41,6 +41,14 @@ names two or three causes at most and one drill; it is a hint, not a verdict.
    finding when the day has one. No shape claims from five holes.
 4. **Sight helper**: for a stable offset, the correction in mm at the target and, when the user has
    entered distance and click value, in clicks.
+   Built in the Insights card of a stable offset (`series/stats/SightHelper.kt`, pure and tested):
+   up/down and left/right in whole mm, the rear sight moved the way the impact should go, and with
+   a per-caliber click value (shooting distance, default 25 m, and mm per click at it) the clicks,
+   rounded half away from zero from the unrounded mm (under half a click: leave that axis). "I
+   adjusted the sights" stores the moment per caliber; from then on the offset finding and the
+   target's arrow use only series taken after it (Undo forgets it). The other findings keep the
+   whole history, and the Serie page's own-day line is not cut. The setups are one JSON value in
+   the settings store (`readSightSetups`), a device preference never sent to the server.
 
 Nothing interrupts scanning or saving. Settings has one switch to turn insights off.
 
