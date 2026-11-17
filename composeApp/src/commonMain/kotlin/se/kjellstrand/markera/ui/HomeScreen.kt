@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -34,10 +33,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,16 +43,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -63,6 +56,11 @@ import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.localStamp
+import se.kjellstrand.markera.series.stats.WeekSummary
+import se.kjellstrand.markera.series.stats.weekSummary
+import se.kjellstrand.markera.ui.stats.oneDecimal
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import se.kjellstrand.markera.ui.history.SeriesCard
 import se.kjellstrand.markera.ui.history.dayOrdinals
 import se.kjellstrand.markera.ui.markera.ImageSource
@@ -71,6 +69,7 @@ import se.kjellstrand.markera.ui.markera.ScanChips
 import se.kjellstrand.markera.ui.markera.rememberImagePicker
 
 /** Start screen: free marking (standalone scanner) or competition marking. */
+@OptIn(ExperimentalTime::class)
 @Composable
 internal fun HomeScreen(
     onFreeMarking: () -> Unit,
@@ -113,8 +112,14 @@ internal fun HomeScreen(
                     Spacer(Modifier.width(12.dp))
                     Text(stringResource(Res.string.home_free_marking), style = MaterialTheme.typography.titleLarge)
                 }
-                // Signed out or nothing saved yet: the cache is empty and the card just isn't there.
                 val cached by seriesServices.repository.series.collectAsState()
+                // Nothing shot in the last seven days: the strip just isn't there.
+                val week = remember(cached) { cached.weekSummary(Clock.System.now()) }
+                if (week != null) {
+                    Spacer(Modifier.height(16.dp))
+                    WeekStrip(week, onStatistics)
+                }
+                // Nothing saved yet: the card just isn't there.
                 val latest = cached.firstOrNull() // Series.sq orders by timestamp DESC
                 if (latest != null) {
                     Spacer(Modifier.height(24.dp))
@@ -140,7 +145,19 @@ internal fun HomeScreen(
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                AccountRow(backendAuth, seriesServices)
+                // Sign out and Delete account live in Settings; here is only the reason to sign in.
+                if (backendAuth == null) {
+                    SignInCard(seriesServices, localCount = cached.count { it.local != null })
+                } else {
+                    Text(
+                        stringResource(
+                            Res.string.home_signed_in,
+                            backendAuth.provider.replaceFirstChar { it.uppercase() },
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             AppMenu(
                 items = listOf(
@@ -234,106 +251,35 @@ private fun ImportDialog( onPick: (ImageSource, Boolean) -> Unit, onDismiss: () 
     )
 }
 
-/** Markera-backend account: sign in to save scanned series, or sign out. */
+/** The last seven days at a glance; a tap opens Statistik. */
 @Composable
-private fun AccountRow(auth: BackendAuth?, seriesServices: SeriesServices) {
-    val (signingIn, signIn) = rememberBackendSignIn(seriesServices)
-    val toast = LocalToast.current
-    val scope = rememberCoroutineScope()
-    var busy by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
+private fun WeekStrip(week: WeekSummary, onClick: () -> Unit) {
+    val mark = stringResource(Res.string.decimal_mark)
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    ) {
+        Row(Modifier.padding(vertical = 10.dp)) {
+            WeekStat(week.count.toString(), stringResource(Res.string.home_week_series))
+            WeekStat(oneDecimal(week.average, mark), stringResource(Res.string.home_week_average))
+            WeekStat(week.best.toString(), stringResource(Res.string.home_week_best))
+        }
+    }
+}
 
-    if (confirmDelete) {
-        // Scoped to the open dialog: it starts empty every time the dialog is shown.
-        var typed by remember { mutableStateOf("") }
-        val phrase = stringResource(Res.string.home_delete_account_phrase)
-        val confirmed = typed.trim().equals(phrase, ignoreCase = true)
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(Res.string.home_delete_account_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(Res.string.home_delete_account_message))
-                    Text(stringResource(Res.string.home_delete_account_prompt, phrase))
-                    OutlinedTextField(
-                        value = typed,
-                        onValueChange = { typed = it },
-                        label = { Text(stringResource(Res.string.home_delete_account_input_label)) },
-                        placeholder = { Text(phrase) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(enabled = confirmed, onClick = {
-                    confirmDelete = false
-                    busy = true
-                    scope.launch {
-                        try {
-                            seriesServices.api.deleteAccount()
-                            seriesServices.session.signOut()
-                            seriesServices.repository.clear()
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (_: Throwable) {
-                            // Stay signed in; the account is still there.
-                            toast(getString(Res.string.home_delete_account_failed))
-                        } finally {
-                            busy = false
-                        }
-                    }
-                }) {
-                    Text(
-                        stringResource(Res.string.home_delete_account_confirm),
-                        color = if (confirmed) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(Res.string.home_delete_account_cancel))
-                }
-            },
+@Composable
+private fun RowScope.WeekStat(value: String, label: String) {
+    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleLarge)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
-    }
-
-    if (busy || signingIn) {
-        CircularProgressIndicator(Modifier.size(24.dp))
-        return
-    }
-    if (auth == null) {
-        TextButton(onClick = signIn) {
-            Text(stringResource(Res.string.home_sign_in))
-        }
-    } else {
-        // Column, not one row: three items side by side clip on a narrow phone.
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                stringResource(Res.string.home_signed_in, auth.provider.replaceFirstChar { it.uppercase() }),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val signedOut = stringResource(Res.string.home_signed_out)
-            // Kept apart: a slip from Sign out should not land on Delete account.
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                TextButton(onClick = {
-                    // Side by side: wiping the cache must not wait on the (best-effort) server revoke.
-                    scope.launch { seriesServices.session.signOut() }
-                    scope.launch { seriesServices.repository.clear() }
-                    toast(signedOut)
-                }) {
-                    Text(stringResource(Res.string.home_sign_out))
-                }
-                TextButton(onClick = { confirmDelete = true }) {
-                    Text(
-                        stringResource(Res.string.home_delete_account),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-        }
     }
 }
 

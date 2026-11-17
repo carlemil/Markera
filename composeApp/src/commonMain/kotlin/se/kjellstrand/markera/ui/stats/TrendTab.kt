@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
-import se.kjellstrand.markera.ui.SectionHeader
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
@@ -22,6 +22,7 @@ import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.trend
 import se.kjellstrand.markera.series.stats.trendByCaliber
 import se.kjellstrand.markera.ui.AppChip
+import se.kjellstrand.markera.ui.PickerChip
 
 /** The Trend tab: which row, how the x axis buckets series, one line or one per caliber. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -38,38 +39,34 @@ internal fun TrendTab(
     split: Boolean,
     onSplit: (Boolean) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionHeader(stringResource(Res.string.stats_group_metric))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Metric.entries.forEach {
-                AppChip(
-                    selected = metric == it,
-                    onClick = { onMetric(it) },
-                    label = stringResource(it.label()),
-                )
-            }
-        }
-        SectionHeader(stringResource(Res.string.stats_group_bucket))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(
-                Bucket.SERIES to Res.string.stats_bucket_series,
-                Bucket.DAY to Res.string.stats_bucket_day,
-                Bucket.WEEK to Res.string.stats_bucket_week,
-                Bucket.MONTH to Res.string.stats_bucket_month,
-            ).forEach { (value, label) ->
-                AppChip(
-                    selected = bucket == value,
-                    onClick = { onBucket(value) },
-                    label = stringResource(label),
-                )
-            }
-            if (splitOffered) {
-                AppChip(
-                    selected = split,
-                    onClick = { onSplit(!split) },
-                    label = stringResource(Res.string.stats_split_caliber),
-                )
-            }
+    // Two pickers and the split chip on one row, so the chart gets the height.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        PickerChip(
+            title = stringResource(Res.string.stats_group_metric),
+            options = Metric.entries.map { it to stringResource(it.label()) },
+            selected = metric,
+            onPick = onMetric,
+        )
+        PickerChip(
+            title = stringResource(Res.string.stats_group_bucket),
+            options = listOf(
+                Bucket.SERIES to stringResource(Res.string.stats_bucket_series),
+                Bucket.DAY to stringResource(Res.string.stats_bucket_day),
+                Bucket.WEEK to stringResource(Res.string.stats_bucket_week),
+                Bucket.MONTH to stringResource(Res.string.stats_bucket_month),
+            ),
+            selected = bucket,
+            onPick = onBucket,
+        )
+        if (splitOffered) {
+            AppChip(
+                selected = split,
+                onClick = { onSplit(!split) },
+                label = stringResource(Res.string.stats_split_caliber),
+            )
         }
     }
     val lines = remember(plotted, calibers, metric, bucket, split, splitOffered) {
@@ -88,7 +85,21 @@ internal fun TrendTab(
         Metric.SCORE -> { v -> oneDecimal(v, mark) }
         else -> { v -> mm.replace("%1\$d", v.roundToInt().toString()) }
     }
-    TrendChart(lines, format) { line, point ->
+    val score = metric == Metric.SCORE
+    TrendChart(
+        lines,
+        format,
+        minSpan = if (score) 10.0 else 0.0,
+        whole = score,
+        compare = { value, mean ->
+            val diff = format(abs(value - mean))
+            when {
+                diff == format(0.0) -> stringResource(Res.string.stats_trend_on_average, format(mean))
+                value > mean -> stringResource(Res.string.stats_trend_above, diff, format(mean))
+                else -> stringResource(Res.string.stats_trend_below, diff, format(mean))
+            }
+        },
+    ) { line, point ->
         // A bucket starts at midnight, so only a per-series point carries a time of day.
         val stamp = localStamp(point.at.toString()).let { if (bucket == Bucket.SERIES) it else it.take(10) }
         val value = format(point.value)

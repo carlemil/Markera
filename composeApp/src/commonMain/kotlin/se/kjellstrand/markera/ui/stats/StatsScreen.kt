@@ -74,6 +74,7 @@ import se.kjellstrand.markera.series.stats.Metric
 import se.kjellstrand.markera.series.stats.SeriesStatistics
 import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.dailyImpact
+import se.kjellstrand.markera.series.stats.seriesImpact
 import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.statistics
 import se.kjellstrand.markera.series.stats.window
@@ -142,6 +143,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var tab by remember { mutableIntStateOf(0) }
     var driftMean by remember { mutableStateOf(true) }
     var driftMedian by remember { mutableStateOf(true) }
+    var driftPerSeries by remember { mutableStateOf(false) }
+    var driftSmooth by remember { mutableStateOf(false) }
     var metric by remember { mutableStateOf(Metric.SCORE) }
     var bucket by remember { mutableStateOf(Bucket.SERIES) }
     var splitByCaliber by remember { mutableStateOf(true) }
@@ -163,7 +166,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     val stats = remember(plotted) { plotted.statistics() }
     // Drift keeps a series with a typed-in hole: only that hole has nowhere to go.
     val driftPlotted = remember(series, filter) { series.plotSeries(filter, skipUnpositioned = true) }
-    val days = remember(driftPlotted) { driftPlotted.dailyImpact() }
+    val days = remember(driftPlotted, driftPerSeries) {
+        if (driftPerSeries) driftPlotted.seriesImpact() else driftPlotted.dailyImpact()
+    }
     // Tavla-only: the timeline knob sits on one series (an index into `plotted`, oldest
     // first, parked on the newest); switched on, the target and measurements show only
     // that series. Resets whenever `plotted` itself changes (a new filter, or a data
@@ -308,8 +313,11 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                         )
                     } else if (tab == 2) {
                         DriftTab(
-                            days = days,
-                            seriesCount = days.sumOf { it.seriesCount },
+                            points = days,
+                            perSeries = driftPerSeries,
+                            onPerSeries = { driftPerSeries = it },
+                            smooth = driftSmooth,
+                            onSmooth = { driftSmooth = it },
                             showMean = driftMean,
                             showMedian = driftMedian,
                             onShow = { mean, median -> driftMean = mean; driftMedian = median },

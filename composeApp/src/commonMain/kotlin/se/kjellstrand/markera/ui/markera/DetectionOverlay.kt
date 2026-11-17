@@ -75,6 +75,8 @@ fun DetectionOverlay(
     letters: List<String> = emptyList(),
     /** Sizes the hole dots; [Caliber.NONE] draws them at the calibration size. */
     caliber: Caliber = Caliber.NONE,
+    /** Index into [scores] of the hole picked in a list beside the photo: ringed in white. */
+    highlight: Int = -1,
     showDebug: Boolean = false,
     /** The ring lines inside the black; [ring] still sizes the hole dots without them. */
     showRings: Boolean = true,
@@ -151,6 +153,12 @@ fun DetectionOverlay(
                     (if (hit.byHand) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
                     hit.centerXpx, hit.centerYpx,
                 )
+            }
+            scores.getOrNull(highlight)?.let { hit ->
+                // A fixed on-screen size, so it is as easy to find zoomed out as in.
+                val at = Offset(hit.centerXpx * scale + offsetX, hit.centerYpx * scale + offsetY)
+                drawCircle(Color.Black.copy(alpha = 0.6f), 15.dp.toPx(), at, style = Stroke(5.dp.toPx()))
+                drawCircle(Color.White, 15.dp.toPx(), at, style = Stroke(2.5.dp.toPx()))
             }
         } else {
             detections.forEach { d ->

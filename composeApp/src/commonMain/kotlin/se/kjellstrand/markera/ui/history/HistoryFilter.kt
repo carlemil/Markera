@@ -67,8 +67,8 @@ fun List<SeriesDto>.dayOrdinals(zone: TimeZone = TimeZone.currentSystemDefault()
  * characters when it wouldn't parse — so `;` can't occur in one and needs no
  * escaping, unlike a free-text tag.
  *
- * Only the *open* days are stored: a day nobody has touched (a new one included)
- * is then collapsed by default. Days with no series left are dropped here so the
+ * Only the *open* days are stored (plus a `!day` marker, see [isDayOpen]): an older
+ * day nobody has touched is then collapsed by default. Days with no series left are dropped here so the
  * set can't grow forever — prune against the unfiltered list, or a day the current
  * filter hides would be forgotten.
  */
@@ -78,7 +78,24 @@ fun encodeOpenDays(
     zone: TimeZone = TimeZone.currentSystemDefault(),
 ): String {
     val present = series.groupedByDay(zone).mapTo(mutableSetOf()) { it.day }
-    return days.filter { it in present }.sorted().joinToString(";")
+    return days.filter { it.removePrefix(CLOSED) in present }.sorted().joinToString(";")
+}
+
+/** Marks a day the user folded while it was the newest one, which is otherwise open. */
+private const val CLOSED = "!"
+
+/**
+ * The [newest] day in the list is open until the user folds it (today's series are what
+ * one came for); every other day is open only once unfolded. [stored] is the decoded set.
+ */
+fun isDayOpen(day: String, newest: String?, stored: Set<String>): Boolean =
+    if (day == newest) CLOSED + day !in stored else day in stored
+
+/** [stored] after a tap on [day]'s header. Folding the newest day leaves a marker. */
+fun toggleDay(day: String, newest: String?, stored: Set<String>): Set<String> = when {
+    !isDayOpen(day, newest, stored) -> stored - (CLOSED + day) + day
+    day == newest -> stored - day + (CLOSED + day)
+    else -> stored - day
 }
 
 /** Never throws: null (nothing stored yet) or empty text means every day collapsed. */

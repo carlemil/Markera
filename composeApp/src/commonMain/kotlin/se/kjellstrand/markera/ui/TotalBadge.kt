@@ -73,7 +73,10 @@ fun TotalBadge(
                 VerticalDivider()
                 // Capped: a 32-character tag must not push the total off the row.
                 PillSegment(
-                    tag?.takeUnless { it.isBlank() } ?: "–", onTagClick, compact, if (compact) 96.dp else 120.dp,
+                    // Tappable and empty: say what the tap does instead of a dash.
+                    tag?.takeUnless { it.isBlank() }
+                        ?: if (onTagClick != null) stringResource(Res.string.badge_add_tag) else "–",
+                    onTagClick, compact, if (compact) 96.dp else 120.dp,
                     caption = stringResource(if (compact) Res.string.badge_tag_short else Res.string.badge_tag),
                 )
             }

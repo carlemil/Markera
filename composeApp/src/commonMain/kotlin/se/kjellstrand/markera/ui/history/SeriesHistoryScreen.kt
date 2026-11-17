@@ -1,5 +1,7 @@
 package se.kjellstrand.markera.ui.history
 
+import se.kjellstrand.markera.series.stats.averageTotal
+import se.kjellstrand.markera.ui.stats.oneDecimal
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.semantics.stateDescription
@@ -127,8 +129,8 @@ fun SeriesHistoryScreen(
         if (filterLoaded) scope.launch { services.store.writeHistoryFilter(new.encode()) }
     }
 
-    fun onToggleDay(day: String) {
-        val next = if (day in expanded) expanded - day else expanded + day
+    fun onToggleDay(day: String, newest: String?) {
+        val next = toggleDay(day, newest, expanded)
         expanded = next
         // Against the unfiltered list: a day the filter hides is still worth keeping.
         if (expandedLoaded) scope.launch { services.store.writeOpenDays(encodeOpenDays(next, series)) }
@@ -242,15 +244,17 @@ fun SeriesHistoryScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            val newest = days.firstOrNull()?.day
                             days.forEach { day ->
+                                val open = isDayOpen(day.day, newest, expanded)
                                 item(key = day.day) {
                                     DayHeader(
                                         group = day,
-                                        expanded = day.day in expanded,
-                                        onToggle = { onToggleDay(day.day) },
+                                        expanded = open,
+                                        onToggle = { onToggleDay(day.day, newest) },
                                     )
                                 }
-                                if (day.day in expanded) {
+                                if (open) {
                                     items(day.series, key = { it.id }) { item ->
                                         SeriesCard(
                                             series = item,
@@ -343,7 +347,11 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
             text = if (group.series.size == 1) {
                 stringResource(Res.string.history_day_summary_one, points)
             } else {
-                stringResource(Res.string.history_day_summary, group.series.size, points)
+                stringResource(
+                    Res.string.history_day_summary,
+                    group.series.size,
+                    oneDecimal(group.series.averageTotal(), stringResource(Res.string.decimal_mark)),
+                )
             },
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

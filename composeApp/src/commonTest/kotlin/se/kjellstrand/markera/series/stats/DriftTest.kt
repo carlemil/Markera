@@ -62,4 +62,36 @@ class DriftTest {
         assertEquals(40.0, days.single().meanXMm, 1e-6)
         assertEquals(0f, days.single().age)
     }
+
+    @Test
+    fun `per series gives every series its own point, oldest first, a typed-only series none`() {
+        val points = listOf(
+            series(3, "2026-09-02T09:00:00Z", hole(520.0, 500.0)),
+            series(2, "2026-09-01T18:00:00Z", hole(530.0, 500.0), hole(590.0, 500.0)),
+            series(1, "2026-09-01T08:00:00Z", hole(500.0, 510.0), hole(500.0, 500.0)),
+            series(4, "2026-09-03T08:00:00Z", hole(null, null)),
+        ).plotSeries(StatsFilter(), skipUnpositioned = true).seriesImpact(TimeZone.UTC)
+
+        assertEquals(listOf(0.0, 60.0, 20.0), points.map { it.meanXMm })
+        assertEquals(listOf(5.0, 0.0, 0.0), points.map { it.meanYMm })
+        assertEquals(listOf(1, 1, 1), points.map { it.seriesCount })
+        assertEquals(listOf(LocalDate(2026, 9, 1), LocalDate(2026, 9, 1), LocalDate(2026, 9, 2)), points.map { it.date })
+        assertEquals(listOf(0f, 0.5f, 1f), points.map { it.age })
+    }
+
+    @Test
+    fun `smoothing averages each point with the two before it and keeps its date and age`() {
+        val points = listOf(
+            series(1, "2026-09-01T08:00:00Z", hole(500.0, 500.0)),
+            series(2, "2026-09-02T08:00:00Z", hole(530.0, 500.0)),
+            series(3, "2026-09-03T08:00:00Z", hole(560.0, 506.0)),
+            series(4, "2026-09-04T08:00:00Z", hole(500.0, 500.0)),
+        ).plotSeries(StatsFilter()).seriesImpact(TimeZone.UTC)
+        val smooth = points.smoothed()
+
+        assertEquals(listOf(0.0, 15.0, 30.0, 30.0), smooth.map { it.meanXMm })
+        assertEquals(listOf(0.0, 0.0, 2.0, 2.0), smooth.map { it.meanYMm })
+        assertEquals(points.map { it.date }, smooth.map { it.date })
+        assertEquals(points.map { it.age }, smooth.map { it.age })
+    }
 }

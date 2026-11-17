@@ -85,7 +85,7 @@
     <string name="history_signed_out">Sign in to see your history</string>
     <string name="history_empty">No saved series yet</string>
     <string name="history_filter_empty">No series match the filter.</string>
-    <string name="history_day_summary">%1$d series · %2$d points</string>
+    <string name="history_day_summary">%1$d series · avg %2$s</string>
     <string name="history_day_summary_one">1 series · %1$d points</string>
     <string name="history_card_title">%1$s · series %2$d</string>
     <string name="history_delete_title">Delete the series?</string>
@@ -167,12 +167,36 @@
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">The Trend tab plots any measure as a curve over time. Pick the measure with the buttons, and whether each series becomes a point or the series are merged per day, week or month (the measure is then computed over all series in the period). Per caliber draws one curve per caliber. The filters above apply to all tabs. Tap a point to read it.</string>
     <string name="stats_tab_drift">Drift</string>
-    <string name="stats_drift_description">Target with the mean and median point of impact for %1$d days</string>
+    <string name="stats_drift_description">Target with the mean and median point of impact over time, %1$d points</string>
     <string name="stats_drift_counts">%1$d days · %2$d series · %3$d hits</string>
-    <string name="stats_drift_oldest">Oldest day</string>
-    <string name="stats_drift_newest">Newest day</string>
+    <string name="stats_drift_oldest">Oldest</string>
+    <string name="stats_drift_newest">Newest</string>
+    <string name="stats_drift_per_day">Per day</string>
+    <string name="stats_drift_per_series">Per series</string>
+    <string name="stats_drift_smooth">Smooth</string>
+    <string name="stats_drift_smoothed">smoothed</string>
+    <string name="stats_drift_latest">Latest</string>
+    <string name="stats_drift_slider">Point in time</string>
+    <string name="stats_drift_low">%1$d mm low</string>
+    <string name="stats_drift_high">%1$d mm high</string>
+    <string name="stats_drift_right">%1$d mm right</string>
+    <string name="stats_drift_left">%1$d mm left</string>
+    <string name="stats_drift_on_centre">on centre</string>
+    <string name="stats_drift_summary_one">Latest point of impact: %1$s (%2$d mm from centre).</string>
+    <string name="stats_drift_summary_closer">Latest point of impact: %1$s (%2$d mm from centre), %3$d mm closer than on %4$s.</string>
+    <string name="stats_drift_summary_further">Latest point of impact: %1$s (%2$d mm from centre), %3$d mm further out than on %4$s.</string>
+    <string name="stats_drift_summary_same">Latest point of impact: %1$s (%2$d mm from centre), as far out as on %3$s.</string>
+    <string name="stats_drift_point_day">%1$s · %2$d series · %3$d hits</string>
+    <string name="stats_drift_point_series">%1$s · series %2$d of %3$d · %4$d hits</string>
+    <string name="stats_drift_value">%1$s: %2$s</string>
+    <string name="stats_drift_strips">Left / right and high / low over time (mean)</string>
+    <string name="stats_drift_strips_median">Left / right and high / low over time (median)</string>
+    <string name="stats_drift_axis_left">Left</string>
+    <string name="stats_drift_axis_right">Right</string>
+    <string name="stats_drift_axis_high">High</string>
+    <string name="stats_drift_axis_low">Low</string>
     <string name="stats_help_drift">Drift</string>
-    <string name="stats_help_drift_body">The Drift tab shows how your point of impact moves over time. Every day you shot gets one mean point (filled dot) and one median point (ring), worked out from all of that day's hits together. A thin line joins the days in date order, solid for the mean and dashed for the median, and the colour runs from grey for the oldest day to a sharp blue for the newest. Holes placed without a position are left out. Turn the mean or the median off with the buttons under the target. Pinch to zoom, double-tap to reset.</string>
+    <string name="stats_help_drift_body">The Drift tab shows how your point of impact moves over time. With Per day, every day you shot gets one mean point (filled dot) and one median point (ring), worked out from all of that day's hits together; with Per series, every series gets its own, and Smooth averages each with the two series before it. A thin line joins the points in time order, solid for the mean and dashed for the median, with arrowheads showing the direction, and the colour runs from grey for the oldest to a sharp blue for the newest. The sentence on top says where the latest point sits and how far it has moved since the first. Tap a point, or drag the slider under the target, to pick a point: the card below reads out its date and how far low or high and left or right of centre it is, and later points are dimmed. The two small charts at the bottom show the same drift split into left/right and high/low. Holes placed without a position are left out. Turn the mean or the median off with the buttons under the target. Pinch to zoom, double-tap to reset.</string>
 
     <!-- Help: shared by every screen’s (?) dialog -->
     <string name="help">Help</string>
@@ -189,7 +213,7 @@
     <string name="help_home_stats">Statistics</string>
     <string name="help_home_stats_body">Shot pattern and measures over time, filtered by caliber and date.</string>
     <string name="help_home_account">Account</string>
-    <string name="help_home_account_body">Sign in with Google or Apple to save series. The series are stored on Markera\’s server and can be deleted at any time with Delete account.</string>
+    <string name="help_home_account_body">Sign in with Google or Apple to save series. The series are stored on Markera’s server and can be deleted at any time with Delete account, under Settings.</string>
 
     <!-- Help: scan screen -->
     <string name="help_scan_title">How to scan</string>
@@ -211,12 +235,12 @@
     <string name="help_scan_continuous_limits">Good to know</string>
     <string name="help_scan_continuous_limits_body">Only something hole-sized counts. A person, a hand or a shadow passing, a small bump of the stand and a change in the light are ignored, and it waits until the picture is still again. Two shots fired close together are found in the same scan. A missed hole can always be added by tapping it in the photo. Keep the screen on and the phone charged: the camera runs the whole time.</string>
     <string name="help_scan_debug">Troubleshooting</string>
-    <string name="help_scan_debug_body">Show detection data in the menu shows the detector\’s raw boxes, digit rows and lines, plus the fitted ring and the centre.</string>
+    <string name="help_scan_debug_body">Show detection data in the menu shows the detector’s raw boxes, digit rows and lines, plus the fitted ring and the centre.</string>
 
     <!-- Help: history -->
     <string name="help_history_title">About the history</string>
     <string name="help_history_list">The list</string>
-    <string name="help_history_list_body">Each row is a saved series: photo, time, caliber, score and the hits. The series are grouped per day, newest first — tap a day header to unfold that day\’s series. The chips above the list filter on caliber and date, and the choice is remembered for next time.</string>
+    <string name="help_history_list_body">Each row is a saved series: photo, time, caliber, score and the hits. The series are grouped per day, newest first; the newest day is open, tap a day header to fold or unfold it. Filter above the list opens the caliber, tag and date choices, and the choice is remembered for next time.</string>
     <string name="help_history_detail">Details</string>
     <string name="help_history_detail_body">Tap a series to see it large, adjust hits or remove it. Long-press a row to delete it right away.</string>
     <string name="help_history_export">Export</string>
@@ -227,9 +251,9 @@
     <!-- Help: series detail -->
     <string name="help_detail_title">About the series</string>
     <string name="help_detail_photo">The photo</string>
-    <string name="help_detail_photo_body">The scanned target with hits, ring and centre. Pinch to zoom, drag a hit to move it and tap the target to add a missing one — the score is recalculated from the hit\’s position. The arrows on the photo step to the previous or next series in the list you came from.</string>
+    <string name="help_detail_photo_body">The scanned target with hits, ring and centre. Pinch to zoom, drag a hit to move it and tap the target to add a missing one — the score is recalculated from the hit’s position. Tap a hit to find its row in the list. The arrows on the photo step to the previous or next series in the list you came from.</string>
     <string name="help_detail_holes">The hits</string>
-    <string name="help_detail_holes_body">The list shows the ring, the distance from the centre in millimetres and whether the hit was detected or added by hand. The bin in the row removes the hit after a confirmation. The arrow beside it puts a moved or re-scored hit back where the detector saw it. Changes are saved at once; undo them from the message at the bottom.</string>
+    <string name="help_detail_holes_body">Each row shows the hit’s letter, its score and the distance from the centre in millimetres, and says when the hit was added by hand, moved or re-scored. Tap a row to ring that hit on the photo. The ⋮ in the row removes the hit after a confirmation, or puts a moved or re-scored hit back where the detector saw it. Changes are saved at once; undo them from the message at the bottom.</string>
     <string name="help_detail_delete">Delete</string>
     <string name="help_detail_delete_body">Delete in the menu removes the series from the app. The server keeps the series, its hits and the target photo until you delete the account.</string>
 
@@ -240,13 +264,13 @@
     <string name="stats_help_mean_distance">The distance from the target centre to each hit, in millimetres, averaged over all hits.</string>
     <string name="stats_help_mean_pairwise">The distance between every pair of hits within a series, averaged — and then averaged over the series. Series with a single hit are skipped.</string>
     <string name="stats_help_group_size">The largest distance between two hits in a series (the spread), averaged over the series.</string>
-    <string name="stats_help_mean_radius">The mean distance from the hits to the series\’ own centre point (the centre of the shot pattern), averaged over the series. Measures how tight the series is regardless of where on the target it sits. Series with a single hit are skipped.</string>
-    <string name="stats_help_radial_sd">The standard deviation of all selected hits\’ distances to their common centre point, in millimetres. Low value = the hits are tight, wherever on the target.</string>
-    <string name="stats_help_impact">The centre of the shot pattern: the mean of all hits\’ x and y, in millimetres right of and below the centre (negative numbers mean left and up). Drawn as a + on the target.</string>
-    <string name="stats_help_impact_median">The median of all hits\’ x and y separately — less sensitive to the odd flyer than the mean point. Drawn as a × on the target.</string>
-    <string name="stats_help_mean_score">The mean of the series\’ total scores.</string>
+    <string name="stats_help_mean_radius">The mean distance from the hits to the series’ own centre point (the centre of the shot pattern), averaged over the series. Measures how tight the series is regardless of where on the target it sits. Series with a single hit are skipped.</string>
+    <string name="stats_help_radial_sd">The standard deviation of all selected hits’ distances to their common centre point, in millimetres. Low value = the hits are tight, wherever on the target.</string>
+    <string name="stats_help_impact">The centre of the shot pattern: the mean of all hits’ x and y, in millimetres right of and below the centre (negative numbers mean left and up). Drawn as a + on the target.</string>
+    <string name="stats_help_impact_median">The median of all hits’ x and y separately — less sensitive to the odd flyer than the mean point. Drawn as a × on the target.</string>
+    <string name="stats_help_mean_score">The mean of the series’ total scores.</string>
     <string name="stats_help_colours">Colours and the timeline</string>
-    <string name="stats_help_colours_body">Hits are coloured by caliber, the same colours as the lines in the Trend tab. The bar under the target is the series timeline: it runs from the oldest series on the left to the newest on the right, with a dot per series. Tap the knob to switch it on and the target and the measures show only the series it sits on (filled knob, with its date and time above the bar); tap it again to show every series the filters let through (hollow knob). Drag the knob, or tap elsewhere on the bar, to move it to another series. With the knob on, the camera button in the target\’s top-right corner shows that series\’ photo.</string>
+    <string name="stats_help_colours_body">Hits are coloured by caliber, the same colours as the lines in the Trend tab. The bar under the target is the series timeline: it runs from the oldest series on the left to the newest on the right, with a dot per series. Tap the knob to switch it on and the target and the measures show only the series it sits on (filled knob, with its date and time above the bar); tap it again to show every series the filters let through (hollow knob). Drag the knob, or tap elsewhere on the bar, to move it to another series. With the knob on, the camera button in the target’s top-right corner shows that series’ photo.</string>
     <string name="stats_show_photo">Show photo</string>
 
     <!-- Series detail -->
@@ -373,4 +397,30 @@
     <string name="local_claim_delete_body">Delete %1$d series and their photos from this device? This cannot be undone. They have not been uploaded to this account.</string>
     <string name="local_claim_stay">Stay signed out</string>
     <string name="local_claim_error">The operation could not finish. Your remaining series are still on this device. Close and try signing in again.</string>
+    <string name="home_week_series">series in 7 days</string>
+    <string name="home_week_average">average</string>
+    <string name="home_week_best">best</string>
+    <string name="home_local_title">%1$d series only on this phone</string>
+    <string name="home_local_title_one">1 series only on this phone</string>
+    <string name="home_signin_title">Save your series to your account</string>
+    <string name="home_signin_body">Sign in to keep them when you change phone.</string>
+    <string name="action_sign_in">Sign in</string>
+    <string name="filter_title">Filter</string>
+    <string name="filter_all">All series</string>
+    <string name="detail_only_on_phone">Only on this phone</string>
+    <string name="detail_upload_refused">The server did not accept this series</string>
+    <string name="detail_more">More</string>
+    <string name="badge_add_tag">+ Tag</string>
+    <string name="stats_trend_latest">Latest</string>
+    <string name="stats_trend_above">%1$s above the average (%2$s)</string>
+    <string name="stats_trend_below">%1$s below the average (%2$s)</string>
+    <string name="stats_trend_on_average">On the average (%1$s)</string>
+    <string name="markera_detect_holes_body">Off: only the rings are found and you tap each hole.</string>
+    <string name="markera_continuous_body">Scans again by itself when a new hole appears.</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_privacy">Privacy policy</string>
+    <string name="settings_not_signed_in">Not signed in</string>
+    <string name="settings_system_short">System</string>
 </resources>

@@ -133,7 +133,7 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
     Box(
         Modifier
             .matchParentSize()
-            .background(Color.Black.copy(alpha = 0.5f * progress.coerceIn(0f, 1f)))
+            .background(Color.Black.copy(alpha = 0.8f * progress.coerceIn(0f, 1f)))
             .pointerInput(Unit) { detectTapGestures { host.close() } },
     )
     BoxWithConstraints(Modifier.matchParentSize()) {

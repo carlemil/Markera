@@ -58,7 +58,8 @@ fun Modifier.zoomPan(t: ZoomPan): Modifier = graphicsLayer {
  * fingers zoom/pan, one finger on a hole ([grabPx] on-screen reach, whatever the
  * zoom) drags it, one finger elsewhere pans while zoomed in, a tap on empty
  * target adds a hole and a long press (measured on release — a still finger
- * sends no events) removes the hole it started on. A dragged hole is held
+ * sends no events) removes the hole it started on, a short tap on a hole selects
+ * it ([onSelect]). A dragged hole is held
  * [DRAG_LIFT] above the finger so it stays visible. At zoom 1 an unhandled drag
  * stays unconsumed, so a surrounding column still scrolls.
  *
@@ -80,6 +81,7 @@ fun Modifier.photoGestures(
     onAdd: (x: Float, y: Float, reach: Float) -> Unit,
     onRemove: (index: Int) -> Unit = {},
     onMoveEnd: () -> Unit = {},
+    onSelect: (index: Int) -> Unit = {},
 ): Modifier = clipToBounds().pointerInput(key, imageW, imageH) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
@@ -146,6 +148,7 @@ fun Modifier.photoGestures(
         when (gestureEnd(holeIndex >= 0, travel, slop, pinched, upTime - down.uptimeMillis, longPress)) {
             GestureEnd.MOVE_END -> onMoveEnd()
             GestureEnd.REMOVE -> onRemove(holeIndex)
+            GestureEnd.SELECT -> onSelect(holeIndex)
             // A clean tap on empty target: place a hole there.
             GestureEnd.ADD -> imageAt(down.position)?.let { onAdd(it.first, it.second, reach) }
             GestureEnd.NONE -> {}
@@ -154,11 +157,12 @@ fun Modifier.photoGestures(
 }
 
 /** What a finished gesture does once the finger lifts. */
-internal enum class GestureEnd { NONE, MOVE_END, REMOVE, ADD }
+internal enum class GestureEnd { NONE, MOVE_END, REMOVE, ADD, SELECT }
 
 /**
  * A pinch does nothing; a drag past [slop] ends a hole move (or was a pan);
- * a press on a hole held [longPressMs] removes it; a tap off a hole adds one.
+ * a press on a hole held [longPressMs] removes it, a short one selects it; a tap
+ * off a hole adds one.
  */
 internal fun gestureEnd(
     onHole: Boolean,
@@ -170,7 +174,7 @@ internal fun gestureEnd(
 ): GestureEnd = when {
     pinched -> GestureEnd.NONE
     travel > slop -> if (onHole) GestureEnd.MOVE_END else GestureEnd.NONE
-    onHole -> if (heldMs >= longPressMs) GestureEnd.REMOVE else GestureEnd.NONE
+    onHole -> if (heldMs >= longPressMs) GestureEnd.REMOVE else GestureEnd.SELECT
     else -> GestureEnd.ADD
 }
 

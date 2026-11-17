@@ -321,7 +321,7 @@ fun AppNavHost(
             onMarkera = { push(Screen.FreeMarking) },
         )
 
-        Screen.Settings -> SettingsScreen(settings = settings, onBack = pop)
+        Screen.Settings -> SettingsScreen(settings = settings, seriesServices = seriesServices, onBack = pop)
 
         Screen.Suggestion -> SuggestionScreen(api = seriesServices.api, onBack = pop)
 

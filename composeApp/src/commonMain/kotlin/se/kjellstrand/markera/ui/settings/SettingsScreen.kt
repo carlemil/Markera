@@ -17,7 +17,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalUriHandler
+import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.ui.AccountActions
+import se.kjellstrand.markera.ui.Segmented
+import se.kjellstrand.markera.ui.suggestion.appVersion
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -114,11 +121,16 @@ expect object LocalAppLocale {
 @Composable
 expect fun SystemBarsForTheme(dark: Boolean)
 
+/** The public privacy page the store listings link to as well. */
+private const val PRIVACY_URL = "https://markera.duckdns.org/privacy"
+
 @Composable
-fun SettingsScreen(settings: AppSettings, onBack: () -> Unit) {
+fun SettingsScreen(settings: AppSettings, seriesServices: SeriesServices, onBack: () -> Unit) {
     val theme by settings.theme.collectAsState()
     val language by settings.language.collectAsState()
-    val system = stringResource(Res.string.settings_system)
+    val auth by seriesServices.session.auth.collectAsState()
+    val uriHandler = LocalUriHandler.current
+    val system = stringResource(Res.string.settings_system_short)
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -133,34 +145,45 @@ fun SettingsScreen(settings: AppSettings, onBack: () -> Unit) {
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SectionHeader(stringResource(Res.string.settings_language))
-                Choice(system, language == null) { settings.setLanguage(null) }
-                LANGUAGES.forEach { (code, name) ->
-                    Choice(name, language == code) { settings.setLanguage(code) }
-                }
+                val languages = listOf<String?>(null) + LANGUAGES.map { it.first }
+                Segmented(
+                    options = listOf(system) + LANGUAGES.map { it.second },
+                    selected = languages.indexOf(language).coerceAtLeast(0),
+                    onSelect = { settings.setLanguage(languages[it]) },
+                    modifier = Modifier.fillMaxWidth(),
+                    fill = true,
+                )
+                Spacer(Modifier.height(8.dp))
                 SectionHeader(stringResource(Res.string.settings_theme))
-                Choice(system, theme == ThemeMode.SYSTEM) { settings.setTheme(ThemeMode.SYSTEM) }
-                Choice(stringResource(Res.string.settings_theme_light), theme == ThemeMode.LIGHT) {
-                    settings.setTheme(ThemeMode.LIGHT)
+                Segmented(
+                    options = listOf(
+                        system,
+                        stringResource(Res.string.settings_theme_light),
+                        stringResource(Res.string.settings_theme_dark),
+                    ),
+                    selected = theme.ordinal,
+                    onSelect = { settings.setTheme(ThemeMode.entries[it]) },
+                    modifier = Modifier.fillMaxWidth(),
+                    fill = true,
+                )
+                Spacer(Modifier.height(8.dp))
+                SectionHeader(stringResource(Res.string.settings_account))
+                AccountActions(auth, seriesServices)
+                Spacer(Modifier.height(8.dp))
+                SectionHeader(stringResource(Res.string.settings_about))
+                appVersion?.let {
+                    Text(
+                        stringResource(Res.string.settings_version, it),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                 }
-                Choice(stringResource(Res.string.settings_theme_dark), theme == ThemeMode.DARK) {
-                    settings.setTheme(ThemeMode.DARK)
+                TextButton(onClick = { uriHandler.openUri(PRIVACY_URL) }) {
+                    Text(stringResource(Res.string.settings_privacy))
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun Choice(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        // One focusable radio row: the label and the button are the same control.
-        modifier = Modifier.fillMaxWidth().selectable(selected, onClick = onClick, role = Role.RadioButton),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = selected, onClick = null)
-        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }

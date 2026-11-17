@@ -30,6 +30,15 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
+import se.kjellstrand.markera.series.LocalMark
+import se.kjellstrand.markera.ui.SignInCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +62,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -72,8 +80,6 @@ import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.localTime
 import se.kjellstrand.markera.series.centre
 import se.kjellstrand.markera.series.decodeSeriesJpeg
-import se.kjellstrand.markera.series.detectedLabel
-import se.kjellstrand.markera.series.isEdited
 import se.kjellstrand.markera.series.canRestore
 import se.kjellstrand.markera.series.kindText
 import se.kjellstrand.markera.series.moveHole
@@ -164,6 +170,9 @@ fun SeriesDetailScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var pendingDeleteIndex by remember(series.id) { mutableStateOf<Int?>(null) }
     var showingHelp by remember { mutableStateOf(false) }
+    // The hole picked in the list or on the photo: its row is tinted and its marker ringed.
+    var selected by remember(series.id) { mutableStateOf<Int?>(null) }
+    val auth by services.session.auth.collectAsState()
     val zoomPan = rememberZoomPan(series.id)
     val savedText = stringResource(Res.string.detail_saved)
     val failedText = stringResource(Res.string.detail_save_failed)
@@ -301,18 +310,20 @@ fun SeriesDetailScreen(
                                     // where it was just put, so the drag follows.
                                     moved.indexOfFirst {
                                         it.x == x.toDouble() && it.y == y.toDouble()
-                                    }
+                                    }.also { if (it >= 0) selected = it }
                                 }
                             },
                             onAdd = { x, y, _ ->
                                 geometry?.let {
                                     holes.value =
                                         holes.value.withNewHole(x.toDouble(), y.toDouble(), it, caliber)
+                                    selected = null
                                     commit()
                                 }
                             },
                             // One save per drag, when the finger lifts.
                             onMoveEnd = { commit() },
+                            onSelect = { selected = if (selected == it) null else it },
                         ),
                 ) {
                     Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
@@ -340,7 +351,7 @@ fun SeriesDetailScreen(
                         // letter along from the list index — otherwise the
                         // markers would renumber and stop matching the rows.
                         val marked = holes.value.mapIndexedNotNull { i, h ->
-                            h.asHitScore()?.let { it to holeLetter(i) }
+                            h.asHitScore()?.let { Triple(it, holeLetter(i), i) }
                         }
                         DetectionOverlay(
                             detections = emptyList(),
@@ -355,6 +366,7 @@ fun SeriesDetailScreen(
                             // The editable state, so correcting the caliber
                             // resizes the dots right away.
                             caliber = caliber,
+                            highlight = marked.indexOfFirst { it.third == selected },
                             holeColor = DETECTED_COLOR,
                             scoreColor = DETECTED_COLOR,
                             modifier = Modifier.fillMaxSize(),
@@ -388,12 +400,15 @@ fun SeriesDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Time over date, the two lines centred against each other.
-                    Text(
-                        "${localTime(series.timestamp)}\n${localStamp(series.timestamp).take(10)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                    )
+                    // Date over time, small: the total beside it is the headline.
+                    Column {
+                        Text(localStamp(series.timestamp).take(10), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            localTime(series.timestamp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     // Tap caliber or tag to correct it.
                     TotalBadge(
                         total = holes.value.sumOf { it.ring },
@@ -404,22 +419,38 @@ fun SeriesDetailScreen(
                     )
                 }
 
-                // Own column: the rows sit tight, the 16 dp outside stays
-                if (series.local != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(Res.string.series_not_uploaded), modifier = Modifier.weight(1f))
-                        if (series.local == se.kjellstrand.markera.series.LocalMark.REFUSED) {
-                            androidx.compose.material3.TextButton(enabled = saving == 0, onClick = {
-                                saving++
-                                scope.launch {
-                                    try { services.repository.retrySeries(series.id); onBack() }
-                                    catch (e: CancellationException) { throw e }
-                                    catch (_: Exception) { toast(failedText) }
-                                    finally { saving-- }
+                // Why this series is not on the server, with the one thing that fixes it.
+                when {
+                    series.local == null -> {}
+                    auth == null -> SignInCard(
+                        services,
+                        localCount = 0,
+                        compact = true,
+                        title = stringResource(Res.string.detail_only_on_phone),
+                    )
+
+                    series.local == LocalMark.REFUSED -> StatusBanner(
+                        text = stringResource(Res.string.detail_upload_refused),
+                        action = stringResource(Res.string.retry),
+                        enabled = saving == 0,
+                        onAction = {
+                            saving++
+                            scope.launch {
+                                try {
+                                    services.repository.retrySeries(series.id)
+                                    onBack()
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (_: Exception) {
+                                    toast(failedText)
+                                } finally {
+                                    saving--
                                 }
-                            }) { Text(stringResource(Res.string.retry)) }
-                        }
-                    }
+                            }
+                        },
+                    )
+
+                    else -> StatusBanner(text = stringResource(Res.string.series_not_uploaded))
                 }
                 // Own column: the rows sit tight, the 16 dp outside stays
                 // between the photo and header blocks.
@@ -428,6 +459,13 @@ fun SeriesDetailScreen(
                         HoleRow(
                             hole = hole,
                             letter = holeLetter(i),
+                            selected = selected == i,
+                            // Only a hole with a marker has something to point at.
+                            onSelect = if (hole.x != null) {
+                                { selected = if (selected == i) null else i }
+                            } else {
+                                null
+                            },
                             // The server rejects an empty hole list, so the last
                             // hole stays; the whole series goes from the menu.
                             onDelete = if (holes.value.size > 1) {
@@ -440,6 +478,7 @@ fun SeriesDetailScreen(
                             onRestore = if (geometry != null && hole.canRestore()) {
                                 {
                                     holes.value = holes.value.restoreHole(i, geometry)
+                                    selected = null
                                     commit()
                                 }
                             } else {
@@ -515,6 +554,7 @@ fun SeriesDetailScreen(
             onDismiss = { pendingDeleteIndex = null },
             onConfirm = {
                 pendingDeleteIndex = null
+                selected = null
                 val hole = holes.value[index]
                 holes.value = holes.value.filterIndexed { j, _ -> j != index }
                 // Only a detection is worth keeping as training data; a hole added by hand
@@ -584,16 +624,46 @@ private fun SeriesArrow(
 /** The arrow's corner tap target: the button (40 dp + 8 dp gap) plus 40 dp of slop inwards. */
 private val ARROW_TOUCH_SIZE = 96.dp
 
+/** One line under the header saying the series is not on the server, and what to do. */
+@Composable
+private fun StatusBanner(
+    text: String,
+    action: String? = null,
+    enabled: Boolean = true,
+    onAction: () -> Unit = {},
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 4.dp).heightIn(min = 40.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(Icons.Default.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            if (action != null) TextButton(enabled = enabled, onClick = onAction) { Text(action) }
+        }
+    }
+}
+
 /**
- * One hole: its letter + what the detector said, the editable score, the
- * distance and how the hole came about. [onScoreChange] gets a picker index
- * (see `pickRing`); null leaves the score box inert. [onRestore] puts the hole
- * back on its detected spot and score; null hides that button.
+ * One hole: its letter, the editable score, the distance and, when there is
+ * something to say, how the hole came about ("8 → 9", "manual", "moved"; an untouched
+ * detection says nothing). [onScoreChange] gets a picker index (see `pickRing`); null
+ * leaves the score box inert. A tap on the row picks the hole ([onSelect], ringed on
+ * the photo). Restore and Delete sit behind the row's ⋮: [onRestore] puts the hole back
+ * on its detected spot and score. With neither there is no ⋮.
  */
 @Composable
 private fun HoleRow(
     hole: HoleDto,
     letter: String,
+    selected: Boolean,
+    onSelect: (() -> Unit)?,
     onDelete: (() -> Unit)?,
     onRestore: (() -> Unit)?,
     onScoreChange: ((Int) -> Unit)?,
@@ -601,48 +671,32 @@ private fun HoleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .background(
+                if (selected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
+                MaterialTheme.shapes.small,
+            )
+            .then(if (onSelect != null) Modifier.clickable(onClick = onSelect) else Modifier)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // The key letter back to the marker on the photo shares a cell with the
-        // detected score, so the kind column keeps its width ("detekterad" must
-        // not wrap).
-        Box(modifier = Modifier.width(44.dp)) {
-            Text(
-                text = letter,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterStart),
-            )
-            // Detected: what the model said, struck through once the hole was
-            // moved somewhere that scores differently.
-            Text(
-                text = hole.detectedLabel() ?: "",
-                style = MaterialTheme.typography.titleLarge,
-                color = if (hole.isEdited()) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-                textDecoration = if (hole.isEdited()) TextDecoration.LineThrough else null,
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
-        }
-        // The hole's current score, and the same tap-to-dialpad box as the scan
-        // screen. It always shows a value (not the old "—" placeholder), so
-        // correcting an untouched detection is a tap on the score itself.
-        // Whose value it is stays readable from the row: the detected cell to
-        // the left is struck through once they differ, and the kind column
-        // spells it out ("8 → 9", "manuell", "inmatad").
+        // The key letter back to the marker on the photo.
+        Text(
+            text = letter,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(20.dp),
+        )
+        // The hole's current score, the one number in the row, and the same
+        // tap-to-dialpad box as the scan screen. What the detector said, when it
+        // differs, is in the kind line ("8 → 9").
         ScoreBox(
             value = if (hole.innerTen) SCORE_PICKER_INNER_TEN else hole.ring,
             onValueChange = onScoreChange,
             // Same test as asHitScore's orange marker and the Historik card, so all agree.
             manual = hole.byHand(),
         )
-        // Distance over kind: side by side the kind column was left ~32 dp and
-        // "4 → 10, moved" broke over four lines. Stacked, both share the free width.
         Column(Modifier.weight(1f)) {
             Text(
                 // Whole millimetres only — no decimals anywhere in this UI.
@@ -652,37 +706,57 @@ private fun HoleRow(
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
             )
-            Text(
-                text = hole.kindText(
-                    manual = stringResource(Res.string.detail_kind_manual),
-                    typed = stringResource(Res.string.detail_kind_typed),
-                    moved = stringResource(Res.string.detail_kind_moved),
-                    detected = stringResource(Res.string.detail_kind_detected),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            val kind = hole.kindText(
+                manual = stringResource(Res.string.detail_kind_manual),
+                typed = stringResource(Res.string.detail_kind_typed),
+                moved = stringResource(Res.string.detail_kind_moved),
+                // An untouched detection is the normal case: no words for it.
+                detected = "",
             )
-        }
-        // Trimmed from the 48 dp default so the text, not the button, sets the row
-        // height; Compose still extends the touch target to 48 dp.
-        if (onRestore != null) {
-            IconButton(onClick = onRestore, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Undo,
-                    contentDescription = stringResource(Res.string.detail_restore_hole),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (kind.isNotEmpty()) {
+                Text(
+                    text = kind,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
-        if (onDelete != null) {
-            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(Res.string.detail_delete_hole),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        if (onRestore != null || onDelete != null) {
+            var menu by remember { mutableStateOf(false) }
+            Box {
+                // Trimmed from the 48 dp default so the text, not the button, sets the row
+                // height; Compose still extends the touch target to 48 dp.
+                IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(Res.string.detail_more),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    if (onRestore != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.detail_restore_hole)) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                onRestore()
+                            },
+                        )
+                    }
+                    if (onDelete != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.detail_delete_hole)) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                onDelete()
+                            },
+                        )
+                    }
+                }
             }
         }
     }

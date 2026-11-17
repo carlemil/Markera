@@ -85,7 +85,7 @@
     <string name="history_signed_out">Logga in för att se historik</string>
     <string name="history_empty">Inga sparade serier än</string>
     <string name="history_filter_empty">Inga serier matchar filtret.</string>
-    <string name="history_day_summary">%1$d serier · %2$d poäng</string>
+    <string name="history_day_summary">%1$d serier · snitt %2$s</string>
     <string name="history_day_summary_one">1 serie · %1$d poäng</string>
     <string name="history_card_title">%1$s · serie %2$d</string>
     <string name="history_delete_title">Radera serien?</string>
@@ -167,12 +167,36 @@
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Fliken Trend ritar valfritt mått som en kurva över tid. Välj mått med knapparna, och om varje serie ska bli en punkt eller om serierna ska slås ihop per dag, vecka eller månad (då räknas måttet över alla serier i perioden). Dela per kaliber ger en kurva per kaliber. Filtren ovanför gäller alla flikar. Tryck på en punkt för att läsa av den.</string>
     <string name="stats_tab_drift">Drift</string>
-    <string name="stats_drift_description">Tavla med medel- och medianträffpunkt för %1$d dagar</string>
+    <string name="stats_drift_description">Tavla med medel- och medianträffpunkt över tid, %1$d punkter</string>
     <string name="stats_drift_counts">%1$d dagar · %2$d serier · %3$d träffar</string>
-    <string name="stats_drift_oldest">Äldsta dagen</string>
-    <string name="stats_drift_newest">Senaste dagen</string>
+    <string name="stats_drift_oldest">Äldst</string>
+    <string name="stats_drift_newest">Senast</string>
+    <string name="stats_drift_per_day">Per dag</string>
+    <string name="stats_drift_per_series">Per serie</string>
+    <string name="stats_drift_smooth">Utjämna</string>
+    <string name="stats_drift_smoothed">utjämnad</string>
+    <string name="stats_drift_latest">Senaste</string>
+    <string name="stats_drift_slider">Tidpunkt</string>
+    <string name="stats_drift_low">%1$d mm lågt</string>
+    <string name="stats_drift_high">%1$d mm högt</string>
+    <string name="stats_drift_right">%1$d mm höger</string>
+    <string name="stats_drift_left">%1$d mm vänster</string>
+    <string name="stats_drift_on_centre">i centrum</string>
+    <string name="stats_drift_summary_one">Senaste träffpunkt: %1$s (%2$d mm från centrum).</string>
+    <string name="stats_drift_summary_closer">Senaste träffpunkt: %1$s (%2$d mm från centrum), %3$d mm närmare än %4$s.</string>
+    <string name="stats_drift_summary_further">Senaste träffpunkt: %1$s (%2$d mm från centrum), %3$d mm längre ut än %4$s.</string>
+    <string name="stats_drift_summary_same">Senaste träffpunkt: %1$s (%2$d mm från centrum), lika långt ut som %3$s.</string>
+    <string name="stats_drift_point_day">%1$s · %2$d serier · %3$d träffar</string>
+    <string name="stats_drift_point_series">%1$s · serie %2$d av %3$d · %4$d träffar</string>
+    <string name="stats_drift_value">%1$s: %2$s</string>
+    <string name="stats_drift_strips">Vänster / höger och högt / lågt över tid (medel)</string>
+    <string name="stats_drift_strips_median">Vänster / höger och högt / lågt över tid (median)</string>
+    <string name="stats_drift_axis_left">Vänster</string>
+    <string name="stats_drift_axis_right">Höger</string>
+    <string name="stats_drift_axis_high">Högt</string>
+    <string name="stats_drift_axis_low">Lågt</string>
     <string name="stats_help_drift">Drift</string>
-    <string name="stats_help_drift_body">Fliken Drift visar hur träffpunkten flyttar sig över tid. Varje dag du skjutit får en medelpunkt (fylld prick) och en medianpunkt (ring), räknade på alla dagens träffar tillsammans. En tunn linje binder ihop dagarna i datumordning, hel för medel och streckad för median, och färgen går från grått för den äldsta dagen till klarblått för den senaste. Hål utan position räknas inte. Slå av medel eller median med knapparna under tavlan. Nyp för att zooma, dubbeltryck för att återställa.</string>
+    <string name="stats_help_drift_body">Fliken Drift visar hur träffpunkten flyttar sig över tid. Med Per dag får varje dag du skjutit en medelpunkt (fylld prick) och en medianpunkt (ring), räknade på alla dagens träffar tillsammans; med Per serie får varje serie sina egna, och Utjämna räknar medel med de två serierna före. En tunn linje binder ihop punkterna i tidsordning, hel för medel och streckad för median, med pilar som visar riktningen, och färgen går från grått för den äldsta till klarblått för den senaste. Meningen överst säger var den senaste punkten ligger och hur långt den flyttat sig sedan den första. Tryck på en punkt, eller dra reglaget under tavlan, för att välja en punkt: kortet nedanför visar datum och hur långt lågt eller högt och vänster eller höger om centrum den ligger, och senare punkter tonas ned. De två små diagrammen längst ned visar samma drift uppdelad i vänster/höger och högt/lågt. Hål utan position räknas inte. Slå av medel eller median med knapparna under tavlan. Nyp för att zooma, dubbeltryck för att återställa.</string>
 
     <!-- Hjälp: delas av alla skärmars (?)-dialog -->
     <string name="help">Hjälp</string>
@@ -189,7 +213,7 @@
     <string name="help_home_stats">Statistik</string>
     <string name="help_home_stats_body">Träffbild och mått över tid, filtrerat på kaliber och datum.</string>
     <string name="help_home_account">Konto</string>
-    <string name="help_home_account_body">Logga in med Google eller Apple för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto.</string>
+    <string name="help_home_account_body">Logga in med Google eller Apple för att spara serier. Serierna sparas på Markeras server och kan raderas när som helst med Radera konto, under Inställningar.</string>
 
     <!-- Hjälp: scannerskärmen -->
     <string name="help_scan_title">Så skannar du</string>
@@ -216,7 +240,7 @@
     <!-- Hjälp: historiken -->
     <string name="help_history_title">Om historiken</string>
     <string name="help_history_list">Listan</string>
-    <string name="help_history_list_body">Varje rad är en sparad serie: bild, tid, kaliber, poäng och träffarna. Serierna ligger samlade per dag, nyast först — tryck på en dagrubrik för att fälla ut dagens serier. Chipsen ovanför listan filtrerar på kaliber och datum, och valet kommer ihåg till nästa gång.</string>
+    <string name="help_history_list_body">Varje rad är en sparad serie: bild, tid, kaliber, poäng och träffarna. Serierna ligger samlade per dag, nyast först; den senaste dagen är utfälld, tryck på en dagrubrik för att fälla in eller ut den. Filter ovanför listan visar valen för kaliber, tagg och datum, och valet kommer ihåg till nästa gång.</string>
     <string name="help_history_detail">Detaljer</string>
     <string name="help_history_detail_body">Tryck på en serie för att se den i stort, justera träffar eller ta bort den. Håll inne en rad för att radera den direkt.</string>
     <string name="help_history_export">Exportera</string>
@@ -227,9 +251,9 @@
     <!-- Hjälp: seriedetaljen -->
     <string name="help_detail_title">Om serien</string>
     <string name="help_detail_photo">Bilden</string>
-    <string name="help_detail_photo_body">Den skannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge. Pilarna på bilden stegar till föregående eller nästa serie i listan du kom från.</string>
+    <string name="help_detail_photo_body">Den skannade tavlan med träffar, ring och centrum. Nyp för att zooma, dra en träff för att flytta den och tryck på tavlan för att lägga till en som saknas — poängen räknas om efter träffens läge. Tryck på en träff för att hitta dess rad i listan. Pilarna på bilden stegar till föregående eller nästa serie i listan du kom från.</string>
     <string name="help_detail_holes">Träffarna</string>
-    <string name="help_detail_holes_body">Listan visar ring, avstånd från centrum i millimeter och om träffen är detekterad eller tillagd för hand. Papperskorgen i raden tar bort träffen efter en bekräftelse. Pilen bredvid lägger tillbaka en flyttad eller omsatt träff där detektorn såg den. Ändringar sparas direkt; ångra dem i meddelandet längst ned.</string>
+    <string name="help_detail_holes_body">Varje rad visar träffens bokstav, poäng och avstånd från centrum i millimeter, och säger när träffen lagts till för hand, flyttats eller fått ny poäng. Tryck på en rad för att ringa in träffen på bilden. ⋮ i raden tar bort träffen efter en bekräftelse, eller lägger tillbaka en flyttad eller omsatt träff där detektorn såg den. Ändringar sparas direkt; ångra dem i meddelandet längst ned.</string>
     <string name="help_detail_delete">Radera</string>
     <string name="help_detail_delete_body">Radera i menyn tar bort serien ur appen. Servern behåller serien, dess träffar och tavelfoto tills du raderar kontot.</string>
 
@@ -373,4 +397,30 @@
     <string name="local_claim_delete_body">Radera %1$d serier och deras foton från den här enheten? Det går inte att ångra. De har inte laddats upp till det här kontot.</string>
     <string name="local_claim_stay">Förbli utloggad</string>
     <string name="local_claim_error">Åtgärden kunde inte slutföras. Dina återstående serier finns kvar på enheten. Stäng och försök logga in igen.</string>
+    <string name="home_week_series">serier på 7 dagar</string>
+    <string name="home_week_average">snitt</string>
+    <string name="home_week_best">bästa</string>
+    <string name="home_local_title">%1$d serier finns bara på telefonen</string>
+    <string name="home_local_title_one">1 serie finns bara på telefonen</string>
+    <string name="home_signin_title">Spara dina serier på ditt konto</string>
+    <string name="home_signin_body">Logga in så följer de med när du byter telefon.</string>
+    <string name="action_sign_in">Logga in</string>
+    <string name="filter_title">Filter</string>
+    <string name="filter_all">Alla serier</string>
+    <string name="detail_only_on_phone">Finns bara på telefonen</string>
+    <string name="detail_upload_refused">Servern tog inte emot serien</string>
+    <string name="detail_more">Mer</string>
+    <string name="badge_add_tag">+ Tagg</string>
+    <string name="stats_trend_latest">Senaste</string>
+    <string name="stats_trend_above">%1$s över snittet (%2$s)</string>
+    <string name="stats_trend_below">%1$s under snittet (%2$s)</string>
+    <string name="stats_trend_on_average">På snittet (%1$s)</string>
+    <string name="markera_detect_holes_body">Av: bara ringarna hittas och du trycker ut varje hål.</string>
+    <string name="markera_continuous_body">Skannar om av sig själv när ett nytt hål syns.</string>
+    <string name="settings_account">Konto</string>
+    <string name="settings_about">Om</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_privacy">Integritetspolicy</string>
+    <string name="settings_not_signed_in">Inte inloggad</string>
+    <string name="settings_system_short">System</string>
 </resources>

@@ -2,6 +2,8 @@ package se.kjellstrand.markera.ui.history
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
@@ -193,6 +195,29 @@ class HistoryFilterTest {
         val list = listOf(series(1, timestamp = "2026-09-15T10:00:00Z"))
         val encoded = encodeOpenDays(setOf("2026-09-15", "2026-08-01"), list, TimeZone.UTC)
         assertEquals(setOf("2026-09-15"), decodeOpenDays(encoded))
+    }
+
+    @Test
+    fun `the newest day is open until it is folded`() {
+        val newest = "2026-09-15"
+        assertTrue(isDayOpen(newest, newest, emptySet()))
+        assertFalse(isDayOpen("2026-09-01", newest, emptySet()))
+
+        val folded = toggleDay(newest, newest, emptySet())
+        assertFalse(isDayOpen(newest, newest, folded))
+        assertTrue(isDayOpen(newest, newest, toggleDay(newest, newest, folded)))
+
+        val older = toggleDay("2026-09-01", newest, emptySet())
+        assertTrue(isDayOpen("2026-09-01", newest, older))
+        assertEquals(emptySet(), toggleDay("2026-09-01", newest, older))
+    }
+
+    @Test
+    fun `a folded newest day survives the round trip`() {
+        val list = listOf(series(1, timestamp = "2026-09-15T10:00:00Z"))
+        val folded = toggleDay("2026-09-15", "2026-09-15", emptySet())
+        val back = decodeOpenDays(encodeOpenDays(folded, list, TimeZone.UTC))
+        assertFalse(isDayOpen("2026-09-15", "2026-09-15", back))
     }
 
     @Test

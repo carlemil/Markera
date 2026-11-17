@@ -1,5 +1,11 @@
 package se.kjellstrand.markera.ui.stats
 
+import kotlin.math.roundToInt
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import org.jetbrains.compose.resources.stringResource
+import se.kjellstrand.markera.res.Res
+import se.kjellstrand.markera.res.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -63,7 +69,7 @@ val TREND_COLOURS = listOf(
     Color(0xFFE66767), // red
 )
 
-private val CHART_HEIGHT = 220.dp
+private val CHART_HEIGHT = 300.dp
 private val Y_GUTTER = 52.dp
 private val X_GUTTER = 20.dp
 private val MARK = 5.dp
@@ -73,14 +79,20 @@ private val MEAN_LINE = 1.dp
 /**
  * A scatterplot of [lines] over time with a recessive grid, first/last date on the
  * x axis and [format]ted ticks on the y axis. Each series of marks gets its
- * least-squares trend line, a dashed mean and a ±1 SD band. Tap near a point to read it off
- * ([pointText] words it); the legend only appears with two or more lines.
+ * least-squares trend line, a dashed mean and a ±1 SD band. The card above reads off the
+ * tapped point, or the newest one until a tap ([pointText] words it, [compare] says how it
+ * stands against its line's mean); the legend only appears with two or more lines.
+ * [minSpan] keeps a few close values from filling the height (Score: 10 points), and
+ * [whole] keeps the ticks on whole numbers.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TrendChart(
     lines: List<TrendLine>,
     format: (Double) -> String,
+    minSpan: Double = 0.0,
+    whole: Boolean = false,
+    compare: @Composable (value: Double, mean: Double) -> String = { _, _ -> "" },
     pointText: @Composable (TrendLine, TrendPoint) -> String,
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -96,13 +108,61 @@ fun TrendChart(
 
     val all = lines.flatMap { it.points }
     if (all.isEmpty()) return
-    val ticks = remember(lines) { niceTicks(all.minOf { it.value }, all.maxOf { it.value }) }
-    val xMin = all.minOf { it.at.toEpochMilliseconds() }
-    val xMax = all.maxOf { it.at.toEpochMilliseconds() }.let { if (it == xMin) it + DAY_MS else it }
+    val ticks = remember(lines, minSpan, whole) {
+        niceTicks(all.minOf { it.value }, all.maxOf { it.value }, minSpan, whole)
+    }
+    val firstMs = all.minOf { it.at.toEpochMilliseconds() }
+    val lastMs = all.maxOf { it.at.toEpochMilliseconds() }
+    // One moment only: centre it in a day's width rather than pin it to the left edge.
+    val single = firstMs == lastMs
+    val xMin = if (single) firstMs - DAY_MS / 2 else firstMs
+    val xMax = if (single) lastMs + DAY_MS / 2 else lastMs
     val yMin = ticks.first()
     val yMax = ticks.last()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Read-off card: the tapped point, else the newest point of any line.
+        val shown = selected ?: lines.withIndex()
+            .filter { it.value.points.isNotEmpty() }
+            .maxByOrNull { it.value.points.last().at }
+            ?.let { it.index to it.value.points.lastIndex }
+        if (shown != null) {
+            val (li, pi) = shown
+            val line = lines[li]
+            val point = line.points[pi]
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(Modifier.size(10.dp).background(line.colour, CircleShape))
+                    Column(Modifier.weight(1f)) {
+                        if (selected == null) {
+                            Text(
+                                stringResource(Res.string.stats_trend_latest),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(pointText(line, point), style = MaterialTheme.typography.bodyMedium)
+                        // Against what: only a line of two or more points has an average to speak of.
+                        val fit = remember(line) { line.points.fit() }
+                        if (fit != null) {
+                            Text(
+                                compare(point.value, fit.mean),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -126,14 +186,19 @@ fun TrendChart(
             for (tick in ticks) {
                 val py = y(tick)
                 drawLine(gridColour, Offset(left, py), Offset(right, py), 1.dp.toPx())
-                val text = textMeasurer.measure(format(tick), labelStyle)
+                val text = textMeasurer.measure(if (whole) tick.roundToInt().toString() else format(tick), labelStyle)
                 drawText(text, topLeft = Offset(left - text.size.width - 6.dp.toPx(), py - text.size.height / 2))
             }
-            // First and last date under the axis.
-            val first = textMeasurer.measure(day(xMin), labelStyle)
-            val last = textMeasurer.measure(day(xMax), labelStyle)
-            drawText(first, topLeft = Offset(left, bottom + 4.dp.toPx()))
-            drawText(last, topLeft = Offset(right - last.size.width, bottom + 4.dp.toPx()))
+            // First and last date under the axis; a single moment gets its one date under it.
+            if (single) {
+                val only = textMeasurer.measure(day(firstMs), labelStyle)
+                drawText(only, topLeft = Offset(x(firstMs) - only.size.width / 2, bottom + 4.dp.toPx()))
+            } else {
+                val first = textMeasurer.measure(day(xMin), labelStyle)
+                val last = textMeasurer.measure(day(xMax), labelStyle)
+                drawText(first, topLeft = Offset(left, bottom + 4.dp.toPx()))
+                drawText(last, topLeft = Offset(right - last.size.width, bottom + 4.dp.toPx()))
+            }
 
             // Per series of marks, under them: a ±1 SD band, the mean (dashed) and the trend (solid).
             val dashes = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))
@@ -171,11 +236,6 @@ fun TrendChart(
             }
             placed.value = positions
         }
-        Text(
-            text = selected?.let { (li, pi) -> pointText(lines[li], lines[li].points[pi]) } ?: " ",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
         if (lines.size >= 2) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 lines.forEach { line ->
@@ -199,17 +259,29 @@ fun TrendChart(
 private fun day(ms: Long): String =
     Instant.fromEpochMilliseconds(ms).toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 
-/** 3-6 round tick values spanning [lo]..[hi]; a flat line still gets a band around it. */
-internal fun niceTicks(lo: Double, hi: Double): List<Double> {
+/**
+ * 3-6 round tick values spanning [lo]..[hi]; a flat line still gets a band around it, and
+ * a range narrower than [minSpan] is widened to it about its middle. [whole] keeps every
+ * step a whole number (no 2.5), for values only ever read as whole points.
+ */
+internal fun niceTicks(lo: Double, hi: Double, minSpan: Double = 0.0, whole: Boolean = false): List<Double> {
     var min = lo
     var max = hi
+    if (max - min < minSpan) {
+        val mid = (min + max) / 2
+        min = mid - minSpan / 2
+        max = mid + minSpan / 2
+    }
     if (max - min < 1e-9) {
         min -= 1.0
         max += 1.0
     }
     val raw = (max - min) / 4
     val magnitude = 10.0.pow(floor(log10(raw)))
-    val step = listOf(1.0, 2.0, 2.5, 5.0, 10.0).map { it * magnitude }.first { (max - min) / it <= 5.5 }
+    val steps = listOf(1.0, 2.0, 2.5, 5.0, 10.0).map { it * magnitude }
+        .filter { !whole || (it >= 1.0 && it == floor(it)) }
+        .ifEmpty { listOf(1.0) }
+    val step = steps.firstOrNull { (max - min) / it <= 5.5 } ?: steps.last()
     val start = floor(min / step) * step
     val end = ceil(max / step) * step
     val count = ((end - start) / step + 0.5).toInt()

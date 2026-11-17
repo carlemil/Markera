@@ -347,7 +347,8 @@ internal fun DrawScope.drawTargetFace(textMeasurer: TextMeasurer, scale: Float) 
     }
 
     // Ring digits 1..9, centred in their band on all four axis arms.
-    val digitSize = 11f * scale
+    // Printed size on the whole target; capped so Drift's close-up does not blow them up over the points.
+    val digitSize = minOf(11f * scale, 14.dp.toPx())
     // Centred horizontally; the third of the text size centres vertically.
     fun digit(ring: Int, colour: Color, x: Float, y: Float) {
         val layout = textMeasurer.measure(

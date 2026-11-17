@@ -297,7 +297,7 @@ fun MarkeraScreen(
                 AppTopBar(
                     title = importQueue?.let {
                         stringResource(Res.string.import_progress, minOf(it.index + 1, it.items.size), it.items.size)
-                    } ?: stringResource(Res.string.app_name),
+                    } ?: stringResource(Res.string.home_free_marking),
                     onBack = onBack,
                     menuItems = listOfNotNull(
                         MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
@@ -334,6 +334,10 @@ fun MarkeraScreen(
                         )
                     }
                     watchDebug?.let { WatchDebugOverlay(it, Modifier.fillMaxSize()) }
+                    // How to aim, on the live picture itself, so the controls below keep the room.
+                    if (!isFrozen && !processing && placing == null && importQueue == null) {
+                        LiveHint(Modifier.align(Alignment.BottomCenter).padding(12.dp))
+                    }
                     // Over the photo, below the top bar it used to cover.
                     uiState.error?.let { msg ->
                         Text(
@@ -511,18 +515,14 @@ private fun BottomArea(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    LiveHint()
-                    // The switches side by side, a divider between them.
-                    Row(
-                        modifier = Modifier.height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    ) {
+                    // One switch a row, each saying what it does.
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
                         // With hole detection off there is nothing for a rescan to find.
                         if (continuousAvailable) {
-                            VerticalDivider()
                             ScanToggle(
                                 label = stringResource(Res.string.markera_continuous),
+                                description = stringResource(Res.string.markera_continuous_body),
                                 checked = continuous,
                                 onCheckedChange = onToggleContinuous,
                                 onHelp = onContinuousHelp,
@@ -601,24 +601,38 @@ private fun ChipTitle(title: String, chip: @Composable () -> Unit) {
 /** Off: the scan stops after the geometry and the holes are placed by hand. */
 @Composable
 private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    ScanToggle(stringResource(Res.string.markera_detect_holes), checked, onCheckedChange)
+    ScanToggle(
+        stringResource(Res.string.markera_detect_holes),
+        stringResource(Res.string.markera_detect_holes_body),
+        checked,
+        onCheckedChange,
+    )
 }
 
-/** A switch with its label above it, in the pre-scan row of switches. */
+/** A full-width switch row: label, a line on what it does, the switch; optionally a (?) . */
 @Composable
-private fun ScanToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, onHelp: (() -> Unit)? = null) {
-    Row(verticalAlignment = Alignment.Bottom) {
+private fun ScanToggle(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onHelp: (() -> Unit)? = null,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // Label and switch are one control: tapping either toggles, and it is read out as one.
-        Column(
-            Modifier.toggleable(checked, role = Role.Switch, onValueChange = onCheckedChange),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Row(
+            Modifier.weight(1f).toggleable(checked, role = Role.Switch, onValueChange = onCheckedChange),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(Modifier.weight(1f)) {
+                Text(text = label, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Switch(checked = checked, onCheckedChange = null)
         }
         // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
@@ -634,13 +648,17 @@ private fun ScanToggle(label: String, checked: Boolean, onCheckedChange: (Boolea
     }
 }
 
+/** How to aim, as a see-through pill over the bottom of the live picture. */
 @Composable
-private fun LiveHint() {
+private fun LiveHint(modifier: Modifier = Modifier) {
     Text(
         text = stringResource(Res.string.markera_hint),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodySmall,
+        color = Color.White,
         textAlign = TextAlign.Center,
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.55f), MaterialTheme.shapes.small)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
     )
 }
 
@@ -744,11 +762,16 @@ private fun CaliberChip(recorder: SeriesRecorder) {
     AppChip(caliber != Caliber.NONE, recorder::openCaliberDialog, label)
 }
 
-/** The tag the next series is saved with; tap to change it. Untagged shows –. */
+/** The tag the next series is saved with; tap to change it. Untagged offers to add one. */
 @Composable
 private fun TagChip(recorder: SeriesRecorder) {
     val tag by recorder.tag.collectAsState()
-    AppChip(tag != null, recorder::openTagDialog, tag ?: "–", Modifier.widthIn(max = 120.dp))
+    AppChip(
+        tag != null,
+        recorder::openTagDialog,
+        tag ?: stringResource(Res.string.badge_add_tag),
+        Modifier.widthIn(max = 120.dp),
+    )
 }
 
 /** The continuous-scan loop's last tick: counters + status, and the watch's verdict. */

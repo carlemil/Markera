@@ -12,7 +12,7 @@ class PhotoGesturesTest {
     fun `a short tap off a hole adds one`() = assertEquals(GestureEnd.ADD, end(onHole = false))
 
     @Test
-    fun `a short tap on a hole does nothing`() = assertEquals(GestureEnd.NONE, end(onHole = true))
+    fun `a short tap on a hole selects it`() = assertEquals(GestureEnd.SELECT, end(onHole = true))
 
     @Test
     fun `a long press on a hole removes it`() =
