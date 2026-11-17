@@ -526,6 +526,6 @@
     <string name="detail_vs_under">%1$d under ditt snitt på %2$d</string>
     <string name="detail_vs_over">%1$d över ditt snitt på %2$d</string>
     <string name="detail_vs_on">På ditt snitt, %1$d</string>
-    <string name="detail_vs_best">Ditt bästa på 30 dagar</string>
+    <string name="detail_vs_best">Ditt bästa på %1$d dagar</string>
     <string name="detail_day_in_insights">Se dagen i Analys</string>
 </resources>

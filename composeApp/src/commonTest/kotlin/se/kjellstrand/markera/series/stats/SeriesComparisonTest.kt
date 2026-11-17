@@ -64,7 +64,7 @@ class SeriesComparisonTest {
     @Test
     fun `the best total of the last 30 days is the best`() {
         val s = series(49, day = 15)
-        assertEquals(SeriesComparison.Best, compareWithAverage(s, history() + s))
+        assertEquals(SeriesComparison.Best(30), compareWithAverage(s, history() + s))
     }
 
     @Test
@@ -72,7 +72,7 @@ class SeriesComparisonTest {
         val old = series(50, day = 1, hour = 9).copy(timestamp = "2026-08-01T10:00:00Z")
         val s = series(49, day = 15)
         // The August 50 still feeds the average (rounded 45) but not the 30 day window.
-        assertEquals(SeriesComparison.Best, compareWithAverage(s, history() + old + s))
+        assertEquals(SeriesComparison.Best(30), compareWithAverage(s, history() + old + s))
     }
 
     @Test

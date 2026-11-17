@@ -526,6 +526,6 @@
     <string name="detail_vs_under">%1$d under your average of %2$d</string>
     <string name="detail_vs_over">%1$d over your average of %2$d</string>
     <string name="detail_vs_on">On your average of %1$d</string>
-    <string name="detail_vs_best">Your best in the last 30 days</string>
+    <string name="detail_vs_best">Your best in the last %1$d days</string>
     <string name="detail_day_in_insights">See this day in Insights</string>
 </resources>

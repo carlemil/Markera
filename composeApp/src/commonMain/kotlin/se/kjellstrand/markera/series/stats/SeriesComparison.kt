@@ -20,7 +20,7 @@ sealed interface SeriesComparison {
     data class OnAverage(val average: Int) : SeriesComparison
 
     /** The best total of the last [ComparisonThresholds.bestDays] days. */
-    data object Best : SeriesComparison
+    data class Best(val days: Int) : SeriesComparison
 }
 
 data class ComparisonThresholds(
@@ -63,7 +63,7 @@ fun compareWithAverage(
     val at = series.instant() ?: return null
     val total = series.total()
     val recent = earlier.filter { it.instant()!! >= at - thresholds.bestDays.days }
-    if (recent.size >= thresholds.bestMinRecent && total > recent.maxOf { it.total() }) return SeriesComparison.Best
+    if (recent.size >= thresholds.bestMinRecent && total > recent.maxOf { it.total() }) return SeriesComparison.Best(thresholds.bestDays)
     val average = earlier.takeLast(thresholds.window).map { it.total() }.average().roundToInt()
     val diff = total - average
     return when {
@@ -100,6 +100,8 @@ fun dayFinding(
             it.instant()?.let { t -> day(t) <= date } == true
     } + series).distinctBy { it.id }
     val plotted = upToDay.plotSeries(StatsFilter(calibers = setOf(Caliber.fromLabel(series.caliber))))
+    // Judged on the series that could be plotted, so the 3+ gate counts those too.
+    if (plotted.count { day(it.at) == date } < thresholds.lowDayMinSeries) return null
     val dated = plotted.findings(zone, thresholds).filter {
         (it is Finding.LowDay && it.date == date) || (it is Finding.WideRoundGroup && it.date == date)
     }

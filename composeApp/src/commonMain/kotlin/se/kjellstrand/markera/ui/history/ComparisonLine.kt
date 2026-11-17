@@ -72,7 +72,7 @@ private fun comparisonText(c: SeriesComparison): String = when (c) {
     is SeriesComparison.Under -> stringResource(Res.string.detail_vs_under, c.points, c.average)
     is SeriesComparison.Over -> stringResource(Res.string.detail_vs_over, c.points, c.average)
     is SeriesComparison.OnAverage -> stringResource(Res.string.detail_vs_on, c.average)
-    SeriesComparison.Best -> stringResource(Res.string.detail_vs_best)
+    is SeriesComparison.Best -> stringResource(Res.string.detail_vs_best, c.days)
 }
 
 /** Resolves direction words and dates in [text]'s arguments, as [AdviceText] asks of its renderer. */
