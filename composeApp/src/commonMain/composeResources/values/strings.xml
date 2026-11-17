@@ -532,4 +532,9 @@
     <string name="stats_insights_target_description">Insights target with %1$d shots, the ellipse and the arrow to the mean point of impact</string>
     <string name="stats_insights_no_caliber">Insights looks at one caliber at a time, and these series have none. Set a caliber on them in History to see insights.</string>
     <string name="stats_insights_uncalibered">%1$d series without a caliber are left out.</string>
+    <string name="detail_vs_under">%1$d under your average of %2$d</string>
+    <string name="detail_vs_over">%1$d over your average of %2$d</string>
+    <string name="detail_vs_on">On your average of %1$d</string>
+    <string name="detail_vs_best">Your best in the last %1$d days</string>
+    <string name="detail_day_in_insights">See this day in Insights</string>
 </resources>

@@ -25,20 +25,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
-import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.stats.Advice
-import se.kjellstrand.markera.series.stats.AdviceText
 import se.kjellstrand.markera.series.stats.InsightMark
 import se.kjellstrand.markera.series.stats.InsightSection
 import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.adviceFor
 import se.kjellstrand.markera.series.stats.insights
 import se.kjellstrand.markera.series.stats.mark
+import se.kjellstrand.markera.ui.history.adviceString
 import se.kjellstrand.markera.ui.settings.ShootingHand
 
 /**
@@ -138,17 +136,17 @@ private fun AdviceCard(advice: Advice, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().selectable(selected = selected, role = Role.Button, onClick = onClick),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(advice.summary.resolve(), style = MaterialTheme.typography.bodyLarge)
+            Text(adviceString(advice.summary), style = MaterialTheme.typography.bodyLarge)
             if (advice.causes.isNotEmpty()) {
                 Label(stringResource(Res.string.advice_causes_title))
                 advice.causes.forEach { cause ->
-                    Text("•  " + cause.resolve(), style = MaterialTheme.typography.bodyMedium)
+                    Text("•  " + adviceString(cause), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             Label(stringResource(Res.string.advice_try_title))
-            Text(advice.tryThis.resolve(), style = MaterialTheme.typography.bodyMedium)
+            Text(adviceString(advice.tryThis), style = MaterialTheme.typography.bodyMedium)
             advice.note?.let {
-                Text(it.resolve(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(adviceString(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -162,20 +160,4 @@ private fun Label(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 4.dp),
     )
-}
-
-/**
- * The text of an [AdviceText]: a direction word ([StringResource]) is looked up and a date shown
- * as `yyyy-MM-dd`, the app's date format, before the format call, which only prints its arguments.
- */
-@Composable
-internal fun AdviceText.resolve(): String {
-    val shown = args.map { arg ->
-        when (arg) {
-            is StringResource -> stringResource(arg)
-            is LocalDate -> arg.toString()
-            else -> arg
-        }
-    }
-    return stringResource(res, *shown.toTypedArray())
 }

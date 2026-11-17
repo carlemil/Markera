@@ -33,7 +33,9 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
@@ -52,6 +54,8 @@ import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.seriesJson
 import se.kjellstrand.markera.ui.MarkeraApp
+import se.kjellstrand.markera.ui.history.COMPARISON_DAY_LINE_TAG
+import se.kjellstrand.markera.ui.history.COMPARISON_LINE_TAG
 import se.kjellstrand.markera.ui.history.SERIES_THUMBNAIL_TAG
 
 /**
@@ -106,6 +110,8 @@ class AppUiTest {
             geometry = GEOMETRY,
         )
     }
+    /** What GET /series answers; a test fills it before launch. */
+    private var onServer: List<SeriesDto> = listOf(serverSeries) + offsetSeries
 
     private val jpeg: ByteArray by lazy {
         val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.rgb(200, 180, 120)) }
@@ -126,7 +132,7 @@ class AppUiTest {
             request.method == HttpMethod.Get && path == "/series/${serverSeries.id}/image" ->
                 respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
             request.method == HttpMethod.Get && path == "/series" ->
-                respond(seriesJson.encodeToString(listOf(serverSeries) + offsetSeries), HttpStatusCode.OK, json)
+                respond(seriesJson.encodeToString(onServer), HttpStatusCode.OK, json)
             else -> respond("", HttpStatusCode.NotFound)
         }
     }
@@ -365,6 +371,95 @@ class AppUiTest {
         waitForText("Drift")
         rule.waitForIdle()
         assertFalse("Insights must be hidden when off", rule.exists(hasText("Insights")))
+    }
+
+    // ---- coaching: the Serie page line against your average ----
+
+    /** [serverSeries] with these rings on top of ten earlier 22lr series averaging 44, a day apart. */
+    private fun withHistory(vararg rings: Int) {
+        val now = Clock.System.now()
+        val earlier = List(10) { i ->
+            serverSeries.copy(
+                id = 600L + i,
+                timestamp = (now - (i + 2).days).toString(),
+                holes = List(5) { h -> HoleDto(500.0, 500.0, if (h < 4) 9 else 8, false, null) },
+                hasImage = false,
+            )
+        }
+        val newest = serverSeries.copy(holes = rings.map { HoleDto(500.0, 500.0, it, false, null) })
+        onServer = listOf(newest) + earlier
+    }
+
+    private fun openNewestSeries(store: MemoryStore = MemoryStore(null)) {
+        launch(signedIn = true, store = store)
+        waitForText("series in 7 days")
+        rule.onNodeWithText("History").performClick()
+        waitFor(thumbnail, "a photo in History")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitForText("Series")
+    }
+
+    private val lineTag = hasTestTag(COMPARISON_LINE_TAG)
+
+    /** A series a little under the usual average of 44 (ten series of 9,9,9,9,8 = 44). */
+    @Test fun serieLineSaysHowFarUnderTheAverage() {
+        withHistory(9, 9, 9, 8, 8)
+        openNewestSeries()
+        waitForText("1 under your average of 44")
+    }
+
+    /** A clearly low series reads as such, with the number, and nothing about shape. */
+    @Test fun serieLineForALowSeries() {
+        withHistory(8, 8, 8, 7, 7)
+        openNewestSeries()
+        waitForText("6 under your average of 44")
+        assertFalse(rule.exists(hasTestTag(COMPARISON_DAY_LINE_TAG)))
+    }
+
+    @Test fun serieLineForANormalSeries() {
+        withHistory(9, 9, 9, 9, 8)
+        openNewestSeries()
+        waitForText("On your average of 44")
+    }
+
+    @Test fun serieLineForABestSeries() {
+        withHistory(10, 10, 10, 9, 9)
+        openNewestSeries()
+        waitForText("Your best in the last 30 days")
+    }
+
+    /** Fewer than ten earlier series: no line at all. */
+    @Test fun serieLineIsMissingWithoutHistory() {
+        openNewestSeries()
+        rule.waitForIdle()
+        assertFalse(rule.exists(lineTag))
+    }
+
+    /** Insights off in Settings hides the line. */
+    @Test fun serieLineIsHiddenWhenInsightsIsOff() {
+        withHistory(8, 8, 8, 7, 7)
+        openNewestSeries(MemoryStore(null, insightsEnabled = false))
+        rule.waitForIdle()
+        assertFalse(rule.exists(lineTag))
+    }
+
+    /**
+     * The Serie page's day link opens Insights on that day and caliber: the newest series and three
+     * offset ones minutes before it, 20 shots of 22lr on one day sitting right of the centre.
+     */
+    @Test fun serieDayLinkOpensInsightsForThatDay() {
+        onServer = listOf(serverSeries) + offsetSeries.mapIndexed { i, s ->
+            s.copy(timestamp = (Clock.System.now() - 1.hours - (i + 1).minutes).toString())
+        }
+        openNewestSeries()
+        waitForText("See this day in Insights")
+        rule.onNode(hasText("See this day in Insights")).performScrollTo().performClick()
+        // The Serie page words the same finding, so the target and the picked tab tell the screens apart.
+        waitFor(hasContentDescription("Insights target with 20 shots", substring = true), "the Insights target")
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(hasText("Insights") and isSelected()).fetchSemanticsNodes().isNotEmpty() }
+        waitForText("to the right over 20 shots")
+        pressBack()
+        waitForText("See this day in Insights")
     }
 
     private companion object {

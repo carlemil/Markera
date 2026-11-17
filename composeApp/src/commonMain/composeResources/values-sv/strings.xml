@@ -532,4 +532,9 @@
     <string name="stats_insights_target_description">Analystavla med %1$d skott, ellipsen och pilen till medelträffläget</string>
     <string name="stats_insights_no_caliber">Analysen tittar på en kaliber i taget, och de här serierna saknar kaliber. Ange kaliber på dem i Historik för att se en analys.</string>
     <string name="stats_insights_uncalibered">%1$d serier utan kaliber är inte med.</string>
+    <string name="detail_vs_under">%1$d under ditt snitt på %2$d</string>
+    <string name="detail_vs_over">%1$d över ditt snitt på %2$d</string>
+    <string name="detail_vs_on">På ditt snitt, %1$d</string>
+    <string name="detail_vs_best">Ditt bästa på %1$d dagar</string>
+    <string name="detail_day_in_insights">Se dagen i Analys</string>
 </resources>

@@ -102,6 +102,11 @@ import se.kjellstrand.markera.ui.history.encode
 import se.kjellstrand.markera.ui.history.PHOTO_MAX_DIM
 import se.kjellstrand.markera.ui.DateRangeDialog
 import se.kjellstrand.markera.ui.settings.LocalAppSettings
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
 import se.kjellstrand.markera.ui.settings.ShootingHand
 
 
@@ -112,7 +117,13 @@ import se.kjellstrand.markera.ui.settings.ShootingHand
  */
 @OptIn(ExperimentalTime::class, ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> Unit = {}) {
+fun StatsScreen(
+    services: SeriesServices,
+    onBack: () -> Unit,
+    onMarkera: () -> Unit = {},
+    /** Opened from the Serie page: Insights on that day and caliber; null opens as usual. */
+    insightsDay: InsightsDay? = null,
+) {
     val auth by services.session.auth.collectAsState()
     val series by services.repository.series.collectAsState()
     var loading by remember { mutableStateOf(true) }
@@ -127,10 +138,14 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     val tagsWithGeometry = remember(series) { series.tagsWithGeometry() }
 
     // The one filter Historik uses too, stored the same way: filtering either screen filters both.
-    var selection by remember { mutableStateOf(HistoryFilter()) }
+    // A day opened from the Serie page is a look at that day, not a change to the filter Historik
+    // shares: it is neither read from the store nor written back, whatever is picked from there.
+    val daySelection = remember(insightsDay) { insightsDay?.selection() }
+    var selection by remember { mutableStateOf(daySelection ?: HistoryFilter()) }
     var selectionLoaded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
+        if (daySelection != null) return@LaunchedEffect
         selection = decodeHistoryFilter(services.store.readHistoryFilter())
         selectionLoaded = true
     }
@@ -142,7 +157,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var showingHelp by remember { mutableStateOf(false) }
     // 0 = the target with the hit cloud, 1 = the measurements charted over time,
     // 2 = the daily mean and median point of impact over time, 3 = Insights (only while it is on).
-    var tab by remember { mutableIntStateOf(0) }
+    var tab by remember { mutableIntStateOf(if (insightsDay != null) INSIGHTS_TAB else 0) }
     val settings = LocalAppSettings.current
     val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
     val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
@@ -166,7 +181,12 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     }
 
     val filter = remember(selection) {
-        val (from, to) = selection.preset.window(selection.customRange, Clock.System.now())
+        // The picker's custom range is whole UTC days; the Serie page's day is the phone's own.
+        val (from, to) = if (insightsDay != null && selection == daySelection) {
+            insightsDay.window()
+        } else {
+            selection.preset.window(selection.customRange, Clock.System.now())
+        }
         StatsFilter(calibers = selection.calibers, from = from, to = to, tags = selection.tags)
     }
     val plotted = remember(series, filter) { series.plotSeries(filter) }
@@ -387,6 +407,23 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
             onDismiss = { showingHelp = false },
         )
     }
+}
+
+/** A day and caliber to open Insights on (the Serie page's "See this day in Insights"). */
+data class InsightsDay(val date: LocalDate, val caliber: Caliber)
+
+/** The filter row's picture of [InsightsDay]: its caliber, and its date as the picker's one-day range. */
+internal fun InsightsDay.selection(): HistoryFilter {
+    val utc = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+    return HistoryFilter(calibers = setOf(caliber), preset = DatePreset.CUSTOM, customRange = utc to utc)
+}
+
+/** The day from the phone's midnight to the last millisecond before the next. */
+@OptIn(ExperimentalTime::class)
+internal fun InsightsDay.window(zone: TimeZone = TimeZone.currentSystemDefault()): Pair<kotlin.time.Instant, kotlin.time.Instant> {
+    val start = date.atStartOfDayIn(zone).toEpochMilliseconds()
+    val end = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone).toEpochMilliseconds() - 1
+    return kotlin.time.Instant.fromEpochMilliseconds(start) to kotlin.time.Instant.fromEpochMilliseconds(end)
 }
 
 /** The Insights tab's index; it is the last tab and only there while Insights is on. */
