@@ -20,6 +20,7 @@ import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.stats.Finding
+import se.kjellstrand.markera.series.stats.SightSetup
 import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.insights
 import se.kjellstrand.markera.series.stats.plotSeries
@@ -72,6 +73,16 @@ class HomeInsightTest {
         val (from, to) = shown.day.window(zone)
         val tab = all.plotSeries(StatsFilter(calibers = setOf(shown.caliber), from = from, to = to)).insights(zone)
         assertTrue(shown.finding in tab.sections.single().findings)
+    }
+
+    @Test
+    fun anOffsetTheSightsWereAdjustedForSinceGivesNoCard() {
+        val week = offsetWeek()
+        val sights = mapOf("22lr" to SightSetup(adjustedAtMs = (now - 30.minutes).toEpochMilliseconds()))
+        assertTrue(week.homeInsights(now, zone, sights).none { it.finding is Finding.OffsetGroup })
+        // Another caliber's adjustment leaves it.
+        val other = mapOf("9mm" to SightSetup(adjustedAtMs = (now - 30.minutes).toEpochMilliseconds()))
+        assertTrue(week.homeInsights(now, zone, other).first().finding is Finding.OffsetGroup)
     }
 
     @Test

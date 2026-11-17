@@ -26,7 +26,15 @@ data class SightSetup(
     val mmPerClick: Double? = null,
     /** Epoch ms of "I adjusted the sights"; null = never. */
     val adjustedAtMs: Long? = null,
-)
+    /** The adjustment before [adjustedAtMs], so Undo goes back to it rather than to none. */
+    val previousAdjustedAtMs: Long? = null,
+) {
+    /** "I adjusted the sights" at [atMs]: the current adjustment becomes the one Undo returns to. */
+    fun adjusted(atMs: Long): SightSetup = copy(adjustedAtMs = atMs, previousAdjustedAtMs = adjustedAtMs)
+
+    /** Undo of the latest adjustment: back to the one before it, if any. */
+    fun undoAdjusted(): SightSetup = copy(adjustedAtMs = previousAdjustedAtMs, previousAdjustedAtMs = null)
+}
 
 const val DEFAULT_DISTANCE_M = 25.0
 

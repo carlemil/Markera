@@ -135,8 +135,11 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     fun setSightClicks(caliber: String, distanceM: Double, mmPerClick: Double?) =
         updateSight(caliber) { it.copy(distanceM = distanceM, mmPerClick = mmPerClick) }
 
-    /** "I adjusted the sights": [atMs] is now; null undoes it. */
-    fun setSightsAdjusted(caliber: String, atMs: Long?) = updateSight(caliber) { it.copy(adjustedAtMs = atMs) }
+    /** "I adjusted the sights" for [caliber] at [atMs] (now). */
+    fun markSightsAdjusted(caliber: String, atMs: Long) = updateSight(caliber) { it.adjusted(atMs) }
+
+    /** Undoes the latest adjustment: back to the one before it, or to none. */
+    fun undoSightsAdjusted(caliber: String) = updateSight(caliber) { it.undoAdjusted() }
 
     private fun updateSight(caliber: String, change: (SightSetup) -> SightSetup) {
         val next = _sightSetups.value.toMutableMap()

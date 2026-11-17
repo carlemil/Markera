@@ -69,11 +69,17 @@ import se.kjellstrand.markera.ui.settings.ShootingHand
  * the ellipse and the offset arrow; and plain words when there are too few shots or nothing to say.
  * The maths lives in `series/stats/Insights.kt`; this only lays it out.
  */
+@OptIn(ExperimentalTime::class)
 @Composable
-internal fun InsightsTab(plotted: List<PlottedSeries>, calibers: List<Caliber>, hand: ShootingHand) {
+internal fun InsightsTab(
+    plotted: List<PlottedSeries>,
+    calibers: List<Caliber>,
+    hand: ShootingHand,
+    viewEnd: Instant? = null,
+) {
     val settings = LocalAppSettings.current
     val sights = settings?.sightSetups?.collectAsState()?.value ?: emptyMap()
-    val insights = remember(plotted, sights) { plotted.insights(sights = sights) }
+    val insights = remember(plotted, sights, viewEnd) { plotted.insights(sights = sights, viewEnd = viewEnd) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (insights.sections.isEmpty()) {
             Note(stringResource(Res.string.stats_insights_no_caliber))
@@ -121,7 +127,8 @@ private fun InsightSectionView(
     }
     val advice = remember(section, hand) { adviceFor(section.findings, hand) }
     // The picked finding, by its place in the list; tapping it again lets it go.
-    var picked by remember(section) { mutableStateOf<Int?>(null) }
+    // Keyed on the caliber: a sight edit rebuilds the section but keeps the pick.
+    var picked by remember(section.caliber.label) { mutableStateOf<Int?>(null) }
     var editingClicks by remember { mutableStateOf(false) }
     val highlight = picked?.let { advice.getOrNull(it)?.finding?.mark() } ?: InsightMark.NONE
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -132,7 +139,7 @@ private fun InsightSectionView(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         section.adjustedAt?.let { at ->
-            AdjustedNote(at, section.offsetHitCount) { settings?.setSightsAdjusted(section.caliber.label, null) }
+            AdjustedNote(at, section.offsetHitCount) { settings?.undoSightsAdjusted(section.caliber.label) }
         }
         if (advice.isEmpty()) {
             val nothing = stringResource(Res.string.stats_insights_nothing, section.hitCount, section.series.size)
@@ -155,7 +162,7 @@ private fun InsightSectionView(
                         mmPerClick = section.sight?.mmPerClick,
                         canEdit = settings != null,
                         onEditClicks = { editingClicks = true },
-                        onAdjusted = { settings?.setSightsAdjusted(section.caliber.label, nowMs()) },
+                        onAdjusted = { settings?.markSightsAdjusted(section.caliber.label, nowMs()) },
                     )
                 }
             }
@@ -232,9 +239,10 @@ private fun axisLine(mm: Int, clicks: Int?, vertical: Boolean): String {
 
 /** A typed-in value back as text: no ".0" on a whole number, the language's decimal mark. */
 internal fun plainNumber(v: Double, mark: String): String {
-    val r = (v * 100).roundToInt() / 100.0
-    val text = if (r == r.toLong().toDouble()) r.toLong().toString() else r.toString()
-    return text.replace(".", mark)
+    val thousandths = kotlin.math.round(v * 1000).toLong()
+    val whole = thousandths / 1000
+    val frac = (thousandths % 1000).toString().padStart(3, '0').trimEnd('0')
+    return if (frac.isEmpty()) whole.toString() else "$whole$mark$frac"
 }
 
 /** "Sights adjusted <date>": the offset now looks only at later shots. Undo forgets the date. */

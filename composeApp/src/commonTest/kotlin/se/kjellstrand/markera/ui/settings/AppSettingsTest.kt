@@ -80,7 +80,7 @@ class AppSettingsTest {
         loaded(store).apply {
             assertTrue(sightSetups.value.isEmpty())
             setSightClicks("9mm", 25.0, 6.0)
-            setSightsAdjusted("9mm", 1_700_000_000_000L)
+            markSightsAdjusted("9mm", 1_700_000_000_000L)
             setSightClicks(".22 lr", 50.0, 2.5)
         }
         runBlocking { store.clear() }
@@ -91,8 +91,21 @@ class AppSettingsTest {
         // Removing the click value keeps the adjustment; undoing that too forgets the caliber.
         after.setSightClicks("9mm", 25.0, null)
         assertEquals(SightSetup(25.0, null, 1_700_000_000_000L), loaded(store).sightSetups.value["9mm"])
-        after.setSightsAdjusted("9mm", null)
+        after.undoSightsAdjusted("9mm")
         assertEquals(setOf(".22 lr"), loaded(store).sightSetups.value.keys)
+    }
+
+    @Test
+    fun undoingASecondAdjustmentGoesBackToTheFirst() {
+        val store = MapStore()
+        loaded(store).apply {
+            markSightsAdjusted("9mm", 1_000L)
+            markSightsAdjusted("9mm", 2_000L)
+            undoSightsAdjusted("9mm")
+        }
+        assertEquals(1_000L, loaded(store).sightSetups.value["9mm"]?.adjustedAtMs)
+        loaded(store).undoSightsAdjusted("9mm")
+        assertTrue(loaded(store).sightSetups.value.isEmpty())
     }
 
     @Test

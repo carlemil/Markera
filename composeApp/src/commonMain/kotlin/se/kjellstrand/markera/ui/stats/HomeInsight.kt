@@ -16,6 +16,7 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.stats.AdviceText
 import se.kjellstrand.markera.series.stats.Finding
 import se.kjellstrand.markera.series.stats.PlottedSeries
+import se.kjellstrand.markera.series.stats.SightSetup
 import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.advice
 import se.kjellstrand.markera.series.stats.byCaliber
@@ -59,10 +60,15 @@ fun Finding.judgedOnHistory(): Boolean =
  * take part. Group findings come from Insights over those days; history-judged ones from Insights
  * over the caliber's whole history through today (they say how the newest series or day compares).
  * Both run [insights] on the very series the Statistics tab plots for the [HomeInsight.day] it opens
- * on, so the tapped finding is always there. Pure, so it is unit-tested.
+ * on, so the tapped finding is always there; [sights] too, so an offset the user has since corrected
+ * the sights for is judged only on the series after that, as Insights judges it. Pure, so it is unit-tested.
  */
 @OptIn(ExperimentalTime::class)
-fun List<SeriesDto>.homeInsights(now: Instant, zone: TimeZone = TimeZone.currentSystemDefault()): List<HomeInsight> {
+fun List<SeriesDto>.homeInsights(
+    now: Instant,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+    sights: Map<String, SightSetup> = emptyMap(),
+): List<HomeInsight> {
     val today = localDate(now, zone)
     val weekStart = today.minus(HOME_INSIGHT_DAYS - 1, DateTimeUnit.DAY)
     val (_, endOfToday) = InsightsDay(today, Caliber.NONE).window(zone)
@@ -75,7 +81,7 @@ fun List<SeriesDto>.homeInsights(now: Instant, zone: TimeZone = TimeZone.current
         val first = localDate(group.first().at, zone)
         val history = if (first < weekStart) InsightsDay(today, caliber, from = first) else week
         fun add(day: InsightsDay, keep: (Finding) -> Boolean) {
-            findingsIn(day, zone).filter(keep).forEach {
+            findingsIn(day, zone, sights).filter(keep).forEach {
                 candidates += HomeInsight(it, caliber, "${it.kind()}|${caliber.label}|$stamp", day)
             }
         }
@@ -156,10 +162,10 @@ private fun Finding.kind(): String = when (this) {
 
 /** The findings the Insights tab shows for [day]: its window and caliber, through [insights]. */
 @OptIn(ExperimentalTime::class)
-private fun List<SeriesDto>.findingsIn(day: InsightsDay, zone: TimeZone): List<Finding> {
+private fun List<SeriesDto>.findingsIn(day: InsightsDay, zone: TimeZone, sights: Map<String, SightSetup>): List<Finding> {
     val (from, to) = day.window(zone)
     val plotted: List<PlottedSeries> = plotSeries(StatsFilter(calibers = setOf(day.caliber), from = from, to = to))
-    return plotted.insights(zone).sections.firstOrNull()?.findings ?: emptyList()
+    return plotted.insights(zone, sights = sights, viewEnd = to).sections.firstOrNull()?.findings ?: emptyList()
 }
 
 @OptIn(ExperimentalTime::class)
