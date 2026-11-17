@@ -47,8 +47,8 @@ const val MAX_DISMISSED_INSIGHTS = 20
 
 /**
  * True for the findings judged against the shooter's history rather than the group itself: a low
- * series or day, a wide day and the trend. Any other type (a group finding, or one added later)
- * is judged on the week alone.
+ * series or day, a wide day and the trend. Any other type (a group finding, the session trend
+ * over this week's days, or one added later) is judged on the week alone.
  */
 fun Finding.judgedOnHistory(): Boolean =
     this is Finding.LowSeries || this is Finding.LowDay || this is Finding.WideRoundGroup || this is Finding.Trend
@@ -132,6 +132,10 @@ fun HomeInsight.headline(hand: ShootingHand): AdviceText {
             if (f.improving) Res.string.home_insight_trend_up else Res.string.home_insight_trend_down,
             listOf(c, abs(f.changeOverSpan).roundToInt().coerceAtLeast(1), (f.spanDays / 7).roundToInt().coerceAtLeast(1)),
         )
+        is Finding.SessionTrend -> AdviceText(
+            if (f.falling) Res.string.home_insight_session_down else Res.string.home_insight_session_up,
+            listOf(c, f.daysCounted, f.daysChecked),
+        )
         else -> advice(f, hand).summary
     }
 }
@@ -145,6 +149,7 @@ private fun Finding.kind(): String = when (this) {
     is Finding.LowSeries -> "low-series"
     is Finding.LowDay -> "low-day"
     is Finding.Trend -> "trend"
+    is Finding.SessionTrend -> "session"
     else -> this::class.simpleName ?: "finding"
 }
 

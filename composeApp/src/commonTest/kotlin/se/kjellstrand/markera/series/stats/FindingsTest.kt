@@ -314,4 +314,105 @@ class FindingsTest {
         assertEquals(found, split.getValue(Caliber.fromLabel("9mm")))
         assertEquals(setOf(Caliber.fromLabel("22lr"), Caliber.fromLabel("9mm")), split.keys)
     }
+
+    /** One day of series whose totals are [totals], 10 minutes apart (or [gapMin] apart), in order. */
+    private fun day(day: Int, totals: List<Int>, gapMin: Int = 10): List<PlottedSeries> =
+        totals.mapIndexed { n, total ->
+            val rings = List(5) { total / 5 + if (it < total % 5) 1 else 0 }
+            val at = kotlin.time.Instant.fromEpochMilliseconds(day0 + day * DAY_MS + n * gapMin * 60_000L)
+            val dto = SeriesDto(
+                id = nextId++,
+                timestamp = at.toString(),
+                caliber = "9mm",
+                holes = rings.map { HoleDto(null, null, it, false, null) },
+            )
+            PlottedSeries(dto, rings.map { PlottedHit(0.0, 0.0, it, false) }, 0f, at)
+        }
+
+    private fun session(vararg days: List<Int>, gapMin: Int = 10) =
+        days.flatMapIndexed { i, t -> day(i * 2, t, gapMin) }.findings(zone).one<Finding.SessionTrend>()
+
+    @Test
+    fun scoresFallingThroughSeveralDaysAreFatigue() {
+        val f = assertNotNull(session(listOf(47, 46, 43, 42), listOf(46, 47, 42, 44), listOf(48, 45, 44, 41)))
+        assertTrue(f.falling)
+        assertEquals(3, f.daysCounted)
+        assertEquals(3, f.daysChecked)
+        assertEquals(46.5, f.firstHalfMean, 0.6)
+        assertEquals(43.0, f.laterHalfMean, 0.6)
+    }
+
+    @Test
+    fun aSlowStartThatImprovesIsAWarmUp() {
+        val f = assertNotNull(session(listOf(41, 43, 46, 47), listOf(42, 42, 47, 46), listOf(40, 44, 46, 48), listOf(44, 43, 45, 47)))
+        assertFalse(f.falling)
+        assertEquals(4, f.daysCounted)
+    }
+
+    @Test
+    fun flatDaysHaveNoSessionTrend() {
+        assertNull(session(listOf(45, 46, 45, 46), listOf(46, 45, 46, 45), listOf(45, 45, 46, 46)))
+        // A one point difference between the halves is under the 2 point bar.
+        assertNull(session(listOf(46, 46, 45, 45), listOf(47, 46, 45, 46), listOf(46, 47, 46, 45)))
+    }
+
+    @Test
+    fun daysWithTooFewSeriesDoNotCount() {
+        // Three series a day, however clear the fall.
+        assertNull(session(listOf(48, 45, 40), listOf(47, 44, 41), listOf(48, 46, 40), listOf(47, 45, 39)))
+        // Only two long days.
+        assertNull(session(listOf(47, 46, 43, 42), listOf(46, 47, 42, 44), listOf(46, 46)))
+    }
+
+    @Test
+    fun aDropThatDoesNotRepeatIsNotAFinding() {
+        // Two falling days, one flat, one rising: 2 of 4 is not two thirds and not three days.
+        assertNull(session(listOf(48, 47, 43, 42), listOf(47, 46, 42, 43), listOf(45, 46, 45, 46), listOf(41, 42, 47, 48)))
+    }
+
+    @Test
+    fun aMiddleSeriesOfAnOddDayIsLeftOut() {
+        // First two against last two of five: the 30 in the middle does not matter.
+        val f = assertNotNull(session(listOf(48, 47, 30, 43, 42), listOf(47, 48, 30, 42, 43), listOf(48, 46, 30, 42, 41)))
+        assertTrue(f.falling)
+        assertEquals(47.5, f.firstHalfMean, 0.6)
+    }
+
+    @Test
+    fun seriesStampedWithinSecondsAreNoSession() {
+        // A batch import stamped "now": the order is the import order, not a session.
+        assertNull(session(listOf(47, 46, 43, 42), listOf(46, 47, 42, 44), listOf(48, 45, 44, 41), gapMin = 1))
+    }
+
+    @Test
+    fun aMorningAndAnEveningBlockAreNotOneSession() {
+        // 3 hours between the second and third series of every day.
+        val days = (0 until 3).flatMap { d ->
+            day(d * 2, listOf(47, 47)) + day(d * 2, listOf(42, 42)).map {
+                val at = kotlin.time.Instant.fromEpochMilliseconds(it.at.toEpochMilliseconds() + 3 * 3_600_000L)
+                it.copy(at = at)
+            }
+        }
+        assertNull(days.findings(zone).one<Finding.SessionTrend>())
+    }
+
+    @Test
+    fun theSessionTrendHasNoMarkOnTheTargetAndSortsLikeTheRest() {
+        val list = (0 until 3).flatMap { day(it * 2, listOf(47, 47, 42, 42)) }
+        val found = list.findings(zone)
+        val f = assertNotNull(found.one<Finding.SessionTrend>())
+        assertEquals(InsightMark.NONE, f.mark())
+        assertEquals(found.sortedByDescending { it.confidence }, found)
+    }
+
+    @Test
+    fun roundShootersGetNoSessionTrendByChance() {
+        var hits = 0
+        for (seed in 1..300) {
+            val rnd = Random(seed)
+            val days = List(5) { d -> day(d * 2, List(4) { (45 + rnd.gauss() * 2.5).toInt().coerceAtMost(50) }) }
+            if (days.flatten().findings(zone).one<Finding.SessionTrend>() != null) hits++
+        }
+        assertTrue(hits <= 12, "chance findings $hits of 300")
+    }
 }

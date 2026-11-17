@@ -51,7 +51,7 @@ data class InsightEllipse(
 const val ELLIPSE_SDS = 2.0
 
 /**
- * What on the target a finding refers to, highlighted when the finding is tapped. A wide day has
+ * What on the target a finding refers to, highlighted when the finding is tapped. A wide day or a session trend has
  * no mark: the drawn ellipse pools every day, not the one day the finding is about.
  */
 enum class InsightMark { ARROW, ELLIPSE, FLIERS, NONE }
@@ -60,7 +60,7 @@ fun Finding.mark(): InsightMark = when (this) {
     is Finding.OffsetGroup -> InsightMark.ARROW
     is Finding.StretchedGroup -> InsightMark.ELLIPSE
     is Finding.Fliers -> InsightMark.FLIERS
-    is Finding.WideRoundGroup, is Finding.LowSeries, is Finding.LowDay, is Finding.Trend -> InsightMark.NONE
+    is Finding.WideRoundGroup, is Finding.LowSeries, is Finding.LowDay, is Finding.Trend, is Finding.SessionTrend -> InsightMark.NONE
 }
 
 @OptIn(ExperimentalTime::class)

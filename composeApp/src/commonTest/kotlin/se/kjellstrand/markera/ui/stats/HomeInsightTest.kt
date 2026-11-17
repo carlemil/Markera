@@ -114,6 +114,22 @@ class HomeInsightTest {
     }
 
     @Test
+    fun aSessionTrendThisWeekIsJudgedOnTheWeek() {
+        // Three days this week, four series 30 minutes apart, the later two about four points lower.
+        val totals = listOf(listOf(48, 47, 43, 44), listOf(47, 48, 44, 42), listOf(48, 46, 43, 43))
+        val days = totals.flatMapIndexed { d, day ->
+            day.mapIndexed { n, total ->
+                val rings = List(5) { total / 5 + if (it < total % 5) 1 else 0 }
+                series((d + 1).days + 3.hours - (n * 30).minutes, rings = rings)
+            }
+        }
+        val shown = days.homeInsights(now, zone).first { it.finding is Finding.SessionTrend }
+        assertEquals(InsightsDay(today, Caliber.LR22, from = LocalDate(2026, 11, 11)), shown.day)
+        assertTrue(shown.key.startsWith("session|22lr|"))
+        assertEquals(Res.string.home_insight_session_down, shown.headline(ShootingHand.RIGHT).res)
+    }
+
+    @Test
     fun theStrongestFindingComesFirst() {
         // 9mm: 30 shots twice as far out as the 20 22lr ones, so its offset is the stronger.
         val all = offsetWeek() + offsetWeek("9mm", dx = 80.0, count = 6)
