@@ -371,6 +371,7 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 Res.string.stats_help_colours to Res.string.stats_help_colours_body,
                 Res.string.stats_help_trend to Res.string.stats_help_trend_body,
                 Res.string.stats_help_drift to Res.string.stats_help_drift_body,
+                Res.string.stats_help_insights to Res.string.stats_help_insights_body,
             ),
             onDismiss = { showingHelp = false },
         )

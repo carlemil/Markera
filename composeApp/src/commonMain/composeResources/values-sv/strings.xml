@@ -429,4 +429,96 @@
     <string name="settings_privacy">Integritetspolicy</string>
     <string name="settings_not_signed_in">Inte inloggad</string>
     <string name="settings_system_short">System</string>
+
+    <!-- Insights advice (series/stats/Advice.kt): a hint, not a coach -->
+    <string name="advice_causes_title">Orsaken är ofta</string>
+    <string name="advice_try_title">Prova</string>
+    <string name="advice_dir_high">högt</string>
+    <string name="advice_dir_high_right">högt till höger</string>
+    <string name="advice_dir_right">till höger</string>
+    <string name="advice_dir_low_right">lågt till höger</string>
+    <string name="advice_dir_low">lågt</string>
+    <string name="advice_dir_low_left">lågt till vänster</string>
+    <string name="advice_dir_left">till vänster</string>
+    <string name="advice_dir_high_left">högt till vänster</string>
+    <string name="advice_move_up">uppåt</string>
+    <string name="advice_move_up_right">uppåt och åt höger</string>
+    <string name="advice_move_right">åt höger</string>
+    <string name="advice_move_down_right">nedåt och åt höger</string>
+    <string name="advice_move_down">nedåt</string>
+    <string name="advice_move_down_left">nedåt och åt vänster</string>
+    <string name="advice_move_left">åt vänster</string>
+    <string name="advice_move_up_left">uppåt och åt vänster</string>
+
+    <string name="advice_offset_stable_summary">Din grupp ligger %1$d mm %2$s i dina %3$d skott, och likadant på %4$d av %5$d dagar.</string>
+    <string name="advice_cause_sights_1">Siktet är inte inskjutet för den här ammunitionen eller sträckan.</string>
+    <string name="advice_cause_sights_2">Siktet har flyttat sig sedan det ställdes in, eller så skjuter en annan ammunition någon annanstans.</string>
+    <string name="advice_try_sights">Flytta siktet så att gruppen flyttar sig ungefär %1$d mm %2$s, och skjut sedan en ny grupp innan du rör det igen.</string>
+
+    <string name="advice_offset_varies_summary">Din grupp ligger %1$d mm %2$s i dina %3$d skott, men inte likadant varje dag.</string>
+    <string name="advice_cause_high_1">Att du trycker ut handloven mot målet när skottet går.</string>
+    <string name="advice_cause_high_2">Att handleden viker sig uppåt i skottet.</string>
+    <string name="advice_cause_high_3">Att du lyfter pistolen i förtid för att se var skottet tog.</string>
+    <string name="advice_try_high">Håll handleden låst och följ igenom: håll siktet på målet tills rekylen har lagt sig.</string>
+    <string name="advice_cause_low_1">Att du sänker pistolen när skottet går.</string>
+    <string name="advice_cause_low_2">Att du slappnar av i armen för tidigt, innan skottet har lämnat pipan.</string>
+    <string name="advice_try_low">Fortsätt sikta efter skottet och låt armen sjunka först när siktet har lugnat sig.</string>
+    <string name="advice_cause_jerk_1">Att du rycker i avtryckaren.</string>
+    <string name="advice_cause_jerk_2">Att du väntar på rekylen och trycker ner pistolen för att möta den.</string>
+    <string name="advice_cause_jerk_3">Att du kramar hela handen när skottet går.</string>
+    <string name="advice_try_jerk">Torrträna några skott emellan och se om siktet rör sig när avtryckaren släpper.</string>
+    <string name="advice_cause_push_1">Att fingrarna trycker hårdare på greppet när skottet går.</string>
+    <string name="advice_cause_push_2">Att du trycker ut skottet mot målet i stället för att låta det gå.</string>
+    <string name="advice_try_push">Dra avtryckaren rakt bakåt med samma greppstryck från första skottet till sista.</string>
+    <string name="advice_cause_side_1">Att fingret ligger för långt in eller ut på avtryckaren.</string>
+    <string name="advice_cause_side_2">Att tummen trycker på greppet och skjuter pistolen i sidled.</string>
+    <string name="advice_cause_side_3">Ett avtryck som inte går rakt bakåt.</string>
+    <string name="advice_try_side">Kolla var fingret möter avtryckaren och hur hårt tummen trycker, och torrträna och titta på siktet.</string>
+
+    <string name="advice_stretch_vertical_summary">Din grupp är ungefär %1$d procent högre än den är bred, i dina %2$d skott.</string>
+    <string name="advice_cause_vertical_1">Andningen: att du skjuter på olika ställen i andetaget.</string>
+    <string name="advice_cause_vertical_2">Att siktbilden ändras i höjd, så att kornet sitter högre eller lägre i skåran.</string>
+    <string name="advice_cause_vertical_3">Ett greppstryck som varierar från skott till skott.</string>
+    <string name="advice_try_vertical">Lugna andningen på samma ställe varje skott och kontrollera kornets höjd i skåran innan du drar.</string>
+    <string name="advice_stretch_horizontal_summary">Din grupp är ungefär %1$d procent bredare än den är hög, i dina %2$d skott.</string>
+    <string name="advice_cause_horizontal_1">Ett avtryck som går åt sidan.</string>
+    <string name="advice_cause_horizontal_2">Att handleden rör sig i skottet.</string>
+    <string name="advice_cause_horizontal_3">En ställning som inte är vinkelrät mot målet.</string>
+    <string name="advice_try_horizontal">Torrträna med siktet på en markering och se om det glider i sidled när avtryckaren släpper.</string>
+    <string name="advice_stretch_diagonal_summary">Din grupp är ungefär %1$d procent längre åt ett håll än åt det andra, på snedden, i dina %2$d skott.</string>
+    <string name="advice_cause_diagonal_1">Att greppstrycket och avtrycket motverkar varandra.</string>
+    <string name="advice_cause_diagonal_2">En ställning eller armhållning som lutar pistolen.</string>
+    <string name="advice_try_diagonal">Kontrollera att greppet är likadant varje skott och att siktet står rakt innan du drar.</string>
+
+    <string name="advice_fliers_summary">I %1$d av dina %2$d serier hade ett skott gått iväg från de andra, i snitt ungefär %3$d mm.</string>
+    <string name="advice_cause_fliers_1">Avtrycket på ett enskilt skott.</string>
+    <string name="advice_cause_fliers_2">Att eftersvinget tappas.</string>
+    <string name="advice_cause_fliers_3">Att du släpper skottet utan att ha sett var siktet låg.</string>
+    <string name="advice_try_fliers">Läs varje skott: säg var siktet låg när det gick, och jämför sedan hålet med din läsning.</string>
+
+    <string name="advice_wide_summary">Den %1$s var dina grupper ungefär %2$d procent bredare än tidigare, %3$d mm från gruppens mitt mot %4$d mm förut.</string>
+    <string name="advice_cause_wide_1">Ett ostadigt hållande, till exempel av trötthet.</string>
+    <string name="advice_cause_wide_2">Ett grepp eller en ställning som inte var som vanligt.</string>
+    <string name="advice_cause_wide_3">Att du skyndar på skotten.</string>
+    <string name="advice_try_wide">Torrträning: håll och dra utan att skjuta, och vila när hållet börjar darra.</string>
+
+    <string name="advice_low_series_summary">Din senaste serie gav %1$d, mot i snitt %2$d under dina senaste %3$d.</string>
+    <string name="advice_low_day_summary">Den %1$s gav dina %2$d serier i snitt %3$d, mot %4$d i snitt tidigare.</string>
+    <string name="advice_try_low_plain">Ett lågt resultat säger inte så mycket: skjut några serier till innan du ändrar något.</string>
+    <string name="advice_try_low_explained">Börja med anmärkningen nedan i stället för att ändra allt på en gång.</string>
+    <string name="advice_low_note_offset">Din grupp ligger vid sidan av mitten, vilket kan vara en del av förklaringen.</string>
+    <string name="advice_low_note_stretched">Din grupp är utdragen åt ett håll, vilket kan vara en del av förklaringen.</string>
+    <string name="advice_low_note_fliers">Att ett skott i en serie går iväg kan vara en del av förklaringen.</string>
+    <string name="advice_low_note_wide">Bredare grupper än vanligt kan vara en del av förklaringen.</string>
+
+    <string name="advice_trend_up_summary">Dina resultat har stigit ungefär %1$d poäng på %3$d veckor, över %2$d serier.</string>
+    <string name="advice_try_trend_up">Fortsätt som du gör, och anteckna vad som ändrats så att du kan göra om det.</string>
+    <string name="advice_trend_down_summary">Dina resultat har sjunkit ungefär %1$d poäng på %3$d veckor, över %2$d serier.</string>
+    <string name="advice_cause_trend_1">Trötthet eller mindre tid att träna.</string>
+    <string name="advice_cause_trend_2">Att du skyndar på skotten.</string>
+    <string name="advice_cause_trend_3">Byte av pistol, ammunition eller rutiner.</string>
+    <string name="advice_try_trend_down">Kortare pass med pauser, och några torrskott för att hitta grunderna igen.</string>
+
+    <string name="stats_help_insights">Analys</string>
+    <string name="stats_help_insights_body">Analys tittar på dina sparade serier, en kaliber i taget, och pekar ut mönster den är ganska säker på: en grupp som ligger åt ena hållet, en utdragen grupp, ett skott som går iväg eller resultat som stiger eller sjunker. Den behöver ganska många skott innan den säger något. Varje anmärkning visar vad siffrorna säger, vad som ofta ligger bakom och en sak att prova. Det är ett tips, ingen tränare: orsakerna är vanliga, inte en dom. Ställ in din skjuthand och slå av Analys under Inställningar.</string>
 </resources>
