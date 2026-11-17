@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -62,6 +64,9 @@ import se.kjellstrand.markera.ui.MarkeraApp
 import se.kjellstrand.markera.ui.history.COMPARISON_DAY_LINE_TAG
 import se.kjellstrand.markera.ui.history.COMPARISON_LINE_TAG
 import se.kjellstrand.markera.ui.history.SERIES_THUMBNAIL_TAG
+import se.kjellstrand.markera.ui.stats.SIGHT_CLICK_TAG
+import se.kjellstrand.markera.ui.stats.SIGHT_CORRECTION_TAG
+import se.kjellstrand.markera.series.stats.decodeSightSetups
 
 /**
  * The whole app (MarkeraApp, real navigation, repository and SQLite) against a fake
@@ -146,6 +151,7 @@ class AppUiTest {
         var auth: BackendAuth?,
         var shootingHand: String? = null,
         var insightsEnabled: Boolean? = null,
+        var sightSetups: String? = null,
         var dismissedInsights: String? = null,
     ) : BackendTokenStore {
         override suspend fun read() = auth
@@ -157,6 +163,8 @@ class AppUiTest {
         override suspend fun writeShootingHand(value: String) { shootingHand = value }
         override suspend fun readInsightsEnabled() = insightsEnabled
         override suspend fun writeInsightsEnabled(value: Boolean) { insightsEnabled = value }
+        override suspend fun readSightSetups() = sightSetups
+        override suspend fun writeSightSetups(value: String) { sightSetups = value }
         override suspend fun readDismissedInsights() = dismissedInsights
         override suspend fun writeDismissedInsights(value: String) { dismissedInsights = value }
     }
@@ -586,6 +594,104 @@ class AppUiTest {
         rule.waitUntil(TIMEOUT_MS) {
             rule.onAllNodes(hasText("longer days", substring = true) and isSelected()).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    // ---- coaching: the sight helper ----
+
+    /**
+     * Three earlier days of two 22lr series each, every one grouped 40 mm right and 22 mm low of
+     * the centre: the same offset on 3 days, so Insights offers the sight correction.
+     */
+    private fun withStableOffset() {
+        // Mid-morning of each local day, so the two series of a day never straddle midnight.
+        val zone = TimeZone.currentSystemDefault()
+        val today = KxInstant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
+        val start = today.atStartOfDayIn(zone).toEpochMilliseconds()
+        onServer = (1..3).flatMap { day ->
+            (0..1).map { n ->
+                SeriesDto(
+                    id = 700L + day * 10 + n,
+                    timestamp = kotlin.time.Instant.fromEpochMilliseconds(
+                        start - day * 24 * 3_600_000L + 10 * 3_600_000L + n * 30 * 60_000L,
+                    ).toString(),
+                    caliber = "22lr",
+                    holes = listOf(0.0 to 0.0, 12.0 to -8.0, -10.0 to 10.0, 8.0 to 14.0, -12.0 to -6.0).map { (dx, dy) ->
+                        HoleDto(540.0 + dx, 520.0 + dy, 8, false, 45.0)
+                    },
+                    geometry = GEOMETRY,
+                )
+            }
+        }
+    }
+
+    private fun openInsights(store: MemoryStore) {
+        launch(signedIn = true, store = store)
+        waitForText("Mark")
+        rule.onNodeWithText("Statistics").performClick()
+        waitForText("Target")
+        rule.onNodeWithText("Insights").performClick()
+    }
+
+    /** A button by its text; [scroll] for one on the scrolling screen, not in a dialog. */
+    private fun tapText(text: String, scroll: Boolean = true) {
+        val node = rule.onNode(hasText(text) and hasClickAction())
+        (if (scroll) node.performScrollTo() else node).performClick()
+    }
+
+    /**
+     * A stable offset shows the correction in mm with the hint; a click value turns it into clicks
+     * and is saved; "I adjusted the sights" saves the moment and the offset goes (no series since);
+     * Undo brings it back.
+     */
+    @Test fun sightHelperGivesTheCorrectionInMmAndClicks() {
+        withStableOffset()
+        val store = MemoryStore(null)
+        openInsights(store)
+        waitFor(hasTestTag(SIGHT_CORRECTION_TAG), "the sight correction")
+        waitForText("Sight correction")
+        waitForText("Up 22 mm")
+        waitForText("Left 40 mm")
+        waitForText("Move the rear sight the way the impact should go")
+        waitForText("Enter your sight's click value")
+
+        tapText("Enter click value")
+        waitForText("Mm per click at that distance")
+        rule.onNode(hasTestTag(SIGHT_CLICK_TAG)).performTextReplacement("6")
+        tapText("Save", scroll = false)
+        waitForText("Up 22 mm: 4 clicks")
+        waitForText("Left 40 mm: 7 clicks")
+        waitForText("Clicks at 25 m with 6 mm per click")
+        rule.waitUntil(TIMEOUT_MS) { decodeSightSetups(store.sightSetups)["22lr"]?.mmPerClick == 6.0 }
+
+        tapText("I adjusted the sights")
+        waitForText("Sights adjusted")
+        waitForText("judged on the 0 shots since then")
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasTestTag(SIGHT_CORRECTION_TAG)) }
+        rule.waitUntil(TIMEOUT_MS) { decodeSightSetups(store.sightSetups)["22lr"]?.adjustedAtMs != null }
+        // The click value stays.
+        assertEquals(6.0, decodeSightSetups(store.sightSetups)["22lr"]?.mmPerClick)
+
+        tapText("Undo")
+        waitForText("Up 22 mm: 4 clicks")
+        rule.waitUntil(TIMEOUT_MS) { decodeSightSetups(store.sightSetups)["22lr"]?.adjustedAtMs == null }
+    }
+
+    /** A saved click value shows clicks at once; a saved adjustment after the series hides the offset. */
+    @Test fun sightHelperReadsSavedSetups() {
+        withStableOffset()
+        openInsights(MemoryStore(null, sightSetups = """{"22lr":{"distanceM":50.0,"mmPerClick":10.0}}"""))
+        waitForText("Up 22 mm: 2 clicks")
+        waitForText("Left 40 mm: 4 clicks")
+        waitForText("Clicks at 50 m with 10 mm per click")
+    }
+
+    @Test fun sightHelperHidesTheOffsetAfterASavedAdjustment() {
+        withStableOffset()
+        val now = Clock.System.now().toEpochMilliseconds()
+        openInsights(MemoryStore(null, sightSetups = """{"22lr":{"adjustedAtMs":$now}}"""))
+        waitForText("Sights adjusted")
+        waitForText("judged on the 0 shots since then")
+        assertFalse(rule.exists(hasTestTag(SIGHT_CORRECTION_TAG)))
     }
 
     private companion object {

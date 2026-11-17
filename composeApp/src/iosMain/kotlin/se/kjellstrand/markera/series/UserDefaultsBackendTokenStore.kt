@@ -21,6 +21,7 @@ class UserDefaultsBackendTokenStore(
         const val GUIDE_COLOR = "markera.settings.guideColor"
         const val SHOOTING_HAND = "markera.settings.shootingHand"
         const val INSIGHTS = "markera.settings.insightsEnabled"
+        const val SIGHT_SETUPS = "markera.settings.sightSetups"
         const val DISMISSED_INSIGHTS = "markera.settings.dismissedInsights"
     }
 
@@ -38,6 +39,10 @@ class UserDefaultsBackendTokenStore(
         if (defaults.objectForKey(Keys.INSIGHTS) == null) null else defaults.boolForKey(Keys.INSIGHTS)
 
     override suspend fun writeInsightsEnabled(value: Boolean) = defaults.setBool(value, Keys.INSIGHTS)
+
+    override suspend fun readSightSetups(): String? = defaults.stringForKey(Keys.SIGHT_SETUPS)
+
+    override suspend fun writeSightSetups(value: String) = defaults.setObject(value, Keys.SIGHT_SETUPS)
 
     override suspend fun readDismissedInsights(): String? = defaults.stringForKey(Keys.DISMISSED_INSIGHTS)
 

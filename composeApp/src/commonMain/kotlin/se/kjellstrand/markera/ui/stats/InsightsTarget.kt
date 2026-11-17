@@ -123,7 +123,7 @@ internal fun InsightsTarget(section: InsightSection, calibers: List<Caliber>, hi
             }
         }
 
-        section.shape?.let { g -> drawArrow(centre, at(g.mpiXMm, g.mpiYMm), alpha(InsightMark.ARROW), width(InsightMark.ARROW)) }
+        section.arrow?.let { p -> drawArrow(centre, at(p.xMm, p.yMm), alpha(InsightMark.ARROW), width(InsightMark.ARROW)) }
 
         if (highlight == InsightMark.FLIERS) {
             section.fliers.forEach { hit ->

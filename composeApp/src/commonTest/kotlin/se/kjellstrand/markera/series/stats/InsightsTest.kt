@@ -84,6 +84,85 @@ class InsightsTest {
     }
 
     @Test
+    fun aStableOffsetIsJudgedOnlyOnSeriesAfterTheSightsWereAdjusted() {
+        // Three days 40 mm right, then the sights are turned and three centred days follow.
+        val before = group(2, 12, ox = 40.0, sd = 15.0)
+        val after = group(7, 12, sd = 15.0).map { s ->
+            val at = Instant.fromEpochMilliseconds(s.at.toEpochMilliseconds() + 5 * DAY_MS)
+            s.copy(at = at, series = s.series.copy(timestamp = at.toString()))
+        }
+        val list = before + after
+        val turnedAt = Instant.fromEpochMilliseconds(day0 + 4 * DAY_MS)
+
+        val stable = assertNotNull(before.insights(zone).sections.single().findings.filterIsInstance<Finding.OffsetGroup>().singleOrNull())
+        assertTrue(stable.stable)
+
+        val sights = mapOf("9mm" to SightSetup(mmPerClick = 6.0, adjustedAtMs = turnedAt.toEpochMilliseconds()))
+        val section = list.insights(zone, sights = sights).sections.single()
+        assertEquals(turnedAt, section.adjustedAt)
+        assertEquals(sights["9mm"], section.sight)
+        assertEquals(60, section.offsetHitCount)
+        assertEquals(120, section.hitCount)
+        // Exactly the offset the later series alone give, and the arrow is theirs.
+        assertEquals(
+            after.findings(zone).filterIsInstance<Finding.OffsetGroup>(),
+            section.findings.filterIsInstance<Finding.OffsetGroup>(),
+        )
+        assertTrue(section.findings.filterIsInstance<Finding.OffsetGroup>().none { it.stable })
+        val arrow = assertNotNull(section.arrow)
+        val afterShape = assertNotNull(after.flatMap { it.hits }.groupShape())
+        assertEquals(afterShape.mpiXMm, arrow.xMm, 1e-9)
+        assertEquals(afterShape.mpiYMm, arrow.yMm, 1e-9)
+        // The rest still sees every series: the ellipse is the whole group's.
+        assertEquals(assertNotNull(list.flatMap { it.hits }.groupShape()).mpiXMm, assertNotNull(section.ellipse).cxMm, 1e-9)
+    }
+
+    @Test
+    fun anAdjustmentAfterTheLastSeriesLeavesNoOffsetAndNoArrow() {
+        val list = group(2, 12, ox = 40.0, sd = 15.0)
+        val late = list.maxOf { it.at.toEpochMilliseconds() } + 1
+        val section = list.insights(zone, sights = mapOf("9mm" to SightSetup(adjustedAtMs = late))).sections.single()
+        assertTrue(section.enoughData)
+        assertTrue(section.findings.none { it is Finding.OffsetGroup })
+        assertEquals(0, section.offsetHitCount)
+        assertNull(section.arrow)
+        // Another caliber's adjustment changes nothing here.
+        val other = list.insights(zone, sights = mapOf("22lr" to SightSetup(adjustedAtMs = late))).sections.single()
+        assertTrue(other.findings.any { it is Finding.OffsetGroup })
+        assertNull(other.adjustedAt)
+        assertEquals(60, other.offsetHitCount)
+    }
+
+    @Test
+    fun aPeriodThatEndedBeforeTheAdjustmentIsJudgedAsItWas() {
+        val list = group(2, 12, ox = 40.0, sd = 15.0)
+        val newest = list.maxOf { it.at.toEpochMilliseconds() }
+        val sights = mapOf("9mm" to SightSetup(adjustedAtMs = newest + DAY_MS))
+        // Viewing up to the end of the last day, before the adjustment: the offset stays.
+        val past = list.insights(zone, sights = sights, viewEnd = Instant.fromEpochMilliseconds(newest + 1)).sections.single()
+        assertNull(past.adjustedAt)
+        assertTrue(past.findings.any { it is Finding.OffsetGroup && it.stable })
+        // A view that reaches past it is cut.
+        val now = list.insights(zone, sights = sights, viewEnd = Instant.fromEpochMilliseconds(newest + 2 * DAY_MS)).sections.single()
+        assertNotNull(now.adjustedAt)
+        assertTrue(now.findings.none { it is Finding.OffsetGroup })
+    }
+
+    @Test
+    fun afterAnAdjustmentTheArrowWaitsForTheOffsetMinimum() {
+        val before = group(2, 12, ox = 40.0, sd = 15.0)
+        val turned = before.maxOf { it.at.toEpochMilliseconds() } + 1
+        // Two five-hole series since: 10 shots, under the 15 the offset finding needs.
+        val few = group(9, 2, sd = 15.0).map { s ->
+            val at = Instant.fromEpochMilliseconds(turned + 1 + s.at.toEpochMilliseconds() - day0)
+            s.copy(at = at, series = s.series.copy(timestamp = at.toString()))
+        }
+        val section = (before + few).insights(zone, sights = mapOf("9mm" to SightSetup(adjustedAtMs = turned))).sections.single()
+        assertEquals(10, section.offsetHitCount)
+        assertNull(section.arrow)
+    }
+
+    @Test
     fun aStretchedGroupDrawsTheFindingsOwnEllipse() {
         val rnd = Random(3)
         val list = (0 until 12).map { i -> series(i / 4, i % 4, List(5) { Pair(rnd.gauss() * 8, rnd.gauss() * 40) }) }

@@ -141,10 +141,11 @@ internal fun HomeScreen(
                 val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
                 val dismissed = settings?.dismissedInsights?.collectAsState()?.value ?: emptyList()
                 val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
+                val sights = settings?.sightSetups?.collectAsState()?.value ?: emptyMap()
                 // Every caliber's findings, twice: off the main thread, so Home never waits on it.
-                val candidates by produceState(emptyList<HomeInsight>(), cached, insightsOn) {
+                val candidates by produceState(emptyList<HomeInsight>(), cached, insightsOn, sights) {
                     value = if (insightsOn) {
-                        withContext(Dispatchers.Default) { cached.homeInsights(Clock.System.now()) }
+                        withContext(Dispatchers.Default) { cached.homeInsights(Clock.System.now(), sights = sights) }
                     } else {
                         emptyList()
                     }

@@ -253,17 +253,22 @@ data class FindingThresholds(
 /**
  * Every finding these series (one caliber, any order) support, strongest first. Days are local
  * days in [zone]; "newest" means the series or day with the latest timestamp.
+ *
+ * [offsetSince] is when the user adjusted the sights for this caliber ([SightSetup.adjustedAtMs]):
+ * the offset finding then judges only the series taken after it, since the older ones were shot
+ * with the old setting. Every other finding keeps the whole history.
  */
 @OptIn(ExperimentalTime::class)
 fun List<PlottedSeries>.findings(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
+    offsetSince: kotlin.time.Instant? = null,
 ): List<Finding> {
     if (isEmpty()) return emptyList()
     val sorted = sortedBy { it.at }
     val low = sorted.lowDay(zone, thresholds) ?: sorted.lowSeries(thresholds)
     return listOfNotNull(
-        sorted.offsetGroup(zone, thresholds),
+        sorted.sinceAdjustment(offsetSince).offsetGroup(zone, thresholds),
         sorted.stretchedGroup(thresholds),
         sorted.fliers(thresholds),
         sorted.wideRoundGroup(zone, thresholds),
@@ -278,6 +283,7 @@ fun List<PlottedSeries>.findings(
  * left out: those series may come from any gun, and a pooled offset or stretch across guns is
  * exactly the wrong advice the plan warns about.
  */
+@OptIn(ExperimentalTime::class)
 fun List<PlottedSeries>.findingsByCaliber(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),

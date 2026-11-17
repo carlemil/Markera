@@ -348,7 +348,7 @@ fun StatsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else if (tab == INSIGHTS_TAB) {
-                        InsightsTab(plotted, calibers, hand)
+                        InsightsTab(plotted, calibers, hand, viewEnd = filter.to)
                     } else if (tab == 2) {
                         DriftTab(
                             points = days,

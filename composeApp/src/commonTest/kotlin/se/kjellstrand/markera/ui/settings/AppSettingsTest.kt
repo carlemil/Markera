@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.BackendTokenStore
+import se.kjellstrand.markera.series.stats.SightSetup
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -22,6 +23,8 @@ class AppSettingsTest {
         override suspend fun writeShootingHand(value: String) { values["hand"] = value }
         override suspend fun readInsightsEnabled(): Boolean? = values["insights"] as Boolean?
         override suspend fun writeInsightsEnabled(value: Boolean) { values["insights"] = value }
+        override suspend fun readSightSetups(): String? = values["sights"] as String?
+        override suspend fun writeSightSetups(value: String) { values["sights"] = value }
         override suspend fun readDismissedInsights(): String? = values["dismissed"] as String?
         override suspend fun writeDismissedInsights(value: String) { values["dismissed"] = value }
     }
@@ -69,6 +72,40 @@ class AppSettingsTest {
         val after = loaded(store)
         assertEquals(ShootingHand.LEFT, after.shootingHand.value)
         assertFalse(after.insightsEnabled.value)
+    }
+
+    @Test
+    fun sightSetupsArePerCaliberAndSurviveARestartAndSignOut() {
+        val store = MapStore()
+        loaded(store).apply {
+            assertTrue(sightSetups.value.isEmpty())
+            setSightClicks("9mm", 25.0, 6.0)
+            markSightsAdjusted("9mm", 1_700_000_000_000L)
+            setSightClicks(".22 lr", 50.0, 2.5)
+        }
+        runBlocking { store.clear() }
+        val after = loaded(store)
+        assertEquals(SightSetup(25.0, 6.0, 1_700_000_000_000L), after.sightSetups.value["9mm"])
+        assertEquals(SightSetup(50.0, 2.5, null), after.sightSetups.value[".22 lr"])
+
+        // Removing the click value keeps the adjustment; undoing that too forgets the caliber.
+        after.setSightClicks("9mm", 25.0, null)
+        assertEquals(SightSetup(25.0, null, 1_700_000_000_000L), loaded(store).sightSetups.value["9mm"])
+        after.undoSightsAdjusted("9mm")
+        assertEquals(setOf(".22 lr"), loaded(store).sightSetups.value.keys)
+    }
+
+    @Test
+    fun undoingASecondAdjustmentGoesBackToTheFirst() {
+        val store = MapStore()
+        loaded(store).apply {
+            markSightsAdjusted("9mm", 1_000L)
+            markSightsAdjusted("9mm", 2_000L)
+            undoSightsAdjusted("9mm")
+        }
+        assertEquals(1_000L, loaded(store).sightSetups.value["9mm"]?.adjustedAtMs)
+        loaded(store).undoSightsAdjusted("9mm")
+        assertTrue(loaded(store).sightSetups.value.isEmpty())
     }
 
     @Test

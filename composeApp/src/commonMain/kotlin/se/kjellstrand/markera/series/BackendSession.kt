@@ -58,6 +58,14 @@ interface BackendTokenStore {
     suspend fun writeInsightsEnabled(value: Boolean) {}
 
     /**
+     * The sight helper's per-caliber setups ([se.kjellstrand.markera.series.stats.encodeSightSetups]:
+     * distance, mm per click, when the sights were adjusted): a device preference, survives [clear],
+     * never sent to the server. Null = none entered.
+     */
+    suspend fun readSightSetups(): String? = null
+    suspend fun writeSightSetups(value: String) {}
+
+    /**
      * The Home insight cards the user dismissed, one key per line
      * ([se.kjellstrand.markera.ui.stats.encodeDismissedInsights]); a device preference, survives
      * [clear], never sent to the server. Null = none dismissed yet.

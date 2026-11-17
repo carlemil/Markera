@@ -25,12 +25,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+import kotlinx.datetime.Instant as KxInstant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.stats.Advice
+import se.kjellstrand.markera.series.stats.DEFAULT_DISTANCE_M
+import se.kjellstrand.markera.series.stats.Finding
+import se.kjellstrand.markera.series.stats.SightCorrection
+import se.kjellstrand.markera.series.stats.SightSetup
+import se.kjellstrand.markera.series.stats.parsePositiveDecimal
+import se.kjellstrand.markera.series.stats.sightCorrection
 import se.kjellstrand.markera.series.stats.InsightMark
 import se.kjellstrand.markera.series.stats.InsightSection
 import se.kjellstrand.markera.series.stats.PlottedSeries
@@ -38,6 +59,8 @@ import se.kjellstrand.markera.series.stats.adviceFor
 import se.kjellstrand.markera.series.stats.insights
 import se.kjellstrand.markera.series.stats.mark
 import se.kjellstrand.markera.ui.history.adviceString
+import se.kjellstrand.markera.ui.settings.AppSettings
+import se.kjellstrand.markera.ui.settings.LocalAppSettings
 import se.kjellstrand.markera.ui.settings.ShootingHand
 
 /**
@@ -46,9 +69,17 @@ import se.kjellstrand.markera.ui.settings.ShootingHand
  * the ellipse and the offset arrow; and plain words when there are too few shots or nothing to say.
  * The maths lives in `series/stats/Insights.kt`; this only lays it out.
  */
+@OptIn(ExperimentalTime::class)
 @Composable
-internal fun InsightsTab(plotted: List<PlottedSeries>, calibers: List<Caliber>, hand: ShootingHand) {
-    val insights = remember(plotted) { plotted.insights() }
+internal fun InsightsTab(
+    plotted: List<PlottedSeries>,
+    calibers: List<Caliber>,
+    hand: ShootingHand,
+    viewEnd: Instant? = null,
+) {
+    val settings = LocalAppSettings.current
+    val sights = settings?.sightSetups?.collectAsState()?.value ?: emptyMap()
+    val insights = remember(plotted, sights, viewEnd) { plotted.insights(sights = sights, viewEnd = viewEnd) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (insights.sections.isEmpty()) {
             Note(stringResource(Res.string.stats_insights_no_caliber))
@@ -59,7 +90,7 @@ internal fun InsightsTab(plotted: List<PlottedSeries>, calibers: List<Caliber>, 
             // Keyed, so a target's zoom and a picked finding stay with their caliber.
             key(section.caliber.label) {
                 if (insights.sections.size > 1) CaliberHeading(section.caliber, calibers)
-                InsightSectionView(section, calibers, hand, insights.neededHits)
+                InsightSectionView(section, calibers, hand, insights.neededHits, settings)
             }
         }
         if (insights.uncaliberedSeries > 0) {
@@ -80,8 +111,15 @@ private fun CaliberHeading(caliber: Caliber, calibers: List<Caliber>) {
     }
 }
 
+@OptIn(ExperimentalTime::class)
 @Composable
-private fun InsightSectionView(section: InsightSection, calibers: List<Caliber>, hand: ShootingHand, needed: Int) {
+private fun InsightSectionView(
+    section: InsightSection,
+    calibers: List<Caliber>,
+    hand: ShootingHand,
+    needed: Int,
+    settings: AppSettings?,
+) {
     // Five holes are too few to judge a shape: no ellipse, no arrow, just how many are needed.
     if (!section.enoughData) {
         Note(stringResource(Res.string.stats_insights_need_more, needed, section.hitCount))
@@ -89,7 +127,9 @@ private fun InsightSectionView(section: InsightSection, calibers: List<Caliber>,
     }
     val advice = remember(section, hand) { adviceFor(section.findings, hand) }
     // The picked finding, by its place in the list; tapping it again lets it go.
-    var picked by remember(section) { mutableStateOf<Int?>(null) }
+    // Keyed on the caliber: a sight edit rebuilds the section but keeps the pick.
+    var picked by remember(section.caliber.label) { mutableStateOf<Int?>(null) }
+    var editingClicks by remember { mutableStateOf(false) }
     val highlight = picked?.let { advice.getOrNull(it)?.finding?.mark() } ?: InsightMark.NONE
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         InsightsTarget(section, calibers, highlight)
@@ -98,6 +138,9 @@ private fun InsightSectionView(section: InsightSection, calibers: List<Caliber>,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        section.adjustedAt?.let { at ->
+            AdjustedNote(at, section.offsetHitCount) { settings?.undoSightsAdjusted(section.caliber.label) }
+        }
         if (advice.isEmpty()) {
             val nothing = stringResource(Res.string.stats_insights_nothing, section.hitCount, section.series.size)
             val numbers = section.stats?.let {
@@ -111,10 +154,172 @@ private fun InsightSectionView(section: InsightSection, calibers: List<Caliber>,
             Note(if (numbers == null) nothing else "$nothing\n$numbers")
         }
         advice.forEachIndexed { i, a ->
-            AdviceCard(a, selected = picked == i) { picked = if (picked == i) null else i }
+            AdviceCard(a, selected = picked == i, onClick = { picked = if (picked == i) null else i }) {
+                val offset = a.finding as? Finding.OffsetGroup
+                if (offset != null && offset.stable) {
+                    SightCorrectionView(
+                        sightCorrection(offset, section.sight),
+                        mmPerClick = section.sight?.mmPerClick,
+                        canEdit = settings != null,
+                        onEditClicks = { editingClicks = true },
+                        onAdjusted = { settings?.markSightsAdjusted(section.caliber.label, nowMs()) },
+                    )
+                }
+            }
+        }
+    }
+    if (editingClicks && settings != null) {
+        ClickValueDialog(
+            caliber = section.caliber.label,
+            setup = section.sight,
+            onDismiss = { editingClicks = false },
+            onSave = { distance, perClick ->
+                settings.setSightClicks(section.caliber.label, distance, perClick)
+                editingClicks = false
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalTime::class)
+private fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()
+
+/** Under a stable offset: how far, which way and (with a click value) how many clicks to move the sights. */
+@Composable
+private fun SightCorrectionView(
+    correction: SightCorrection,
+    mmPerClick: Double?,
+    canEdit: Boolean,
+    onEditClicks: () -> Unit,
+    onAdjusted: () -> Unit,
+) {
+    val mark = stringResource(Res.string.decimal_mark)
+    Column(Modifier.testTag(SIGHT_CORRECTION_TAG), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Label(stringResource(Res.string.sight_title))
+        Text(axisLine(correction.upMm, correction.upClicks, vertical = true), style = MaterialTheme.typography.bodyMedium)
+        Text(axisLine(correction.rightMm, correction.rightClicks, vertical = false), style = MaterialTheme.typography.bodyMedium)
+        val rule = stringResource(Res.string.sight_rule)
+        val basis = if (correction.hasClicks && mmPerClick != null) {
+            stringResource(Res.string.sight_clicks_basis, plainNumber(correction.distanceM, mark), plainNumber(mmPerClick, mark))
+        } else {
+            stringResource(Res.string.sight_hint)
+        }
+        Text("$rule $basis", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (canEdit) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onEditClicks) {
+                    Text(stringResource(if (correction.hasClicks) Res.string.sight_change_clicks else Res.string.sight_set_clicks))
+                }
+                OutlinedButton(onClick = onAdjusted) { Text(stringResource(Res.string.sight_adjusted_button)) }
+            }
         }
     }
 }
+
+/** One axis: "Up 12 mm: 2 clicks", or no change when it rounds to 0 mm. */
+@Composable
+private fun axisLine(mm: Int, clicks: Int?, vertical: Boolean): String {
+    if (mm == 0) return stringResource(if (vertical) Res.string.sight_no_height else Res.string.sight_no_side)
+    val move = stringResource(
+        when {
+            vertical && mm > 0 -> Res.string.sight_up_mm
+            vertical -> Res.string.sight_down_mm
+            mm > 0 -> Res.string.sight_right_mm
+            else -> Res.string.sight_left_mm
+        },
+        abs(mm),
+    )
+    return when (val n = clicks?.let { abs(it) }) {
+        null -> move
+        0 -> stringResource(Res.string.sight_under_half_click, move)
+        1 -> stringResource(Res.string.sight_one_click, move)
+        else -> stringResource(Res.string.sight_clicks, move, n)
+    }
+}
+
+/** A typed-in value back as text: no ".0" on a whole number, the language's decimal mark. */
+internal fun plainNumber(v: Double, mark: String): String {
+    val thousandths = kotlin.math.round(v * 1000).toLong()
+    val whole = thousandths / 1000
+    val frac = (thousandths % 1000).toString().padStart(3, '0').trimEnd('0')
+    return if (frac.isEmpty()) whole.toString() else "$whole$mark$frac"
+}
+
+/** "Sights adjusted <date>": the offset now looks only at later shots. Undo forgets the date. */
+@OptIn(ExperimentalTime::class)
+@Composable
+private fun AdjustedNote(at: Instant, shots: Int, onUndo: () -> Unit) {
+    val date = KxInstant.fromEpochMilliseconds(at.toEpochMilliseconds()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(Res.string.sight_adjusted_note, date.toString(), shots),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onUndo) { Text(stringResource(Res.string.sight_adjusted_undo)) }
+    }
+}
+
+/** The caliber's shooting distance and mm per click; Remove clears the click value. */
+@Composable
+private fun ClickValueDialog(
+    caliber: String,
+    setup: SightSetup?,
+    onDismiss: () -> Unit,
+    onSave: (distanceM: Double, mmPerClick: Double?) -> Unit,
+) {
+    val mark = stringResource(Res.string.decimal_mark)
+    var distance by remember { mutableStateOf(plainNumber(setup?.distanceM ?: DEFAULT_DISTANCE_M, mark)) }
+    var perClick by remember { mutableStateOf(setup?.mmPerClick?.let { plainNumber(it, mark) } ?: "") }
+    val distanceValue = parsePositiveDecimal(distance)
+    val clickValue = parsePositiveDecimal(perClick)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.sight_dialog_title, caliber)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(Res.string.sight_dialog_help), style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = distance,
+                    onValueChange = { distance = it },
+                    label = { Text(stringResource(Res.string.sight_dialog_distance)) },
+                    isError = distanceValue == null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().testTag(SIGHT_DISTANCE_TAG),
+                )
+                OutlinedTextField(
+                    value = perClick,
+                    onValueChange = { perClick = it },
+                    label = { Text(stringResource(Res.string.sight_dialog_click)) },
+                    isError = perClick.isNotBlank() && clickValue == null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().testTag(SIGHT_CLICK_TAG),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (distanceValue != null && clickValue != null) onSave(distanceValue, clickValue) },
+                enabled = distanceValue != null && clickValue != null,
+            ) { Text(stringResource(Res.string.sight_dialog_save)) }
+        },
+        dismissButton = {
+            Row {
+                if (setup?.mmPerClick != null) {
+                    TextButton(onClick = { onSave(setup.distanceM, null) }) { Text(stringResource(Res.string.sight_dialog_clear)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_cancel)) }
+            }
+        },
+    )
+}
+
+internal const val SIGHT_CORRECTION_TAG = "sightCorrection"
+internal const val SIGHT_DISTANCE_TAG = "sightDistance"
+internal const val SIGHT_CLICK_TAG = "sightClick"
 
 /** A plain bordered box of text: the too-few-shots, nothing-found and no-caliber states. */
 @Composable
@@ -131,7 +336,7 @@ private fun Note(text: String) {
 
 /** One finding: what the numbers show, the usual causes, one thing to try and any note. Tap to pick it. */
 @Composable
-private fun AdviceCard(advice: Advice, selected: Boolean, onClick: () -> Unit) {
+private fun AdviceCard(advice: Advice, selected: Boolean, onClick: () -> Unit, extra: @Composable () -> Unit = {}) {
     val accent = MaterialTheme.colorScheme.primary
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -152,6 +357,7 @@ private fun AdviceCard(advice: Advice, selected: Boolean, onClick: () -> Unit) {
             advice.note?.let {
                 Text(adviceString(it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            extra()
         }
     }
 }
