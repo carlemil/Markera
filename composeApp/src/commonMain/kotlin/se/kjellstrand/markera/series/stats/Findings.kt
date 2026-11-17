@@ -245,11 +245,15 @@ fun List<PlottedSeries>.findingsByCaliber(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
 ): Map<Caliber, List<Finding>> =
+    byCaliber().mapValues { (_, group) -> group.findings(zone, thresholds) }
+
+/** These series per caliber, in [Caliber] order, [Caliber.NONE] left out (see [findingsByCaliber]). */
+fun List<PlottedSeries>.byCaliber(): Map<Caliber, List<PlottedSeries>> =
     groupBy { Caliber.fromLabel(it.series.caliber) }
         .filterKeys { it != Caliber.NONE }
         .entries
         .sortedBy { it.key.ordinal }
-        .associate { (caliber, group) -> caliber to group.findings(zone, thresholds) }
+        .associate { it.key to it.value }
 
 /** Half from the data ([n] against [minN]), half from the margin ([ratio] = evidence / bar, >= 1). */
 private fun confidence(n: Int, minN: Int, ratio: Double): Double {
@@ -389,26 +393,20 @@ private fun List<PlottedSeries>.flierCloud(t: FindingThresholds): FlierCloud? {
  * getting away from the rest of their series; empty when there is no fliers finding, so a
  * drawing never rings holes the findings did not call out.
  */
-fun List<PlottedSeries>.flierHits(thresholds: FindingThresholds = FindingThresholds()): List<PlottedHit> {
-    if (count { it.hits.size >= 4 } < thresholds.flierMinSeries) return emptyList()
-    val c = flierCloud(thresholds) ?: return emptyList()
-    if (c.fliers(thresholds) == null) return emptyList()
-    return c.flierIdx.map { c.source[it] }
-}
+fun List<PlottedSeries>.flierHits(thresholds: FindingThresholds = FindingThresholds()): List<PlottedHit> =
+    fliersWithCloud(thresholds)?.let { (_, c) -> c.flierIdx.map { c.source[it] } } ?: emptyList()
 
-private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
+private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? = fliersWithCloud(t)?.first
+
+/** The fliers finding and the cloud it was judged on: the one gate both [fliers] and [flierHits] pass. */
+private fun List<PlottedSeries>.fliersWithCloud(t: FindingThresholds): Pair<Finding.Fliers, FlierCloud>? {
     if (count { it.hits.size >= 4 } < t.flierMinSeries) return null
-    return flierCloud(t)?.fliers(t)
+    val c = flierCloud(t) ?: return null
+    return c.fliers(t)?.let { it to c }
 }
 
 private fun FlierCloud.fliers(t: FindingThresholds): Finding.Fliers? {
-    val c = this
-    val g = c.shape
-    val coreSd = g.coreRadialSdMm ?: return null
-    val flierIdx = c.flierIdx
-    val owner = c.owner
-    val used = c.used
-    val cloud = c.cloud
+    val coreSd = shape.coreRadialSdMm ?: return null
     val withFliers = flierIdx.map { owner[it] }.toSet().size
     val n = used.size
     val p = t.flierChanceRate

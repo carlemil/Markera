@@ -38,6 +38,9 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant as KxInstant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.files.Path
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -448,8 +451,14 @@ class AppUiTest {
      * offset ones minutes before it, 20 shots of 22lr on one day sitting right of the centre.
      */
     @Test fun serieDayLinkOpensInsightsForThatDay() {
-        onServer = listOf(serverSeries) + offsetSeries.mapIndexed { i, s ->
-            s.copy(timestamp = (Clock.System.now() - 1.hours - (i + 1).minutes).toString())
+        // All four on one local day: just after midnight, the whole set moves back before it.
+        var newest = Clock.System.now() - 1.hours
+        val zone = TimeZone.currentSystemDefault()
+        if (newest.toEpochMilliseconds().let { ms -> KxInstant.fromEpochMilliseconds(ms).toLocalDateTime(zone).time.toSecondOfDay() } < 600) {
+            newest -= 15.minutes
+        }
+        onServer = listOf(serverSeries.copy(timestamp = newest.toString())) + offsetSeries.mapIndexed { i, s ->
+            s.copy(timestamp = (newest - (i + 1).minutes).toString())
         }
         openNewestSeries()
         waitForText("See this day in Insights")

@@ -50,14 +50,17 @@ data class InsightEllipse(
 /** Two SDs: 1 - exp(-2), about 86% of a round normal group falls inside. */
 const val ELLIPSE_SDS = 2.0
 
-/** What on the target a finding refers to, highlighted when the finding is tapped. */
+/**
+ * What on the target a finding refers to, highlighted when the finding is tapped. A wide day has
+ * no mark: the drawn ellipse pools every day, not the one day the finding is about.
+ */
 enum class InsightMark { ARROW, ELLIPSE, FLIERS, NONE }
 
 fun Finding.mark(): InsightMark = when (this) {
     is Finding.OffsetGroup -> InsightMark.ARROW
-    is Finding.StretchedGroup, is Finding.WideRoundGroup -> InsightMark.ELLIPSE
+    is Finding.StretchedGroup -> InsightMark.ELLIPSE
     is Finding.Fliers -> InsightMark.FLIERS
-    is Finding.LowSeries, is Finding.LowDay, is Finding.Trend -> InsightMark.NONE
+    is Finding.WideRoundGroup, is Finding.LowSeries, is Finding.LowDay, is Finding.Trend -> InsightMark.NONE
 }
 
 @OptIn(ExperimentalTime::class)
@@ -65,9 +68,8 @@ fun List<PlottedSeries>.insights(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
 ): Insights {
-    val byCaliber = groupBy { Caliber.fromLabel(it.series.caliber) }
     val needed = thresholds.offsetMinHits
-    val sections = byCaliber.filterKeys { it != Caliber.NONE }.entries.sortedBy { it.key.ordinal }.map { (caliber, group) ->
+    val sections = byCaliber().map { (caliber, group) ->
         val hits = group.flatMap { it.hits }
         val enough = hits.size >= needed
         val findings = if (enough) group.findings(zone, thresholds) else emptyList()
@@ -95,5 +97,5 @@ fun List<PlottedSeries>.insights(
             enoughData = enough,
         )
     }
-    return Insights(sections, byCaliber[Caliber.NONE]?.size ?: 0, needed)
+    return Insights(sections, count { Caliber.fromLabel(it.series.caliber) == Caliber.NONE }, needed)
 }

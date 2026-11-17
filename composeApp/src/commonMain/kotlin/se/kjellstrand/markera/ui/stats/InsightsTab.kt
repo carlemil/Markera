@@ -17,6 +17,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,8 +56,11 @@ internal fun InsightsTab(plotted: List<PlottedSeries>, calibers: List<Caliber>, 
         }
         insights.sections.forEach { section ->
             // One caliber on show needs no heading: its dots and the filter row already say which.
-            if (insights.sections.size > 1) CaliberHeading(section.caliber, calibers)
-            InsightSectionView(section, calibers, hand, insights.neededHits)
+            // Keyed, so a target's zoom and a picked finding stay with their caliber.
+            key(section.caliber.label) {
+                if (insights.sections.size > 1) CaliberHeading(section.caliber, calibers)
+                InsightSectionView(section, calibers, hand, insights.neededHits)
+            }
         }
         if (insights.uncaliberedSeries > 0) {
             Text(

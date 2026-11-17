@@ -55,7 +55,7 @@ import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.history.SeriesDetailScreen
 import se.kjellstrand.markera.ui.stats.InsightsDay
-import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.ui.stats.insightsDayFor
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
@@ -356,11 +356,11 @@ fun AppNavHost(
                 onBack = pop,
                 ids = screen.ids,
                 onOpen = { replace(Screen.SeriesDetail(it, screen.ids)) },
-                // The caliber as it is now: the page may just have corrected it.
+                // The series as it is now: the page may just have corrected its caliber.
                 onOpenInsights = { date ->
-                    val caliber = seriesServices.repository.series.value
-                        .firstOrNull { it.id == screen.series.id }?.caliber ?: screen.series.caliber
-                    push(Screen.StatisticsDay(InsightsDay(date, Caliber.fromLabel(caliber))))
+                    val all = seriesServices.repository.series.value
+                    val now = all.firstOrNull { it.id == screen.series.id } ?: screen.series
+                    push(Screen.StatisticsDay(insightsDayFor(now, date, all)))
                 },
             )
         }
