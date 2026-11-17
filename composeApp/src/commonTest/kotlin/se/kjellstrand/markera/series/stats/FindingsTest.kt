@@ -99,13 +99,13 @@ class FindingsTest {
     @Test
     fun aRoundCentredShooterStaysQuiet() {
         var noisy = 0
-        for (seed in 1..60) {
+        for (seed in 1..200) {
             val found = history(seed).findings(zone)
             val group = found.filter { it !is Finding.LowSeries && it !is Finding.LowDay }
             if (group.isNotEmpty()) noisy++
         }
-        // Each group bar is set near 1-2% by chance, so a handful at most across 60 histories.
-        assertTrue(noisy <= 6, "group findings on $noisy of 60 round histories")
+        // 7 of 200 measured (see the Findings KDoc); a looser bar soon pushes it past 10.
+        assertTrue(noisy <= 10, "group findings on $noisy of 200 round histories")
     }
 
     @Test
@@ -137,6 +137,17 @@ class FindingsTest {
         assertEquals(5, offset.daysChecked)
         assertEquals(3, offset.daysAgreeing)
         assertFalse(offset.stable)
+        // Round groups whose mean point moves are not a stretched group.
+        assertNull(found.one<Finding.StretchedGroup>())
+    }
+
+    @Test
+    fun aMeanPointWanderingByDayIsNoOffset() {
+        // Tight days whose mean point jumps 70 mm from day to day: net 12 mm right, over 3 per-hit
+        // SEs (300 hits) but well inside 3 day-level SEs, so it must not read as an offset.
+        val list = history(22, days = 20, perDay = 3, sdMajor = 10.0, sdMinor = 10.0,
+            ox = { if (it % 2 == 0) 47.0 else -23.0 })
+        assertNull(list.findings(zone).one<Finding.OffsetGroup>())
     }
 
     @Test
@@ -176,11 +187,13 @@ class FindingsTest {
 
     @Test
     fun aStretchUnderTheBarAtTwentyHitsIsNoFinding() {
-        // Elongation about 1.7 is common by chance at 20 hits, so it says nothing.
-        val hits = (0 until 20).map { i -> Pair((i % 5 - 2) * 10.0 * 1.7, (i / 5 - 1.5) * 12.3) }
-        val s = hits.map { PlottedHit(it.first, it.second, 9, false) }.groupShape()!!
+        // A 5 x 4 grid, elongation about 1.75: common by chance at 20 hits, so it says nothing.
+        val grid = (0 until 4).map { j ->
+            (0 until 5).map { c -> Pair((c - 2) * 17.0, (((c + j) % 4) - 1.5) * 12.3) }
+        }
+        val s = grid.flatten().map { PlottedHit(it.first, it.second, 9, false) }.groupShape()!!
         assertTrue(s.elongation in 1.5..2.0, "elongation ${s.elongation}")
-        val list = hits.chunked(5).mapIndexed { i, h -> series(i, 0, h) }
+        val list = grid.mapIndexed { i, h -> series(i, 0, h) }
         assertNull(list.findings(zone).one<Finding.StretchedGroup>())
     }
 
@@ -296,8 +309,9 @@ class FindingsTest {
         assertTrue(found.all { it.confidence > 0 && it.confidence <= 1 })
 
         val lr = history(18, days = 2, perDay = 1).map { it.copy(series = it.series.copy(caliber = "22lr")) }
-        val split = (nine + lr).findingsByCaliber(zone)
+        val none = history(19, days = 3, perDay = 4, ox = { 40.0 }).map { it.copy(series = it.series.copy(caliber = "-")) }
+        val split = (nine + lr + none).findingsByCaliber(zone)
         assertEquals(found, split.getValue(Caliber.fromLabel("9mm")))
-        assertEquals(2, split.size)
+        assertEquals(setOf(Caliber.fromLabel("22lr"), Caliber.fromLabel("9mm")), split.keys)
     }
 }

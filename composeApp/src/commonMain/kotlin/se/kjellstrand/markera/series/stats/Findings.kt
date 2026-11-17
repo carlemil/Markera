@@ -32,16 +32,22 @@ import se.kjellstrand.markera.series.total
  * synthetic groups with each fault planted. Re-check them on real series before the advice ships.
  *
  * - **Offset**: the card's 2 standard errors fire on 13.5% of perfectly centred groups (the MPI's
- *   distance in SE units is Rayleigh, tail exp(-k²/2)); 3 SE fires on about 1%. Plus at least
- *   10 mm, so a large, precise history does not report a trivial offset, and 15+ hits. A day
+ *   distance in SE units is Rayleigh, tail exp(-k²/2)); 3 SE fires on about 1%. Hits of one
+ *   day share that day's aim, so with 3+ days of 10+ hits the SE is at least the spread of the
+ *   day means along the offset over sqrt(days): a mean point that wanders from day to day does
+ *   not add up to an offset. Plus at least 10 mm, so a large, precise history does not report a
+ *   trivial offset, and 15+ hits. A day
  *   "agrees" when it has 10+ hits and its own mean point lies within 45° of the overall bearing
  *   and at least half as far out; 3+ agreeing days that are at least two thirds of the days
  *   checked make the offset `stable` (the sights), anything else varies (technique).
- * - **Stretched**: the card's elongation 1.5 at 20 hits fires on 25% of round groups (15% at 25,
- *   5% at 40). The sample major/minor ratio of a round group shrinks like 1/sqrt(n), and its 98th
- *   percentile sits near 1 + 4.5/sqrt(n) from 20 to 200 hits, so the bar is
- *   max(1.5, 1 + 4.5/sqrt(n)): 2.0 at 20 hits, 1.71 at 40, 1.5 from about 80. Orientation:
- *   within 22.5° of vertical or horizontal, else diagonal.
+ * - **Stretched**: measured on the hits with each series moved onto its own mean point, so round
+ *   groups whose mean point moves between series or days do not smear into a "string" (and the
+ *   SDs it reports are within-series ones). The card's elongation 1.5 at 20 hits fires on 25% of
+ *   round groups (15% at 25, 5% at 40). The sample major/minor ratio of a round group shrinks
+ *   like 1/sqrt(n), and its 98th percentile sits near 1 + 4.5/sqrt(n) from 20 to 200 hits, so
+ *   the bar is max(1.5, 1 + 4.5/sqrt(n)) with n = hits minus series (each removed mean costs
+ *   one): 2.0 at 20 free hits, 1.71 at 40, 1.5 from about 80. Orientation: within 22.5° of
+ *   vertical or horizontal, else diagonal.
  * - **Fliers**: each hole's offset from the median of the OTHER holes of its series (series of
  *   4+ holes), pooled into one cloud; [groupShape] with flier factor 2.5 picks the fliers, so the
  *   shooter's own typical spread is the yardstick. A hole measured against its own series'
@@ -49,9 +55,10 @@ import se.kjellstrand.markera.series.total
  *   leave-one-out cloud in 7%. A finding needs 8+ series, and series with a flier must be at
  *   least 20% of them and at least that 7% chance rate plus 2.5 binomial SDs (3 of 8, 5 of 20,
  *   10 of 50), with mostly one flier per such series (at most 1.5 per series on average).
- * - **Wide round group**: the newest day (3+ series of 2+ holes) against every series before it
- *   (6+): each series' mean distance to its own mean point, the day's average at least 1.3 times
- *   the earlier average and a Welch t of 2.5 or more, and only when that day's pooled hits (15+)
+ * - **Wide round group**: the newest day (3+ series) against every series before it (6+), all
+ *   with the newest series' hole count (a series' radius about its own mean shrinks with fewer
+ *   holes): each series' mean distance to its own mean point, the day's average at least 1.3
+ *   times the earlier average and a Welch t of 2.5 or more, and only when that day's hits (15+)
  *   show neither an offset nor a stretch by the bars above.
  * - **Low series / low day**: the card's values as they are: 1.5 sample SDs under the mean of up
  *   to 30 earlier series with the same hole count, 10+ needed. A day (3+ series) is judged by its
@@ -63,8 +70,9 @@ import se.kjellstrand.markera.series.total
  *   compare): 10+ series over 14+ days, the slope's t at least 2.5 and the change over the span at
  *   least half the totals' SD. Both directions; improving is said too.
  *
- * Measured with these values on 400 seeded round histories (10 days of 4 five-hole series): 8
- * group findings in all (6 fliers, 2 wide days, no offset, stretch or trend), about 2%.
+ * Measured with these values on 200 seeded round histories (10 days of 4 five-hole series,
+ * `FindingsTest.aRoundCentredShooterStaysQuiet`): 7 with a group finding (5 fliers, 2 wide days,
+ * no offset, stretch or trend), 3.5%.
  *
  * Confidence: half from the data size (reaching 1 at twice the minimum), half from the margin by
  * which the evidence clears its bar (reaching 1 at twice the bar). [findings] sorts by it.
@@ -189,6 +197,7 @@ data class FindingThresholds(
     val flierMaxPerSeries: Double = 1.5,
     val wideMinRecentSeries: Int = 3,
     val wideMinEarlierSeries: Int = 6,
+    val wideMinDayHits: Int = 15,
     val wideMinRatio: Double = 1.3,
     val wideMinT: Double = 2.5,
     val lowSds: Double = 1.5,
@@ -227,14 +236,19 @@ fun List<PlottedSeries>.findings(
     ).sortedByDescending { it.confidence }
 }
 
-/** [findings] per caliber label, in [Caliber] order; the caller never mixes guns. */
+/**
+ * [findings] per caliber, in [Caliber] order, so no call mixes guns. [Caliber.NONE] ("-") is
+ * left out: those series may come from any gun, and a pooled offset or stretch across guns is
+ * exactly the wrong advice the plan warns about.
+ */
 fun List<PlottedSeries>.findingsByCaliber(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
 ): Map<Caliber, List<Finding>> =
-    groupBy { it.series.caliber }
-        .map { (label, group) -> Caliber.fromLabel(label) to group }
-        .sortedBy { it.first.ordinal }
+    groupBy { Caliber.fromLabel(it.series.caliber) }
+        .filterKeys { it != Caliber.NONE }
+        .entries
+        .sortedBy { it.key.ordinal }
         .associate { (caliber, group) -> caliber to group.findings(zone, thresholds) }
 
 /** Half from the data ([n] against [minN]), half from the margin ([ratio] = evidence / bar, >= 1). */
@@ -247,30 +261,40 @@ private fun confidence(n: Int, minN: Int, ratio: Double): Double {
 private fun List<PlottedSeries>.allHits(): List<PlottedHit> = flatMap { it.hits }
 
 /** The offset bar for this shape: true when its mean point is really off centre. */
-private fun GroupShape.isOffset(t: FindingThresholds): Boolean =
-    mpiDistanceMm > t.offsetSeFactor * offsetSeMm && mpiDistanceMm >= t.offsetMinMm
+private fun GroupShape.isOffset(t: FindingThresholds, seMm: Double): Boolean =
+    mpiDistanceMm > t.offsetSeFactor * seMm && mpiDistanceMm >= t.offsetMinMm
 
 private fun List<PlottedSeries>.offsetGroup(zone: TimeZone, t: FindingThresholds): Finding.OffsetGroup? {
     val hits = allHits()
     if (hits.size < t.offsetMinHits) return null
     val g = hits.groupShape() ?: return null
-    if (!g.isOffset(t)) return null
-    var checked = 0
-    var agreeing = 0
-    for ((_, day) in groupBy { dayOf(it, zone) }) {
+    if (g.mpiDistanceMm == 0.0) return null
+    // Each day with enough hits: its own mean point.
+    val dayMeans = groupBy { dayOf(it, zone) }.values.mapNotNull { day ->
         val dayHits = day.allHits()
-        if (dayHits.size < t.offsetDayMinHits) continue
-        checked++
-        val mx = dayHits.sumOf { it.xMm } / dayHits.size
-        val my = dayHits.sumOf { it.yMm } / dayHits.size
-        val dist = hypot(mx, my)
-        if (dist == 0.0 || dist < t.offsetDayMinShare * g.mpiDistanceMm) continue
-        val bearing = bearingDeg(mx, my)
-        if (angleBetween(bearing, g.mpiBearingDeg) <= t.offsetDayMaxAngleDeg) agreeing++
+        if (dayHits.size < t.offsetDayMinHits) null
+        else Pair(dayHits.sumOf { it.xMm } / dayHits.size, dayHits.sumOf { it.yMm } / dayHits.size)
     }
+    // Hits of one day share that day's aim, so they are not independent: with 3+ days, the
+    // spread of the day means along the offset bounds the standard error from below.
+    val ux = g.mpiXMm / g.mpiDistanceMm
+    val uy = g.mpiYMm / g.mpiDistanceMm
+    val daySe = if (dayMeans.size >= 3) {
+        sqrt(dayMeans.map { (x, y) -> x * ux + y * uy }.sampleVariance() / dayMeans.size)
+    } else {
+        0.0
+    }
+    val se = max(g.offsetSeMm, daySe)
+    if (!g.isOffset(t, se)) return null
+    val agreeing = dayMeans.count { (x, y) ->
+        val dist = hypot(x, y)
+        dist > 0.0 && dist >= t.offsetDayMinShare * g.mpiDistanceMm &&
+            angleBetween(bearingDeg(x, y), g.mpiBearingDeg) <= t.offsetDayMaxAngleDeg
+    }
+    val checked = dayMeans.size
     val stable = agreeing >= t.offsetStableDays && agreeing * 3 >= checked * 2
     val ratio = min(
-        g.mpiDistanceMm / max(t.offsetSeFactor * g.offsetSeMm, 1e-9),
+        g.mpiDistanceMm / max(t.offsetSeFactor * se, 1e-9),
         g.mpiDistanceMm / t.offsetMinMm,
     )
     return Finding.OffsetGroup(
@@ -279,7 +303,7 @@ private fun List<PlottedSeries>.offsetGroup(zone: TimeZone, t: FindingThresholds
         mpiYMm = g.mpiYMm,
         distanceMm = g.mpiDistanceMm,
         bearingDeg = g.mpiBearingDeg,
-        standardErrorMm = g.offsetSeMm,
+        standardErrorMm = se,
         daysChecked = checked,
         daysAgreeing = agreeing,
         stable = stable,
@@ -287,11 +311,26 @@ private fun List<PlottedSeries>.offsetGroup(zone: TimeZone, t: FindingThresholds
     )
 }
 
+private class Centred(val shape: GroupShape, val freeHits: Int)
+
+private fun List<PlottedSeries>.centredShape(minHits: Int): Centred? {
+    val used = filter { it.hits.size >= 2 }
+    val hits = used.flatMap { s ->
+        val cx = s.hits.sumOf { it.xMm } / s.hits.size
+        val cy = s.hits.sumOf { it.yMm } / s.hits.size
+        s.hits.map { it.copy(xMm = it.xMm - cx, yMm = it.yMm - cy) }
+    }
+    if (hits.size < minHits) return null
+    val shape = hits.groupShape() ?: return null
+    return Centred(shape, hits.size - used.size)
+}
+
+private fun Centred.isStretched(t: FindingThresholds): Boolean = shape.elongation >= t.stretchBar(freeHits)
+
 private fun List<PlottedSeries>.stretchedGroup(t: FindingThresholds): Finding.StretchedGroup? {
-    val hits = allHits()
-    if (hits.size < t.stretchMinHits) return null
-    val g = hits.groupShape() ?: return null
-    val bar = t.stretchBar(g.hitCount)
+    val c = centredShape(t.stretchMinHits) ?: return null
+    val g = c.shape
+    val bar = t.stretchBar(c.freeHits)
     if (g.elongation < bar) return null
     val a = g.majorAxisDeg
     val orientation = when {
@@ -352,16 +391,18 @@ private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
 
 @OptIn(ExperimentalTime::class)
 private fun List<PlottedSeries>.wideRoundGroup(zone: TimeZone, t: FindingThresholds): Finding.WideRoundGroup? {
-    val spread = filter { it.hits.size >= 2 }
-    if (spread.isEmpty()) return null
+    // One hole count only: a series' radius about its own mean shrinks with fewer holes.
+    val holes = lastOrNull { it.hits.size >= 2 }?.hits?.size ?: return null
+    val spread = filter { it.hits.size == holes }
     val newestDay = dayOf(spread.last(), zone)
     val recent = spread.filter { dayOf(it, zone) == newestDay }
     val earlier = spread.filter { dayOf(it, zone) < newestDay }
     if (recent.size < t.wideMinRecentSeries || earlier.size < t.wideMinEarlierSeries) return null
     val dayHits = recent.allHits()
-    if (dayHits.size < t.offsetMinHits) return null
+    if (dayHits.size < t.wideMinDayHits) return null
     val day = dayHits.groupShape() ?: return null
-    if (day.isOffset(t) || day.elongation >= t.stretchBar(day.hitCount)) return null
+    if (day.isOffset(t, day.offsetSeMm)) return null
+    if (recent.centredShape(t.wideMinDayHits)?.isStretched(t) != false) return null
     val r = recent.map { it.hits.ownRadius() }
     val e = earlier.map { it.hits.ownRadius() }
     val rm = r.average()
