@@ -350,7 +350,11 @@ drawn by `MenuOverlay` at the nav root), which always ends with Suggestion and S
 language + light/dark theme as `ui/Segmented` rows, applied in `MarkeraApp`; a language change re-keys
 the tree; the Account section, `AccountActions` in `ui/AccountSection.kt`, holds sign-in, Sign out and
 Delete account; About shows the version and opens `/privacy`). Home shows only a `SignInCard` when
-signed out (counting local-only series) and a seven-day strip (`series/stats/WeekSummary.kt`).
+signed out (counting local-only series) and a seven-day strip (`series/stats/WeekSummary.kt`), under it
+at most one insight card (`ui/stats/HomeInsight.kt`): the strongest finding of the last 7 days, opening
+Insights on its caliber and period (`Screen.StatisticsDay`); a dismissed card's key (type, caliber,
+newest series' time) is stored locally (`BackendTokenStore.readDismissedInsights`), so a new series in
+that caliber brings it back; Insights off hides it.
 Suggestion (`ui/suggestion/`, `LocalOpenSuggestion`) is the suggestion box: title + description required,
 e-mail optional → `SeriesApi.postSuggestion` → the server's `POST /suggestions` (open to signed-out users),
 which stores it (`/admin/suggestions`) and mails it via `SMTP_*` to `SUGGESTIONS_TO` with Reply-To = the sender.

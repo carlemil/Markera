@@ -64,6 +64,14 @@ interface BackendTokenStore {
      */
     suspend fun readSightSetups(): String? = null
     suspend fun writeSightSetups(value: String) {}
+
+    /**
+     * The Home insight cards the user dismissed, one key per line
+     * ([se.kjellstrand.markera.ui.stats.encodeDismissedInsights]); a device preference, survives
+     * [clear], never sent to the server. Null = none dismissed yet.
+     */
+    suspend fun readDismissedInsights(): String? = null
+    suspend fun writeDismissedInsights(value: String) {}
 }
 
 /**

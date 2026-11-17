@@ -124,7 +124,7 @@ fun StatsScreen(
     services: SeriesServices,
     onBack: () -> Unit,
     onMarkera: () -> Unit = {},
-    /** Opened from the Serie page: Insights on that day and caliber; null opens as usual. */
+    /** Opened from the Serie page or Home's insight card: Insights on that period and caliber; null opens as usual. */
     insightsDay: InsightsDay? = null,
 ) {
     val auth by services.session.auth.collectAsState()

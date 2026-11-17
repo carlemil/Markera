@@ -22,6 +22,7 @@ class UserDefaultsBackendTokenStore(
         const val SHOOTING_HAND = "markera.settings.shootingHand"
         const val INSIGHTS = "markera.settings.insightsEnabled"
         const val SIGHT_SETUPS = "markera.settings.sightSetups"
+        const val DISMISSED_INSIGHTS = "markera.settings.dismissedInsights"
     }
 
     // Stored as a string: NSUserDefaults integers can't express "absent".
@@ -42,6 +43,10 @@ class UserDefaultsBackendTokenStore(
     override suspend fun readSightSetups(): String? = defaults.stringForKey(Keys.SIGHT_SETUPS)
 
     override suspend fun writeSightSetups(value: String) = defaults.setObject(value, Keys.SIGHT_SETUPS)
+
+    override suspend fun readDismissedInsights(): String? = defaults.stringForKey(Keys.DISMISSED_INSIGHTS)
+
+    override suspend fun writeDismissedInsights(value: String) = defaults.setObject(value, Keys.DISMISSED_INSIGHTS)
 
     // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
     override suspend fun readTag(): String? = normalizeTag(defaults.stringForKey(Keys.TAG))
