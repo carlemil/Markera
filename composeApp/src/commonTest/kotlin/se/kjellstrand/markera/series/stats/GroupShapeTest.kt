@@ -121,6 +121,16 @@ class GroupShapeTest {
     }
 
     @Test
+    fun collinearAtAwkwardCoordinatesIsNull() {
+        assertNull(listOf(hit(0.1, 0.3), hit(0.7, 2.1), hit(1.3, 3.9)).groupShape())
+    }
+
+    @Test
+    fun centredGroupReportsBearingZero() {
+        near(0.0, assertNotNull(round(10.0).groupShape()).mpiBearingDeg)
+    }
+
+    @Test
     fun threeHitGroupHasNoNaN() {
         val s = assertNotNull(listOf(hit(0.0, 0.0), hit(4.0, 1.0), hit(1.0, 5.0)).groupShape())
         val values = listOf(

@@ -15,6 +15,7 @@ import kotlin.math.sqrt
  *   the target (y flipped to up): 0 = horizontal, 90 = vertical, 45 = upper-right to
  *   lower-left, 135 = upper-left to lower-right. A round group reports 0 and elongation 1.
  * - [mpiBearingDeg] is clockwise from 12 o'clock, [0, 360): 90 = right, 180 = low.
+ *   An MPI exactly on the centre reports 0.
  * - [seXMm]/[seYMm] are sd/sqrt(n); [offsetSeMm] is sqrt(u^T C u / n) along the MPI's own
  *   direction u (sqrt(trace(C)/(2n)) when the MPI sits exactly on the centre), so a caller
  *   tests `mpiDistanceMm > 2 * offsetSeMm` for a real offset.
@@ -46,13 +47,15 @@ data class GroupShape(
 )
 
 private const val EPS = 1e-9
+private const val REL_EPS = 1e-6
 private const val MIN_MEDIAN_MM = 1e-6
 
 /**
  * The [GroupShape] of these hits, or null for fewer than 3 hits and for degenerate groups
- * (all identical or collinear: minor SD below 1e-9), so nothing downstream divides by zero.
+ * (all identical or collinear: minor SD below 1e-9 or 1e-6 of the major), so nothing downstream divides by zero.
  */
 fun List<PlottedHit>.groupShape(flierFactor: Double = 2.5): GroupShape? {
+    require(flierFactor > 0) { "flierFactor must be positive" }
     val n = size
     if (n < 3) return null
     val mx = sumOf { it.xMm } / n
@@ -75,9 +78,9 @@ fun List<PlottedHit>.groupShape(flierFactor: Double = 2.5): GroupShape? {
     val r = sqrt(((sxx - syy) / 2).let { it * it } + sxy * sxy)
     val major = sqrt(maxOf(half + r, 0.0))
     val minor = sqrt(maxOf(half - r, 0.0))
-    if (!(minor >= EPS)) return null
+    if (!(minor >= EPS) || minor < REL_EPS * major) return null
 
-    val round = major - minor < EPS
+    val round = major - minor <= REL_EPS * major
     val angle = if (round) {
         0.0
     } else {
@@ -90,7 +93,7 @@ fun List<PlottedHit>.groupShape(flierFactor: Double = 2.5): GroupShape? {
     val elongation = if (round) 1.0 else major / minor
 
     val dist = hypot(mx, my)
-    var bearing = atan2(mx, -my) * 180 / PI
+    var bearing = if (dist == 0.0) 0.0 else atan2(mx, -my) * 180 / PI
     if (bearing < 0) bearing += 360.0
     if (bearing >= 360.0) bearing = 0.0
     val offsetVar = if (dist == 0.0) {
