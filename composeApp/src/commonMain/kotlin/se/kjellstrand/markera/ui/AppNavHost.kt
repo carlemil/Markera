@@ -83,7 +83,7 @@ sealed interface Screen {
     data object History : Screen
     data object Statistics : Screen
 
-    /** Statistics opened on Insights for one day and caliber, from the Serie page. */
+    /** Statistics opened on Insights for one caliber and period, from the Serie page or Home's card. */
     data class StatisticsDay(val day: InsightsDay) : Screen
     data object Settings : Screen
     data object Suggestion : Screen
@@ -302,6 +302,7 @@ fun AppNavHost(
                 push(Screen.SeriesDetail(it, seriesServices.repository.series.value.map { s -> s.id }))
             },
             onStatistics = { push(Screen.Statistics) },
+            onOpenInsights = { push(Screen.StatisticsDay(it)) },
             onImport = { images, auto -> push(Screen.Import(ImportQueue(images, auto))) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,

@@ -67,6 +67,21 @@ import se.kjellstrand.markera.ui.markera.ImageSource
 import se.kjellstrand.markera.ui.markera.PickedImage
 import se.kjellstrand.markera.ui.markera.ScanChips
 import se.kjellstrand.markera.ui.markera.rememberImagePicker
+import se.kjellstrand.markera.ui.history.adviceString
+import se.kjellstrand.markera.ui.settings.LocalAppSettings
+import se.kjellstrand.markera.ui.settings.ShootingHand
+import se.kjellstrand.markera.ui.stats.HomeInsight
+import se.kjellstrand.markera.ui.stats.InsightsDay
+import se.kjellstrand.markera.ui.stats.firstShown
+import se.kjellstrand.markera.ui.stats.headline
+import se.kjellstrand.markera.ui.stats.homeInsights
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Start screen: free marking (standalone scanner) or competition marking. */
 @OptIn(ExperimentalTime::class)
@@ -78,6 +93,8 @@ internal fun HomeScreen(
     onHistory: () -> Unit,
     onOpenSeries: (SeriesDto) -> Unit,
     onStatistics: () -> Unit,
+    /** The insight card was tapped: Insights on its caliber and period. */
+    onOpenInsights: (InsightsDay) -> Unit,
     /** The picked images and whether Auto import is on. */
     onImport: (List<PickedImage>, Boolean) -> Unit,
     backendAuth: BackendAuth?,
@@ -118,6 +135,29 @@ internal fun HomeScreen(
                 if (week != null) {
                     Spacer(Modifier.height(16.dp))
                     WeekStrip(week, onStatistics)
+                }
+                // The strongest finding of the week, unless Insights is off or the user hid it.
+                val settings = LocalAppSettings.current
+                val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
+                val dismissed = settings?.dismissedInsights?.collectAsState()?.value ?: emptyList()
+                val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
+                // Every caliber's findings, twice: off the main thread, so Home never waits on it.
+                val candidates by produceState(emptyList<HomeInsight>(), cached, insightsOn) {
+                    value = if (insightsOn) {
+                        withContext(Dispatchers.Default) { cached.homeInsights(Clock.System.now()) }
+                    } else {
+                        emptyList()
+                    }
+                }
+                val insight = candidates.firstShown(dismissed)
+                if (insight != null) {
+                    Spacer(Modifier.height(12.dp))
+                    InsightCard(
+                        insight,
+                        hand,
+                        onClick = { onOpenInsights(insight.day) },
+                        onDismiss = { settings?.dismissInsight(insight.key) },
+                    )
                 }
                 // Nothing saved yet: the card just isn't there.
                 val latest = cached.firstOrNull() // Series.sq orders by timestamp DESC
@@ -265,6 +305,44 @@ private fun WeekStrip(week: WeekSummary, onClick: () -> Unit) {
             WeekStat(week.count.toString(), stringResource(Res.string.home_week_series))
             WeekStat(oneDecimal(week.average, mark), stringResource(Res.string.home_week_average))
             WeekStat(week.best.toString(), stringResource(Res.string.home_week_best))
+        }
+    }
+}
+
+/** The test tag of Home's insight card. */
+const val HOME_INSIGHT_TAG = "home-insight"
+
+/** One finding in one line: a tap opens Insights on it, the cross hides it until its data changes. */
+@Composable
+private fun InsightCard(insight: HomeInsight, hand: ShootingHand, onClick: () -> Unit, onDismiss: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().testTag(HOME_INSIGHT_TAG),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    ) {
+        Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.Lightbulb,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                adviceString(insight.headline(hand)),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(Res.string.home_insight_dismiss),
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }

@@ -48,6 +48,9 @@ import se.kjellstrand.markera.ui.LocalOpenSettings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import se.kjellstrand.markera.ui.SectionHeader
+import se.kjellstrand.markera.ui.stats.decodeDismissedInsights
+import se.kjellstrand.markera.ui.stats.dismissedWith
+import se.kjellstrand.markera.ui.stats.encodeDismissedInsights
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
@@ -86,6 +89,10 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     private val _insightsEnabled = MutableStateFlow(true)
     val insightsEnabled: StateFlow<Boolean> = _insightsEnabled.asStateFlow()
 
+    /** The Home insight cards dismissed, oldest first (see [dismissInsight]). */
+    private val _dismissedInsights = MutableStateFlow<List<String>>(emptyList())
+    val dismissedInsights: StateFlow<List<String>> = _dismissedInsights.asStateFlow()
+
     private val _loaded = MutableStateFlow(false)
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
@@ -97,6 +104,7 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
             _shootingHand.value =
                 ShootingHand.entries.firstOrNull { it.name == store.readShootingHand() } ?: ShootingHand.RIGHT
             _insightsEnabled.value = store.readInsightsEnabled() ?: true
+            _dismissedInsights.value = decodeDismissedInsights(store.readDismissedInsights())
             _loaded.value = true
         }
     }
@@ -114,6 +122,13 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     fun setInsightsEnabled(enabled: Boolean) {
         _insightsEnabled.value = enabled
         scope.launch { store.writeInsightsEnabled(enabled) }
+    }
+
+    /** Hides the Home insight card with [key] until its data changes (a new key). */
+    fun dismissInsight(key: String) {
+        val keys = dismissedWith(_dismissedInsights.value, key)
+        _dismissedInsights.value = keys
+        scope.launch { store.writeDismissedInsights(encodeDismissedInsights(keys)) }
     }
 
     fun setTheme(mode: ThemeMode) {
