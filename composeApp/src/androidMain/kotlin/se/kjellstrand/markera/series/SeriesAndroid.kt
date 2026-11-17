@@ -33,6 +33,7 @@ private object Keys {
     val guideColor = longPreferencesKey("guide_color")
     val shootingHand = stringPreferencesKey("shooting_hand")
     val insightsEnabled = booleanPreferencesKey("insights_enabled")
+    val dismissedInsights = stringPreferencesKey("dismissed_insights")
 }
 
 /** Moves a login saved before [authDataStore] existed out of the settings file. */
@@ -99,6 +100,12 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeInsightsEnabled(value: Boolean) {
         dataStore.edit { it[Keys.insightsEnabled] = value }
+    }
+
+    override suspend fun readDismissedInsights(): String? = dataStore.data.first()[Keys.dismissedInsights]
+
+    override suspend fun writeDismissedInsights(value: String) {
+        dataStore.edit { it[Keys.dismissedInsights] = value }
     }
 
     override suspend fun readCaliber(): Caliber =

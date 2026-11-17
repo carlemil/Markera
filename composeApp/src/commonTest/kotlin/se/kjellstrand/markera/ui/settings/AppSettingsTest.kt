@@ -22,6 +22,8 @@ class AppSettingsTest {
         override suspend fun writeShootingHand(value: String) { values["hand"] = value }
         override suspend fun readInsightsEnabled(): Boolean? = values["insights"] as Boolean?
         override suspend fun writeInsightsEnabled(value: Boolean) { values["insights"] = value }
+        override suspend fun readDismissedInsights(): String? = values["dismissed"] as String?
+        override suspend fun writeDismissedInsights(value: String) { values["dismissed"] = value }
     }
 
     // Unconfined: the store never suspends, so every launch (load and write-through) completes inline.
@@ -67,5 +69,19 @@ class AppSettingsTest {
         val after = loaded(store)
         assertEquals(ShootingHand.LEFT, after.shootingHand.value)
         assertFalse(after.insightsEnabled.value)
+    }
+
+    @Test
+    fun aDismissedInsightSurvivesARestartAndSignOut() {
+        val store = MapStore()
+        loaded(store).apply {
+            assertTrue(dismissedInsights.value.isEmpty())
+            dismissInsight("offset|22lr|1")
+            dismissInsight("trend|9mm|2")
+            dismissInsight("offset|22lr|1")
+            assertEquals(listOf("trend|9mm|2", "offset|22lr|1"), dismissedInsights.value)
+        }
+        runBlocking { store.clear() }
+        assertEquals(listOf("trend|9mm|2", "offset|22lr|1"), loaded(store).dismissedInsights.value)
     }
 }

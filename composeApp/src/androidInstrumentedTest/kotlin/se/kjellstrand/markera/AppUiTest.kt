@@ -56,6 +56,7 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.seriesJson
+import se.kjellstrand.markera.ui.HOME_INSIGHT_TAG
 import se.kjellstrand.markera.ui.MarkeraApp
 import se.kjellstrand.markera.ui.history.COMPARISON_DAY_LINE_TAG
 import se.kjellstrand.markera.ui.history.COMPARISON_LINE_TAG
@@ -144,6 +145,7 @@ class AppUiTest {
         var auth: BackendAuth?,
         var shootingHand: String? = null,
         var insightsEnabled: Boolean? = null,
+        var dismissedInsights: String? = null,
     ) : BackendTokenStore {
         override suspend fun read() = auth
         override suspend fun write(auth: BackendAuth) { this.auth = auth }
@@ -154,6 +156,8 @@ class AppUiTest {
         override suspend fun writeShootingHand(value: String) { shootingHand = value }
         override suspend fun readInsightsEnabled() = insightsEnabled
         override suspend fun writeInsightsEnabled(value: Boolean) { insightsEnabled = value }
+        override suspend fun readDismissedInsights() = dismissedInsights
+        override suspend fun writeDismissedInsights(value: String) { dismissedInsights = value }
     }
 
     private fun launch(
@@ -219,6 +223,7 @@ class AppUiTest {
         waitForText("Mark")
         rule.waitForIdle()
         assertFalse("Signed out Home must show no series", rule.exists(hasText("series in 7 days")))
+        assertFalse("Signed out with no series: no insight card", rule.exists(insightCard))
         runBlocking { services.session.signInDev("ui-test") }
         waitForText("series in 7 days")
         waitFor(thumbnail, "the latest series' photo after sign-in")
@@ -469,6 +474,67 @@ class AppUiTest {
         waitForText("to the right over 20 shots")
         pressBack()
         waitForText("See this day in Insights")
+    }
+
+    // ---- coaching: Home's insight card ----
+
+    private val insightCard = hasTestTag(HOME_INSIGHT_TAG)
+
+    /** The key the default series' offset is dismissed under: type, caliber, newest series' time. */
+    private val offsetKey get() = "offset|22lr|${KxInstant.parse(serverSeries.timestamp).toEpochMilliseconds()}"
+
+    /**
+     * The default series sit right of the centre this week: Home shows that in one line, and a tap
+     * opens Insights on 22lr with the finding; Back returns to Home with the card.
+     */
+    @Test fun homeInsightCardOpensInsights() {
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        waitFor(insightCard, "the insight card")
+        waitForText("This week your 22lr group sits")
+        rule.onNode(hasText("This week your 22lr group sits", substring = true)).performScrollTo().performClick()
+        waitFor(hasContentDescription("Insights target with 20 shots", substring = true), "the Insights target")
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(hasText("Insights") and isSelected()).fetchSemanticsNodes().isNotEmpty() }
+        waitForText("to the right over 20 shots")
+        pressBack()
+        waitFor(insightCard, "the insight card after Back")
+    }
+
+    /** Hiding the card stores its key; the week strip stays. */
+    @Test fun homeInsightCardCanBeDismissed() {
+        val store = MemoryStore(null)
+        launch(signedIn = true, store = store)
+        waitFor(insightCard, "the insight card")
+        rule.onNode(hasContentDescription("Hide this insight")).performScrollTo().performClick()
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(insightCard) }
+        rule.waitUntil(TIMEOUT_MS) { store.dismissedInsights == offsetKey }
+        waitForText("series in 7 days")
+    }
+
+    /** A dismissed finding stays away on the next launch... */
+    @Test fun homeInsightCardStaysDismissed() {
+        launch(signedIn = true, store = MemoryStore(null, dismissedInsights = offsetKey))
+        waitForText("series in 7 days")
+        waitFor(thumbnail, "the latest series' photo")
+        rule.waitForIdle()
+        assertFalse("A dismissed finding must stay away", rule.exists(insightCard))
+    }
+
+    /** ...until a new series in that caliber changes its key. */
+    @Test fun homeInsightCardComesBackWithANewSeries() {
+        val newer = serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 10.minutes).toString(), hasImage = false)
+        onServer = listOf(newer) + onServer
+        launch(signedIn = true, store = MemoryStore(null, dismissedInsights = offsetKey))
+        waitFor(insightCard, "the insight card after a new 22lr series")
+    }
+
+    /** Insights off in Settings: no card on Home. */
+    @Test fun homeInsightCardIsHiddenWhenInsightsIsOff() {
+        launch(signedIn = true, store = MemoryStore(null, insightsEnabled = false))
+        waitForText("series in 7 days")
+        waitFor(thumbnail, "the latest series' photo")
+        rule.waitForIdle()
+        assertFalse("Insights off must hide the card", rule.exists(insightCard))
     }
 
     private companion object {
