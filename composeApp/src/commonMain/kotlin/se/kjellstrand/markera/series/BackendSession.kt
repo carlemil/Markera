@@ -46,6 +46,16 @@ interface BackendTokenStore {
     /** The live viewfinder guide's colour as ARGB; a device preference, survives [clear]. Null = never chosen. */
     suspend fun readGuideColor(): Long? = null
     suspend fun writeGuideColor(argb: Long) {}
+
+    /**
+     * The shooting hand ([se.kjellstrand.markera.ui.settings.ShootingHand] name) and whether
+     * insights are on: device preferences, survive [clear], never sent to the server.
+     * Null = never chosen.
+     */
+    suspend fun readShootingHand(): String? = null
+    suspend fun writeShootingHand(value: String) {}
+    suspend fun readInsightsEnabled(): Boolean? = null
+    suspend fun writeInsightsEnabled(value: Boolean) {}
 }
 
 /**

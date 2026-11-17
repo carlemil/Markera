@@ -31,6 +31,12 @@
     <string name="settings_system">Follow the system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_shooting_hand">Shooting hand</string>
+    <string name="settings_hand_right">Right</string>
+    <string name="settings_hand_left">Left</string>
+    <string name="settings_insights">Insights</string>
+    <string name="settings_insights_on">On</string>
+    <string name="settings_insights_off">Off</string>
     <string name="suggestion">Suggestion</string>
     <string name="suggestion_intro">An idea, a wish, or something that doesn't work? It goes straight to the developer.</string>
     <string name="suggestion_title">Title</string>
