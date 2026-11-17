@@ -7,13 +7,17 @@ import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsProperties
 import android.view.KeyEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -34,6 +38,7 @@ import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.files.Path
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
@@ -108,21 +113,34 @@ class AppUiTest {
         }
     }
 
-    private class MemoryStore(var auth: BackendAuth?) : BackendTokenStore {
+    private class MemoryStore(
+        var auth: BackendAuth?,
+        var shootingHand: String? = null,
+        var insightsEnabled: Boolean? = null,
+    ) : BackendTokenStore {
         override suspend fun read() = auth
         override suspend fun write(auth: BackendAuth) { this.auth = auth }
         override suspend fun clear() { auth = null }
         // English whatever the phone's language, so the texts below match.
         override suspend fun readLanguage() = "en"
+        override suspend fun readShootingHand() = shootingHand
+        override suspend fun writeShootingHand(value: String) { shootingHand = value }
+        override suspend fun readInsightsEnabled() = insightsEnabled
+        override suspend fun writeInsightsEnabled(value: Boolean) { insightsEnabled = value }
     }
 
-    private fun launch(signedIn: Boolean, seed: (MarkeraDb) -> Unit = {}): SeriesServices {
+    private fun launch(
+        signedIn: Boolean,
+        store: MemoryStore = MemoryStore(null),
+        seed: (MarkeraDb) -> Unit = {},
+    ): SeriesServices {
+        store.auth = if (signedIn) BackendAuth(TOKEN, USER, "dev") else null
         val driver = AndroidSqliteDriver(MarkeraDb.Schema, context, null)
         seed(MarkeraDb(driver))
         val services = SeriesServices(
             engine = engine,
             baseUrl = "http://fake",
-            store = MemoryStore(if (signedIn) BackendAuth(TOKEN, USER, "dev") else null),
+            store = store,
             driver = driver,
             cacheDir = Path(File(root, "cache").apply { mkdirs() }.path),
             filesDir = Path(File(root, "files").apply { mkdirs() }.path),
@@ -223,6 +241,88 @@ class AppUiTest {
         waitForText("Sign out")
         pressBack()
         waitForText("series in 7 days")
+    }
+
+    // ---- coaching: shooter profile and the Insights help ----
+
+    private fun openSettings() {
+        rule.onAllNodes(hasContentDescription("Menu"), useUnmergedTree = true)[0].performClick()
+        waitForText("Settings")
+        rule.onAllNodesWithText("Settings")[0].performClick()
+        waitForText("Shooting hand")
+    }
+
+    /** One option of a Settings either/or row, by its exact label. */
+    private fun option(label: String) = hasText(label) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
+    private fun waitForSelected(label: String) = waitFor(option(label) and isSelected(), "\"$label\" picked")
+    private fun pick(label: String) = rule.onNode(option(label)).performScrollTo().performClick()
+
+    /** A fresh install shoots right-handed with Insights on; picking Left and Off is saved and stays picked. */
+    @Test fun settingsSaveShootingHandAndInsights() {
+        val store = MemoryStore(null)
+        launch(signedIn = true, store = store)
+        waitForText("series in 7 days")
+        openSettings()
+        waitForSelected("Right")
+        waitForSelected("On")
+
+        pick("Left")
+        waitForSelected("Left")
+        pick("Off")
+        waitForSelected("Off")
+        rule.waitUntil(TIMEOUT_MS) { store.shootingHand == "LEFT" && store.insightsEnabled == false }
+        assertFalse("Right must no longer be picked", rule.exists(option("Right") and isSelected()))
+        assertFalse("On must no longer be picked", rule.exists(option("On") and isSelected()))
+
+        // Leaving Settings and coming back shows the same choice.
+        pressBack()
+        waitForText("series in 7 days")
+        openSettings()
+        waitForSelected("Left")
+        waitForSelected("Off")
+
+        // And both can be switched back.
+        pick("Right")
+        waitForSelected("Right")
+        pick("On")
+        waitForSelected("On")
+        rule.waitUntil(TIMEOUT_MS) { store.shootingHand == "RIGHT" && store.insightsEnabled == true }
+    }
+
+    /** A relaunch reads the saved choices: Settings opens with Left and Off picked. */
+    @Test fun settingsShowSavedShootingHandAndInsights() {
+        launch(signedIn = true, store = MemoryStore(null, shootingHand = "LEFT", insightsEnabled = false))
+        waitForText("series in 7 days")
+        openSettings()
+        waitForSelected("Left")
+        waitForSelected("Off")
+    }
+
+    /** A saved value the app does not know (an older or newer build's) falls back to right-handed. */
+    @Test fun settingsUnknownShootingHandFallsBackToRight() {
+        launch(signedIn = false, store = MemoryStore(null, shootingHand = "BOTH"))
+        waitForText("Mark")
+        openSettings()
+        waitForSelected("Right")
+        waitForSelected("On")
+    }
+
+    /** The Statistics help explains Insights and says it is a hint, not a coach. */
+    @Test fun statisticsHelpExplainsInsights() {
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        rule.onNodeWithText("Statistics").performClick()
+        waitForText("Target")
+        // Through the menu: the round help button on the target needs a series with a fitted ring.
+        rule.waitForIdle()
+        rule.onAllNodes(hasContentDescription("Menu"), useUnmergedTree = true).onLast().performClick()
+        waitForText("Help")
+        rule.onAllNodesWithText("Help").onLast().performClick()
+        waitForText("About the measures")
+        waitForText("It is a hint, not a coach")
+        assertEquals(1, rule.onAllNodes(hasText("Insights"), useUnmergedTree = true).fetchSemanticsNodes().size)
+        rule.onNodeWithText("Close").performClick()
+        waitForText("Target")
     }
 
     private companion object {

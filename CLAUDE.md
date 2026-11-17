@@ -47,7 +47,9 @@ $env:ANDROID_SERIAL="<phone serial>"; .\gradlew.bat :composeApp:connectedDebugAn
 `AppUiTest` (androidInstrumentedTest) runs the real `MarkeraApp` against a MockEngine backend with an
 in-memory database and login store, so it never touches the phone's own data. It covers the 1.14.0
 regressions (Home empty after sign-in; a backup-restored series cache shown with blank photos while
-signed out) and a sanity walk Home → History → Statistics → Settings. iOS shares that commonMain code,
+signed out), a sanity walk Home → History → Statistics → Settings, and the coaching settings
+(shooting hand and Insights switch are saved, restored and fall back to Right/On) plus the Statistics
+help's Insights section. iOS shares that commonMain code,
 so the same run gates the iOS upload. A failing UI test blocks the upload; fix it, rerun, then upload.
 Add a test there for every UI regression found.
 
