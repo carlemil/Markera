@@ -1,4 +1,4 @@
-New in 1.14.0:
+New in 1.14.1:
 • Statistics: a new Drift tab shows how your group's centre moves over time, per day or per series.
 • Home shows the past week: series, average and best.
 • Series page: tap a row or a hit to ring it on the photo.
@@ -6,3 +6,4 @@ New in 1.14.0:
 • History and Statistics: filters fold into one line, days fold away.
 • Settings now holds account, language, theme and about.
 • Faster start on iPhone.
+• Home loads right after signing in.

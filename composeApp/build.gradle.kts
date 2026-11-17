@@ -140,8 +140,8 @@ android {
         applicationId = "se.kjellstrand.markera"
         minSdk = 24
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.14.0"
+        versionCode = 20
+        versionName = "1.14.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -227,4 +227,9 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    // UI tests (AppUiTest): the real app against a fake backend, run before every release upload.
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.ktor.client.mock)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

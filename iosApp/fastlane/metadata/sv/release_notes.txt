@@ -1,8 +1,9 @@
-Nytt i 1.14.0:
-• Statistik: ny flik Drift visar hur träffbildens mitt flyttar sig över tid, per dag eller per serie.
-• Startsidan visar senaste veckan: antal serier, snitt och bästa.
+Nytt i 1.14.1:
+• Statistik: ny flik Drift visar hur träffbildens mitt flyttar sig, per dag eller per serie.
+• Startsidan visar senaste veckan: serier, snitt och bästa.
 • Seriesidan: tryck på en rad eller träff för att ringa in den på bilden.
 • Tydligare Trend-diagram som jämför med ditt snitt.
 • Historik och Statistik: filtren ryms på en rad, dagarna fälls ihop.
 • Inställningar samlar konto, språk, tema och om appen.
 • Snabbare start på iPhone.
+• Startsidan laddas direkt efter inloggning.

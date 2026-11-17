@@ -35,6 +35,22 @@ the exact source, build inputs and artifact hash. Later fixes, changed integrati
 sources or configuration invalidate earlier verification; the guide details the
 checks. Documentation-only changes follow the Tickets docs-only reference check.
 
+### Release rule: UI tests before every upload
+
+No build goes to a store (Play `publishRelease*`, `mac-beta.sh`, `fastlane metadata`/`submit`/`release`)
+until the UI tests pass on the phone, against the exact source being shipped:
+
+```powershell
+$env:ANDROID_SERIAL="<phone serial>"; .\gradlew.bat :composeApp:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=se.kjellstrand.markera.AppUiTest"
+```
+
+`AppUiTest` (androidInstrumentedTest) runs the real `MarkeraApp` against a MockEngine backend with an
+in-memory database and login store, so it never touches the phone's own data. It covers the 1.14.0
+regressions (Home empty after sign-in; a backup-restored series cache shown with blank photos while
+signed out) and a sanity walk Home → History → Statistics → Settings. iOS shares that commonMain code,
+so the same run gates the iOS upload. A failing UI test blocks the upload; fix it, rerun, then upload.
+Add a test there for every UI regression found.
+
 ### Release build
 
 `release` is minified + resource-shrunk (R8). Keep-rules live in

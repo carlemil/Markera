@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.produceState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -88,7 +89,8 @@ internal fun SeriesCard(
                             bitmap = it,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.matchParentSize(),
+                            // UI tests check that a photo really landed (AppUiTest).
+                            modifier = Modifier.matchParentSize().testTag(SERIES_THUMBNAIL_TAG),
                         )
                     }
                 }
@@ -123,3 +125,6 @@ internal fun SeriesCard(
         }
     }
 }
+
+/** Test tag of a series card's photo, once it is decoded and drawn. */
+const val SERIES_THUMBNAIL_TAG = "series-thumbnail"
