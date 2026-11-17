@@ -456,6 +456,7 @@
     <string name="advice_try_sights">Move the sights so the group moves about %1$d mm %2$s, then shoot a fresh group before touching them again.</string>
 
     <string name="advice_offset_varies_summary">Your group sits %1$d mm %2$s over %3$d shots, but not the same way every day.</string>
+    <string name="advice_offset_few_days_summary">Your group sits %1$d mm %2$s over %3$d shots, on too few days to tell whether it is always so.</string>
     <string name="advice_cause_high_1">Heeling the gun: pushing the palm forward as the shot breaks.</string>
     <string name="advice_cause_high_2">The wrist breaking upward in the shot.</string>
     <string name="advice_cause_high_3">Looking for the hit and lifting the gun early.</string>

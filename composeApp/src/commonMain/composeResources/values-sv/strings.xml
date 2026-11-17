@@ -456,6 +456,7 @@
     <string name="advice_try_sights">Flytta siktet så att gruppen flyttar sig ungefär %1$d mm %2$s, och skjut sedan en ny grupp innan du rör det igen.</string>
 
     <string name="advice_offset_varies_summary">Din grupp ligger %1$d mm %2$s i dina %3$d skott, men inte likadant varje dag.</string>
+    <string name="advice_offset_few_days_summary">Din grupp ligger %1$d mm %2$s i dina %3$d skott, men det är för få dagar för att veta om det alltid är så.</string>
     <string name="advice_cause_high_1">Att du trycker ut handloven mot målet när skottet går.</string>
     <string name="advice_cause_high_2">Att handleden viker sig uppåt i skottet.</string>
     <string name="advice_cause_high_3">Att du lyfter pistolen i förtid för att se var skottet tog.</string>

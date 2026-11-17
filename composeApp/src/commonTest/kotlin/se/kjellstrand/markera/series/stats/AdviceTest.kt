@@ -14,9 +14,9 @@ class AdviceTest {
     private val right = ShootingHand.RIGHT
     private val left = ShootingHand.LEFT
 
-    private fun offset(bearing: Double, stable: Boolean = false, mm: Double = 28.0) = Finding.OffsetGroup(
+    private fun offset(bearing: Double, stable: Boolean = false, mm: Double = 28.0, days: Int = 5) = Finding.OffsetGroup(
         hitCount = 45, mpiXMm = 0.0, mpiYMm = 0.0, distanceMm = mm, bearingDeg = bearing,
-        standardErrorMm = 4.0, daysChecked = 5, daysAgreeing = if (stable) 4 else 1, stable = stable,
+        standardErrorMm = 4.0, daysChecked = days, daysAgreeing = if (stable) 4 else 1, stable = stable,
         confidence = 0.8,
     )
 
@@ -133,7 +133,7 @@ class AdviceTest {
         assertEquals(f, advice(fliers, left))
         val w = advice(wide, right)
         assertEquals(Res.string.advice_wide_summary, w.summary.res)
-        assertEquals(listOf("2026-11-03", 39, 39, 28), w.summary.args)
+        assertEquals(listOf(LocalDate(2026, 11, 3), 39, 39, 28), w.summary.args)
         assertEquals(w, advice(wide, left))
     }
 
@@ -152,7 +152,7 @@ class AdviceTest {
 
         val day = advice(lowDay, right, listOf(fliers))
         assertEquals(Res.string.advice_low_day_summary, day.summary.res)
-        assertEquals(listOf("2026-11-03", 4, 41, 46), day.summary.args)
+        assertEquals(listOf(LocalDate(2026, 11, 3), 4, 41, 46), day.summary.args)
         assertEquals(Res.string.advice_low_note_fliers, day.note?.res)
         assertEquals(Res.string.advice_low_note_wide, advice(lowDay, left, listOf(wide)).note?.res)
         assertEquals(Res.string.advice_low_note_stretched, advice(lowDay, left, listOf(stretched(Finding.Orientation.VERTICAL))).note?.res)
@@ -180,5 +180,27 @@ class AdviceTest {
         val all = adviceFor(findings, right)
         assertEquals(findings, all.map { it.finding })
         assertEquals(Res.string.advice_low_note_offset, all[0].note?.res)
+    }
+
+    @Test
+    fun eachSectorPicksItsPatternForBothHands() {
+        // Right hand, sectors 0..7 clockwise from 12 o clock; the left hand sees the mirror image.
+        val expected = listOf(
+            Res.string.advice_try_high, Res.string.advice_try_high, Res.string.advice_try_side,
+            Res.string.advice_try_push, Res.string.advice_try_low, Res.string.advice_try_jerk,
+            Res.string.advice_try_side, Res.string.advice_try_high,
+        )
+        for (s in 0..7) {
+            assertEquals(expected[s], advice(offset(s * 45.0), right).tryThis.res, "right $s")
+            assertEquals(expected[s], advice(offset(360.0 - s * 45.0), left).tryThis.res, "left $s")
+        }
+    }
+
+    @Test
+    fun fewDaysDoNotClaimADayToDayVariation() {
+        val a = advice(offset(225.0, days = 2), right)
+        assertEquals(Res.string.advice_offset_few_days_summary, a.summary.res)
+        assertEquals(Res.string.advice_try_jerk, a.tryThis.res)
+        assertEquals(Res.string.advice_offset_varies_summary, advice(offset(225.0, days = 3), right).summary.res)
     }
 }

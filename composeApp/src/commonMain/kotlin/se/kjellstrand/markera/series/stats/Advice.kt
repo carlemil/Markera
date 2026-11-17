@@ -7,9 +7,11 @@ import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.ui.settings.ShootingHand
 
 /**
- * A string resource and its arguments. An argument is an [Int], a [String] or a [StringResource]
- * (a direction word, resolved by the renderer in the same language); the renderer passes them to
- * `stringResource(res, *args)` in order. Pure data, so [advice] is unit-testable.
+ * A string resource and its arguments, in format order. An argument is an [Int], a
+ * [kotlinx.datetime.LocalDate] (the renderer formats it for the language) or a [StringResource]
+ * (a direction word): the renderer must resolve the last two to text with `stringResource` before
+ * it calls `stringResource(res, ...)`, since the format call only prints its arguments. Pure
+ * data, so [advice] is unit-testable.
  */
 data class AdviceText(val res: StringResource, val args: List<Any> = emptyList())
 
@@ -53,7 +55,7 @@ fun advice(finding: Finding, hand: ShootingHand, all: List<Finding> = emptyList(
         AdviceText(
             Res.string.advice_wide_summary,
             listOf(
-                finding.date.toString(),
+                finding.date,
                 percentMore(finding.ratio),
                 finding.recentRadiusMm.roundToInt(),
                 finding.earlierRadiusMm.roundToInt(),
@@ -75,7 +77,7 @@ fun advice(finding: Finding, hand: ShootingHand, all: List<Finding> = emptyList(
         AdviceText(
             Res.string.advice_low_day_summary,
             listOf(
-                finding.date.toString(),
+                finding.date,
                 finding.seriesCount,
                 finding.meanTotal.roundToInt(),
                 finding.historyMeanTotal.roundToInt(),
@@ -136,8 +138,9 @@ private fun offsetAdvice(f: Finding.OffsetGroup, hand: ShootingHand): Advice {
             AdviceText(Res.string.advice_try_sights, listOf(mm, moveWords[(where + 4) % 8])),
         )
     }
+    // Under three days with enough hits cannot show that the offset changes from day to day.
     val summary = AdviceText(
-        Res.string.advice_offset_varies_summary,
+        if (f.daysChecked >= 3) Res.string.advice_offset_varies_summary else Res.string.advice_offset_few_days_summary,
         listOf(mm, impactWords[where], f.hitCount),
     )
     return when (offsetPattern(f.bearingDeg, hand)) {
