@@ -72,7 +72,7 @@ import se.kjellstrand.markera.series.total
  *
  * - **Session trend** (fatigue / warm-up): per local day with 4+ series of the most common hole
  *   count whose first and last series are 20+ minutes apart (an import without EXIF times stamps
- *   them all within seconds, which is no session), the mean total of the first half of the series
+ *   them all within seconds, which is no session; and no 2+ hour gap, which makes two sessions of it), the mean total of the first half of the series
  *   against the later half (the middle one left out when odd). A day "falls" when the later half is
  *   at least 0.4 points per hole lower (2 points on five holes), "rises" when higher by as much.
  *   A finding needs 3+ checked days, 3+ of them in one direction and at least two thirds of the
@@ -242,6 +242,8 @@ data class FindingThresholds(
     val sessionMinDiffPerHole: Double = 0.4,
     /** The first and last series of a day must be this far apart, so a batch import is no session. */
     val sessionMinSpanMinutes: Int = 20,
+    /** No gap between two series of a day above this: a morning block and an evening block are two sessions. */
+    val sessionMaxGapMinutes: Int = 120,
     val sessionMinShare: Double = 2.0 / 3,
 ) {
     /** The elongation a group of [hits] must reach: round groups pass it about 2% of the time. */
@@ -576,11 +578,13 @@ private fun List<PlottedSeries>.scoreTrend(t: FindingThresholds): Finding.Trend?
 @OptIn(ExperimentalTime::class)
 private fun List<PlottedSeries>.sessionTrend(zone: TimeZone, t: FindingThresholds): Finding.SessionTrend? {
     val holes = groupingBy { it.series.holes.size }.eachCount().maxByOrNull { it.value }?.key ?: return null
+    if (holes < 1) return null
     // Each checked day: (mean total of its first half, of its later half), this list being oldest first.
     val days = filter { it.series.holes.size == holes }.groupBy { dayOf(it, zone) }.values
         .filter {
             it.size >= t.sessionMinSeries &&
-                it.last().at.toEpochMilliseconds() - it.first().at.toEpochMilliseconds() >= t.sessionMinSpanMinutes * 60_000L
+                it.last().at.toEpochMilliseconds() - it.first().at.toEpochMilliseconds() >= t.sessionMinSpanMinutes * 60_000L &&
+                it.zipWithNext().all { (x, y) -> y.at.toEpochMilliseconds() - x.at.toEpochMilliseconds() <= t.sessionMaxGapMinutes * 60_000L }
         }
         .map { day ->
             val half = day.size / 2

@@ -385,6 +385,18 @@ class FindingsTest {
     }
 
     @Test
+    fun aMorningAndAnEveningBlockAreNotOneSession() {
+        // 3 hours between the second and third series of every day.
+        val days = (0 until 3).flatMap { d ->
+            day(d * 2, listOf(47, 47)) + day(d * 2, listOf(42, 42)).map {
+                val at = kotlin.time.Instant.fromEpochMilliseconds(it.at.toEpochMilliseconds() + 3 * 3_600_000L)
+                it.copy(at = at)
+            }
+        }
+        assertNull(days.findings(zone).one<Finding.SessionTrend>())
+    }
+
+    @Test
     fun theSessionTrendHasNoMarkOnTheTargetAndSortsLikeTheRest() {
         val list = (0 until 3).flatMap { day(it * 2, listOf(47, 47, 42, 42)) }
         val found = list.findings(zone)
