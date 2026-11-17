@@ -105,6 +105,11 @@ import se.kjellstrand.markera.ui.markera.DetectionOverlay
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.customCalibers
 import se.kjellstrand.markera.ui.TotalBadge
+import se.kjellstrand.markera.series.stats.compareWithAverage
+import se.kjellstrand.markera.series.stats.dayFinding
+import se.kjellstrand.markera.ui.settings.LocalAppSettings
+import se.kjellstrand.markera.ui.settings.ShootingHand
+import kotlinx.datetime.LocalDate
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
 import se.kjellstrand.markera.ui.markera.ScoreBox
 import se.kjellstrand.markera.ui.markera.holeLetter
@@ -139,6 +144,8 @@ fun SeriesDetailScreen(
     // The list this series was opened from (newest first) and how to step to another.
     ids: List<Long> = emptyList(),
     onOpen: (SeriesDto) -> Unit = {},
+    // Opens Insights on a day; null until the nav host can (the Insights tab), which leaves the link out.
+    onOpenInsights: ((LocalDate) -> Unit)? = null,
 ) {
     // Looked up in the cache by id, so an edit made anywhere else shows here.
     val cached by services.repository.series.collectAsState()
@@ -173,6 +180,16 @@ fun SeriesDetailScreen(
     // The hole picked in the list or on the photo: its row is tinted and its marker ringed.
     var selected by remember(series.id) { mutableStateOf<Int?>(null) }
     val auth by services.session.auth.collectAsState()
+    // The quiet "against your average" lines; Insights off (Settings) hides them.
+    val settings = LocalAppSettings.current
+    val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
+    val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
+    val comparison = remember(cached, series, insightsOn) {
+        if (insightsOn) compareWithAverage(series, cached) else null
+    }
+    val dayNote = remember(cached, series, insightsOn) {
+        if (insightsOn) dayFinding(series, cached) else null
+    }
     val zoomPan = rememberZoomPan(series.id)
     val savedText = stringResource(Res.string.detail_saved)
     val failedText = stringResource(Res.string.detail_save_failed)
@@ -418,6 +435,8 @@ fun SeriesDetailScreen(
                         onTagClick = { pickingTag = true },
                     )
                 }
+
+                ComparisonLines(comparison, dayNote, hand, onOpenInsights)
 
                 // Why this series is not on the server, with the one thing that fixes it.
                 when {

@@ -522,4 +522,10 @@
 
     <string name="stats_help_insights">Analys</string>
     <string name="stats_help_insights_body">Analys tittar på dina sparade serier, en kaliber i taget, och pekar ut mönster den är ganska säker på: en grupp som ligger åt ena hållet, en utdragen grupp, ett skott som går iväg eller resultat som stiger eller sjunker. Den behöver ganska många skott innan den säger något. Varje anmärkning visar vad siffrorna säger, vad som ofta ligger bakom och en sak att prova. Det är ett tips, ingen tränare: orsakerna är vanliga, inte en dom. Ställ in din skjuthand och slå av Analys under Inställningar.</string>
+
+    <string name="detail_vs_under">%1$d under ditt snitt på %2$d</string>
+    <string name="detail_vs_over">%1$d över ditt snitt på %2$d</string>
+    <string name="detail_vs_on">På ditt snitt, %1$d</string>
+    <string name="detail_vs_best">Ditt bästa på 30 dagar</string>
+    <string name="detail_day_in_insights">Se dagen i Analys</string>
 </resources>
