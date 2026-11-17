@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -30,6 +31,8 @@ private object Keys {
     val theme = stringPreferencesKey("theme")
     val language = stringPreferencesKey("language")
     val guideColor = longPreferencesKey("guide_color")
+    val shootingHand = stringPreferencesKey("shooting_hand")
+    val insightsEnabled = booleanPreferencesKey("insights_enabled")
 }
 
 /** Moves a login saved before [authDataStore] existed out of the settings file. */
@@ -84,6 +87,18 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     override suspend fun writeGuideColor(argb: Long) {
         dataStore.edit { it[Keys.guideColor] = argb }
+    }
+
+    override suspend fun readShootingHand(): String? = dataStore.data.first()[Keys.shootingHand]
+
+    override suspend fun writeShootingHand(value: String) {
+        dataStore.edit { it[Keys.shootingHand] = value }
+    }
+
+    override suspend fun readInsightsEnabled(): Boolean? = dataStore.data.first()[Keys.insightsEnabled]
+
+    override suspend fun writeInsightsEnabled(value: Boolean) {
+        dataStore.edit { it[Keys.insightsEnabled] = value }
     }
 
     override suspend fun readCaliber(): Caliber =

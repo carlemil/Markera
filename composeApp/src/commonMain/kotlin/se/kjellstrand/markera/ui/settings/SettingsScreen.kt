@@ -51,6 +51,9 @@ import se.kjellstrand.markera.ui.SectionHeader
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** The hand the user shoots with; direction-based coaching advice mirrors for [LEFT]. */
+enum class ShootingHand { RIGHT, LEFT }
+
 /** The viewfinder guide's colour until the user picks one: 80% white. */
 const val DEFAULT_GUIDE_COLOR: Long = 0xCCFFFFFF
 
@@ -76,6 +79,13 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     private val _guideColor = MutableStateFlow(DEFAULT_GUIDE_COLOR)
     val guideColor: StateFlow<Long> = _guideColor.asStateFlow()
 
+    private val _shootingHand = MutableStateFlow(ShootingHand.RIGHT)
+    val shootingHand: StateFlow<ShootingHand> = _shootingHand.asStateFlow()
+
+    /** Off hides every coaching surface. */
+    private val _insightsEnabled = MutableStateFlow(true)
+    val insightsEnabled: StateFlow<Boolean> = _insightsEnabled.asStateFlow()
+
     private val _loaded = MutableStateFlow(false)
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
@@ -84,6 +94,9 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
             _theme.value = ThemeMode.entries.firstOrNull { it.name == store.readTheme() } ?: ThemeMode.SYSTEM
             _language.value = store.readLanguage()?.takeIf { code -> LANGUAGES.any { it.first == code } }
             _guideColor.value = store.readGuideColor() ?: DEFAULT_GUIDE_COLOR
+            _shootingHand.value =
+                ShootingHand.entries.firstOrNull { it.name == store.readShootingHand() } ?: ShootingHand.RIGHT
+            _insightsEnabled.value = store.readInsightsEnabled() ?: true
             _loaded.value = true
         }
     }
@@ -91,6 +104,16 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     fun setGuideColor(argb: Long) {
         _guideColor.value = argb
         scope.launch { store.writeGuideColor(argb) }
+    }
+
+    fun setShootingHand(hand: ShootingHand) {
+        _shootingHand.value = hand
+        scope.launch { store.writeShootingHand(hand.name) }
+    }
+
+    fun setInsightsEnabled(enabled: Boolean) {
+        _insightsEnabled.value = enabled
+        scope.launch { store.writeInsightsEnabled(enabled) }
     }
 
     fun setTheme(mode: ThemeMode) {
@@ -128,6 +151,8 @@ private const val PRIVACY_URL = "https://markera.duckdns.org/privacy"
 fun SettingsScreen(settings: AppSettings, seriesServices: SeriesServices, onBack: () -> Unit) {
     val theme by settings.theme.collectAsState()
     val language by settings.language.collectAsState()
+    val shootingHand by settings.shootingHand.collectAsState()
+    val insightsEnabled by settings.insightsEnabled.collectAsState()
     val auth by seriesServices.session.auth.collectAsState()
     val uriHandler = LocalUriHandler.current
     val system = stringResource(Res.string.settings_system_short)
@@ -166,6 +191,32 @@ fun SettingsScreen(settings: AppSettings, seriesServices: SeriesServices, onBack
                     ),
                     selected = theme.ordinal,
                     onSelect = { settings.setTheme(ThemeMode.entries[it]) },
+                    modifier = Modifier.fillMaxWidth(),
+                    fill = true,
+                )
+                Spacer(Modifier.height(8.dp))
+                SectionHeader(stringResource(Res.string.settings_shooting_hand))
+                Segmented(
+                    options = ShootingHand.entries.map { hand ->
+                        when (hand) {
+                            ShootingHand.RIGHT -> stringResource(Res.string.settings_hand_right)
+                            ShootingHand.LEFT -> stringResource(Res.string.settings_hand_left)
+                        }
+                    },
+                    selected = shootingHand.ordinal,
+                    onSelect = { settings.setShootingHand(ShootingHand.entries[it]) },
+                    modifier = Modifier.fillMaxWidth(),
+                    fill = true,
+                )
+                Spacer(Modifier.height(8.dp))
+                SectionHeader(stringResource(Res.string.settings_insights))
+                Segmented(
+                    options = listOf(
+                        stringResource(Res.string.settings_insights_on),
+                        stringResource(Res.string.settings_insights_off),
+                    ),
+                    selected = if (insightsEnabled) 0 else 1,
+                    onSelect = { settings.setInsightsEnabled(it == 0) },
                     modifier = Modifier.fillMaxWidth(),
                     fill = true,
                 )
