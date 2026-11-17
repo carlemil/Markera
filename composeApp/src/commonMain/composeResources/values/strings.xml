@@ -429,4 +429,97 @@
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_not_signed_in">Not signed in</string>
     <string name="settings_system_short">System</string>
+
+    <!-- Insights advice (series/stats/Advice.kt): a hint, not a coach -->
+    <string name="advice_causes_title">Often caused by</string>
+    <string name="advice_try_title">Try</string>
+    <string name="advice_dir_high">high</string>
+    <string name="advice_dir_high_right">high and right</string>
+    <string name="advice_dir_right">to the right</string>
+    <string name="advice_dir_low_right">low and right</string>
+    <string name="advice_dir_low">low</string>
+    <string name="advice_dir_low_left">low and left</string>
+    <string name="advice_dir_left">to the left</string>
+    <string name="advice_dir_high_left">high and left</string>
+    <string name="advice_move_up">up</string>
+    <string name="advice_move_up_right">up and right</string>
+    <string name="advice_move_right">right</string>
+    <string name="advice_move_down_right">down and right</string>
+    <string name="advice_move_down">down</string>
+    <string name="advice_move_down_left">down and left</string>
+    <string name="advice_move_left">left</string>
+    <string name="advice_move_up_left">up and left</string>
+
+    <string name="advice_offset_stable_summary">Your group sits %1$d mm %2$s over %3$d shots, the same way on %4$d of %5$d days.</string>
+    <string name="advice_cause_sights_1">The sights are not zeroed for this load or distance.</string>
+    <string name="advice_cause_sights_2">The sights have moved since they were set, or a different ammunition shoots elsewhere.</string>
+    <string name="advice_try_sights">Move the sights so the group moves about %1$d mm %2$s, then shoot a fresh group before touching them again.</string>
+
+    <string name="advice_offset_varies_summary">Your group sits %1$d mm %2$s over %3$d shots, but not the same way every day.</string>
+    <string name="advice_offset_few_days_summary">Your group sits %1$d mm %2$s over %3$d shots, on too few days to tell whether it is always so.</string>
+    <string name="advice_cause_high_1">Heeling the gun: pushing the palm forward as the shot breaks.</string>
+    <string name="advice_cause_high_2">The wrist breaking upward in the shot.</string>
+    <string name="advice_cause_high_3">Looking for the hit and lifting the gun early.</string>
+    <string name="advice_try_high">Keep the wrist locked and follow through: hold the sights on the target until the recoil has passed.</string>
+    <string name="advice_cause_low_1">Dipping the gun as the shot breaks.</string>
+    <string name="advice_cause_low_2">Relaxing the arm too early, before the shot has left.</string>
+    <string name="advice_try_low">Keep aiming after the shot and let the arm come down only when the sights have settled again.</string>
+    <string name="advice_cause_jerk_1">Jerking the trigger.</string>
+    <string name="advice_cause_jerk_2">Anticipating the recoil and pushing the gun down to meet it.</string>
+    <string name="advice_cause_jerk_3">Squeezing the whole hand as the shot breaks.</string>
+    <string name="advice_try_jerk">Dry-fire a few shots in between and watch whether the sights move when the trigger breaks.</string>
+    <string name="advice_cause_push_1">Pressing the grip harder with the fingers as the shot breaks.</string>
+    <string name="advice_cause_push_2">Pushing the shot out at the target instead of letting it break.</string>
+    <string name="advice_try_push">Squeeze the trigger straight back with the same grip pressure from the first shot to the last.</string>
+    <string name="advice_cause_side_1">The finger sitting too far in or out on the trigger.</string>
+    <string name="advice_cause_side_2">Thumb pressure on the grip pushing the gun sideways.</string>
+    <string name="advice_cause_side_3">A trigger pull that is not straight back.</string>
+    <string name="advice_try_side">Check where the finger meets the trigger and how hard the thumb presses, then dry-fire and watch the sights.</string>
+
+    <string name="advice_stretch_vertical_summary">Your group is about %1$d percent taller than it is wide, over %2$d shots.</string>
+    <string name="advice_cause_vertical_1">Breathing: shooting at a different point in the breath each time.</string>
+    <string name="advice_cause_vertical_2">The sight picture changing in height, with the front sight sitting higher or lower in the notch.</string>
+    <string name="advice_cause_vertical_3">Grip pressure that varies from shot to shot.</string>
+    <string name="advice_try_vertical">Settle the breath at the same point every shot and check the height of the front sight in the notch before you squeeze.</string>
+    <string name="advice_stretch_horizontal_summary">Your group is about %1$d percent wider than it is tall, over %2$d shots.</string>
+    <string name="advice_cause_horizontal_1">A trigger pull that goes sideways.</string>
+    <string name="advice_cause_horizontal_2">The wrist moving in the shot.</string>
+    <string name="advice_cause_horizontal_3">A stance that is not square to the target.</string>
+    <string name="advice_try_horizontal">Dry-fire with the sights on a mark and see whether they slide sideways when the trigger breaks.</string>
+    <string name="advice_stretch_diagonal_summary">Your group is about %1$d percent longer one way than the other, along a slant, over %2$d shots.</string>
+    <string name="advice_cause_diagonal_1">Grip pressure and the trigger pull working against each other.</string>
+    <string name="advice_cause_diagonal_2">A stance or arm position that tilts the gun.</string>
+    <string name="advice_try_diagonal">Check that the grip is the same every shot and that the sights are level before you squeeze.</string>
+
+    <string name="advice_fliers_summary">In %1$d of your %2$d series one shot got away from the rest, about %3$d mm out on average.</string>
+    <string name="advice_cause_fliers_1">Trigger control on a single shot.</string>
+    <string name="advice_cause_fliers_2">Losing the follow-through.</string>
+    <string name="advice_cause_fliers_3">Releasing the shot without having called it.</string>
+    <string name="advice_try_fliers">Call every shot: say where the sights were when it broke, then check the hole against your call.</string>
+
+    <string name="advice_wide_summary">On %1$s your groups were about %2$d percent wider than before, %3$d mm from the middle of the group against %4$d mm earlier.</string>
+    <string name="advice_cause_wide_1">An unsteady hold, for instance from tiredness.</string>
+    <string name="advice_cause_wide_2">A grip or a stance that was not the same as usual.</string>
+    <string name="advice_cause_wide_3">Rushing the shots.</string>
+    <string name="advice_try_wide">Dry-fire practice: hold and squeeze without shooting, and rest when the hold starts to shake.</string>
+
+    <string name="advice_low_series_summary">Your latest series scored %1$d, against %2$d on average over your last %3$d.</string>
+    <string name="advice_low_day_summary">On %1$s your %2$d series averaged %3$d, against %4$d on average before.</string>
+    <string name="advice_try_low_plain">One low result says little: shoot a few more before you change anything.</string>
+    <string name="advice_try_low_explained">Start with the note below rather than changing everything at once.</string>
+    <string name="advice_low_note_offset">Your group sits off centre, which may be part of the reason.</string>
+    <string name="advice_low_note_stretched">Your group is stretched in one direction, which may be part of the reason.</string>
+    <string name="advice_low_note_fliers">One shot in a series getting away may be part of the reason.</string>
+    <string name="advice_low_note_wide">Wider groups than usual may be part of the reason.</string>
+
+    <string name="advice_trend_up_summary">Your scores have risen about %1$d points over %3$d weeks, across %2$d series.</string>
+    <string name="advice_try_trend_up">Keep doing what you do, and note what changed so you can repeat it.</string>
+    <string name="advice_trend_down_summary">Your scores have dropped about %1$d points over %3$d weeks, across %2$d series.</string>
+    <string name="advice_cause_trend_1">Tiredness or less time to practise.</string>
+    <string name="advice_cause_trend_2">Rushing the shots.</string>
+    <string name="advice_cause_trend_3">A change of gun, ammunition or routine.</string>
+    <string name="advice_try_trend_down">Shorter sessions with pauses, and a few dry-fire shots to find the basics again.</string>
+
+    <string name="stats_help_insights">Insights</string>
+    <string name="stats_help_insights_body">Insights looks at your saved series, one caliber at a time, and points out patterns it is fairly sure of: a group that sits to one side, a group that is stretched, a shot that gets away, or scores that fall or rise. It needs a good number of shots before it says anything. Each note gives what the numbers show, what often causes it and one thing to try. It is a hint, not a coach: the causes are common ones, not a verdict. Set your shooting hand and switch Insights off under Settings.</string>
 </resources>
