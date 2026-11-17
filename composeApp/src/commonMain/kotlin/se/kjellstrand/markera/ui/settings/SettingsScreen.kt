@@ -43,6 +43,9 @@ import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.BackendTokenStore
+import se.kjellstrand.markera.series.stats.SightSetup
+import se.kjellstrand.markera.series.stats.decodeSightSetups
+import se.kjellstrand.markera.series.stats.encodeSightSetups
 import se.kjellstrand.markera.ui.AppTopBar
 import se.kjellstrand.markera.ui.LocalOpenSettings
 import androidx.compose.runtime.CompositionLocalProvider
@@ -86,6 +89,10 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     private val _insightsEnabled = MutableStateFlow(true)
     val insightsEnabled: StateFlow<Boolean> = _insightsEnabled.asStateFlow()
 
+    /** The sight helper's setups by caliber label; see [SightSetup]. */
+    private val _sightSetups = MutableStateFlow<Map<String, SightSetup>>(emptyMap())
+    val sightSetups: StateFlow<Map<String, SightSetup>> = _sightSetups.asStateFlow()
+
     private val _loaded = MutableStateFlow(false)
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
@@ -97,6 +104,7 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
             _shootingHand.value =
                 ShootingHand.entries.firstOrNull { it.name == store.readShootingHand() } ?: ShootingHand.RIGHT
             _insightsEnabled.value = store.readInsightsEnabled() ?: true
+            _sightSetups.value = decodeSightSetups(store.readSightSetups())
             _loaded.value = true
         }
     }
@@ -114,6 +122,22 @@ class AppSettings(private val store: BackendTokenStore, private val scope: Corou
     fun setInsightsEnabled(enabled: Boolean) {
         _insightsEnabled.value = enabled
         scope.launch { store.writeInsightsEnabled(enabled) }
+    }
+
+    /** The click value for [caliber] (label): a null [mmPerClick] clears it, the adjustment date stays. */
+    fun setSightClicks(caliber: String, distanceM: Double, mmPerClick: Double?) =
+        updateSight(caliber) { it.copy(distanceM = distanceM, mmPerClick = mmPerClick) }
+
+    /** "I adjusted the sights": [atMs] is now; null undoes it. */
+    fun setSightsAdjusted(caliber: String, atMs: Long?) = updateSight(caliber) { it.copy(adjustedAtMs = atMs) }
+
+    private fun updateSight(caliber: String, change: (SightSetup) -> SightSetup) {
+        val next = _sightSetups.value.toMutableMap()
+        val setup = change(next[caliber] ?: SightSetup())
+        if (setup == SightSetup()) next.remove(caliber) else next[caliber] = setup
+        _sightSetups.value = next
+        val encoded = encodeSightSetups(next)
+        scope.launch { store.writeSightSetups(encoded) }
     }
 
     fun setTheme(mode: ThemeMode) {

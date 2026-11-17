@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.series.stats
 
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import se.kjellstrand.markera.series.Caliber
 
@@ -17,6 +18,7 @@ data class Insights(
     val neededHits: Int,
 )
 
+@OptIn(ExperimentalTime::class)
 data class InsightSection(
     val caliber: Caliber,
     val series: List<PlottedSeries>,
@@ -31,7 +33,18 @@ data class InsightSection(
     val ellipse: InsightEllipse?,
     val stats: SeriesStatistics?,
     val enoughData: Boolean,
+    /** This caliber's sight setup (click value, adjustment); null when nothing was entered. */
+    val sight: SightSetup? = null,
+    /** When the sights were adjusted: the offset finding and [arrow] use only later series. */
+    val adjustedAt: Instant? = null,
+    /** Shots the offset finding judged: all of them, or those after [adjustedAt]. */
+    val offsetHitCount: Int = hitCount,
+    /** The mean point of impact the offset arrow points at, of the same shots; null under 3 of them. */
+    val arrow: ImpactPoint? = shape?.let { ImpactPoint(it.mpiXMm, it.mpiYMm) },
 )
+
+/** A point on the target in mm, y down. */
+data class ImpactPoint(val xMm: Double, val yMm: Double)
 
 /**
  * The ellipse drawn on the target, in target mm (y down), centred on the mean point of impact.
@@ -63,16 +76,24 @@ fun Finding.mark(): InsightMark = when (this) {
     is Finding.WideRoundGroup, is Finding.LowSeries, is Finding.LowDay, is Finding.Trend, is Finding.SessionTrend -> InsightMark.NONE
 }
 
+/**
+ * [sights] are the per-caliber sight setups by caliber label: a caliber whose sights were
+ * adjusted judges its offset, and points its arrow, only on the series taken after that.
+ */
 @OptIn(ExperimentalTime::class)
 fun List<PlottedSeries>.insights(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
+    sights: Map<String, SightSetup> = emptyMap(),
 ): Insights {
     val needed = thresholds.offsetMinHits
     val sections = byCaliber().map { (caliber, group) ->
         val hits = group.flatMap { it.hits }
         val enough = hits.size >= needed
-        val findings = if (enough) group.findings(zone, thresholds) else emptyList()
+        val sight = sights[caliber.label]
+        val cutOff = sight.offsetCutOff()
+        val offsetHits = group.sinceAdjustment(cutOff).flatMap { it.hits }
+        val findings = if (enough) group.findings(zone, thresholds, cutOff) else emptyList()
         val shape = hits.groupShape()
         val stretched = findings.filterIsInstance<Finding.StretchedGroup>().firstOrNull()
         val ellipse = shape?.let { g ->
@@ -95,6 +116,10 @@ fun List<PlottedSeries>.insights(
             ellipse = ellipse,
             stats = group.statistics(),
             enoughData = enough,
+            sight = sight,
+            adjustedAt = cutOff,
+            offsetHitCount = offsetHits.size,
+            arrow = (if (cutOff == null) shape else offsetHits.groupShape())?.let { ImpactPoint(it.mpiXMm, it.mpiYMm) },
         )
     }
     return Insights(sections, count { Caliber.fromLabel(it.series.caliber) == Caliber.NONE }, needed)

@@ -56,6 +56,14 @@ interface BackendTokenStore {
     suspend fun writeShootingHand(value: String) {}
     suspend fun readInsightsEnabled(): Boolean? = null
     suspend fun writeInsightsEnabled(value: Boolean) {}
+
+    /**
+     * The sight helper's per-caliber setups ([se.kjellstrand.markera.series.stats.encodeSightSetups]:
+     * distance, mm per click, when the sights were adjusted): a device preference, survives [clear],
+     * never sent to the server. Null = none entered.
+     */
+    suspend fun readSightSetups(): String? = null
+    suspend fun writeSightSetups(value: String) {}
 }
 
 /**
