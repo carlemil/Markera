@@ -24,8 +24,9 @@ platform :ios do
   end
 
   desc "Print the newest TestFlight build number."
-  lane :latest do
-    UI.success("Latest TestFlight build: #{latest_testflight_build_number(api_key: asc_key, app_identifier: APP_ID)}")
+  # Without version: it only looks at the newest App Store version's train (`fastlane latest version:1.14.1`).
+  lane :latest do |options|
+    UI.success("Latest TestFlight build: #{latest_testflight_build_number(api_key: asc_key, app_identifier: APP_ID, version: options[:version])}")
   end
 
   desc "Print every App Store version and its state (editable? in review? live?)."
