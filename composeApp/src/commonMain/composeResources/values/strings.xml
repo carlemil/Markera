@@ -519,6 +519,13 @@
     <string name="advice_cause_trend_2">Rushing the shots.</string>
     <string name="advice_cause_trend_3">A change of gun, ammunition or routine.</string>
     <string name="advice_try_trend_down">Shorter sessions with pauses, and a few dry-fire shots to find the basics again.</string>
+    <string name="advice_session_down_summary">On %1$d of your %2$d longer days, your later series scored lower than the first ones: %4$d on average against %3$d.</string>
+    <string name="advice_cause_session_1">Tiredness in the arm, shoulder or eyes as the session goes on.</string>
+    <string name="advice_cause_session_2">Concentration fading, so shots are rushed or less well called.</string>
+    <string name="advice_cause_session_3">Too few pauses between series.</string>
+    <string name="advice_try_session_down">Shorter sessions, or a real pause every few series to rest your eyes and arm.</string>
+    <string name="advice_session_up_summary">On %1$d of your %2$d longer days, your later series scored higher than the first ones: %4$d on average against %3$d.</string>
+    <string name="advice_try_session_up">A slow start: begin with a few dry-fire shots or sighting shots before the first series counts.</string>
 
     <string name="stats_help_insights">Insights</string>
     <string name="stats_help_insights_body">Insights looks at your saved series, one caliber at a time, and points out patterns it is fairly sure of: a group that sits to one side, a group that is stretched, a shot that gets away, or scores that fall or rise. It needs a good number of shots before it says anything. Each note gives what the numbers show, what often causes it and one thing to try. It is a hint, not a coach: the causes are common ones, not a verdict. Set your shooting hand and switch Insights off under Settings.</string>

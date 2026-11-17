@@ -40,6 +40,7 @@ import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant as KxInstant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.files.Path
 import org.junit.After
@@ -469,6 +470,45 @@ class AppUiTest {
         waitForText("to the right over 20 shots")
         pressBack()
         waitForText("See this day in Insights")
+    }
+
+    /**
+     * Three earlier days of four 22lr series each, the last two series of every day scoring about
+     * four points under the first two: Insights says the scores fall through a session, and says
+     * what to try.
+     */
+    @Test fun insightsShowTheSessionFatigueFinding() {
+        val zone = TimeZone.currentSystemDefault()
+        val today = KxInstant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
+        val start = today.atStartOfDayIn(zone).toEpochMilliseconds()
+        val totals = listOf(listOf(48, 47, 43, 44), listOf(47, 48, 44, 42), listOf(48, 46, 43, 43))
+        onServer = totals.flatMapIndexed { d, day ->
+            day.mapIndexed { n, total ->
+                val rings = List(5) { total / 5 + if (it < total % 5) 1 else 0 }
+                SeriesDto(
+                    id = 600L + d * 10 + n,
+                    timestamp = kotlin.time.Instant.fromEpochMilliseconds(
+                        start - (d + 1) * 24 * 3_600_000L + 10 * 3_600_000L + n * 30 * 60_000L,
+                    ).toString(),
+                    caliber = "22lr",
+                    holes = rings.mapIndexed { i, ring -> HoleDto(500.0 + i * 3, 500.0 - i * 2, ring, false, 5.0) },
+                    geometry = GEOMETRY,
+                )
+            }
+        }
+        launch(signedIn = true)
+        waitForText("Mark")
+        rule.onNodeWithText("Statistics").performClick()
+        waitForText("Target")
+        rule.onNodeWithText("Insights").performClick()
+        waitForText("longer days, your later series scored lower")
+        waitForText("Often caused by")
+        waitForText("Shorter sessions")
+        // A day trend has no mark on the target: picking it still selects the card.
+        rule.onNode(hasText("longer days", substring = true)).performScrollTo().performClick()
+        rule.waitUntil(TIMEOUT_MS) {
+            rule.onAllNodes(hasText("longer days", substring = true) and isSelected()).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private companion object {

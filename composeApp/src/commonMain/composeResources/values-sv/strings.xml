@@ -519,6 +519,13 @@
     <string name="advice_cause_trend_2">Att du skyndar på skotten.</string>
     <string name="advice_cause_trend_3">Byte av pistol, ammunition eller rutiner.</string>
     <string name="advice_try_trend_down">Kortare pass med pauser, och några torrskott för att hitta grunderna igen.</string>
+    <string name="advice_session_down_summary">På %1$d av dina %2$d längre dagar gav de senare serierna lägre poäng än de första: i snitt %4$d mot %3$d.</string>
+    <string name="advice_cause_session_1">Trötthet i arm, axel eller ögon när passet drar ut.</string>
+    <string name="advice_cause_session_2">Koncentrationen sjunker, så att skotten forceras eller inte kallas lika noga.</string>
+    <string name="advice_cause_session_3">För få pauser mellan serierna.</string>
+    <string name="advice_try_session_down">Kortare pass, eller en riktig paus var några serier så att ögon och arm får vila.</string>
+    <string name="advice_session_up_summary">På %1$d av dina %2$d längre dagar gav de senare serierna högre poäng än de första: i snitt %4$d mot %3$d.</string>
+    <string name="advice_try_session_up">En trög start: börja med några torrskott eller provskott innan första serien räknas.</string>
 
     <string name="stats_help_insights">Analys</string>
     <string name="stats_help_insights_body">Analys tittar på dina sparade serier, en kaliber i taget, och pekar ut mönster den är ganska säker på: en grupp som ligger åt ena hållet, en utdragen grupp, ett skott som går iväg eller resultat som stiger eller sjunker. Den behöver ganska många skott innan den säger något. Varje anmärkning visar vad siffrorna säger, vad som ofta ligger bakom och en sak att prova. Det är ett tips, ingen tränare: orsakerna är vanliga, inte en dom. Ställ in din skjuthand och slå av Analys under Inställningar.</string>
