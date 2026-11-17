@@ -71,6 +71,7 @@ import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.HIT_DOT_ALPHA
 import se.kjellstrand.markera.series.hitDotRadiusMm
 import se.kjellstrand.markera.series.localStamp
+import se.kjellstrand.markera.series.stats.PlottedHit
 import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.SeriesStatistics
 import se.kjellstrand.markera.ui.markera.customCalibers
@@ -283,24 +284,9 @@ internal fun TargetCanvas(
 
         drawTargetFace(textMeasurer, scale)
 
-        plotted.forEach { series ->
-            val caliber = Caliber.fromLabel(series.series.caliber, custom)
-            val colour = caliberColour(caliber, calibers).copy(alpha = HIT_DOT_ALPHA)
-            // scale is px/mm here, so the caliber's mm radius converts directly.
-            val dotRadius = caliber.hitDotRadiusMm() * scale
-            series.hits.forEach { hit ->
-                val at = Offset(centre.x + r(hit.xMm), centre.y + r(hit.yMm))
-                val distance = hypot(hit.xMm, hit.yMm)
-                // Outside the measuring ring: still shown, faded, as it is not counted.
-                val fade = if (limitMm != null && distance > limitMm) OUTSIDE_FADE else 1f
-                drawCircle(colour.copy(alpha = colour.alpha * fade), radius = dotRadius, center = at)
-                drawCircle(
-                    hitOutline(distance).let { it.copy(alpha = it.alpha * fade) },
-                    radius = dotRadius,
-                    center = at,
-                    style = Stroke(width = 1f),
-                )
-            }
+        // Outside the measuring ring: still shown, faded, as it is not counted.
+        drawHits(plotted, calibers, custom, scale) { hit ->
+            if (limitMm != null && hypot(hit.xMm, hit.yMm) > limitMm) OUTSIDE_FADE else 1f
         }
 
         if (limitMm != null) {
@@ -370,6 +356,38 @@ internal fun DrawScope.drawTargetFace(textMeasurer: TextMeasurer, scale: Float) 
         digit(ring, colour, centre.x + r(mid), centre.y)
         digit(ring, colour, centre.x, centre.y - r(mid))
         digit(ring, colour, centre.x, centre.y + r(mid))
+    }
+}
+
+/**
+ * Every hit as a caliber-coloured dot with an outline that reads on paper and black, centred in this
+ * scope at [scale] px per mm; [fade] is the share of its opacity each hit keeps. Shared by Tavla and
+ * Insights, so both draw the same dots.
+ */
+internal fun DrawScope.drawHits(
+    plotted: List<PlottedSeries>,
+    calibers: List<Caliber>,
+    custom: List<Caliber>,
+    scale: Float,
+    fade: (PlottedHit) -> Float = { 1f },
+) {
+    val centre = Offset(size.width / 2f, size.height / 2f)
+    plotted.forEach { series ->
+        val caliber = Caliber.fromLabel(series.series.caliber, custom)
+        val colour = caliberColour(caliber, calibers).copy(alpha = HIT_DOT_ALPHA)
+        // scale is px/mm here, so the caliber's mm radius converts directly.
+        val dotRadius = caliber.hitDotRadiusMm() * scale
+        series.hits.forEach { hit ->
+            val at = Offset(centre.x + hit.xMm.toFloat() * scale, centre.y + hit.yMm.toFloat() * scale)
+            val f = fade(hit)
+            drawCircle(colour.copy(alpha = colour.alpha * f), radius = dotRadius, center = at)
+            drawCircle(
+                hitOutline(hypot(hit.xMm, hit.yMm)).let { it.copy(alpha = it.alpha * f) },
+                radius = dotRadius,
+                center = at,
+                style = Stroke(width = 1f),
+            )
+        }
     }
 }
 

@@ -523,6 +523,15 @@
     <string name="stats_help_insights">Insights</string>
     <string name="stats_help_insights_body">Insights looks at your saved series, one caliber at a time, and points out patterns it is fairly sure of: a group that sits to one side, a group that is stretched, a shot that gets away, or scores that fall or rise. It needs a good number of shots before it says anything. Each note gives what the numbers show, what often causes it and one thing to try. It is a hint, not a coach: the causes are common ones, not a verdict. Set your shooting hand and switch Insights off under Settings.</string>
 
+    <!-- Statistics, Insights tab (ui/stats/InsightsTab.kt) -->
+    <string name="stats_tab_insights">Insights</string>
+    <string name="stats_insights_need_more">Insights need about %1$d shots; you have %2$d here.</string>
+    <string name="stats_insights_nothing">Nothing stands out in these %1$d shots from %2$d series.</string>
+    <string name="stats_insights_numbers">Mean point of impact %1$s, spread %2$d mm, mean series %3$s.</string>
+    <string name="stats_insights_legend">The yellow ellipse holds about 86 percent of the shots; the arrow runs from the centre to the mean point of impact. Tap a note to see what it refers to on the target.</string>
+    <string name="stats_insights_target_description">Insights target with %1$d shots, the ellipse and the arrow to the mean point of impact</string>
+    <string name="stats_insights_no_caliber">Insights looks at one caliber at a time, and these series have none. Set a caliber on them in History to see insights.</string>
+    <string name="stats_insights_uncalibered">%1$d series without a caliber are left out.</string>
     <string name="detail_vs_under">%1$d under your average of %2$d</string>
     <string name="detail_vs_over">%1$d over your average of %2$d</string>
     <string name="detail_vs_on">On your average of %1$d</string>

@@ -245,11 +245,15 @@ fun List<PlottedSeries>.findingsByCaliber(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
 ): Map<Caliber, List<Finding>> =
+    byCaliber().mapValues { (_, group) -> group.findings(zone, thresholds) }
+
+/** These series per caliber, in [Caliber] order, [Caliber.NONE] left out (see [findingsByCaliber]). */
+fun List<PlottedSeries>.byCaliber(): Map<Caliber, List<PlottedSeries>> =
     groupBy { Caliber.fromLabel(it.series.caliber) }
         .filterKeys { it != Caliber.NONE }
         .entries
         .sortedBy { it.key.ordinal }
-        .associate { (caliber, group) -> caliber to group.findings(zone, thresholds) }
+        .associate { it.key to it.value }
 
 /** Half from the data ([n] against [minN]), half from the margin ([ratio] = evidence / bar, >= 1). */
 private fun confidence(n: Int, minN: Int, ratio: Double): Double {
@@ -349,11 +353,24 @@ private fun List<PlottedSeries>.stretchedGroup(t: FindingThresholds): Finding.St
     )
 }
 
-private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
+/** The leave-one-out cloud the fliers finding judges: each hole against the rest of its own series. */
+private class FlierCloud(
+    val used: List<PlottedSeries>,
+    /** Each hole's offset from the median of the rest of its series. */
+    val cloud: List<PlottedHit>,
+    /** The original hits, index for index with [owner] and the cloud. */
+    val source: List<PlottedHit>,
+    val owner: List<Int>,
+    val shape: GroupShape,
+    val flierIdx: List<Int>,
+)
+
+private fun List<PlottedSeries>.flierCloud(t: FindingThresholds): FlierCloud? {
     val used = filter { it.hits.size >= 4 }
-    if (used.size < t.flierMinSeries) return null
+    if (used.isEmpty()) return null
     // Each hole relative to the median of the rest of its series; owner[i] is its series.
     val cloud = mutableListOf<PlottedHit>()
+    val source = mutableListOf<PlottedHit>()
     val owner = mutableListOf<Int>()
     used.forEachIndexed { s, series ->
         series.hits.forEachIndexed { j, h ->
@@ -361,13 +378,35 @@ private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
             val mx = others.map { it.xMm }.medianOf()
             val my = others.map { it.yMm }.medianOf()
             cloud += PlottedHit(h.xMm - mx, h.yMm - my, h.ring, h.innerTen)
+            source += h
             owner += s
         }
     }
     val g = cloud.groupShape(t.flierFactor) ?: return null
-    val coreSd = g.coreRadialSdMm ?: return null
-    // groupShape hands back the very cloud objects it judged fliers, so identity finds their series.
+    // groupShape hands back the very cloud objects it judged fliers, so identity finds them.
     val flierIdx = cloud.indices.filter { i -> g.fliers.any { it === cloud[i] } }
+    return FlierCloud(used, cloud, source, owner, g, flierIdx)
+}
+
+/**
+ * The holes (the very [PlottedHit] objects of these series) that [Finding.Fliers] counts as
+ * getting away from the rest of their series; empty when there is no fliers finding, so a
+ * drawing never rings holes the findings did not call out.
+ */
+fun List<PlottedSeries>.flierHits(thresholds: FindingThresholds = FindingThresholds()): List<PlottedHit> =
+    fliersWithCloud(thresholds)?.let { (_, c) -> c.flierIdx.map { c.source[it] } } ?: emptyList()
+
+private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? = fliersWithCloud(t)?.first
+
+/** The fliers finding and the cloud it was judged on: the one gate both [fliers] and [flierHits] pass. */
+private fun List<PlottedSeries>.fliersWithCloud(t: FindingThresholds): Pair<Finding.Fliers, FlierCloud>? {
+    if (count { it.hits.size >= 4 } < t.flierMinSeries) return null
+    val c = flierCloud(t) ?: return null
+    return c.fliers(t)?.let { it to c }
+}
+
+private fun FlierCloud.fliers(t: FindingThresholds): Finding.Fliers? {
+    val coreSd = shape.coreRadialSdMm ?: return null
     val withFliers = flierIdx.map { owner[it] }.toSet().size
     val n = used.size
     val p = t.flierChanceRate

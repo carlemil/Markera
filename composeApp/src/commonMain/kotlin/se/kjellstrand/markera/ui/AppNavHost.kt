@@ -54,6 +54,8 @@ import se.kjellstrand.markera.ui.markera.PickedImage
 import se.kjellstrand.markera.ui.markera.LocalSeriesRecorder
 import se.kjellstrand.markera.ui.markera.TargetScanController
 import se.kjellstrand.markera.ui.history.SeriesDetailScreen
+import se.kjellstrand.markera.ui.stats.InsightsDay
+import se.kjellstrand.markera.ui.stats.insightsDayFor
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
@@ -80,6 +82,9 @@ sealed interface Screen {
     data object FreeMarking : Screen
     data object History : Screen
     data object Statistics : Screen
+
+    /** Statistics opened on Insights for one day and caliber, from the Serie page. */
+    data class StatisticsDay(val day: InsightsDay) : Screen
     data object Settings : Screen
     data object Suggestion : Screen
 
@@ -330,6 +335,15 @@ fun AppNavHost(
             onMarkera = { push(Screen.FreeMarking) },
         )
 
+        is Screen.StatisticsDay -> key(screen.day) {
+            StatsScreen(
+                services = seriesServices,
+                onBack = pop,
+                onMarkera = { push(Screen.FreeMarking) },
+                insightsDay = screen.day,
+            )
+        }
+
         Screen.Settings -> SettingsScreen(settings = settings, seriesServices = seriesServices, onBack = pop)
 
         Screen.Suggestion -> SuggestionScreen(api = seriesServices.api, onBack = pop)
@@ -342,6 +356,12 @@ fun AppNavHost(
                 onBack = pop,
                 ids = screen.ids,
                 onOpen = { replace(Screen.SeriesDetail(it, screen.ids)) },
+                // The series as it is now: the page may just have corrected its caliber.
+                onOpenInsights = { date ->
+                    val all = seriesServices.repository.series.value
+                    val now = all.firstOrNull { it.id == screen.series.id } ?: screen.series
+                    push(Screen.StatisticsDay(insightsDayFor(now, date, all)))
+                },
             )
         }
 

@@ -49,7 +49,8 @@ in-memory database and login store, so it never touches the phone's own data. It
 regressions (Home empty after sign-in; a backup-restored series cache shown with blank photos while
 signed out), a sanity walk Home → History → Statistics → Settings, and the coaching settings
 (shooting hand and Insights switch are saved, restored and fall back to Right/On) plus the Statistics
-help's Insights section. iOS shares that commonMain code,
+help's Insights section, the Insights tab (its offset finding and target, hidden when off) and the
+Serie page's day link into it. iOS shares that commonMain code,
 so the same run gates the iOS upload. A failing UI test blocks the upload; fix it, rerun, then upload.
 Add a test there for every UI regression found.
 
@@ -359,7 +360,7 @@ Swedish is `values-sv/` — add each new key to both (iOS: `CFBundleLocalization
 `topScores` are picker indices 0–10
 plus 11 = inner-X, one per hole and at least five; a series has no hole cap (the detector keeps
 every box over its confidence threshold), the score rows show five a row and wrap the rest, and the
-competition wizard prefills its five boxes from the five most confident holes (`confidentSlots`). Theme is a green-accented dark or light scheme (Settings; no dynamic color); photo overlays keep fixed colours in both.
+competition wizard prefills its five boxes from the five most confident holes (`confidentSlots`). **Insights** (Statistics' fourth tab, `ui/stats/InsightsTab.kt`, hidden when Settings turns Insights off): `series/stats/Insights.kt` splits the filtered series per caliber ("-" left out), and each caliber with 15+ shots gets its findings worded by `adviceFor`, plus a close-up target (`InsightsTarget.kt`, Tavla's face and dots) with the 2-SD covariance ellipse, the centre-to-MPI arrow and, while picked, ringed fliers; tapping a finding highlights its mark. The Serie page's day link opens it as `Screen.StatisticsDay` on that local day and caliber (from the caliber's first series for a low or wide day, which is judged against the days before) without touching the filter Historik shares. Theme is a green-accented dark or light scheme (Settings; no dynamic color); photo overlays keep fixed colours in both.
 Overlay text is drawn with `TextMeasurer` (Skia on iOS, so the two platforms render alike);
 back navigation is Compose's common `BackHandler`; toasts are one `SnackbarHost` behind
 `LocalToast`.
