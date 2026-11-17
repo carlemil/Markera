@@ -522,4 +522,14 @@
 
     <string name="stats_help_insights">Analys</string>
     <string name="stats_help_insights_body">Analys tittar på dina sparade serier, en kaliber i taget, och pekar ut mönster den är ganska säker på: en grupp som ligger åt ena hållet, en utdragen grupp, ett skott som går iväg eller resultat som stiger eller sjunker. Den behöver ganska många skott innan den säger något. Varje anmärkning visar vad siffrorna säger, vad som ofta ligger bakom och en sak att prova. Det är ett tips, ingen tränare: orsakerna är vanliga, inte en dom. Ställ in din skjuthand och slå av Analys under Inställningar.</string>
+
+    <!-- Statistik, fliken Analys (ui/stats/InsightsTab.kt) -->
+    <string name="stats_tab_insights">Analys</string>
+    <string name="stats_insights_need_more">Analysen behöver ungefär %1$d skott; här finns %2$d.</string>
+    <string name="stats_insights_nothing">Inget sticker ut i de här %1$d skotten från %2$d serier.</string>
+    <string name="stats_insights_numbers">Medelträffläge %1$s, spridning %2$d mm, medelserie %3$s.</string>
+    <string name="stats_insights_legend">Den gula ellipsen rymmer ungefär 86 procent av skotten, och pilen går från mitten till medelträffläget. Tryck på en anmärkning för att se vad den gäller på tavlan.</string>
+    <string name="stats_insights_target_description">Analystavla med %1$d skott, ellipsen och pilen till medelträffläget</string>
+    <string name="stats_insights_no_caliber">Analysen tittar på en kaliber i taget, och de här serierna saknar kaliber. Ange kaliber på dem i Historik för att se en analys.</string>
+    <string name="stats_insights_uncalibered">%1$d serier utan kaliber är inte med.</string>
 </resources>

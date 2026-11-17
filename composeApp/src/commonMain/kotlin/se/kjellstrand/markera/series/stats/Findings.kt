@@ -349,11 +349,24 @@ private fun List<PlottedSeries>.stretchedGroup(t: FindingThresholds): Finding.St
     )
 }
 
-private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
+/** The leave-one-out cloud the fliers finding judges: each hole against the rest of its own series. */
+private class FlierCloud(
+    val used: List<PlottedSeries>,
+    /** Each hole's offset from the median of the rest of its series. */
+    val cloud: List<PlottedHit>,
+    /** The original hits, index for index with [owner] and the cloud. */
+    val source: List<PlottedHit>,
+    val owner: List<Int>,
+    val shape: GroupShape,
+    val flierIdx: List<Int>,
+)
+
+private fun List<PlottedSeries>.flierCloud(t: FindingThresholds): FlierCloud? {
     val used = filter { it.hits.size >= 4 }
-    if (used.size < t.flierMinSeries) return null
+    if (used.isEmpty()) return null
     // Each hole relative to the median of the rest of its series; owner[i] is its series.
     val cloud = mutableListOf<PlottedHit>()
+    val source = mutableListOf<PlottedHit>()
     val owner = mutableListOf<Int>()
     used.forEachIndexed { s, series ->
         series.hits.forEachIndexed { j, h ->
@@ -361,13 +374,41 @@ private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
             val mx = others.map { it.xMm }.medianOf()
             val my = others.map { it.yMm }.medianOf()
             cloud += PlottedHit(h.xMm - mx, h.yMm - my, h.ring, h.innerTen)
+            source += h
             owner += s
         }
     }
     val g = cloud.groupShape(t.flierFactor) ?: return null
-    val coreSd = g.coreRadialSdMm ?: return null
-    // groupShape hands back the very cloud objects it judged fliers, so identity finds their series.
+    // groupShape hands back the very cloud objects it judged fliers, so identity finds them.
     val flierIdx = cloud.indices.filter { i -> g.fliers.any { it === cloud[i] } }
+    return FlierCloud(used, cloud, source, owner, g, flierIdx)
+}
+
+/**
+ * The holes (the very [PlottedHit] objects of these series) that [Finding.Fliers] counts as
+ * getting away from the rest of their series; empty when there is no fliers finding, so a
+ * drawing never rings holes the findings did not call out.
+ */
+fun List<PlottedSeries>.flierHits(thresholds: FindingThresholds = FindingThresholds()): List<PlottedHit> {
+    if (count { it.hits.size >= 4 } < thresholds.flierMinSeries) return emptyList()
+    val c = flierCloud(thresholds) ?: return emptyList()
+    if (c.fliers(thresholds) == null) return emptyList()
+    return c.flierIdx.map { c.source[it] }
+}
+
+private fun List<PlottedSeries>.fliers(t: FindingThresholds): Finding.Fliers? {
+    if (count { it.hits.size >= 4 } < t.flierMinSeries) return null
+    return flierCloud(t)?.fliers(t)
+}
+
+private fun FlierCloud.fliers(t: FindingThresholds): Finding.Fliers? {
+    val c = this
+    val g = c.shape
+    val coreSd = g.coreRadialSdMm ?: return null
+    val flierIdx = c.flierIdx
+    val owner = c.owner
+    val used = c.used
+    val cloud = c.cloud
     val withFliers = flierIdx.map { owner[it] }.toSet().size
     val n = used.size
     val p = t.flierChanceRate

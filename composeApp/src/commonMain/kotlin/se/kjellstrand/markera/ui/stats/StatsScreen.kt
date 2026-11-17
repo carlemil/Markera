@@ -101,6 +101,8 @@ import se.kjellstrand.markera.ui.history.decodeHistoryFilter
 import se.kjellstrand.markera.ui.history.encode
 import se.kjellstrand.markera.ui.history.PHOTO_MAX_DIM
 import se.kjellstrand.markera.ui.DateRangeDialog
+import se.kjellstrand.markera.ui.settings.LocalAppSettings
+import se.kjellstrand.markera.ui.settings.ShootingHand
 
 
 /**
@@ -139,8 +141,13 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
     var pickingDates by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
     // 0 = the target with the hit cloud, 1 = the measurements charted over time,
-    // 2 = the daily mean and median point of impact over time.
+    // 2 = the daily mean and median point of impact over time, 3 = Insights (only while it is on).
     var tab by remember { mutableIntStateOf(0) }
+    val settings = LocalAppSettings.current
+    val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
+    val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
+    // Switched off in Settings while it was open: back to the target.
+    if (!insightsOn && tab == INSIGHTS_TAB) tab = 0
     var driftMean by remember { mutableStateOf(true) }
     var driftMedian by remember { mutableStateOf(true) }
     var driftPerSeries by remember { mutableStateOf(false) }
@@ -191,7 +198,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                 menuItems = listOf(MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true }),
             )
             TabRow(selectedTabIndex = tab) {
-                listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend, Res.string.stats_tab_drift).forEachIndexed { i, label ->
+                val labels = listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend, Res.string.stats_tab_drift) +
+                    listOfNotNull(Res.string.stats_tab_insights.takeIf { insightsOn })
+                labels.forEachIndexed { i, label ->
                     Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label)) })
                 }
             }
@@ -311,6 +320,8 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    } else if (tab == INSIGHTS_TAB) {
+                        InsightsTab(plotted, calibers, hand)
                     } else if (tab == 2) {
                         DriftTab(
                             points = days,
@@ -377,6 +388,9 @@ fun StatsScreen(services: SeriesServices, onBack: () -> Unit, onMarkera: () -> U
         )
     }
 }
+
+/** The Insights tab's index; it is the last tab and only there while Insights is on. */
+private const val INSIGHTS_TAB = 3
 
 /** The calibers actually worth offering: those on plottable (geometry-carrying) series. */
 private fun List<SeriesDto>.calibersWithGeometry(): List<Caliber> =

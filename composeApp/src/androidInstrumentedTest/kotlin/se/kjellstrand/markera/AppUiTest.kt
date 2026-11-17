@@ -45,6 +45,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.BackendTokenStore
+import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesServices
@@ -87,7 +88,24 @@ class AppUiTest {
         hasImage = true,
         imageWidth = 1000,
         imageHeight = 1000,
+        geometry = GEOMETRY,
     )
+
+    /**
+     * Three older series, one a day, grouped about 45 mm right of the centre: with the one above,
+     * 20 shots of 22lr, enough for Insights to find the offset.
+     */
+    private val offsetSeries = (1..3).map { day ->
+        SeriesDto(
+            id = 501L + day,
+            timestamp = (Clock.System.now() - (24 * day).hours).toString(),
+            caliber = "22lr",
+            holes = listOf(0.0 to 0.0, 12.0 to -8.0, -10.0 to 10.0, 8.0 to 14.0, -12.0 to -6.0).map { (dx, dy) ->
+                HoleDto(545.0 + dx + day, 500.0 + dy, 8, false, 45.0)
+            },
+            geometry = GEOMETRY,
+        )
+    }
 
     private val jpeg: ByteArray by lazy {
         val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.rgb(200, 180, 120)) }
@@ -108,7 +126,7 @@ class AppUiTest {
             request.method == HttpMethod.Get && path == "/series/${serverSeries.id}/image" ->
                 respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
             request.method == HttpMethod.Get && path == "/series" ->
-                respond(seriesJson.encodeToString(listOf(serverSeries)), HttpStatusCode.OK, json)
+                respond(seriesJson.encodeToString(listOf(serverSeries) + offsetSeries), HttpStatusCode.OK, json)
             else -> respond("", HttpStatusCode.NotFound)
         }
     }
@@ -231,6 +249,18 @@ class AppUiTest {
         waitForText("Target")
         waitForText("Trend")
         waitForText("Drift")
+        // Insights: the fake series sit right of the centre, so the offset finding and its target show.
+        rule.onNodeWithText("Insights").performClick()
+        waitForText("Your group sits")
+        waitForText("to the right over 20 shots")
+        waitForText("Often caused by")
+        waitFor(hasContentDescription("Insights target with 20 shots", substring = true), "the Insights target")
+        // Tapping the finding picks it (it highlights the arrow on the target).
+        rule.onNode(hasText("Your group sits", substring = true)).performScrollTo().performClick()
+        // The card merges its texts and its selected state into one node: the merged tree.
+        rule.waitUntil(TIMEOUT_MS) {
+            rule.onAllNodes(hasText("Your group sits", substring = true) and isSelected()).fetchSemanticsNodes().isNotEmpty()
+        }
         pressBack()
         waitForText("series in 7 days")
 
@@ -320,14 +350,29 @@ class AppUiTest {
         rule.onAllNodesWithText("Help").onLast().performClick()
         waitForText("About the measures")
         waitForText("It is a hint, not a coach")
-        assertEquals(1, rule.onAllNodes(hasText("Insights"), useUnmergedTree = true).fetchSemanticsNodes().size)
+        // The help's own heading, and the Insights tab behind the dialog.
+        assertEquals(2, rule.onAllNodes(hasText("Insights"), useUnmergedTree = true).fetchSemanticsNodes().size)
         rule.onNodeWithText("Close").performClick()
         waitForText("Target")
+    }
+
+    /** Insights switched off in Settings: Statistics shows its three tabs and no Insights tab. */
+    @Test fun statisticsHideInsightsWhenOff() {
+        launch(signedIn = true, store = MemoryStore(null, insightsEnabled = false))
+        waitForText("series in 7 days")
+        rule.onNodeWithText("Statistics").performClick()
+        waitForText("Target")
+        waitForText("Drift")
+        rule.waitForIdle()
+        assertFalse("Insights must be hidden when off", rule.exists(hasText("Insights")))
     }
 
     private companion object {
         const val TOKEN = "ui-test-token"
         const val USER = 7L
         const val TIMEOUT_MS = 15_000L
+
+        /** Unrotated and square: centre (500, 500), the 6/7 edge 100 px out, so 1 px = 1 mm. */
+        val GEOMETRY = GeometryDto(500.0, 500.0, 500.0, 500.0, 100.0, 100.0, 0.0)
     }
 }
