@@ -86,6 +86,7 @@ fun advice(finding: Finding, hand: ShootingHand, all: List<Finding> = emptyList(
         all,
     )
     is Finding.Trend -> trendAdvice(finding)
+    is Finding.SessionTrend -> sessionAdvice(finding)
 }
 
 private fun texts(vararg res: StringResource) = res.map { AdviceText(it) }
@@ -223,6 +224,22 @@ private fun trendAdvice(f: Finding.Trend): Advice {
             f, AdviceText(Res.string.advice_trend_down_summary, args),
             texts(Res.string.advice_cause_trend_1, Res.string.advice_cause_trend_2, Res.string.advice_cause_trend_3),
             AdviceText(Res.string.advice_try_trend_down),
+        )
+    }
+}
+
+private fun sessionAdvice(f: Finding.SessionTrend): Advice {
+    val args = listOf(f.daysCounted, f.daysChecked, f.firstHalfMean.roundToInt(), f.laterHalfMean.roundToInt())
+    return if (f.falling) {
+        Advice(
+            f, AdviceText(Res.string.advice_session_down_summary, args),
+            texts(Res.string.advice_cause_session_1, Res.string.advice_cause_session_2, Res.string.advice_cause_session_3),
+            AdviceText(Res.string.advice_try_session_down),
+        )
+    } else {
+        Advice(
+            f, AdviceText(Res.string.advice_session_up_summary, args), emptyList(),
+            AdviceText(Res.string.advice_try_session_up),
         )
     }
 }

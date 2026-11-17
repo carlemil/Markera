@@ -70,6 +70,17 @@ import se.kjellstrand.markera.series.total
  *   compare): 10+ series over 14+ days, the slope's t at least 2.5 and the change over the span at
  *   least half the totals' SD. Both directions; improving is said too.
  *
+ * - **Session trend** (fatigue / warm-up): per local day with 4+ series of the most common hole
+ *   count whose first and last series are 20+ minutes apart (an import without EXIF times stamps
+ *   them all within seconds, which is no session; and no 2+ hour gap, which makes two sessions of it), the mean total of the first half of the series
+ *   against the later half (the middle one left out when odd). A day "falls" when the later half is
+ *   at least 0.4 points per hole lower (2 points on five holes), "rises" when higher by as much.
+ *   A finding needs 3+ checked days, 3+ of them in one direction and at least two thirds of the
+ *   checked days, and the mean difference over all checked days at least the bar too. Totals of
+ *   four five-hole series (SD about 2.5) differ by 2 points between halves by chance on about 20%
+ *   of days, so a chance finding needs 3 of 3, 3 of 4 or 4 of 5 such days (about 1 to 3%).
+ *   Tuned on synthetic days only (no real history was reachable): re-check on the owner's series.
+ *
  * Measured with these values on 200 seeded round histories (10 days of 4 five-hole series,
  * `FindingsTest.aRoundCentredShooterStaysQuiet`): 7 with a group finding (5 fliers, 2 wide days,
  * no offset, stretch or trend), 3.5%.
@@ -173,6 +184,22 @@ sealed interface Finding {
         override val confidence: Double,
     ) : Finding
 
+    /**
+     * Within a day, the later series score clearly lower than the first ones (fatigue) or clearly
+     * higher (a slow start that warms up), on several separate days. Day-level: no single date.
+     */
+    data class SessionTrend(
+        /** True: the later half of the day scores lower; false: higher. */
+        val falling: Boolean,
+        /** Days that show it, of [daysChecked] days with enough series. */
+        val daysCounted: Int,
+        val daysChecked: Int,
+        /** Mean total of the first / later half of those [daysCounted] days. */
+        val firstHalfMean: Double,
+        val laterHalfMean: Double,
+        override val confidence: Double,
+    ) : Finding
+
     enum class Orientation { VERTICAL, HORIZONTAL, DIAGONAL }
 }
 
@@ -209,6 +236,15 @@ data class FindingThresholds(
     val trendMinDays: Double = 14.0,
     val trendMinT: Double = 2.5,
     val trendMinChangeSds: Double = 0.5,
+    val sessionMinSeries: Int = 4,
+    val sessionMinDays: Int = 3,
+    /** Points per hole the later half must differ by (2 points for a five-hole series). */
+    val sessionMinDiffPerHole: Double = 0.4,
+    /** The first and last series of a day must be this far apart, so a batch import is no session. */
+    val sessionMinSpanMinutes: Int = 20,
+    /** No gap between two series of a day above this: a morning block and an evening block are two sessions. */
+    val sessionMaxGapMinutes: Int = 120,
+    val sessionMinShare: Double = 2.0 / 3,
 ) {
     /** The elongation a group of [hits] must reach: round groups pass it about 2% of the time. */
     fun stretchBar(hits: Int): Double = max(stretchMinElongation, 1 + stretchChanceCoefficient / sqrt(hits.toDouble()))
@@ -233,6 +269,7 @@ fun List<PlottedSeries>.findings(
         sorted.wideRoundGroup(zone, thresholds),
         low,
         sorted.scoreTrend(thresholds),
+        sorted.sessionTrend(zone, thresholds),
     ).sortedByDescending { it.confidence }
 }
 
@@ -536,6 +573,42 @@ private fun List<PlottedSeries>.scoreTrend(t: FindingThresholds): Finding.Trend?
         tStat = tStat,
         confidence = confidence(points.size, t.trendMinSeries, abs(tStat) / t.trendMinT),
     )
+}
+
+@OptIn(ExperimentalTime::class)
+private fun List<PlottedSeries>.sessionTrend(zone: TimeZone, t: FindingThresholds): Finding.SessionTrend? {
+    val holes = groupingBy { it.series.holes.size }.eachCount().maxByOrNull { it.value }?.key ?: return null
+    if (holes < 1) return null
+    // Each checked day: (mean total of its first half, of its later half), this list being oldest first.
+    val days = filter { it.series.holes.size == holes }.groupBy { dayOf(it, zone) }.values
+        .filter {
+            it.size >= t.sessionMinSeries &&
+                it.last().at.toEpochMilliseconds() - it.first().at.toEpochMilliseconds() >= t.sessionMinSpanMinutes * 60_000L &&
+                it.zipWithNext().all { (x, y) -> y.at.toEpochMilliseconds() - x.at.toEpochMilliseconds() <= t.sessionMaxGapMinutes * 60_000L }
+        }
+        .map { day ->
+            val half = day.size / 2
+            val totals = day.map { it.series.total().toDouble() }
+            totals.take(half).average() to totals.takeLast(half).average()
+        }
+    if (days.size < t.sessionMinDays) return null
+    val bar = t.sessionMinDiffPerHole * holes
+    val meanDrop = days.map { (first, later) -> first - later }.average()
+    for (falling in listOf(true, false)) {
+        val sign = if (falling) 1.0 else -1.0
+        val counted = days.filter { (first, later) -> sign * (first - later) >= bar }
+        if (counted.size < t.sessionMinDays || counted.size < t.sessionMinShare * days.size) continue
+        if (sign * meanDrop < bar) continue
+        return Finding.SessionTrend(
+            falling = falling,
+            daysCounted = counted.size,
+            daysChecked = days.size,
+            firstHalfMean = counted.map { it.first }.average(),
+            laterHalfMean = counted.map { it.second }.average(),
+            confidence = confidence(counted.size, t.sessionMinDays, sign * meanDrop / bar),
+        )
+    }
+    return null
 }
 
 @OptIn(ExperimentalTime::class)

@@ -175,6 +175,21 @@ class AdviceTest {
     }
 
     @Test
+    fun sessionTrendsGetFatigueAndWarmUpAdvice() {
+        for (hand in listOf(right, left)) {
+            val down = advice(Finding.SessionTrend(true, 3, 4, 46.6, 43.2, 0.5), hand)
+            assertEquals(Res.string.advice_session_down_summary, down.summary.res)
+            assertEquals(listOf(3, 4, 47, 43), down.summary.args)
+            assertEquals(3, down.causes.size)
+            assertEquals(Res.string.advice_try_session_down, down.tryThis.res)
+            val up = advice(Finding.SessionTrend(false, 3, 3, 41.0, 45.0, 0.5), hand)
+            assertEquals(Res.string.advice_session_up_summary, up.summary.res)
+            assertTrue(up.causes.isEmpty())
+            assertEquals(Res.string.advice_try_session_up, up.tryThis.res)
+        }
+    }
+
+    @Test
     fun adviceForKeepsTheOrderOfTheFindings() {
         val findings = listOf(lowSeries, offset(225.0), fliers)
         val all = adviceFor(findings, right)
