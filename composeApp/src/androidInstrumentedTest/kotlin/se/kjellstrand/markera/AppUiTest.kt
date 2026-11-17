@@ -480,14 +480,24 @@ class AppUiTest {
 
     private val insightCard = hasTestTag(HOME_INSIGHT_TAG)
 
-    /** The key the default series' offset is dismissed under: type, caliber, newest series' time. */
+    /** The key the offset is dismissed under: type, caliber, newest series' time. */
     private val offsetKey get() = "offset|22lr|${KxInstant.parse(serverSeries.timestamp).toEpochMilliseconds()}"
 
+    /** Round groups, the newest centred and three right of the centre: the offset is the only finding. */
+    private val roundHoles = listOf(0.0 to 0.0, 12.0 to -8.0, -10.0 to 10.0, 8.0 to 14.0, -12.0 to -6.0).map { (dx, dy) ->
+        HoleDto(500.0 + dx, 500.0 + dy, 9, false, 10.0)
+    }
+
+    private fun offsetOnly(vararg extra: SeriesDto) {
+        onServer = extra.toList() + serverSeries.copy(holes = roundHoles) + offsetSeries
+    }
+
     /**
-     * The default series sit right of the centre this week: Home shows that in one line, and a tap
+     * The series sit right of the centre this week: Home shows that in one line, and a tap
      * opens Insights on 22lr with the finding; Back returns to Home with the card.
      */
     @Test fun homeInsightCardOpensInsights() {
+        offsetOnly()
         launch(signedIn = true)
         waitForText("series in 7 days")
         waitFor(insightCard, "the insight card")
@@ -502,6 +512,7 @@ class AppUiTest {
 
     /** Hiding the card stores its key; the week strip stays. */
     @Test fun homeInsightCardCanBeDismissed() {
+        offsetOnly()
         val store = MemoryStore(null)
         launch(signedIn = true, store = store)
         waitFor(insightCard, "the insight card")
@@ -513,6 +524,7 @@ class AppUiTest {
 
     /** A dismissed finding stays away on the next launch... */
     @Test fun homeInsightCardStaysDismissed() {
+        offsetOnly()
         launch(signedIn = true, store = MemoryStore(null, dismissedInsights = offsetKey))
         waitForText("series in 7 days")
         waitFor(thumbnail, "the latest series' photo")
@@ -522,8 +534,7 @@ class AppUiTest {
 
     /** ...until a new series in that caliber changes its key. */
     @Test fun homeInsightCardComesBackWithANewSeries() {
-        val newer = serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 10.minutes).toString(), hasImage = false)
-        onServer = listOf(newer) + onServer
+        offsetOnly(serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 10.minutes).toString(), holes = roundHoles, hasImage = false))
         launch(signedIn = true, store = MemoryStore(null, dismissedInsights = offsetKey))
         waitFor(insightCard, "the insight card after a new 22lr series")
     }
