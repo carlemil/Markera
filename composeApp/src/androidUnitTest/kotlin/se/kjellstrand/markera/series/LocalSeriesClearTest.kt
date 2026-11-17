@@ -75,6 +75,17 @@ class LocalSeriesClearTest {
         assertNull(f.images.read(45))
         assertLocalRetained(f, id)
     }
+    // A restore brings the series database back but not the token or the synced photos.
+    @Test fun signedOutRefreshDropsRestoredServerCacheButKeepsLocalRows() = runBlocking {
+        val f = Fixture(); val id = f.seedLocal(); f.seedSynced()
+        f.session.signOut(); f.requests.clear() // no repo.clear(): what a restored install looks like
+        assertNull(f.repo.refresh())
+        assertTrue(f.db.seriesQueries.selectAll().executeAsList().isEmpty())
+        assertNull(f.db.seriesQueries.lastSync().executeAsOneOrNull())
+        assertNull(f.images.read(45))
+        assertTrue(f.requests.isEmpty(), f.requests.toString())
+        assertLocalRetained(f, id)
+    }
     // This is the AccountRow operation order; rendering/confirmation stays a #654 phone check.
     @Test fun successfulAccountDeleteKeepsUnsentWork() = runBlocking {
         val f = Fixture(); val id = f.seedLocal(); f.seedSynced()

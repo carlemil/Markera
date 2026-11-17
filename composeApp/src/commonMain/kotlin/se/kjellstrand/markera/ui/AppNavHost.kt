@@ -1,5 +1,9 @@
 package se.kjellstrand.markera.ui
 
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -265,6 +269,11 @@ fun AppNavHost(
     LaunchedEffect(Unit) {
         seriesServices.session.restore()
         seriesServices.repository.refresh()
+        // Every later sign-in (any provider, any screen) loads that account's series. The
+        // refresh a sign-in button runs itself can come before the held-auth gate publishes
+        // the login, and then saw no account: Home stayed empty until a screen refreshed.
+        seriesServices.session.auth.map { it?.userId }.distinctUntilChanged().drop(1)
+            .filterNotNull().collect { seriesServices.repository.refresh() }
     }
     val backendAuth by seriesServices.session.auth.collectAsState()
 

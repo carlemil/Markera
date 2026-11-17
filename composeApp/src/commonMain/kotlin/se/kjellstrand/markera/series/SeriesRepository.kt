@@ -244,7 +244,15 @@ class SeriesRepository(
 
     private suspend fun refreshLocked(): Throwable? {
         adoptLegacyLocked()
-        val user = session.auth.value?.userId?.toString() ?: run { reload(); return null }
+        val user = session.auth.value?.userId?.toString() ?: run {
+            // Signed out, server rows can only come from a restore (OS backup or device move:
+            // the database is backed up, the token and the synced photos are not). Their
+            // photos cannot be fetched without the account, so the list showed them blank.
+            // Sign-out clears them; do the same here. Local work stays.
+            if (q.lastSync().executeAsOneOrNull() != null || q.selectAll().executeAsList().isNotEmpty()) wipe()
+            reload()
+            return null
+        }
         val stamp = q.lastSync().executeAsOneOrNull()
         // A different account on this device: its rows and images are not ours.
         if (stamp != null && stamp.user_id != user) wipe()
