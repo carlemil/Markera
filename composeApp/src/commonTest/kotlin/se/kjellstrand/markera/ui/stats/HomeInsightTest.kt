@@ -170,9 +170,9 @@ class HomeInsightTest {
     @Test
     fun dismissedKeysAreCappedAndRoundTrip() {
         var keys = emptyList<String>()
-        repeat(25) { keys = dismissedWith(keys, "k$it") }
+        repeat(MAX_DISMISSED_INSIGHTS + 5) { keys = dismissedWith(keys, "k$it") }
         assertEquals(MAX_DISMISSED_INSIGHTS, keys.size)
-        assertEquals("k24", keys.last())
+        assertEquals("k${MAX_DISMISSED_INSIGHTS + 4}", keys.last())
         keys = dismissedWith(keys, "k10")
         assertEquals("k10", keys.last())
         assertEquals(MAX_DISMISSED_INSIGHTS, keys.size)

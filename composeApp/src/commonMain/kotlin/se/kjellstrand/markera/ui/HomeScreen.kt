@@ -79,6 +79,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Start screen: free marking (standalone scanner) or competition marking. */
 @OptIn(ExperimentalTime::class)
@@ -138,8 +141,13 @@ internal fun HomeScreen(
                 val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
                 val dismissed = settings?.dismissedInsights?.collectAsState()?.value ?: emptyList()
                 val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
-                val candidates = remember(cached, insightsOn) {
-                    if (insightsOn) cached.homeInsights(Clock.System.now()) else emptyList()
+                // Every caliber's findings, twice: off the main thread, so Home never waits on it.
+                val candidates by produceState(emptyList<HomeInsight>(), cached, insightsOn) {
+                    value = if (insightsOn) {
+                        withContext(Dispatchers.Default) { cached.homeInsights(Clock.System.now()) }
+                    } else {
+                        emptyList()
+                    }
                 }
                 val insight = candidates.firstShown(dismissed)
                 if (insight != null) {

@@ -42,8 +42,8 @@ data class HomeInsight(
 /** The card looks back over today and the six days before it. */
 const val HOME_INSIGHT_DAYS = 7
 
-/** Dismissed keys kept; older ones are long stale (each new series makes a new key). */
-const val MAX_DISMISSED_INSIGHTS = 20
+/** Dismissed keys kept; room for every kind in several calibers, and each new series makes the old ones stale. */
+const val MAX_DISMISSED_INSIGHTS = 50
 
 /**
  * True for the findings judged against the shooter's history rather than the group itself: a low
@@ -150,7 +150,8 @@ private fun Finding.kind(): String = when (this) {
     is Finding.LowDay -> "low-day"
     is Finding.Trend -> "trend"
     is Finding.SessionTrend -> "session"
-    else -> this::class.simpleName ?: "finding"
+    // Not the class name: R8 renames it from one build to the next.
+    else -> "finding"
 }
 
 /** The findings the Insights tab shows for [day]: its window and caliber, through [insights]. */
