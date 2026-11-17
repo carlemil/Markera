@@ -522,4 +522,10 @@
 
     <string name="stats_help_insights">Insights</string>
     <string name="stats_help_insights_body">Insights looks at your saved series, one caliber at a time, and points out patterns it is fairly sure of: a group that sits to one side, a group that is stretched, a shot that gets away, or scores that fall or rise. It needs a good number of shots before it says anything. Each note gives what the numbers show, what often causes it and one thing to try. It is a hint, not a coach: the causes are common ones, not a verdict. Set your shooting hand and switch Insights off under Settings.</string>
+
+    <string name="detail_vs_under">%1$d under your average of %2$d</string>
+    <string name="detail_vs_over">%1$d over your average of %2$d</string>
+    <string name="detail_vs_on">On your average of %1$d</string>
+    <string name="detail_vs_best">Your best in the last %1$d days</string>
+    <string name="detail_day_in_insights">See this day in Insights</string>
 </resources>
