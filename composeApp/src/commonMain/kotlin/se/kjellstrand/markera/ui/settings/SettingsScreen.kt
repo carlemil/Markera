@@ -197,10 +197,12 @@ fun SettingsScreen(settings: AppSettings, seriesServices: SeriesServices, onBack
                 Spacer(Modifier.height(8.dp))
                 SectionHeader(stringResource(Res.string.settings_shooting_hand))
                 Segmented(
-                    options = listOf(
-                        stringResource(Res.string.settings_hand_right),
-                        stringResource(Res.string.settings_hand_left),
-                    ),
+                    options = ShootingHand.entries.map { hand ->
+                        when (hand) {
+                            ShootingHand.RIGHT -> stringResource(Res.string.settings_hand_right)
+                            ShootingHand.LEFT -> stringResource(Res.string.settings_hand_left)
+                        }
+                    },
                     selected = shootingHand.ordinal,
                     onSelect = { settings.setShootingHand(ShootingHand.entries[it]) },
                     modifier = Modifier.fillMaxWidth(),
