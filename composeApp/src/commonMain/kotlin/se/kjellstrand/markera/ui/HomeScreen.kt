@@ -99,12 +99,16 @@ internal fun HomeScreen(
     onImport: (List<PickedImage>, Boolean) -> Unit,
     backendAuth: BackendAuth?,
     seriesServices: SeriesServices,
+    /** UI tests: picks without the system picker ([se.kjellstrand.markera.ScanStandIns.pickImages]). */
+    pickStandIn: ((ImageSource) -> List<PickedImage>)? = null,
 ) {
     var showingHelp by remember { mutableStateOf(false) }
     var showingImport by remember { mutableStateOf(false) }
     // Read when the system picker returns, so it is the switch as the dialog was left.
     var importAuto by remember { mutableStateOf(false) }
-    val pickImages = rememberImagePicker { onImport(it, importAuto) }
+    val systemPicker = rememberImagePicker { onImport(it, importAuto) }
+    val pickImages: (ImageSource) -> Unit =
+        pickStandIn?.let { pick -> { source -> onImport(pick(source), importAuto) } } ?: systemPicker
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         // No top bar here, so the menu floats in the top-left corner.
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

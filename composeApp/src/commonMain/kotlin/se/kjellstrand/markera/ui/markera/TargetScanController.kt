@@ -22,6 +22,7 @@ import se.kjellstrand.markera.series.geometryDto
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.FittedEllipse
+import se.kjellstrand.markera.vision.HIT_SCORE_ORDER
 import se.kjellstrand.markera.vision.HitScore
 import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.vision.centerSquare
@@ -313,18 +314,18 @@ class TargetScanController(private val engine: ScanEngine) {
                 "digits=${digits.size} centre=${centre.method} ring=${ring != null} " +
                 "scores=${scores.map { if (it.isInnerTen) "X" else it.ring.toString() }}"
         )
-        viewModel.onHolesDetected(detections, scores)
         if (scores.isNotEmpty()) {
-            // The published state, not the local list: the pickers are saved by
-            // position, so the series must carry the same order the view model
-            // sorted the holes into.
+            // Before IDLE is published: Import's auto pass commits the moment it sees IDLE, and its
+            // collector may run on another thread. Sorted as the view model sorts them (both stable),
+            // since the pickers are saved by position.
             onSeriesDetected?.invoke(
-                viewModel.uiState.value.scores,
+                scores.sortedWith(HIT_SCORE_ORDER),
                 snapshot,
                 ring?.let { geometryDto(centre, it) },
                 emptyList(),
             )
         }
+        viewModel.onHolesDetected(detections, scores)
     }
 }
 

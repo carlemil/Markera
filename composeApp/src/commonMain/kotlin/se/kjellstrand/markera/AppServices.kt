@@ -2,6 +2,8 @@ package se.kjellstrand.markera
 
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.ui.markera.FrameSource
+import se.kjellstrand.markera.ui.markera.ImageSource
+import se.kjellstrand.markera.ui.markera.PickedImage
 import se.kjellstrand.markera.ui.markera.ScanEngine
 
 /**
@@ -17,5 +19,12 @@ class AppServices(
     val scanStandIns: ScanStandIns? = null,
 )
 
-/** A fixed [frameSource] for the camera and an [engine] for the two detectors, see [AppServices.scanStandIns]. */
-class ScanStandIns(val frameSource: FrameSource, val engine: () -> ScanEngine)
+/**
+ * A fixed [frameSource] for the camera and an [engine] for the two detectors, see [AppServices.scanStandIns].
+ * [pickImages], when set, answers Import in place of the system picker.
+ */
+class ScanStandIns(
+    val frameSource: FrameSource,
+    val pickImages: ((ImageSource) -> List<PickedImage>)? = null,
+    val engine: () -> ScanEngine,
+)

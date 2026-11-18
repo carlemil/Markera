@@ -308,6 +308,7 @@ fun AppNavHost(
             onImport = { images, auto -> push(Screen.Import(ImportQueue(images, auto))) },
             backendAuth = backendAuth,
             seriesServices = seriesServices,
+            pickStandIn = app.scanStandIns?.pickImages,
         )
 
         Screen.FreeMarking -> MarkeraScreen(

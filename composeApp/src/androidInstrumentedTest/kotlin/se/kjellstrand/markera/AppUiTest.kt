@@ -98,6 +98,11 @@ import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.ui.markera.SCAN_VIEWPORT_TAG
+import se.kjellstrand.markera.ui.markera.ImageSource
+import se.kjellstrand.markera.ui.markera.LoadedImage
+import se.kjellstrand.markera.ui.markera.PickedImage
+import androidx.compose.ui.test.isToggleable
+import androidx.compose.ui.state.ToggleableState
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.seriesJson
@@ -301,6 +306,8 @@ class AppUiTest {
         signedIn: Boolean,
         store: MemoryStore = MemoryStore(null),
         scanEngine: FakeScanEngine = FakeScanEngine(),
+        /** What Import's picker hands back, for either source; null leaves the system picker. */
+        picks: ((ImageSource) -> List<PickedImage>)? = null,
         seed: (MarkeraDb) -> Unit = {},
     ): SeriesServices {
         store.auth = if (signedIn) BackendAuth(TOKEN, USER, "dev") else null
@@ -319,7 +326,7 @@ class AppUiTest {
             series = services,
             modelPath = "no-model-in-ui-tests",
             shareFile = { shared += it },
-            scanStandIns = ScanStandIns(FakeFrameSource()) { scanEngine },
+            scanStandIns = ScanStandIns(FakeFrameSource(), picks) { scanEngine },
         )
         val links = object : UriHandler {
             override fun openUri(uri: String) { opened += uri }
@@ -1041,6 +1048,116 @@ class AppUiTest {
         waitForText("Saved on this device")
         rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.id < 0 } }
         assertEquals(0, posted.size)
+    }
+
+    // ---- Import images: the dialog, manual and auto ----
+
+    /** The sources the stand-in picker was asked for, in order. */
+    private val pickedFrom = CopyOnWriteArrayList<ImageSource>()
+
+    /** The drawn target as a picked image; its load sets the [holes] the stand-in detector finds in it. */
+    private fun picked(engine: FakeScanEngine, takenAt: String? = null, holes: List<Pair<Float, Float>> = FakeTarget.HOLES) =
+        PickedImage { loads.incrementAndGet(); engine.holes = holes; LoadedImage(FakeTarget.frame(), takenAt) }
+
+    /** Picked images loaded so far: an image is loaded again when its review pass reaches it. */
+    private val loads = java.util.concurrent.atomic.AtomicInteger()
+
+    /** Home → menu → Import images, with Auto import set to [auto], then [source]'s button. */
+    private fun startImport(auto: Boolean, source: String = "Gallery") {
+        waitForText(homeMarker)
+        openMenuItem("Import images")
+        waitForText("Auto import")
+        val switch = hasText("Auto import") and isToggleable()
+        val on = rule.onNode(switch).fetchSemanticsNode().config[SemanticsProperties.ToggleableState] == ToggleableState.On
+        // The switch remembers its last position for the session, so it is set, not toggled blindly.
+        if (on != auto) rule.onNode(switch).performClick()
+        rule.waitUntil(TIMEOUT_MS) {
+            (rule.onNode(switch).fetchSemanticsNode().config[SemanticsProperties.ToggleableState] == ToggleableState.On) == auto
+        }
+        click(button(source))
+    }
+
+    /** Skip, an icon button labelled by its description, clicked through semantics: a save's toast may cover it. */
+    private fun skip() {
+        val skip = hasContentDescription("Skip") and hasClickAction()
+        waitForButton(skip, "Skip")
+        rule.onAllNodes(skip)[0].performSemanticsAction(SemanticsActions.OnClick)
+    }
+
+    private fun backHomeWith(summary: String) {
+        waitForExact(summary)
+        waitForText(homeMarker)
+        assertFalse("The import screen must be gone", rule.exists(hasText("Import ", substring = true) and hasAnyAncestor(hasTestTag(TOP_BAR_TAG))))
+    }
+
+    /** The dialog shows its caliber and tag chips, Auto import and both sources; with no caliber it asks before scanning. */
+    @Test fun importDialogAsksForACaliberBeforeTheFirstScan() {
+        val engine = FakeScanEngine()
+        launch(signedIn = true, store = MemoryStore(null, caliber = Caliber.NONE), scanEngine = engine,
+            picks = { pickedFrom += it; listOf(picked(engine)) })
+        startImport(auto = false, source = "Files")
+        assertEquals(listOf(ImageSource.FILES), pickedFrom.toList())
+        waitForText("Choose caliber")
+        rule.waitForIdle()
+        // The chooser lists a "40" caliber, so the load count tells whether anything was scanned.
+        assertEquals("Nothing is loaded before a caliber is chosen", 0, loads.get())
+        click(button("9mm"))
+        waitForExact("40")
+        waitForText("Import 1 / 1")
+        skip()
+        backHomeWith("0 saved, 1 skipped")
+        assertEquals(0, posted.size)
+    }
+
+    /** Manual: Save keeps the image (dated by its EXIF time), Skip moves on, one summary, back Home. */
+    @Test fun manualImportSavesAndSkipsAndDatesTheSeries() {
+        val engine = FakeScanEngine()
+        val taken = "2026-05-01T08:30:00Z"
+        launch(signedIn = true, scanEngine = engine, picks = { pickedFrom += it; listOf(picked(engine, taken), picked(engine)) })
+        startImport(auto = false)
+        assertEquals(listOf(ImageSource.GALLERY), pickedFrom.toList())
+        waitForText("Import 1 / 2")
+        waitForExact("40")
+        save()
+        val sent = waitForPosts(1).single()
+        assertEquals(java.time.Instant.parse(taken), java.time.Instant.parse(sent.timestamp))
+        waitForText("Import 2 / 2")
+        // The first image's total is still up until the second is scanned.
+        rule.waitUntil(TIMEOUT_MS) { loads.get() == 2 }
+        waitForExact("40")
+        skip()
+        backHomeWith("1 saved, 1 skipped")
+        assertEquals(1, posted.size)
+    }
+
+    /** Auto: the scored images save without stopping; the one that scored nothing is shown after the pass. */
+    @Test fun autoImportSavesWhatScoredAndReviewsTheRest() {
+        val engine = FakeScanEngine()
+        launch(signedIn = true, scanEngine = engine,
+            picks = { listOf(picked(engine), picked(engine, holes = emptyList()), picked(engine)) })
+        startImport(auto = true)
+        // The review pass is a queue of its own: the held image, alone (a fourth load).
+        rule.waitUntil(TIMEOUT_MS) { loads.get() == 4 }
+        waitForText("Import 1 / 1")
+        assertEquals(2, waitForPosts(2).size)
+        skip()
+        backHomeWith("2 saved, 1 skipped")
+        assertEquals(2, posted.size)
+    }
+
+    /** Auto: an image whose photo cannot be kept on the phone is not counted saved; it goes to review. */
+    @Test fun autoImportSendsAFailedLocalSaveToReview() {
+        val engine = FakeScanEngine()
+        // A file where the durable photo folder goes: every local photo write fails.
+        File(root, "files").mkdirs()
+        File(root, "files/local-series").writeText("not a folder")
+        launch(signedIn = true, scanEngine = engine, picks = { listOf(picked(engine)) })
+        startImport(auto = true)
+        // Both passes read "Import 1 / 1": the second load is the review pass.
+        rule.waitUntil(TIMEOUT_MS) { loads.get() == 2 }
+        waitForExact("40")
+        skip()
+        backHomeWith("0 saved, 1 skipped")
     }
 
     // ---- the Serie page: editing and walking the list ----
