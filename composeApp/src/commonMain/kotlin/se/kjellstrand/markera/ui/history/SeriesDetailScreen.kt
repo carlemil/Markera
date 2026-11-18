@@ -148,7 +148,7 @@ fun SeriesDetailScreen(
     onOpenInsights: ((LocalDate) -> Unit)? = null,
 ) {
     // Looked up in the cache by id, so an edit made anywhere else shows here.
-    val cached by services.repository.series.collectAsState()
+    val cached by services.repository.visibleSeries.collectAsState()
     val series = cached.firstOrNull { it.id == initial.id } ?: initial
     val (newerId, olderId) = neighbours(ids, series.id, cached.mapTo(mutableSetOf()) { it.id })
     val newer = cached.firstOrNull { it.id == newerId }

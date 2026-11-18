@@ -85,7 +85,7 @@ private fun csvBytes(csv: String): ByteArray = "\uFEFF$csv".encodeToByteArray()
 suspend fun exportSeriesZip(
     repository: SeriesRepository,
     cacheDir: Path,
-    series: List<SeriesDto> = repository.series.value,
+    series: List<SeriesDto> = repository.visibleSeries.value,
 ): Path =
     withContext(Dispatchers.Default) {
         val dir = Path(cacheDir, "export")

@@ -201,8 +201,15 @@ class SeriesRepository(
 
     private val _series = MutableStateFlow<List<SeriesDto>>(emptyList())
 
-    /** Newest timestamp first. Empty until the first [refresh] reads the cache. */
+    /** Newest timestamp first. Empty until the first [refresh] reads the cache. Every series,
+     * photo or not: the repository's own bookkeeping (and its tests) work on this one. */
     val series: StateFlow<List<SeriesDto>> = _series.asStateFlow()
+
+    private val _visibleSeries = MutableStateFlow<List<SeriesDto>>(emptyList())
+
+    /** [series] without the ones lacking a complete photo ([hasCompletePhoto]): what every app
+     * screen, statistic and export shows. Filtered once per [reload], never per frame. */
+    val visibleSeries: StateFlow<List<SeriesDto>> = _visibleSeries.asStateFlow()
 
     private val _sessionExpired = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
@@ -515,6 +522,7 @@ class SeriesRepository(
                 local = if (pendingPhoto.state == "refused") LocalMark.REFUSED else null,
             ) else it
         } + local).sortedByDescending { it.timestamp }
+        _visibleSeries.value = _series.value.filter { it.hasCompletePhoto() }
     }
 
     private fun wipe() {

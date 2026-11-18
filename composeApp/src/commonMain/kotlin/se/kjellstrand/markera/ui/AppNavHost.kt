@@ -299,7 +299,7 @@ fun AppNavHost(
             onHistory = { push(Screen.History) },
             // From Home the arrows walk every series.
             onOpenSeries = {
-                push(Screen.SeriesDetail(it, seriesServices.repository.series.value.map { s -> s.id }))
+                push(Screen.SeriesDetail(it, seriesServices.repository.visibleSeries.value.map { s -> s.id }))
             },
             onStatistics = { push(Screen.Statistics) },
             onOpenInsights = { push(Screen.StatisticsDay(it)) },
@@ -359,7 +359,7 @@ fun AppNavHost(
                 onOpen = { replace(Screen.SeriesDetail(it, screen.ids)) },
                 // The series as it is now: the page may just have corrected its caliber.
                 onOpenInsights = { date ->
-                    val all = seriesServices.repository.series.value
+                    val all = seriesServices.repository.visibleSeries.value
                     val now = all.firstOrNull { it.id == screen.series.id } ?: screen.series
                     push(Screen.StatisticsDay(insightsDayFor(now, date, all)))
                 },
@@ -395,7 +395,7 @@ fun AppNavHost(
     val tagDialogOpen by recorder.tagDialogOpen.collectAsState()
     if (tagDialogOpen) {
         val tag by recorder.tag.collectAsState()
-        val cached by seriesServices.repository.series.collectAsState()
+        val cached by seriesServices.repository.visibleSeries.collectAsState()
         TagDialog(
             selected = tag,
             // Every tag already in use, so one typed once is one tap forever after.

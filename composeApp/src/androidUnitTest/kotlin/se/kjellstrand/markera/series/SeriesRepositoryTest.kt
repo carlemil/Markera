@@ -85,6 +85,19 @@ class SeriesRepositoryTest {
     }
 
     @Test
+    fun visibleSeriesLeavesOutSeriesWithoutACompletePhoto() = runBlocking {
+        val withPhoto = """{"id":3,"timestamp":"2026-09-03T10:00:00Z","caliber":"22lr","holes":[],""" +
+            """"hasImage":true,"imageWidth":1000,"imageHeight":1000}"""
+        val noSize = """{"id":4,"timestamp":"2026-09-04T10:00:00Z","caliber":"22lr","holes":[],"hasImage":true}"""
+        val repo = repo { json("""[${dto(1, "2026-09-01T10:00:00Z", null)},$withPhoto,$noSize]""") }
+
+        assertNull(repo.refresh())
+
+        assertEquals(listOf(4L, 3L, 1L), repo.series.value.map { it.id })
+        assertEquals(listOf(3L), repo.visibleSeries.value.map { it.id })
+    }
+
+    @Test
     fun aDeltaUpsertsChangedRowsDropsTombstonesAndKeepsTheRest() = runBlocking {
         val db = testSeriesDb()
         repo(db = db) {

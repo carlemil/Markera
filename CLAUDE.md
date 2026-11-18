@@ -51,7 +51,7 @@ signed out), a sanity walk Home → History → Statistics → Settings, and the
 (shooting hand and Insights switch are saved, restored and fall back to Right/On) plus the Statistics
 help's Insights section, the Insights tab (its offset finding and target, hidden when off) and the
 Serie page's day link into it, the Home insight card, and the sight helper (mm and clicks, the
-adjusted date and its Undo). iOS shares that commonMain code,
+adjusted date and its Undo), and that series without a complete photo stay hidden on Home, History and Statistics. iOS shares that commonMain code,
 so the same run gates the iOS upload. A failing UI test blocks the upload; fix it, rerun, then upload.
 Add a test there for every UI regression found.
 
@@ -250,7 +250,7 @@ previous/next arrows step with `replace`, so Back still returns to the list.
 
 **Local cache and durable local saves.** `SeriesRepository` is the single read source:
 `series: StateFlow<List<SeriesDto>>` merges the SQLDelight server read cache (`series` + `sync`)
-with `local_series`, newest first, also while signed out. Local DTOs use `id = -local_id` and
+with `local_series`, newest first, also while signed out. Every screen, statistic and export reads `visibleSeries` instead: the same list without series lacking a complete photo (`hasCompletePhoto`: `hasImage` plus a frame size), filtered once per reload; `series` stays whole for the repository's own bookkeeping. Local DTOs use `id = -local_id` and
 a transient `LocalMark` (`UNCLAIMED`, `QUEUED`, `REFUSED`). Their JPEGs and thumbnails use
 `LocalImageStore` at durable `filesDir/local-series/`; synced images remain evictable at
 `cacheDir/series/`. Negative IDs route image, edits, deletion, statistics and export locally.

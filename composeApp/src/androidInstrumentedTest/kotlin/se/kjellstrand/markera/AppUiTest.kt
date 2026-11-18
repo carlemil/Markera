@@ -117,6 +117,9 @@ class AppUiTest {
             holes = listOf(0.0 to 0.0, 12.0 to -8.0, -10.0 to 10.0, 8.0 to 14.0, -12.0 to -6.0).map { (dx, dy) ->
                 HoleDto(545.0 + dx + day, 500.0 + dy, 8, false, 45.0)
             },
+            hasImage = true,
+            imageWidth = 1000,
+            imageHeight = 1000,
             geometry = GEOMETRY,
         )
     }
@@ -139,7 +142,7 @@ class AppUiTest {
                 respond("""{"token":"$TOKEN","userId":$USER}""", HttpStatusCode.OK, json)
             request.method == HttpMethod.Delete -> respond("", HttpStatusCode.NoContent)
             !authorized -> respond("", HttpStatusCode.Unauthorized)
-            request.method == HttpMethod.Get && path == "/series/${serverSeries.id}/image" ->
+            request.method == HttpMethod.Get && path.matches(Regex("""/series/\d+/image""")) ->
                 respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
             request.method == HttpMethod.Get && path == "/series" ->
                 respond(seriesJson.encodeToString(onServer), HttpStatusCode.OK, json)
@@ -221,6 +224,61 @@ class AppUiTest {
         waitForText("series in 7 days")
         waitForText("Latest series")
         waitFor(thumbnail, "the latest series' photo")
+    }
+
+    // ---- series without a complete photo are hidden ----
+
+    /**
+     * [serverSeries] (22lr, with its photo) plus two newer series that lack a complete photo: a 9mm
+     * one with no photo at all and a 308 one whose photo has no frame size. Both carry geometry, so
+     * they would be plotted and listed if they were not hidden.
+     */
+    private fun withPhotolessSeries() {
+        val now = Clock.System.now()
+        onServer = listOf(
+            serverSeries.copy(id = 701, caliber = "9mm", timestamp = (now - 1.minutes).toString(), hasImage = false),
+            serverSeries.copy(id = 702, caliber = "308", timestamp = (now - 2.minutes).toString(),
+                imageWidth = null, imageHeight = null),
+            serverSeries,
+        )
+    }
+
+    private fun assertPhotolessHidden(where: String) {
+        assertFalse("A series without a photo must be hidden on $where", rule.exists(hasText("9mm")))
+        assertFalse("A series without its frame size must be hidden on $where", rule.exists(hasText("308")))
+    }
+
+    /** Home's latest series is the newest one with a photo, not the newer photo-less ones. */
+    @Test fun homeHidesSeriesWithoutAPhoto() {
+        withPhotolessSeries()
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        waitFor(thumbnail, "the latest series' photo")
+        waitForText("22lr")
+        rule.waitForIdle()
+        assertPhotolessHidden("Home")
+    }
+
+    /** History lists only the series with a photo. */
+    @Test fun historyHidesSeriesWithoutAPhoto() {
+        withPhotolessSeries()
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        rule.onNodeWithText("History").performClick()
+        waitFor(thumbnail, "a photo in History")
+        waitForText("22lr")
+        rule.waitForIdle()
+        assertPhotolessHidden("History")
+    }
+
+    /** Statistics' caliber filter and plots leave them out too. */
+    @Test fun statisticsHideSeriesWithoutAPhoto() {
+        withPhotolessSeries()
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        rule.onNodeWithText("Statistics").performClick()
+        // Only the photographed 22lr series is plotted: its 5 hits, not the 15 of all three.
+        waitFor(hasContentDescription("Target with 5 hits from 1 series"), "the target with only the photographed series")
     }
 
     /**
@@ -400,7 +458,6 @@ class AppUiTest {
                 id = 600L + i,
                 timestamp = (now - (i + 2).days).toString(),
                 holes = List(5) { h -> HoleDto(500.0, 500.0, if (h < 4) 9 else 8, false, null) },
-                hasImage = false,
             )
         }
         val newest = serverSeries.copy(holes = rings.map { HoleDto(500.0, 500.0, it, false, null) })
@@ -543,7 +600,7 @@ class AppUiTest {
 
     /** ...until a new series in that caliber changes its key. */
     @Test fun homeInsightCardComesBackWithANewSeries() {
-        offsetOnly(serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 10.minutes).toString(), holes = roundHoles, hasImage = false))
+        offsetOnly(serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 10.minutes).toString(), holes = roundHoles))
         launch(signedIn = true, store = MemoryStore(null, dismissedInsights = offsetKey))
         waitFor(insightCard, "the insight card after a new 22lr series")
     }
@@ -577,6 +634,9 @@ class AppUiTest {
                     ).toString(),
                     caliber = "22lr",
                     holes = rings.mapIndexed { i, ring -> HoleDto(500.0 + i * 3, 500.0 - i * 2, ring, false, 5.0) },
+                    hasImage = true,
+                    imageWidth = 1000,
+                    imageHeight = 1000,
                     geometry = GEOMETRY,
                 )
             }
@@ -618,6 +678,9 @@ class AppUiTest {
                     holes = listOf(0.0 to 0.0, 12.0 to -8.0, -10.0 to 10.0, 8.0 to 14.0, -12.0 to -6.0).map { (dx, dy) ->
                         HoleDto(540.0 + dx, 520.0 + dy, 8, false, 45.0)
                     },
+                    hasImage = true,
+                    imageWidth = 1000,
+                    imageHeight = 1000,
                     geometry = GEOMETRY,
                 )
             }

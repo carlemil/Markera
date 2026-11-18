@@ -128,7 +128,7 @@ fun StatsScreen(
     insightsDay: InsightsDay? = null,
 ) {
     val auth by services.session.auth.collectAsState()
-    val series by services.repository.series.collectAsState()
+    val series by services.repository.visibleSeries.collectAsState()
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<StringResource?>(null) }
     var reload by remember { mutableIntStateOf(0) }
@@ -180,7 +180,7 @@ fun StatsScreen(
         error = services.repository.refresh()?.userMessage()
         loading = false
         // With rows cached the screen still shows them, so say they may be stale.
-        if (error != null && services.repository.series.value.isNotEmpty()) toast(getString(Res.string.refresh_offline))
+        if (error != null && services.repository.visibleSeries.value.isNotEmpty()) toast(getString(Res.string.refresh_offline))
     }
 
     val filter = remember(selection) {

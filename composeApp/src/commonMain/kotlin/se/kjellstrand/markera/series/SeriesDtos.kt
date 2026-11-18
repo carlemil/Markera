@@ -150,6 +150,10 @@ const val SERIES_PAGE_SIZE = 50
 fun nextPageCursor(page: List<SeriesDto>): Long? =
     if (page.size == SERIES_PAGE_SIZE) page.lastOrNull()?.id else null
 
+/** The series has its photo and the frame size its holes are placed in, so it can be shown whole. */
+fun SeriesDto.hasCompletePhoto(): Boolean =
+    hasImage && (imageWidth ?: 0) > 0 && (imageHeight ?: 0) > 0
+
 /** An inner ten already carries ring 10, so a plain sum is the series total. */
 fun SeriesDto.total(): Int = holes.sumOf { it.ring }
 

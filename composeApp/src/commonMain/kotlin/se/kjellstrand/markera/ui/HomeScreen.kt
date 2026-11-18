@@ -129,7 +129,7 @@ internal fun HomeScreen(
                     Spacer(Modifier.width(12.dp))
                     Text(stringResource(Res.string.home_free_marking), style = MaterialTheme.typography.titleLarge)
                 }
-                val cached by seriesServices.repository.series.collectAsState()
+                val cached by seriesServices.repository.visibleSeries.collectAsState()
                 // Nothing shot in the last seven days: the strip just isn't there.
                 val week = remember(cached) { cached.weekSummary(Clock.System.now()) }
                 if (week != null) {
