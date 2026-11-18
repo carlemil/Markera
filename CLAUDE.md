@@ -198,27 +198,11 @@ Platform edges stay in `composeApp` as `expect`/`actual`:
   synchronous `AtomicBoolean` (set on the main thread before launch) to prevent
   concurrent runs; the scan button is disabled while a pass is in flight.
 
-### Webshooter competition marking (`webshooter/` + `ui/competition/`)
+### Navigation
 
-The app replicates webshooter.se's mobile "markering" flow with the camera auto-scoring
-as score entry. `webshooter/` (commonMain, JVM-unit-tested) holds the Ktor API client
-(`WebshooterApi`, OAuth2 password grant against `https://test.webshooter.se/api/v4.1.9/`),
-lean DTOs (`ignoreUnknownKeys`; booleans arrive as both `true/false` and `0/1` →
-`LenientBoolean`), `laravelFormEncode` (the save/registration endpoints are Laravel
-bracket-array form posts — `audit[shots][0]=X`), `ShotMapping` (picker 0..10 → shots,
-11 → `"X"`) and `MarkingLogic` (resume/skip/locked/isSelf decisions); the
-`MarkingWizardViewModel` lives in commonMain `ui/competition/` (plain class + `dispose()`, deliberately *not* an androidx
-ViewModel so polling/claims die with the screen). `AppNavHost` (commonMain sealed-class
-back stack, hoists the single `TargetScanController` + `FrameSource` above navigation)
-reaches the wizard only through the `CompetitionHost` seam: androidMain
-`ui/competition/CompetitionFlow.kt` owns the four steps, `SHOW_COMPETITION` and the
-competition screens (`DataStoreTokenStore`, androidMain `webshooter/auth/`, is built in
-`WebshooterServices`); iOS passes `null`. Real captured API fixtures live in
-`composeApp/src/androidUnitTest/resources/webshooter/`. The test server's
-"Testa mobilregistrering" (competition 244) is the wizard's dev target.
-
-Gotcha: kotlinx-serialization omits fields equal to their defaults — the OAuth
-`LoginRequest` fields must stay non-defaulted or the grant envelope silently drops.
+`AppNavHost` (commonMain sealed-class back stack) hoists the single
+`TargetScanController` + `FrameSource` above navigation. The hidden webshooter.se
+competition-marking flow was removed in 2026-11; its code is in git history before then.
 
 ### Series backend + auto-save (`server/`, `series/`)
 
@@ -234,8 +218,8 @@ App side: `series/` (commonMain, JVM-unit-tested) has `Caliber`, `SeriesApi`,
 `BackendSessionRepository` and `SeriesRecorder`. `TargetScanController.onSeriesDetected`
 feeds every scored scan to the recorder (hoisted in `AppNavHost`, exposed via
 `LocalSeriesRecorder`). A scan is only *pending* while its frozen frame is on screen;
-`recorder.commit(topScores)` (the "Spara" button in free marking, moving on from a lane in the
-wizard) merges the picker values into the pending request via `withPicks` — so a `HoleDto`'s
+`recorder.commit(topScores)` (the "Spara" button in free marking, or an import moving on)
+merges the picker values into the pending request via `withPicks` — so a `HoleDto`'s
 `ring`/`innerTen` are what the user confirmed and `detectedRing`/`detectedInnerTen` what the
 detector said (null for a hand-placed or typed-in hole) — then
 saves it: caliber `-` still opens the chooser; otherwise the recorder encodes the frame and
@@ -364,8 +348,7 @@ Swedish is `values-sv/` — add each new key to both (iOS: `CFBundleLocalization
 `project.yml` + `sv.lproj/InfoPlist.strings`). Caliber labels stay untranslated (stored values).
 `topScores` are picker indices 0–10
 plus 11 = inner-X, one per hole and at least five; a series has no hole cap (the detector keeps
-every box over its confidence threshold), the score rows show five a row and wrap the rest, and the
-competition wizard prefills its five boxes from the five most confident holes (`confidentSlots`). **Insights** (Statistics' fourth tab, `ui/stats/InsightsTab.kt`, hidden when Settings turns Insights off): `series/stats/Insights.kt` splits the filtered series per caliber ("-" left out), and each caliber with 15+ shots gets its findings worded by `adviceFor`, plus a close-up target (`InsightsTarget.kt`, Tavla's face and dots) with the 2-SD covariance ellipse, the centre-to-MPI arrow and, while picked, ringed fliers; tapping a finding highlights its mark. **Sight helper** (`series/stats/SightHelper.kt`, pure): a stable offset (`Finding.OffsetGroup.stable`, same offset on 3+ days) gets a correction in its advice card, up/down and left/right in mm (move the rear sight the way the impact should go), plus clicks when the caliber has a mm-per-click value (a local dialog; distance only labels it). "I adjusted the sights" stores a time per caliber: from then on that caliber's offset finding, its target arrow and the Home card use only later series (a viewed period ending before that day is not cut; Undo returns to the previous adjustment). The setups are one JSON value in `BackendTokenStore.readSightSetups` (DataStore / NSUserDefaults), never sent to the server. The Serie page's day link opens it as `Screen.StatisticsDay` on that local day and caliber (from the caliber's first series for a low or wide day, which is judged against the days before) without touching the filter Historik shares. Theme is a green-accented dark or light scheme (Settings; no dynamic color); photo overlays keep fixed colours in both.
+every box over its confidence threshold), the score rows show five a row and wrap the rest. **Insights** (Statistics' fourth tab, `ui/stats/InsightsTab.kt`, hidden when Settings turns Insights off): `series/stats/Insights.kt` splits the filtered series per caliber ("-" left out), and each caliber with 15+ shots gets its findings worded by `adviceFor`, plus a close-up target (`InsightsTarget.kt`, Tavla's face and dots) with the 2-SD covariance ellipse, the centre-to-MPI arrow and, while picked, ringed fliers; tapping a finding highlights its mark. **Sight helper** (`series/stats/SightHelper.kt`, pure): a stable offset (`Finding.OffsetGroup.stable`, same offset on 3+ days) gets a correction in its advice card, up/down and left/right in mm (move the rear sight the way the impact should go), plus clicks when the caliber has a mm-per-click value (a local dialog; distance only labels it). "I adjusted the sights" stores a time per caliber: from then on that caliber's offset finding, its target arrow and the Home card use only later series (a viewed period ending before that day is not cut; Undo returns to the previous adjustment). The setups are one JSON value in `BackendTokenStore.readSightSetups` (DataStore / NSUserDefaults), never sent to the server. The Serie page's day link opens it as `Screen.StatisticsDay` on that local day and caliber (from the caliber's first series for a low or wide day, which is judged against the days before) without touching the filter Historik shares. Theme is a green-accented dark or light scheme (Settings; no dynamic color); photo overlays keep fixed colours in both.
 Overlay text is drawn with `TextMeasurer` (Skia on iOS, so the two platforms render alike);
 back navigation is Compose's common `BackHandler`; toasts are one `SnackbarHost` behind
 `LocalToast`.

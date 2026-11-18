@@ -38,7 +38,7 @@ internal const val TAG = "Markera"
 /**
  * Owns the detectors (one ~40 MB ONNX session for the whole app) and the
  * synchronous re-entry guard, and runs the two-phase scan pipeline on demand.
- * Both the free-marking screen and the competition wizard drive one shared
+ * Free marking and Import images drive one shared
  * instance, created with [rememberTargetScanController] above the navigation
  * so it is never rebuilt per screen.
  */
@@ -59,7 +59,7 @@ class TargetScanController(private val engine: ScanEngine) {
      * Called with the scored holes, the frame they came from and the geometry
      * they were scored against (null when there was none) after every
      * successful scan, for the auto-save to the series backend. Set by the nav
-     * host, so free marking and the competition wizard both feed the same
+     * host, so free marking and Import images both feed the same
      * recorder.
      */
     var onSeriesDetected: ((List<HitScore>, PlatformImage, GeometryDto?, List<HitScore>) -> Unit)? = null

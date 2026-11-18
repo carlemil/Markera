@@ -96,19 +96,7 @@ sealed interface Screen {
 
     /** Picked images scanned one by one; the queue lives as long as the entry. */
     class Import(val queue: ImportQueue<PickedImage>) : Screen
-
-    /** The optional platform flow, if the host supplied one. */
-    data object Competition : Screen
 }
-
-/** An optional flow the platform plugs into the nav host (the Android-only webshooter marking). */
-class CompetitionHost(
-    val content: @Composable (
-        frameSource: FrameSource,
-        scanController: TargetScanController,
-        onExit: () -> Unit,
-    ) -> Unit,
-)
 
 /**
  * The app root both platforms call: loads the Settings choices, then applies the
@@ -120,7 +108,7 @@ class CompetitionHost(
  * them nor cancels an in-flight save or drops the pending series.
  */
 @Composable
-fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
+fun MarkeraApp(app: AppServices) {
     val scope = rememberCoroutineScope()
     val settings = remember { AppSettings(app.series.store, scope) }
     val loaded by settings.loaded.collectAsState()
@@ -175,7 +163,7 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
         key(applied) {
             MarkeraTheme(dark) {
                 SystemBarsForTheme(dark)
-                AppNavHost(app, competition, settings, stack, frameSource, scanController, recorder)
+                AppNavHost(app, settings, stack, frameSource, scanController, recorder)
             }
         }
     }
@@ -184,14 +172,13 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
 /**
  * Navigation root. The frame source, the scan controller (the single ONNX
  * session) and the recorder come from [MarkeraApp], above the language key and
- * the back stack, so both the free-marking screen and the competition wizard
- * share them and nothing heavy is rebuilt per screen switch or language change.
+ * the back stack, so the scan screens share them and nothing heavy is rebuilt per
+ * screen switch or language change.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun AppNavHost(
     app: AppServices,
-    competition: CompetitionHost?,
     settings: AppSettings,
     stackState: MutableState<List<Screen>>,
     frameSource: FrameSource,
@@ -297,7 +284,6 @@ fun AppNavHost(
     when (val screen = current) {
         Screen.Home -> HomeScreen(
             onFreeMarking = { push(Screen.FreeMarking) },
-            onCompetition = competition?.let { { push(Screen.Competition) } },
             onHistory = { push(Screen.History) },
             // From Home the arrows walk every series.
             onOpenSeries = {
@@ -368,8 +354,6 @@ fun AppNavHost(
                 },
             )
         }
-
-        Screen.Competition -> competition!!.content(frameSource, scanController, pop)
     }
     SnackbarHost(
         snackbarHostState,

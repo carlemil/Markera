@@ -96,7 +96,7 @@ private const val SHOW_CONTINUOUS_SCAN = false
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
  * the pickers. The detectors and frame source are hoisted by the caller (the
- * nav host) so they are shared with the competition wizard.
+ * nav host) so they outlive the screen and are shared with Import images.
  *
  * With an [importQueue] (and an [ImportFrameSource]) it scans the picked images
  * instead, one per turn: Save or Skip moves on; in auto mode a scan that scored

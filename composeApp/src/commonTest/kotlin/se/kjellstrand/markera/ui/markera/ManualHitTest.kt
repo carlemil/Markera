@@ -77,24 +77,6 @@ class ManualHitTest {
     }
 
     @Test
-    fun theWizardTakesTheFiveMostConfidentHolesInHoleOrder() {
-        val confs = listOf(0.9f, 0.4f, 1f, 0.5f, 0.8f, 0.6f, 0.7f)
-        val dets = confs.map { Detection(0f, 0f, 1f, 1f, it) }
-        // The hand-placed hole (conf 1) ranks first; 0.4 and 0.5 drop out.
-        assertEquals(listOf(0, 2, 4, 5, 6), confidentSlots(dets, 5))
-        assertEquals(listOf(0, 1), confidentSlots(dets.take(2), 5))
-    }
-
-    @Test
-    fun confirmedValuesLandOnTheirHolesAndTheRestKeepTheDetectorsScore() {
-        val all = listOf(10, 9, 9, 8, 8, 7, 6)
-        val merged = mergePicks(all, slots = listOf(0, 2, 4, 5, 6), confirmed = listOf(11, 9, 7, 7, 5))
-        assertEquals(listOf(11, 9, 9, 8, 7, 7, 5), merged)
-        // Five holes or fewer: the confirmed row is the series, typed extras included.
-        assertEquals(listOf(10, 9, 0, 0, 3), mergePicks(listOf(10, 9), listOf(0, 1), listOf(10, 9, 0, 0, 3)))
-    }
-
-    @Test
     fun addManualHitScoresTheHoleAndSortsItIntoThePickers() {
         val vm = MarkeraViewModelImpl()
         vm.onHolesDetected(listOf(box(0f, 0f, 10f)), listOf(hit(ring = 9)))

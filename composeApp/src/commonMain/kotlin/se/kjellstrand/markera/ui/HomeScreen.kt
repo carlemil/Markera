@@ -23,7 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -83,13 +82,11 @@ import androidx.compose.runtime.produceState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Start screen: free marking (standalone scanner) or competition marking. */
+/** Start screen: free marking, history, statistics and import. */
 @OptIn(ExperimentalTime::class)
 @Composable
 internal fun HomeScreen(
     onFreeMarking: () -> Unit,
-    /** Null hides the button: the platform supplied no competition flow. */
-    onCompetition: (() -> Unit)?,
     onHistory: () -> Unit,
     onOpenSeries: (SeriesDto) -> Unit,
     onStatistics: () -> Unit,
@@ -185,9 +182,6 @@ internal fun HomeScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     HomeButton(Icons.Default.History, stringResource(Res.string.home_history), onHistory)
                     HomeButton(Icons.Default.BarChart, stringResource(Res.string.home_stats), onStatistics)
-                    if (onCompetition != null) {
-                        HomeButton(Icons.Default.EmojiEvents, stringResource(Res.string.home_competition), onCompetition)
-                    }
                 }
                 Spacer(Modifier.height(16.dp))
                 // Sign out and Delete account live in Settings; here is only the reason to sign in.

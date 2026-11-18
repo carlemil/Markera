@@ -119,8 +119,8 @@ internal fun ScoreBox(
 }
 
 /**
- * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. The
- * competition wizard types any slot; the scan screen only a slot with a hole.
+ * The 0..10 + X dialpad as a dialog; [onPick] gets the picker index. The scan
+ * screen opens it only for a slot with a hole.
  */
 @Composable
 private fun ScoreDialpadDialog(
@@ -184,22 +184,20 @@ fun ScorePickerHorizontalRow(
     editableCount: Int = values.size,
     /** Per box: a hand-placed hole, drawn orange. */
     manual: List<Boolean> = emptyList(),
-    /** Explicit key letters per box, overriding [letteredCount] (the wizard's chosen holes). */
-    letters: List<String>? = null,
 ) {
     ScoreFlowRow(modifier, PICKER_GAP) {
         values.forEachIndexed { i, v ->
             ScoreBox(
                 value = v,
                 onValueChange = onValueChange?.takeIf { i < editableCount }?.let { f -> { v2: Int -> f(i, v2) } },
-                letter = if (letters != null) letters.getOrNull(i) else if (i < letteredCount) holeLetter(i) else null,
+                letter = if (i < letteredCount) holeLetter(i) else null,
                 manual = manual.getOrElse(i) { false },
             )
         }
     }
 }
 
-/** Read-only hits as small score boxes, for lists (Historik, a locked competition lane). */
+/** Read-only hits as small score boxes, for lists (Historik). */
 @Composable
 fun ScoreMiniRow(
     values: List<Int>,

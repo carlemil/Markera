@@ -49,7 +49,6 @@
 
     <!-- Home -->
     <string name="home_free_marking">Mark</string>
-    <string name="home_competition">Competition</string>
     <string name="home_history">History</string>
     <string name="home_stats">Statistics</string>
     <string name="home_latest_series">Latest series · %1$s</string>
@@ -296,71 +295,12 @@
     <string name="detail_previous_series">Previous series</string>
     <string name="detail_next_series">Next series</string>
 
-    <!-- Webshooter login -->
-    <string name="login_title">Sign in to Webshooter</string>
-    <string name="login_email">Email</string>
-    <string name="login_password">Password</string>
-    <string name="login_button">Sign in</string>
-    <string name="login_failed">Sign-in failed. Check the email and password.</string>
-    <string name="logout">Sign out</string>
-
-    <!-- Competition list -->
-    <string name="competitions_title">Choose competition</string>
-    <string name="competitions_search">Search competition…</string>
-    <string name="competitions_empty">No competitions found.</string>
-
-    <!-- Marking groups -->
-    <string name="marking_title">Marking</string>
-    <string name="marking_active_patrol">Squad called right now: Squad %1$d</string>
-    <string name="marking_active_patrol_at">Squad called right now: Squad %1$d (%2$s)</string>
-    <string name="wizard_unknown_name">Unknown</string>
-    <string name="wizard_x_count">%1$d X</string>
-    <string name="marking_no_active_patrol">No squad has been called for mobile registration yet — activate the squad in the roll-call view first, otherwise marking cannot be opened.</string>
-    <string name="marking_lanes">lane %1$d–%2$d</string>
-    <string name="marking_progress">%1$d of %2$d lanes fully marked</string>
-    <string name="marking_last">Latest: series %1$d · %2$s (lane %3$d)</string>
-    <string name="marking_none_yet">Nothing marked yet</string>
-    <string name="marking_complete">Fully marked</string>
-    <string name="marking_reenter_question">Every series is marked in this hall. Go in anyway, for example to correct something?</string>
-    <string name="marking_reenter_yes">Go in anyway</string>
-    <string name="marking_cancel">Cancel</string>
-    <string name="marking_empty">No marking groups set up for the competition.</string>
-
-    <!-- Marking wizard -->
-    <string name="wizard_series">Series %1$d of %2$d</string>
-    <string name="wizard_scan">Scan the target</string>
-    <string name="wizard_rescan">Rescan</string>
-    <string name="wizard_save">Save</string>
-    <string name="wizard_saving">Saving…</string>
-    <string name="wizard_saved">Saved! Lane %1$d: %2$d points · %3$d X</string>
-    <string name="wizard_locked">The result is already registered</string>
-    <string name="wizard_unlock">Unlock to change</string>
-    <string name="wizard_self">You cannot mark your own target</string>
-    <string name="wizard_self_hint">Let someone else in the squad mark it, or move on to the next lane.</string>
-    <string name="wizard_skip">Skip</string>
-    <string name="wizard_claimed">%1$s is working on this lane</string>
-    <string name="wizard_claim_retry">Try again</string>
-    <string name="wizard_station_summary">Series %1$d — summary</string>
-    <string name="wizard_next_station">Go to series %1$d</string>
-    <string name="wizard_registered_count">%1$d of %2$d registered</string>
-    <string name="wizard_duplicate">Already marked by %1$s</string>
-    <string name="wizard_save_error">Could not save. Try again.</string>
-    <string name="wizard_resume_hint">Continue where marking left off — series %1$d, lane %2$d</string>
-    <string name="wizard_resume_go">Jump there</string>
-    <string name="wizard_resume_stay">Stay here</string>
-    <string name="wizard_not_active">The squad is not active</string>
-    <string name="wizard_no_stations">Nothing to mark: this competition has no series</string>
-    <string name="wizard_not_active_hint">Ask the competition admin to activate the squad from the roll-call view, or call the squad to activate it automatically.</string>
+    <!-- Common -->
     <string name="retry">Try again</string>
     <string name="dialog_cancel">Cancel</string>
     <string name="sign_in_title">Sign in</string>
     <string name="sign_in_google">Continue with Google</string>
     <string name="sign_in_apple">Sign in with Apple</string>
-    <string name="wizard_standings">Standings · total</string>
-    <string name="wizard_tied">Shoot-off required</string>
-    <string name="wizard_standing_lane">lane %1$d</string>
-    <string name="wizard_final_done">Every series is fully marked.</string>
-    <string name="wizard_shots_unsupported">Series with %1$d shots are not supported yet.</string>
     <string name="error_network">Network error. Check the connection and try again.</string>
     <string name="error_session_expired">Your session has expired. Sign in again.</string>
     <string name="error_server">The server had a problem. Try again later.</string>
@@ -377,7 +317,6 @@
     <string name="empty_markera_hint">Scan a target and save the series to see it here.</string>
     <string name="signed_out_hint">Series you save while signed in show up here.</string>
     <string name="stats_no_series">No series to show yet</string>
-    <string name="competitions_empty_hint">Try another search.</string>
     <string name="detail_photo_missing">No photo</string>
     <string name="badge_caliber">Caliber</string>
     <string name="badge_tag">Tag</string>

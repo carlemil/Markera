@@ -22,8 +22,7 @@ to CSV, Excel, etc.
 > Status: scoring is computed automatically from the photo (see *Current
 > pipeline* below) and pre-fills the on-screen pickers, which stay editable.
 > Scored series are saved to the Markera backend (`server/`) and cached locally
-> (SQLDelight); History exports them as a zip of CSVs + images; and competition
-> results can be marked straight into [webshooter](https://webshooter.se/).
+> (SQLDelight); History exports them as a zip of CSVs + images.
 
 ## Current pipeline (what's in use)
 

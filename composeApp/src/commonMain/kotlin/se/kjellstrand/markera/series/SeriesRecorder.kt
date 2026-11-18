@@ -40,8 +40,8 @@ class EncodedImage(val bytes: ByteArray, val width: Int, val height: Int)
 
 /**
  * Auto-saves every scanned series to the backend. Fed by
- * `TargetScanController.onSeriesDetected`, so free marking and the competition
- * wizard share one instance.
+ * `TargetScanController.onSeriesDetected`; free marking and Import images share
+ * one instance.
  *
  * A scan only becomes *pending*: [commit] (the user leaving the frozen frame)
  * is what saves it, and a rescan [clear]s it instead. The timestamp is the

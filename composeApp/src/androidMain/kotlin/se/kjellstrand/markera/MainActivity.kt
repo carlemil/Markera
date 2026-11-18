@@ -14,7 +14,6 @@ import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.series.AppleReturn
 import se.kjellstrand.markera.series.shareFile
 import se.kjellstrand.markera.ui.MarkeraApp
-import se.kjellstrand.markera.ui.competition.rememberCompetitionHost
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +49,7 @@ class MainActivity : ComponentActivity() {
             shareFile = { shareFile(this@MainActivity, File(it)) },
         )
         setContent {
-            MarkeraApp(app, rememberCompetitionHost())
+            MarkeraApp(app)
         }
     }
 }

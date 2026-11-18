@@ -49,7 +49,6 @@
 
     <!-- Home -->
     <string name="home_free_marking">Markera</string>
-    <string name="home_competition">Tävling</string>
     <string name="home_history">Historik</string>
     <string name="home_stats">Statistik</string>
     <string name="home_latest_series">Senaste serien · %1$s</string>
@@ -296,71 +295,12 @@
     <string name="detail_previous_series">Föregående serie</string>
     <string name="detail_next_series">Nästa serie</string>
 
-    <!-- Webshooter login -->
-    <string name="login_title">Logga in på Webshooter</string>
-    <string name="login_email">E-post</string>
-    <string name="login_password">Lösenord</string>
-    <string name="login_button">Logga in</string>
-    <string name="login_failed">Inloggningen misslyckades. Kontrollera e-post och lösenord.</string>
-    <string name="logout">Logga ut</string>
-
-    <!-- Competition list -->
-    <string name="competitions_title">Välj tävling</string>
-    <string name="competitions_search">Sök tävling…</string>
-    <string name="competitions_empty">Inga tävlingar hittades.</string>
-
-    <!-- Marking groups -->
-    <string name="marking_title">Markering</string>
-    <string name="marking_active_patrol">Uppropat skjutlag just nu: Skjutlag %1$d</string>
-    <string name="marking_active_patrol_at">Uppropat skjutlag just nu: Skjutlag %1$d (%2$s)</string>
-    <string name="wizard_unknown_name">Okänd</string>
-    <string name="wizard_x_count">%1$d X</string>
-    <string name="marking_no_active_patrol">Inget skjutlag är uppropat för mobilregistrering ännu — aktivera skjutlaget i uppropsvyn först, annars går markeringen inte att öppna.</string>
-    <string name="marking_lanes">bana %1$d–%2$d</string>
-    <string name="marking_progress">%1$d av %2$d banor färdigmarkerade</string>
-    <string name="marking_last">Senast: serie %1$d · %2$s (bana %3$d)</string>
-    <string name="marking_none_yet">Inget markerat än</string>
-    <string name="marking_complete">Färdigmarkerad</string>
-    <string name="marking_reenter_question">Alla serier är markerade i den här hallen. Vill du ändå gå in, till exempel för att rätta något?</string>
-    <string name="marking_reenter_yes">Gå in ändå</string>
-    <string name="marking_cancel">Avbryt</string>
-    <string name="marking_empty">Inga markeringsgrupper upplagda för tävlingen.</string>
-
-    <!-- Marking wizard -->
-    <string name="wizard_series">Serie %1$d av %2$d</string>
-    <string name="wizard_scan">Skanna tavlan</string>
-    <string name="wizard_rescan">Skanna om</string>
-    <string name="wizard_save">Spara</string>
-    <string name="wizard_saving">Sparar…</string>
-    <string name="wizard_saved">Sparat! Bana %1$d: %2$d poäng · %3$d X</string>
-    <string name="wizard_locked">Resultatet är redan registrerat</string>
-    <string name="wizard_unlock">Lås upp för ändring</string>
-    <string name="wizard_self">Du kan inte markera din egen tavla</string>
-    <string name="wizard_self_hint">Låt någon annan i laget markera, eller gå vidare till nästa bana.</string>
-    <string name="wizard_skip">Hoppa över</string>
-    <string name="wizard_claimed">%1$s håller på med den här banan</string>
-    <string name="wizard_claim_retry">Försök igen</string>
-    <string name="wizard_station_summary">Serie %1$d — sammanfattning</string>
-    <string name="wizard_next_station">Gå till serie %1$d</string>
-    <string name="wizard_registered_count">%1$d av %2$d registrerade</string>
-    <string name="wizard_duplicate">Redan markerad av %1$s</string>
-    <string name="wizard_save_error">Kunde inte spara. Försök igen.</string>
-    <string name="wizard_resume_hint">Fortsätt där markeringen slutade — serie %1$d, bana %2$d</string>
-    <string name="wizard_resume_go">Hoppa dit</string>
-    <string name="wizard_resume_stay">Stanna kvar här</string>
-    <string name="wizard_not_active">Skjutlaget är inte aktivt</string>
-    <string name="wizard_no_stations">Inget att markera: tävlingen har inga serier</string>
-    <string name="wizard_not_active_hint">Be tävlingsadmin att aktivera skjutlaget från uppropsvyn, eller ropa upp skjutlaget för att aktivera automatiskt.</string>
+    <!-- Common -->
     <string name="retry">Försök igen</string>
     <string name="dialog_cancel">Avbryt</string>
     <string name="sign_in_title">Logga in</string>
     <string name="sign_in_google">Fortsätt med Google</string>
     <string name="sign_in_apple">Logga in med Apple</string>
-    <string name="wizard_standings">Ställning · totalt</string>
-    <string name="wizard_tied">Särskjutning krävs</string>
-    <string name="wizard_standing_lane">bana %1$d</string>
-    <string name="wizard_final_done">Alla serier är färdigmarkerade.</string>
-    <string name="wizard_shots_unsupported">Serier med %1$d skott stöds inte ännu.</string>
     <string name="error_network">Nätverksfel. Kontrollera uppkopplingen och försök igen.</string>
     <string name="error_session_expired">Inloggningen har gått ut. Logga in igen.</string>
     <string name="error_server">Servern svarade med ett fel. Försök igen senare.</string>
@@ -377,7 +317,6 @@
     <string name="empty_markera_hint">Skanna en tavla och spara serien så syns den här.</string>
     <string name="signed_out_hint">Serier du sparar när du är inloggad visas här.</string>
     <string name="stats_no_series">Inga serier att visa än</string>
-    <string name="competitions_empty_hint">Prova en annan sökning.</string>
     <string name="detail_photo_missing">Inget foto</string>
     <string name="badge_caliber">Kaliber</string>
     <string name="badge_tag">Tagg</string>

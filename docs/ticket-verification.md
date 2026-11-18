@@ -15,7 +15,6 @@ shortcut never substitutes for Android/native coverage after module wiring chang
 | `vision/` geometry, scoring, image operations | Matching `vision/*Test` classes; geometry changes include `CentreEstimatorTest`, `RingProbeTest`, `TargetPlaneTest`, `HitScoringTest` and `ui/markera/ManualHitTest` |
 | Detection postprocessing | `vision/DetectionPostProcessTest`; use the eval skill for model/detection quality changes |
 | `series/` DTOs, recording, export, statistics | Matching `series/*Test` and `series/stats/*Test`; persistence also includes `SeriesRepositoryTest`, `SeriesMigrationTest`, `LoginMigrationTest` in `androidUnitTest` |
-| `webshooter/`, competition wizard | `webshooter/*Test`, `ui/competition/MarkingWizardViewModelTest`, Android DTO/serializer tests when wire data changes |
 | Scan/import/history/stats UI logic | Matching `ui/markera/*Test`, `ui/history/HistoryFilterTest`, `ui/stats/*Test`; continuous scan also includes Android `ContinuousScanReplayTest` |
 | Android image/cache/sign-in platform code | Matching `androidUnitTest` tests; JPEG/device behavior also needs applicable `androidInstrumentedTest` tests on USB phone `34282ee3` |
 | iOS platform code or shared behavior affecting iOS | Relevant tests above plus `:vision:iosSimulatorArm64Test` and `:composeApp:iosSimulatorArm64Test` and simulator build via the Mac recipes in `iosApp/README.md` |

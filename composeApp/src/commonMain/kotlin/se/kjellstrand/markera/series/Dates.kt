@@ -48,13 +48,6 @@ fun exportStamp(
     return "${t.year.pad(4)}${t.monthNumber.pad()}${t.dayOfMonth.pad()}-${t.hour.pad()}${t.minute.pad()}"
 }
 
-/** `yyyy-MM-ddTHH:mm:ss.SSSZ` in UTC, JavaScript's `toISOString` (what webshooter's web client sends). */
-fun isoUtcMillis(now: Instant = Clock.System.now()): String {
-    val t = now.toLocalDateTime(TimeZone.UTC)
-    return "${t.year.pad(4)}-${t.monthNumber.pad()}-${t.dayOfMonth.pad()}T" +
-        "${t.hour.pad()}:${t.minute.pad()}:${t.second.pad()}.${(t.nanosecond / 1_000_000).pad(3)}Z"
-}
-
 /**
  * A photo's EXIF `DateTimeOriginal` (`yyyy:MM:dd HH:mm:ss`) as an ISO instant, using
  * its `OffsetTimeOriginal` (`+02:00`) when there is one and [zone] otherwise. Null
