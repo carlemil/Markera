@@ -11,7 +11,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
@@ -87,6 +88,8 @@ import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.seriesJson
 import se.kjellstrand.markera.ui.HOME_INSIGHT_TAG
 import se.kjellstrand.markera.ui.MarkeraApp
+import se.kjellstrand.markera.ui.MENU_OVERLAY_TAG
+import se.kjellstrand.markera.ui.TOP_BAR_TAG
 import se.kjellstrand.markera.ui.history.COMPARISON_DAY_LINE_TAG
 import se.kjellstrand.markera.ui.history.COMPARISON_LINE_TAG
 import se.kjellstrand.markera.ui.history.SERIES_THUMBNAIL_TAG
@@ -107,13 +110,16 @@ import se.kjellstrand.markera.series.stats.decodeSightSetups
 @OptIn(ExperimentalTime::class, ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
 class AppUiTest {
-    @get:Rule val rule = createComposeRule()
+    // A ComponentActivity host, as createComposeRule() has, but reachable: Back on Home must leave it.
+    @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val root = File(context.cacheDir, "ui-test-${System.nanoTime()}")
     private val requests = CopyOnWriteArrayList<String>()
     /** Links the app opened; never a real browser. */
     private val opened = CopyOnWriteArrayList<String>()
+    /** Files the app handed to the share sheet. */
+    private val shared = CopyOnWriteArrayList<String>()
     /** Every series the app POSTed, as the server got it. */
     private val posted = CopyOnWriteArrayList<SeriesRequest>()
     /** What those posts became on the fake server, which GET /series lists newest first. */
@@ -287,7 +293,7 @@ class AppUiTest {
         val app = AppServices(
             series = services,
             modelPath = "no-model-in-ui-tests",
-            shareFile = {},
+            shareFile = { shared += it },
             scanStandIns = ScanStandIns(FakeFrameSource()) { scanEngine },
         )
         val links = object : UriHandler {
@@ -1419,6 +1425,185 @@ class AppUiTest {
         click(button("Privacy policy"))
         rule.waitUntil(TIMEOUT_MS) { opened.isNotEmpty() }
         assertEquals(listOf("https://markera.duckdns.org/privacy"), opened.toList())
+    }
+
+    // ---- the app menu, the help dialogs and back navigation ----
+
+    private val homeMarker = "series in 7 days"
+    private fun menuButton() = rule.onAllNodes(hasContentDescription("Menu"), useUnmergedTree = true)[0]
+    private fun menuRow(label: String) = hasText(label) and hasClickAction() and hasAnyAncestor(hasTestTag(MENU_OVERLAY_TAG))
+
+    /** Opens the screen's menu and checks its rows, top to bottom, are exactly [labels]. */
+    private fun assertMenu(vararg labels: String) {
+        menuButton().performClick()
+        labels.forEach { waitForButton(menuRow(it), "the menu's \"$it\"") }
+        rule.waitForIdle()
+        val rows = rule.onAllNodes(hasClickAction() and hasText("", substring = true) and hasAnyAncestor(hasTestTag(MENU_OVERLAY_TAG)))
+            .fetchSemanticsNodes()
+            .sortedBy { it.boundsInRoot.top }
+            .map { it.config[SemanticsProperties.Text].joinToString() }
+        assertEquals(labels.toList(), rows)
+        // Back closes the menu and stays on the screen.
+        pressBack()
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasTestTag(MENU_OVERLAY_TAG)) }
+    }
+    private fun openMenuItem(label: String) {
+        menuButton().performClick()
+        click(menuRow(label))
+    }
+
+    /** Waits until [marker] shows and Home does not. */
+    private fun waitOn(marker: SemanticsMatcher, what: String) {
+        waitFor(marker, what)
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText(homeMarker, substring = true)) }
+    }
+    private fun waitHome(left: SemanticsMatcher) {
+        waitForText(homeMarker)
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(left) }
+    }
+    private val onMark = hasTestTag(SCAN_VIEWPORT_TAG)
+    private val onHistory = hasText("History") and hasAnyAncestor(hasTestTag(TOP_BAR_TAG))
+    private val onStatistics = hasText("Statistics") and hasAnyAncestor(hasTestTag(TOP_BAR_TAG))
+    private val onSerie = hasText("Series") and hasAnyAncestor(hasTestTag(TOP_BAR_TAG))
+    private val onSettings = hasText("Shooting hand", substring = true, ignoreCase = true)
+    private val onSuggestion = hasText("It goes straight to the developer", substring = true)
+    /** Whether anything in the app takes Back; false means the system's Back leaves the app. */
+    private fun backIsHandled() = rule.runOnUiThread { rule.activity.onBackPressedDispatcher.hasEnabledCallbacks() }
+    private fun topBarBack() = click(hasContentDescription("Back") and hasClickAction(), "the top bar's back button")
+
+    /** Every screen's menu has its own items first and ends with Suggestion and Settings (bar the screen itself). */
+    @Test fun everyMenuEndsWithSuggestionAndSettings() {
+        launch(signedIn = true)
+        waitForText(homeMarker)
+        assertMenu("Import images", "Help", "Suggestion", "Settings")
+        click(button("Mark"))
+        waitOn(onMark, "the scan screen")
+        assertMenu("Help", "Show detection data", "Suggestion", "Settings")
+        pressBack()
+        click(button("History"))
+        waitOn(onHistory, "History")
+        assertMenu("Help", "Export", "Suggestion", "Settings")
+        waitFor(thumbnail, "a photo in History")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitOn(onSerie, "the Serie page")
+        assertMenu("Help", "Delete", "Suggestion", "Settings")
+        pressBack()
+        pressBack()
+        click(button("Statistics"))
+        waitOn(onStatistics, "Statistics")
+        assertMenu("Help", "Suggestion", "Settings")
+        openMenuItem("Settings")
+        waitOn(onSettings, "Settings")
+        // Settings and the Suggestion box each leave themselves out.
+        assertMenu("Suggestion")
+        openMenuItem("Suggestion")
+        waitOn(onSuggestion, "the Suggestion box")
+        assertMenu("Settings")
+    }
+
+    /** Each menu item goes where it says. */
+    @Test fun menuItemsGoWhereTheySay() {
+        launch(signedIn = true)
+        waitForText(homeMarker)
+        openMenuItem("Import images")
+        waitForText("Auto import")
+        pressBack()
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("Auto import")) }
+        openMenuItem("Suggestion")
+        waitOn(onSuggestion, "the Suggestion box")
+        openMenuItem("Settings")
+        waitOn(onSettings, "Settings")
+        pressBack()
+        waitOn(onSuggestion, "the Suggestion box again")
+        pressBack()
+        waitHome(onSuggestion)
+        click(button("History"))
+        waitOn(onHistory, "History")
+        waitFor(thumbnail, "a photo in History")
+        openMenuItem("Export")
+        rule.waitUntil(TIMEOUT_MS) { shared.isNotEmpty() }
+        assertTrue(shared.single(), shared.single().endsWith(".zip"))
+    }
+
+    /** Opens [screen]'s Help from its menu, checks [title], and closes it with Close (or Back). */
+    private fun assertHelp(title: String, closeWithBack: Boolean = false) {
+        openMenuItem("Help")
+        waitForText(title)
+        if (closeWithBack) pressBack() else click(inDialog(button("Close")))
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText(title)) }
+    }
+
+    @Test fun everyHelpOpensAndCloses() {
+        launch(signedIn = true)
+        waitForText(homeMarker)
+        assertHelp("About Markera")
+        waitForText(homeMarker)
+        click(button("Mark"))
+        waitOn(onMark, "the scan screen")
+        assertHelp("How to scan", closeWithBack = true)
+        waitFor(onMark, "the scan screen after its help")
+        pressBack()
+        click(button("History"))
+        waitOn(onHistory, "History")
+        assertHelp("About the history")
+        waitFor(thumbnail, "a photo in History")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitOn(onSerie, "the Serie page")
+        assertHelp("About the series")
+        waitFor(onSerie, "the Serie page after its help")
+    }
+
+    /** Both the top bar's back button and system Back return one step, on every screen. */
+    @Test fun backReturnsOneStepOnEveryScreen() {
+        launch(signedIn = true)
+        waitForText(homeMarker)
+        assertFalse("Home leaves Back to the system", backIsHandled())
+        listOf(
+            Triple("Mark", onMark, "the scan screen"),
+            Triple("History", onHistory, "History"),
+            Triple("Statistics", onStatistics, "Statistics"),
+        ).forEach { (button, marker, what) ->
+            click(button(button))
+            waitOn(marker, what)
+            topBarBack()
+            waitHome(marker)
+            click(button(button))
+            waitOn(marker, what)
+            pressBack()
+            waitHome(marker)
+        }
+        listOf(
+            Triple("Settings", onSettings, "Settings"),
+            Triple("Suggestion", onSuggestion, "the Suggestion box"),
+        ).forEach { (item, marker, what) ->
+            openMenuItem(item)
+            waitOn(marker, what)
+            topBarBack()
+            waitHome(marker)
+            openMenuItem(item)
+            waitOn(marker, what)
+            pressBack()
+            waitHome(marker)
+        }
+        click(button("History"))
+        waitOn(onHistory, "History")
+        waitFor(thumbnail, "a photo in History")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitOn(onSerie, "the Serie page")
+        topBarBack()
+        waitOn(onHistory, "History from the Serie page")
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(onSerie) }
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitOn(onSerie, "the Serie page")
+        pressBack()
+        waitOn(onHistory, "History from the Serie page")
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(onSerie) }
+        pressBack()
+        waitHome(onHistory)
+        // Back on Home leaves the app.
+        assertFalse(backIsHandled())
+        pressBack()
+        rule.waitUntil(TIMEOUT_MS) { rule.activity.isFinishing }
     }
 
     private companion object {

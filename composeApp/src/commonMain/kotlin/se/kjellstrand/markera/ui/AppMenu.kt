@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -81,6 +82,9 @@ val LocalOpenSettings = staticCompositionLocalOf<(() -> Unit)?> { null }
 
 /** Every menu offers the suggestion box, just above Settings; null leaves it out (the box itself). */
 val LocalOpenSuggestion = staticCompositionLocalOf<(() -> Unit)?> { null }
+
+/** The open menu's rows, for UI tests. */
+const val MENU_OVERLAY_TAG = "app-menu-overlay"
 
 private val MenuButtonSize = 38.dp
 private val MenuItemSpacing = 10.dp
@@ -136,7 +140,7 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
             .background(Color.Black.copy(alpha = 0.8f * progress.coerceIn(0f, 1f)))
             .pointerInput(Unit) { detectTapGestures { host.close() } },
     )
-    BoxWithConstraints(Modifier.matchParentSize()) {
+    BoxWithConstraints(Modifier.matchParentSize().testTag(MENU_OVERLAY_TAG)) {
         val density = LocalDensity.current
         val anchor = host.anchor
         val rowStridePx = with(density) { (MenuButtonSize + MenuRowSpacing).toPx() }

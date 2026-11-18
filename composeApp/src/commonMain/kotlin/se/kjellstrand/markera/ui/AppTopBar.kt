@@ -11,11 +11,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
+
+/** Every screen's top bar, for UI tests. */
+const val TOP_BAR_TAG = "app-top-bar"
 
 /**
  * The one top bar: back button (when [onBack] is set), menu button, then title.
@@ -31,6 +35,7 @@ fun AppTopBar(
 ) {
     Row(
         modifier = modifier
+            .testTag(TOP_BAR_TAG)
             .fillMaxWidth()
             .padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
