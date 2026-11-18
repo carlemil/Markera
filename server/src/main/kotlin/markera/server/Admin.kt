@@ -238,7 +238,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                     (if (embed) "" else paging) +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
-                    photo + note + "</div></div>" +
+                    photo + note + (if (placeable && !series.deleted) RING_NOTE else "") + "</div></div>" +
                     (if (hasImage) "<script>$ZOOM_JS</script>" else "") +
                     script + (if (embed) "" else auditSummary(db.auditEvents(seriesId))),
             )
@@ -400,13 +400,18 @@ private suspend fun RoutingContext.notFromPage(): Boolean {
  * `data-cal` (the caliber table) let the editor resize them when the caliber is changed. Without a ring there is
  * no mm scale, and the markers keep their fixed screen size.
  */
+/** Under an editable photo: how to fix the ring and centre (the editor's ring handles). */
+private const val RING_NOTE = """<p class="note">Drag the orange dots onto the edge of the black (6/7), each in line """ +
+    """with the digits, and the cross to the centre; Shift-drag moves it all. Holes whose score matches the ring """ +
+    """are re-scored as it moves; a score set by hand stays.</p>"""
+
 private fun holeSizeAttrs(series: Series): String {
     val width = series.imageWidth?.takeIf { it > 0 } ?: return ""
-    val perMm = pxPerMm(series) ?: return ""
-    val pctMm = perMm / width * 100
     val table = CALIBER_DIAMETER_MM.entries.joinToString(",", "{", "}") { (k, v) -> "&quot;$k&quot;:$v" }
-    return """ style="--hole:${round2(caliberDiameterMm(series.caliber) * pctMm)}%" data-pctmm="$pctMm" """ +
-        """data-cal="$table" data-dflt="$DEFAULT_DIAMETER_MM""""
+    val cal = """ data-cal="$table" data-dflt="$DEFAULT_DIAMETER_MM""""
+    val perMm = pxPerMm(series) ?: return cal
+    val pctMm = perMm / width * 100
+    return """ style="--hole:${round2(caliberDiameterMm(series.caliber) * pctMm)}%" data-pctmm="$pctMm"$cal"""
 }
 
 private fun markers(series: Series): String {
@@ -665,6 +670,17 @@ width:var(--hole,calc(20px * var(--iz,1)));aspect-ratio:1;border:calc(1px * var(
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:1;vector-effect:non-scaling-stroke}
+.geom ellipse:not(.inner){stroke-width:3}
+.geom .inner{opacity:.45}
+.geom .draft{stroke-dasharray:6 4}
+.geom .axis{stroke:#ffb74d;opacity:.35}
+/* The ring handles (the app's GeometryPlacer): four dots on the 6/7 edge and the centre cross, screen-sized. */
+.handle{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));cursor:move;touch-action:none}
+.handle.edge{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#ffb74d 0 6px,rgba(0,0,0,.55) 6px 8px,transparent 8px)}
+.handle.centre{width:30px;height:30px}
+.handle.centre::before,.handle.centre::after{content:"";position:absolute;background:#ffb74d;box-shadow:0 0 0 1px rgba(0,0,0,.55)}
+.handle.centre::before{left:0;right:0;top:13.5px;height:3px}
+.handle.centre::after{top:0;bottom:0;left:13.5px;width:3px}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
@@ -834,13 +850,22 @@ tbl.addEventListener('click', e => {
 undo.onclick = () => { if (undone.length) setRemoved(undone.pop(), false); };
 
 if (placeable) {
-  let drag = null;
+  let drag = null, grip = null, swallow = false, down = null;
   const at = e => {
     const r = img.getBoundingClientRect();
     return [Math.round((e.clientX - r.left) / r.width * S.imageWidth),
             Math.round((e.clientY - r.top) / r.height * S.imageHeight)];
   };
   shot.addEventListener('pointerdown', e => {
+    down = [e.clientX, e.clientY];
+    // A ring handle, or Shift anywhere (the whole ring), comes before the holes.
+    const hd = e.target.closest('.handle');
+    if (hd || (e.shiftKey && e.button === 0 && !e.target.closest('.hit'))) {
+      e.preventDefault();
+      shot.setPointerCapture(e.pointerId);
+      grip = {kind: hd ? hd.dataset.h : 'all', from: at(e), start: D, follow: followers(), moved: false};
+      return;
+    }
     const m = e.target.closest('.hit');
     if (!m || m.classList.contains('gone')) return;
     e.preventDefault();
@@ -848,6 +873,7 @@ if (placeable) {
     drag = m;
   });
   shot.addEventListener('pointermove', e => {
+    if (grip) { moveGrip(grip, at(e)); return; }
     if (!drag) return;
     const i = drag.dataset.i, h = S.holes[i], p = at(e);
     h.x = p[0];
@@ -855,14 +881,225 @@ if (placeable) {
     h.distanceMm = distanceMm(h);   // null without geometry: nothing left to measure against
     refresh(i);
   });
-  shot.addEventListener('pointerup', () => { if (drag) save(); drag = null; });
+  shot.addEventListener('pointerup', () => {
+    if (grip) { if (grip.moved) { save(); swallow = true; } grip = null; return; }
+    if (drag) save();
+    drag = null;
+  });
   // A click that is not on a marker drops a new hole there; a drag ends on its own marker, so it is skipped.
   shot.addEventListener('click', e => {
-    if (e.target.closest('.hit')) return;
+    // A Shift-drag of the ring ends in a click on the photo: that is no new hole.
+    if (swallow) { swallow = false; return; }
+    // Nor is a drag that missed every handle: only a click that stayed put adds a hole.
+    if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+    if (e.target.closest('.hit,.handle')) return;
     const p = at(e);
     addHole(p[0], p[1]);
   });
 }
+
+// ---- The 6/7 ring and the centre by hand: the app's GeometryPlacer and vision TargetPlane, ported. ----
+// D holds the four edge points (left, right, top, bottom: the target's (-100,0), (100,0), (0,-100), (0,100) mm)
+// and the centre; the ring is the exact perspective image of the 100 mm circle through the four. A centre the scan
+// read from the digits stays put; a placed-from-nothing one follows the points until it is dragged itself.
+const R67 = 100;
+let D = null, handles = [];
+function mul3(a, b) {
+  const o = [];
+  for (let i = 0; i < 9; i++) { const r = Math.floor(i / 3), c = i % 3; o.push(a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c]); }
+  return o;
+}
+const tr3 = m => [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
+function inv3(m) {
+  const c00 = m[4] * m[8] - m[5] * m[7], c01 = m[5] * m[6] - m[3] * m[8], c02 = m[3] * m[7] - m[4] * m[6];
+  const det = m[0] * c00 + m[1] * c01 + m[2] * c02;
+  return [c00 / det, (m[2] * m[7] - m[1] * m[8]) / det, (m[1] * m[5] - m[2] * m[4]) / det,
+          c01 / det, (m[0] * m[8] - m[2] * m[6]) / det, (m[2] * m[3] - m[0] * m[5]) / det,
+          c02 / det, (m[1] * m[6] - m[0] * m[7]) / det, (m[0] * m[4] - m[1] * m[3]) / det];
+}
+const ap3 = (m, x, y) => { const w = m[6] * x + m[7] * y + m[8]; return [(m[0] * x + m[1] * y + m[2]) / w, (m[3] * x + m[4] * y + m[5]) / w]; };
+// Gaussian elimination with partial pivoting on the augmented rows a (n x n+1); null when singular.
+function solve(a) {
+  const n = a.length;
+  let scale = 0;
+  a.forEach(row => row.forEach(v => { scale = Math.max(scale, Math.abs(v)); }));
+  for (let col = 0; col < n; col++) {
+    let piv = col;
+    for (let r = col + 1; r < n; r++) if (Math.abs(a[r][col]) > Math.abs(a[piv][col])) piv = r;
+    if (Math.abs(a[piv][col]) <= scale * 1e-12) return null;
+    const t = a[col]; a[col] = a[piv]; a[piv] = t;
+    for (let r = 0; r < n; r++) {
+      if (r === col) continue;
+      const f = a[r][col] / a[col][col];
+      for (let k = col; k <= n; k++) a[r][k] -= f * a[col][k];
+    }
+  }
+  return a.map((row, i) => row[n] / row[i]);
+}
+// TargetPlane.fromCross: the photo-to-mm map through the four edge points; null when three are in a line.
+function fromCross(xs, ys) {
+  const tx = [-R67, R67, 0, 0], ty = [0, 0, -R67, R67], a = [];
+  for (let i = 0; i < 4; i++) {
+    a.push([xs[i], ys[i], 1, 0, 0, 0, -tx[i] * xs[i], -tx[i] * ys[i], tx[i]]);
+    a.push([0, 0, 0, xs[i], ys[i], 1, -ty[i] * xs[i], -ty[i] * ys[i], ty[i]]);
+  }
+  const s = solve(a);
+  return s ? s.slice(0, 8).concat([1]) : null;
+}
+// TargetPlane.of: the same map from a stored ring and centre (the centre's polar line is the vanishing line).
+function planeOf(g) {
+  if (!(g.ringSemiMajor > 0 && g.ringSemiMinor > 0)) return null;
+  const c = Math.cos(g.ringRotationRad), s = Math.sin(g.ringRotationRad);
+  const ia = 1 / (g.ringSemiMajor * g.ringSemiMajor), ib = 1 / (g.ringSemiMinor * g.ringSemiMinor);
+  const a11 = c * c * ia + s * s * ib, a12 = c * s * (ia - ib), a22 = s * s * ia + c * c * ib;
+  const mx = g.ringCx - g.centreX, my = g.ringCy - g.centreY;
+  const amx = a11 * mx + a12 * my, amy = a12 * mx + a22 * my;
+  const l1 = -amx, l2 = -amy, l3 = mx * amx + my * amy - 1;
+  if (l3 > -1e-9) return null;
+  const conic = [a11, a12, l1, a12, a22, l2, l1, l2, l3];
+  const v1 = l1 / l3, v2 = l2 / l3;
+  const p = [1, 0, 0, 0, 1, 0, v1, v2, 1], pInv = [1, 0, 0, 0, 1, 0, -v1, -v2, 1];
+  const k = mul3(mul3(tr3(pInv), conic), pInv);
+  const f = -k[8];
+  if (f <= 0) return null;
+  const ma = k[0] / f, mb = k[1] / f, mc = k[4] / f, det = ma * mc - mb * mb;
+  if (ma <= 0 || det <= 0) return null;
+  const sd = Math.sqrt(det), t = Math.sqrt(ma + mc + 2 * sd);
+  const m0 = (ma + sd) / t, m1 = mb / t, m2 = (mc + sd) / t;
+  const stretch = [R67 * m0, R67 * m1, 0, R67 * m1, R67 * m2, 0, 0, 0, 1];
+  const shift = [1, 0, -g.centreX, 0, 1, -g.centreY, 0, 0, 1];
+  return mul3(mul3(stretch, p), shift);
+}
+// ellipseOf: centre, semi-axes and tilt of a conic; null when it is no real ellipse.
+function ellipseOf(k) {
+  const a = k[0], b = (k[1] + k[3]) / 2, c = k[4], d = (k[2] + k[6]) / 2, e = (k[5] + k[7]) / 2;
+  const det = a * c - b * b;
+  if (det <= 0) return null;
+  const mx = (-d * c + b * e) / det, my = (-a * e + b * d) / det;
+  const g = -(k[8] + d * mx + e * my);
+  if (g <= 0) return null;
+  const mid = (a + c) / 2, spread = Math.sqrt((a - c) * (a - c) / 4 + b * b);
+  const big = (mid + spread) / g, small = (mid - spread) / g;
+  if (small <= 0) return null;
+  return {cx: mx, cy: my, a: 1 / Math.sqrt(small), b: 1 / Math.sqrt(big), rot: Math.atan2(2 * b, a - c) / 2 + Math.PI / 2};
+}
+const circleOutline = (h, r) => ellipseOf(mul3(mul3(tr3(h), [1, 0, 0, 0, 1, 0, 0, 0, -r * r]), h));
+
+// scoreAt in the app: edge gauging with the caliber's hole, rings every 25 mm, inner X within 12.5 mm.
+function holeRadiusMm() {
+  const c = document.getElementById('caliber').value.trim();
+  if (c === '' || c === '-') return 0;
+  const t = shot.dataset.cal ? JSON.parse(shot.dataset.cal) : {};
+  return (t[c] || Number(shot.dataset.dflt || 7.92)) / 2;
+}
+function scoreAt(d) {
+  const edge = Math.max(0, d - holeRadiusMm());
+  let ring = 0;
+  for (let k = 1; k <= 10; k++) if (edge <= 25 * k) { ring = 11 - k; break; }
+  return [ring, edge <= 12.5];
+}
+// The holes that follow a ring move: those whose score is what the ring says now, and unscored zeros
+// (never a detection zeroed by hand: that is a false positive kept for training).
+function followers() {
+  const out = [];
+  S.holes.forEach((h, i) => {
+    if (!h || h.deleted || h.removed || h.x == null) return;
+    let same = false;
+    if (S.geometry) { const d = distanceMm(h); if (d != null) { const s = scoreAt(d); same = s[0] === h.ring && s[1] === h.innerTen; } }
+    if (same || (h.ring === 0 && !h.innerTen && (h.detectedRing == null || h.detectedRing === 0))) out.push(i);
+  });
+  return out;
+}
+function rescore(i) {
+  const h = S.holes[i];
+  if (h.distanceMm == null) return;
+  const s = scoreAt(h.distanceMm);
+  h.ring = s[0];
+  h.innerTen = s[1];
+  const sel = tb.querySelector('tr[data-i="' + i + '"] select.manual');
+  if (sel) sel.value = h.detectedRing != null && h.ring === h.detectedRing && h.innerTen === (h.detectedInnerTen === true) ? '' : sc(h.ring, h.innerTen);
+}
+
+function initRing() {
+  const W = S.imageWidth, H = S.imageHeight, g = S.geometry, h = g && planeOf(g);
+  if (h) {
+    const hi = inv3(h), p = [[-R67, 0], [R67, 0], [0, -R67], [0, R67]].map(q => ap3(hi, q[0], q[1]));
+    D = {xs: p.map(q => q[0]), ys: p.map(q => q[1]), cx: g.centreX, cy: g.centreY, fixed: true};
+  } else {
+    // No ring stored: a circle at the live guide's size (35% of the short side) in the middle, as in the app.
+    const r = g ? g.ringSemiMajor : 0.35 * Math.min(W, H), cx = g ? g.centreX : W / 2, cy = g ? g.centreY : H / 2;
+    D = {xs: [cx - r, cx + r, cx, cx], ys: [cy, cy, cy - r, cy + r], cx: cx, cy: cy, fixed: !!g};
+  }
+  handles = ['0', '1', '2', '3', 'c'].map(k => {
+    const el = document.createElement('div');
+    el.className = 'handle ' + (k === 'c' ? 'centre' : 'edge');
+    el.dataset.h = k;
+    el.title = k === 'c' ? 'centre' : 'edge of the black (6/7)';
+    shot.appendChild(el);
+    return el;
+  });
+  drawRing();
+}
+function drawRing() {
+  const W = S.imageWidth, H = S.imageHeight;
+  let svg = shot.querySelector('svg.geom');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'geom');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    shot.insertBefore(svg, img.nextSibling);
+  }
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  // The rings inside the black come from the same map the scoring uses, so line and score agree.
+  const h = S.geometry ? planeOf(S.geometry) : fromCross(D.xs, D.ys);
+  let out = '';
+  if (h) [R67, 75, 50, 25].forEach(mm => {
+    const e = circleOutline(h, mm);
+    if (!e) return;
+    const cls = (S.geometry ? '' : 'draft ') + (mm === R67 ? '' : 'inner');
+    out += '<ellipse class="' + cls + '" cx="' + e.cx + '" cy="' + e.cy + '" rx="' + e.a + '" ry="' + e.b +
+        '" transform="rotate(' + (e.rot * 180 / Math.PI) + ' ' + e.cx + ' ' + e.cy + ')"/>';
+  });
+  // The two diameters the points sit on: they should run through the digit rows.
+  out += '<path class="axis" d="M' + D.xs[0] + ' ' + D.ys[0] + 'L' + D.xs[1] + ' ' + D.ys[1] +
+      'M' + D.xs[2] + ' ' + D.ys[2] + 'L' + D.xs[3] + ' ' + D.ys[3] + '"/>';
+  svg.innerHTML = out;
+  handles.forEach((el, k) => {
+    el.style.left = ((k === 4 ? D.cx : D.xs[k]) / W * 100) + '%';
+    el.style.top = ((k === 4 ? D.cy : D.ys[k]) / H * 100) + '%';
+  });
+}
+// The new draft, when its four points make a ring: geometry, hole sizes, distances and followers' scores follow.
+function setDraft(d, follow) {
+  const h = fromCross(d.xs, d.ys), e = h && circleOutline(h, R67);
+  if (!e) return false;
+  if (!d.fixed) { const c = ap3(inv3(h), 0, 0); d.cx = c[0]; d.cy = c[1]; }
+  D = d;
+  S.geometry = {centreX: D.cx, centreY: D.cy, ringCx: e.cx, ringCy: e.cy,
+                ringSemiMajor: e.a, ringSemiMinor: e.b, ringRotationRad: e.rot};
+  shot.dataset.pctmm = String(e.a / R67 / S.imageWidth * 100);
+  holeSize();
+  S.holes.forEach((hole, i) => {
+    if (!hole || hole.deleted || hole.x == null) return;
+    hole.distanceMm = distanceMm(hole);
+    if (follow.indexOf(i) >= 0) rescore(i);
+    refresh(i);
+  });
+  drawRing();
+  return true;
+}
+// A point or the centre moves with the pointer's motion from where the drag began; 'all' shifts everything.
+function moveGrip(grip, p) {
+  const s = grip.start, dx = p[0] - grip.from[0], dy = p[1] - grip.from[1];
+  const cx = v => Math.min(S.imageWidth, Math.max(0, v)), cy = v => Math.min(S.imageHeight, Math.max(0, v));
+  const d = {xs: s.xs.slice(), ys: s.ys.slice(), cx: s.cx, cy: s.cy, fixed: s.fixed};
+  if (grip.kind === 'c') { d.cx = cx(s.cx + dx); d.cy = cy(s.cy + dy); d.fixed = true; }
+  else if (grip.kind === 'all') { d.xs = d.xs.map(x => x + dx); d.ys = d.ys.map(y => y + dy); d.cx += dx; d.cy += dy; }
+  else { const k = Number(grip.kind); d.xs[k] = cx(s.xs[k] + dx); d.ys[k] = cy(s.ys[k] + dy); }
+  if (setDraft(d, grip.follow)) grip.moved = true;
+}
+// Here, not in the pointer block above: the helpers are consts, so they exist only from this line on.
+if (placeable) initRing();
 
 const add = document.getElementById('add');
 if (add) add.onclick = () => addHole(null, null);
@@ -961,7 +1198,7 @@ private const val ZOOM_JS = """
   }, {passive: false});
   box.addEventListener('pointerdown', e => {
     moved = false;
-    if (z === 1 || e.button !== 0 || e.target.closest('.hit')) return;
+    if (z === 1 || e.button !== 0 || e.shiftKey || e.target.closest('.hit,.handle')) return;
     pan = {x: e.clientX, y: e.clientY, tx: tx, ty: ty, id: e.pointerId};
   });
   window.addEventListener('pointermove', e => {

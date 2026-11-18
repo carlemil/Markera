@@ -987,7 +987,9 @@ class ApiTest {
         assertTrue(""""ringSemiMajor":40.0""" in page, page)
 
         val bare = client.admin("/admin/series/$plain").bodyAsText()
-        assertTrue("<svg" !in bare && "<ellipse" !in bare, bare)
+        // No ring drawn server-side; the editor still offers its ring handles (and the caliber sizes for them).
+        assertTrue("""<svg class="geom"""" !in bare && "<ellipse cx=" !in bare, bare)
+        assertTrue("""data-cal="{""" in bare && "data-pctmm" !in bare && "Drag the orange dots" in bare, bare)
     }
 
     @Test
@@ -1486,7 +1488,8 @@ class ApiTest {
         assertTrue("""<div class="hit" data-i="0"""" in page, page)
         // The photo has a frame size, so nothing warns about placing markers and holes are added by
         // clicking the photo — no position-less "Add hole" button to leave an empty typed row behind.
-        assertTrue("class=\"note\"" !in page, page)
+        assertTrue("No photo with a stored frame size" !in page, page)
+        assertTrue("Drag the orange dots" in page && "function initRing()" in page, page)
         assertTrue("""id="add"""" !in page, page)
     }
 
