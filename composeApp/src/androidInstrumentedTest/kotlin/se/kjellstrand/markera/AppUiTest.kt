@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.platform.LocalUriHandler
@@ -355,7 +356,8 @@ class AppUiTest {
         try {
             rule.waitUntil(TIMEOUT_MS) { rule.exists(matcher) }
         } catch (e: Throwable) {
-            throw AssertionError("Never showed $what; requests: $requests " + rule.onRoot(useUnmergedTree = true).printToString(), e)
+            // Every root: a dialog is a second one, and onRoot() would throw on it.
+            throw AssertionError("Never showed $what; requests: $requests " + rule.onAllNodes(isRoot(), useUnmergedTree = true).printToString(), e)
         }
     }
 
