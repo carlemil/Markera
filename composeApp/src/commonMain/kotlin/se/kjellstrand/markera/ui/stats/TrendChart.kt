@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -163,10 +165,13 @@ fun TrendChart(
                 }
             }
         }
+        // The lines and points are drawn, not composed: this names what is plotted.
+        val description = stringResource(Res.string.stats_trend_description, lines.count { it.points.isNotEmpty() }, all.size)
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(CHART_HEIGHT)
+                .semantics { contentDescription = description }
                 .pointerInput(lines) {
                     detectTapGestures { tap ->
                         selected = placed.value

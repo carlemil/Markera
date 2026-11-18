@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import se.kjellstrand.markera.ui.markera.photoGestures
@@ -118,6 +119,9 @@ import se.kjellstrand.markera.ui.settings.ShootingHand
  * un-projected to target millimetres, coloured by caliber, with the group
  * measurements underneath. The maths lives in `series/stats/`; this only draws.
  */
+/** The photo in Tavla's photo dialog, for UI tests. */
+const val STATS_PHOTO_TAG = "stats-photo"
+
 @OptIn(ExperimentalTime::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
@@ -507,7 +511,7 @@ private fun PhotoDialog(series: SeriesDto, services: SeriesServices, onDismiss: 
                     shown,
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = box
+                    modifier = box.testTag(STATS_PHOTO_TAG)
                         .photoGestures(
                             zoom, shown.width, shown.height, grabPx = 0f, key = shown,
                             holeAt = { _, _, _ -> -1 },

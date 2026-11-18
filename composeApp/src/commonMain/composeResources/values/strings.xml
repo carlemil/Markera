@@ -167,6 +167,7 @@
     <string name="stats_short_mean_radius">Radius</string>
     <string name="stats_short_radial_sd">Spread (SD)</string>
     <string name="stats_short_mean_score">Score</string>
+    <string name="stats_trend_description">Trend chart, lines: %1$d, points: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
     <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d series)</string>
     <string name="decimal_mark">.</string>

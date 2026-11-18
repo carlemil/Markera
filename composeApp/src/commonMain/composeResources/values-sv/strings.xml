@@ -167,6 +167,7 @@
     <string name="stats_short_mean_radius">Radie</string>
     <string name="stats_short_radial_sd">Spridning (SD)</string>
     <string name="stats_short_mean_score">Poäng</string>
+    <string name="stats_trend_description">Trenddiagram, linjer: %1$d, punkter: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
     <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d serier)</string>
     <string name="decimal_mark">,</string>

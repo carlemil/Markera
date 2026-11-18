@@ -109,6 +109,7 @@ import se.kjellstrand.markera.ui.history.COMPARISON_DAY_LINE_TAG
 import se.kjellstrand.markera.ui.history.COMPARISON_LINE_TAG
 import se.kjellstrand.markera.ui.history.SERIES_THUMBNAIL_TAG
 import se.kjellstrand.markera.ui.stats.SIGHT_CLICK_TAG
+import se.kjellstrand.markera.ui.stats.STATS_PHOTO_TAG
 import se.kjellstrand.markera.ui.stats.SIGHT_CORRECTION_TAG
 import se.kjellstrand.markera.series.stats.decodeSightSetups
 
@@ -1807,6 +1808,132 @@ class AppUiTest {
         offline = false
         click(button("Try again"))
         waitForDays(*allDays)
+    }
+
+    // ---- Statistics: filters, Target, Trend, Drift ----
+
+    private fun openStatistics(store: MemoryStore = MemoryStore(null)): MemoryStore {
+        launch(signedIn = true, store = store)
+        waitForText(homeMarker)
+        click(button("Statistics"))
+        waitOn(onStatistics, "Statistics")
+        return store
+    }
+    private fun described(text: String) = hasContentDescription(text, substring = true)
+    private fun waitForDescribed(text: String) = waitFor(described(text), "a chart described \"$text\"")
+    private fun tab(label: String) = click(button(label), "the $label tab")
+
+    /** The caliber, tag and date chips change what Target plots, and the filter is the one History shares. */
+    @Test fun statsFiltersChangeWhatIsPlotted() {
+        onServer = varied
+        val store = openStatistics()
+        waitForDescribed("hits from 5 series")
+        chip("Filter")
+        chip("9mm")
+        waitForDescribed("Target with 5 hits from 1 series")
+        filterIs(store, HistoryFilter(calibers = setOf(Caliber.fromLabel("9mm"))))
+        chip("Clear filters")
+        chip("Club")
+        waitForDescribed("hits from 2 series")
+        chip("Clear filters")
+        chip("30 d")
+        waitForDescribed("hits from 4 series")
+        chip("Today")
+        waitForDescribed("hits from 1 series")
+        chip("9mm")
+        waitForText("No series match the filter.")
+    }
+
+    /** Target's legend names each caliber shown; the timeline knob on one series shows only it, and its photo. */
+    @Test fun statsTargetLegendKnobAndPhoto() {
+        onServer = varied
+        openStatistics()
+        waitForDescribed("hits from 5 series")
+        waitForExact("9mm")
+        waitForExact("Mean")
+        waitForExact("Median")
+        val knob = hasContentDescription("Series timeline") and SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)
+        rule.onNode(knob).performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
+        waitForDescribed("hits from 1 series")
+        // Only today's 22lr: one caliber needs no swatches.
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("9mm")) }
+        waitForExact("Mean")
+        click(hasContentDescription("Show photo") and hasClickAction(), "Show photo")
+        waitFor(hasTestTag(STATS_PHOTO_TAG), "the series' photo")
+        waitForExact(localStamp(serverSeries.timestamp))
+        click(inDialog(button("Close")))
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasTestTag(STATS_PHOTO_TAG)) }
+    }
+
+    /** Trend draws a line per caliber until Per caliber is switched off; one caliber filtered in offers no split. */
+    @Test fun statsTrendSplitsByCaliber() {
+        onServer = varied
+        openStatistics()
+        waitForDescribed("hits from 5 series")
+        tab("Trend")
+        waitForDescribed("Trend chart, lines: 2, points: 5")
+        chip("Per caliber")
+        waitForDescribed("Trend chart, lines: 1, points: 5")
+        chip("Filter")
+        chip("9mm")
+        waitForDescribed("Trend chart, lines: 1, points: 1")
+        assertFalse(rule.exists(hasText("Per caliber")))
+    }
+
+    /** Drift charts a point per day, or per series; with nothing in the filter it says so. */
+    @Test fun statsDriftChartOrEmpty() {
+        onServer = varied
+        openStatistics()
+        waitForDescribed("hits from 5 series")
+        tab("Drift")
+        waitForDescribed("over time, 5 points")
+        chip("Filter")
+        chip("30 d")
+        waitForDescribed("over time, 4 points")
+        chip("9mm")
+        chip("Today")
+        waitForText("No series match the filter.")
+        assertFalse(rule.exists(described("over time,")))
+    }
+
+    /** With no series scanned with a ring, Statistics says there is nothing to plot against. */
+    @Test fun statsWithoutGeometrySaysSo() {
+        onServer = varied.map { it.copy(geometry = null) }
+        openStatistics()
+        waitForText("None of your series has a ring")
+    }
+
+    /** A day opened from the Serie page filters only that look: the filter History shares is left as it was. */
+    @Test fun statisticsDayLeavesTheHistoryFilterAlone() {
+        var newest = Clock.System.now() - 1.hours
+        if (newest.toEpochMilliseconds().let { ms -> KxInstant.fromEpochMilliseconds(ms).toLocalDateTime(zone).time.toSecondOfDay() } < 600) {
+            newest -= 15.minutes
+        }
+        onServer = listOf(serverSeries.copy(timestamp = newest.toString())) + offsetSeries.mapIndexed { i, s ->
+            s.copy(timestamp = (newest - (i + 1).minutes).toString())
+        }
+        val kept = HistoryFilter(calibers = setOf(Caliber.fromLabel("22lr"))).encode()
+        val store = MemoryStore(null, historyFilter = kept)
+        launch(signedIn = true, store = store)
+        waitForText(homeMarker)
+        click(button("History"))
+        waitFor(thumbnail, "a photo in History")
+        // The filter's summary reads 22lr too; the series is the card.
+        click(button("22lr"), "the newest series' card")
+        waitForText("See this day in Insights")
+        rule.onNode(hasText("See this day in Insights")).performScrollTo().performClick()
+        waitFor(hasContentDescription("Insights target with 20 shots", substring = true), "the Insights target")
+        chip("Filter")
+        chip("1 yr")
+        tab("Target")
+        waitForDescribed("hits from 4 series")
+        rule.waitForIdle()
+        assertEquals(kept, store.historyFilter)
+        pressBack()
+        waitForText("See this day in Insights")
+        pressBack()
+        waitForButton(button("Clear filters"), "History's own filter, still on")
+        assertEquals(kept, store.historyFilter)
     }
 
     private companion object {
