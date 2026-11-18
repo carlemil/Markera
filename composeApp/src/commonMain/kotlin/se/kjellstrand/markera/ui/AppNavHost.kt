@@ -47,6 +47,8 @@ import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.LocalClaimController
 import se.kjellstrand.markera.series.encodeSeriesJpeg
 import se.kjellstrand.markera.series.rememberSignIn
+import se.kjellstrand.markera.series.BackendAuth
+import se.kjellstrand.markera.series.BackendSessionRepository
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.ImportFrameSource
 import se.kjellstrand.markera.ui.markera.ImportQueue
@@ -72,6 +74,9 @@ import se.kjellstrand.markera.ui.theme.MarkeraTheme
 
 /** Shows a short message; the host lives in [AppNavHost], above every screen. */
 val LocalToast = staticCompositionLocalOf<(String) -> Unit> { error("no toast host") }
+
+/** UI tests: [AppServices.signInStandIn], answering every Sign in button. */
+val LocalSignInStandIn = staticCompositionLocalOf<(suspend (BackendSessionRepository) -> BackendAuth)?> { null }
 
 /** The same host as [LocalToast], for a message with an action (Undo). */
 val LocalSnackbar = staticCompositionLocalOf<SnackbarHostState> { error("no snackbar host") }
@@ -201,7 +206,8 @@ fun AppNavHost(
         scope.launch { snackbarHostState.showSnackbar(msg) }
     }
     // Not rememberBackendSignIn: LocalToast is only provided further down.
-    val signIn = rememberSignIn(seriesServices.session)
+    val realSignIn = rememberSignIn(seriesServices.session)
+    val signIn: suspend () -> BackendAuth = app.signInStandIn?.let { { it(seriesServices.session) } } ?: realSignIn
     val signInFromToast: () -> Unit = {
         scope.launch {
             try {
@@ -279,6 +285,7 @@ fun AppNavHost(
         LocalMenuHost provides menuHost,
         LocalOpenSettings provides { push(Screen.Settings) },
         LocalOpenSuggestion provides { push(Screen.Suggestion) },
+        LocalSignInStandIn provides app.signInStandIn,
     ) {
     Box(Modifier.fillMaxSize()) {
     when (val screen = current) {
@@ -400,7 +407,9 @@ fun AppNavHost(
  */
 @Composable
 internal fun rememberBackendSignIn(services: SeriesServices): Pair<Boolean, () -> Unit> {
-    val signIn = rememberSignIn(services.session)
+    val real = rememberSignIn(services.session)
+    val standIn = LocalSignInStandIn.current
+    val signIn: suspend () -> BackendAuth = standIn?.let { { it(services.session) } } ?: real
     val toast = LocalToast.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }

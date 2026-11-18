@@ -171,9 +171,22 @@ class AppUiTest {
     @Volatile private var suggestionAnswer: HttpStatusCode? = null
 
     /** One series shot an hour ago, with a photo, as the fake server holds it. */
+    /**
+     * An hour ago, but still today: just after local midnight an hour back is yesterday, and the
+     * tests that put [serverSeries] on "today" and other series on the days before failed then.
+     */
+    private fun earlierToday(): kotlin.time.Instant {
+        val now = Clock.System.now()
+        val zone = TimeZone.currentSystemDefault()
+        val today = KxInstant.fromEpochMilliseconds(now.toEpochMilliseconds()).toLocalDateTime(zone).date
+        val midnight = kotlin.time.Instant.fromEpochMilliseconds(today.atStartOfDayIn(zone).toEpochMilliseconds())
+        val sinceMidnight = now - midnight
+        return if (sinceMidnight > 2.hours) now - 1.hours else midnight + sinceMidnight / 2
+    }
+
     private val serverSeries = SeriesDto(
         id = 501,
-        timestamp = (Clock.System.now() - 1.hours).toString(),
+        timestamp = earlierToday().toString(),
         caliber = "22lr",
         holes = listOf(
             HoleDto(500.0, 500.0, 10, false, 3.0),
@@ -339,6 +352,8 @@ class AppUiTest {
             modelPath = "no-model-in-ui-tests",
             shareFile = { shared += it },
             scanStandIns = ScanStandIns(FakeFrameSource(), picks, cameraPermission) { scanEngine },
+            // Every Sign in button: the dev login, with no provider chooser or Credential Manager.
+            signInStandIn = { it.signInDev("ui-test") },
         )
         val links = object : UriHandler {
             override fun openUri(uri: String) { opened += uri }
@@ -449,6 +464,19 @@ class AppUiTest {
         runBlocking { services.session.signInDev("ui-test") }
         waitForText("series in 7 days")
         waitFor(thumbnail, "the latest series' photo after sign-in")
+    }
+
+    /**
+     * Home's own Sign in button, with series on the server: the card leaves Home as the login
+     * is published, which cancelled the refresh it had started, and the sign-in's refresh had
+     * joined that one. Home stayed empty until History refreshed again.
+     */
+    @Test fun homeLoadsSeriesAfterTheSignInButton() {
+        launch(signedIn = false)
+        waitForText("Mark")
+        click(button("Sign in"))
+        waitForText("series in 7 days")
+        waitFor(thumbnail, "the latest series' photo after the Sign in button")
     }
 
     /**
@@ -755,7 +783,8 @@ class AppUiTest {
 
     /** ...until a new series in that caliber changes its key. */
     @Test fun homeInsightCardComesBackWithANewSeries() {
-        offsetOnly(serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 10.minutes).toString(), holes = roundHoles))
+        // Newer than serverSeries, which sits only halfway back to midnight just after it.
+        offsetOnly(serverSeries.copy(id = 520, timestamp = (Clock.System.now() - 1.minutes).toString(), holes = roundHoles))
         launch(signedIn = true, store = MemoryStore(null, dismissedInsights = offsetKey))
         waitFor(insightCard, "the insight card after a new 22lr series")
     }
@@ -1416,8 +1445,9 @@ class AppUiTest {
     @Test fun signedOutLocalSeriesAreCountedAndShown() {
         onServer = emptyList()
         val services = launch(signedIn = false)
-        keepLocal(services, 10)
-        keepLocal(services, 20)
+        // Minutes apart, so both stay on today's open day group even just after midnight.
+        keepLocal(services, 2)
+        keepLocal(services, 3)
         waitForText("2 series only on this phone")
         waitForText("Latest series")
         rule.onNodeWithText("History").performClick()

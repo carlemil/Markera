@@ -377,4 +377,29 @@ class SeriesRepositoryTest {
         assertNotNull(second.await())
         assertEquals(1, recorded.size)
     }
+
+    /**
+     * Home's sign-in card leaves the composition as soon as the login is published, which
+     * cancels the refresh its button started; the refresh the sign-in itself asked for had
+     * joined that one. It must load the series itself, not return the cancelled one's outcome.
+     */
+    @Test
+    fun aRefreshThatJoinedACancelledOneRunsItsOwn() = runBlocking {
+        val hold = CompletableDeferred<Unit>()
+        val repo = repo {
+            if (recorded.size == 1) hold.await()
+            json("[${dto(1, "2026-09-01T10:00:00Z", "2026-09-01 10:00:00.000")}]")
+        }
+        val first = async { repo.refresh() }
+        awaitRequests(1)
+        val second = async { repo.refresh() }
+        delay(100)
+        assertTrue(second.isActive)
+
+        first.cancel()
+
+        assertNull(withTimeout(5_000) { second.await() })
+        assertEquals(listOf(1L), repo.series.value.map { it.id })
+        assertEquals(2, recorded.size)
+    }
 }

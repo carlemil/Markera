@@ -230,20 +230,28 @@ class SeriesRepository(
     /** What the last finished [refresh] returned, for the callers that joined it. */
     private var lastRefresh: Throwable? = null
 
+    /** Counts finished refreshes (not cancelled ones), so a joiner can tell the two apart. */
+    private var refreshesDone = 0L
+
     /**
      * Publishes the cached rows, then merges the server's delta into them.
      * @return null when the server part succeeded, else what went wrong — the
      * cached rows stay published either way. Asked for while one runs, it waits
      * for that one and returns its outcome (a screen opened during the start-up
-     * full load keeps its spinner until the rows are really there).
+     * full load keeps its spinner until the rows are really there). If the one it
+     * joined was cancelled instead, it runs its own: Home's sign-in card leaves the
+     * composition the moment the login is published, which cancels the refresh its
+     * button started, and the sign-in's own refresh had joined that one.
      */
     suspend fun refresh(): Throwable? {
-        if (!refreshing.tryLock()) {
+        while (!refreshing.tryLock()) {
+            val done = refreshesDone
             refreshing.withLock { }
-            return lastRefresh
+            if (refreshesDone != done) return lastRefresh
         }
         return try {
-            withContext(Dispatchers.Default) { netLock.withLock { dbLock.withLock { refreshLocked() } } }.also { lastRefresh = it }
+            withContext(Dispatchers.Default) { netLock.withLock { dbLock.withLock { refreshLocked() } } }
+                .also { lastRefresh = it; refreshesDone++ }
         } finally {
             refreshing.unlock()
         }

@@ -1,6 +1,8 @@
 package se.kjellstrand.markera
 
 import androidx.compose.runtime.Composable
+import se.kjellstrand.markera.series.BackendAuth
+import se.kjellstrand.markera.series.BackendSessionRepository
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.ui.markera.CameraPermissionState
 import se.kjellstrand.markera.ui.markera.FrameSource
@@ -19,6 +21,8 @@ class AppServices(
     val shareFile: suspend (path: String) -> Unit,
     /** UI tests only: a stand-in camera and detectors. Null runs the device's own. */
     val scanStandIns: ScanStandIns? = null,
+    /** UI tests only: answers every Sign in button in place of the provider chooser. Null runs the real one. */
+    val signInStandIn: (suspend (BackendSessionRepository) -> BackendAuth)? = null,
 )
 
 /**
