@@ -18,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
@@ -66,6 +67,8 @@ import se.kjellstrand.markera.series.BackendTokenStore
 import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
+import se.kjellstrand.markera.series.LocalMark
+import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.ui.markera.SCAN_VIEWPORT_TAG
@@ -103,6 +106,15 @@ class AppUiTest {
     private val posted = CopyOnWriteArrayList<SeriesRequest>()
     /** What those posts became on the fake server, which GET /series lists newest first. */
     private val saved = java.util.concurrent.ConcurrentSkipListMap<Long, SeriesDto>()
+    /** Every edit PUT, by series id; [edited] is what each made of its series on the fake server. */
+    private val puts = CopyOnWriteArrayList<Pair<Long, SeriesRequest>>()
+    private val edited = java.util.concurrent.ConcurrentHashMap<Long, SeriesDto>()
+    /** Series the app DELETEd; GET /series leaves them out. */
+    private val gone = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+    /** Series whose photo download fails. */
+    private val photoless = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+    /** Set, POST /series answers this instead of taking the series. */
+    @Volatile private var postAnswer: HttpStatusCode? = null
 
     /** One series shot an hour ago, with a photo, as the fake server holds it. */
     private val serverSeries = SeriesDto(
@@ -157,12 +169,27 @@ class AppUiTest {
         when {
             request.method == HttpMethod.Post && path == "/auth/dev" ->
                 respond("""{"token":"$TOKEN","userId":$USER}""", HttpStatusCode.OK, json)
-            request.method == HttpMethod.Delete -> respond("", HttpStatusCode.NoContent)
+            request.method == HttpMethod.Delete -> {
+                Regex("""/series/(\d+)""").matchEntire(path)?.let { gone += it.groupValues[1].toLong() }
+                respond("", HttpStatusCode.NoContent)
+            }
             !authorized -> respond("", HttpStatusCode.Unauthorized)
             request.method == HttpMethod.Get && path.matches(Regex("""/series/\d+/image""")) ->
-                respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
+                if (path.split('/')[2].toLong() in photoless) respond("", HttpStatusCode.NotFound)
+                else respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
             request.method == HttpMethod.Get && path == "/series" ->
-                respond(seriesJson.encodeToString(saved.values.reversed() + onServer), HttpStatusCode.OK, json)
+                respond(seriesJson.encodeToString(serverList()), HttpStatusCode.OK, json)
+            request.method == HttpMethod.Put && path.matches(Regex("""/series/\d+""")) -> {
+                val id = path.split('/')[2].toLong()
+                val req = seriesJson.decodeFromString<SeriesRequest>((request.body as TextContent).text)
+                puts += id to req
+                serverList().firstOrNull { it.id == id }?.let {
+                    edited[id] = it.copy(caliber = req.caliber, holes = req.holes.filterNot { h -> h.deleted }, tag = req.tag)
+                }
+                respond("", HttpStatusCode.NoContent)
+            }
+            request.method == HttpMethod.Post && path == "/series" && postAnswer != null ->
+                respond("", postAnswer!!)
             request.method == HttpMethod.Post && path == "/series" -> {
                 val req = seriesJson.decodeFromString<SeriesRequest>((request.body as TextContent).text)
                 posted += req
@@ -182,6 +209,9 @@ class AppUiTest {
             else -> respond("", HttpStatusCode.NotFound)
         }
     }
+
+    /** What the fake server holds now: the posted series, newest first, then [onServer], as edited. */
+    private fun serverList() = (saved.values.reversed() + onServer).filterNot { it.id in gone }.map { edited[it.id] ?: it }
 
     private class MemoryStore(
         var auth: BackendAuth?,
@@ -948,6 +978,159 @@ class AppUiTest {
         save()
         waitForText("Saved on this device")
         rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.id < 0 } }
+        assertEquals(0, posted.size)
+    }
+
+    // ---- the Serie page: editing and walking the list ----
+
+    private fun inDialog(matcher: SemanticsMatcher) = matcher and hasAnyAncestor(isDialog())
+    private fun waitForPuts(n: Int): List<Pair<Long, SeriesRequest>> {
+        try {
+            rule.waitUntil(TIMEOUT_MS) { puts.size >= n }
+        } catch (e: Throwable) {
+            throw AssertionError("Expected $n PUTs, got ${puts.size}; requests: $requests", e)
+        }
+        return puts.toList()
+    }
+    private fun date(s: SeriesDto) = localStamp(s.timestamp).take(10)
+
+    /** Score, caliber and tag each save at once, and are still there after going back and in again. */
+    @Test fun serieEditsAreSavedAndSurviveReopening() {
+        openNewestSeries()
+        waitForExact("43")
+        // Hole a, the 10, made an 8.
+        click(button("10"))
+        waitForText("Score")
+        click(inDialog(button("8")))
+        waitForExact("41")
+        val (id, score) = waitForPuts(1).last()
+        assertEquals(serverSeries.id, id)
+        assertEquals(listOf(9, 9, 8, 8, 7), score.holes.map { it.ring }.sortedDescending())
+
+        click(button("22lr"))
+        waitForText("Choose caliber")
+        click(inDialog(button("9mm")))
+        assertEquals("9mm", waitForPuts(2).last().second.caliber)
+
+        click(button("+ Tag"))
+        waitForText("Choose tag")
+        click(inDialog(button("Practice")))
+        assertEquals("Practice", waitForPuts(3).last().second.tag)
+        click(button("Practice"))
+        waitForText("Choose tag")
+        click(inDialog(button("No tag")))
+        val cleared = waitForPuts(4).last().second
+        assertEquals(null, cleared.tag)
+        assertEquals("9mm", cleared.caliber)
+
+        pressBack()
+        waitFor(thumbnail, "History again")
+        rule.onAllNodesWithText("9mm")[0].performClick()
+        waitForExact("Series")
+        waitForExact("41")
+        waitForButton(button("9mm"), "the corrected caliber")
+        waitForButton(button("+ Tag"), "no tag")
+        assertEquals(4, puts.size)
+    }
+
+    /** Removing a detected hole saves it as deleted, for training, and rescores the series. */
+    @Test fun serieRemovedHoleIsKeptAsDeleted() {
+        onServer = listOf(
+            serverSeries.copy(
+                holes = serverSeries.holes.map { it.copy(detectedRing = it.ring, detectedInnerTen = false, detectedX = it.x, detectedY = it.y) },
+            ),
+        ) + offsetSeries
+        openNewestSeries()
+        waitForExact("43")
+        click(hasContentDescription("More") and hasClickAction())
+        click(button("Remove hit"))
+        waitForText("Remove the hit?")
+        click(inDialog(button("Remove")))
+        waitForExact("33")
+        val sent = waitForPuts(1).last().second
+        assertEquals(listOf(9, 9, 8, 7), sent.holes.filterNot { it.deleted }.map { it.ring }.sortedDescending())
+        assertEquals(10, sent.holes.single { it.deleted }.detectedRing)
+    }
+
+    /** Delete from the menu asks, removes the series on the server and takes it out of History. */
+    @Test fun serieDeleteRemovesItFromHistory() {
+        openNewestSeries()
+        waitForExact("43")
+        rule.onAllNodes(hasContentDescription("Menu"), useUnmergedTree = true)[0].performClick()
+        click(button("Delete"))
+        waitForText("Delete the series?")
+        click(inDialog(button("Delete")))
+        rule.waitUntil(TIMEOUT_MS) { "DELETE /series/${serverSeries.id}" in requests }
+        waitForExact("History")
+        waitFor(thumbnail, "the other series in History")
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("43")) }
+    }
+
+    /** The arrows walk the list the page was opened from, newest to oldest; Back returns to the list. */
+    @Test fun serieArrowsWalkTheListAndBackReturnsToIt() {
+        openNewestSeries()
+        waitForExact(date(serverSeries))
+        val previous = hasContentDescription("Previous series") and hasClickAction()
+        val next = hasContentDescription("Next series") and hasClickAction()
+        waitForButton(next, "the next arrow")
+        assertFalse("The newest has no previous", rule.onAllNodes(previous).fetchSemanticsNodes().isNotEmpty())
+        offsetSeries.forEach { s ->
+            click(next)
+            waitForExact(date(s))
+            waitForButton(previous, "the previous arrow")
+        }
+        rule.waitForIdle()
+        assertFalse("The oldest has no next", rule.onAllNodes(next).fetchSemanticsNodes().isNotEmpty())
+        click(previous)
+        waitForExact(date(offsetSeries[1]))
+        pressBack()
+        waitForExact("History")
+        waitFor(thumbnail, "History's photos")
+        assertFalse(rule.onAllNodes(previous).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    /** A photo that cannot be downloaded says so instead of spinning. */
+    @Test fun seriePhotoThatFailsSaysNoPhoto() {
+        photoless += serverSeries.id
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        rule.onNodeWithText("History").performClick()
+        // Its thumbnail fails too, so History is not waited on for a photo.
+        waitForText("22lr")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitForExact("Series")
+        waitForExact("No photo")
+    }
+
+    /** A series the server refused shows why on its page; Try again sends it once the server takes it. */
+    @Test fun serieRefusedUploadCanBeRetried() {
+        postAnswer = HttpStatusCode.BadRequest
+        val services = openScanAndDetect()
+        save()
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.local == LocalMark.REFUSED } }
+        pressBack()
+        rule.onNodeWithText("History").performClick()
+        waitForText("22lr")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitForText("The server did not accept this series")
+        postAnswer = null
+        click(button("Try again"))
+        waitForPosts(1)
+        waitForExact("History")
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.none { it.local != null } }
+    }
+
+    /** A series the server could not take yet (here a 503) says it is not uploaded. */
+    @Test fun serieQueuedUploadSaysNotUploaded() {
+        postAnswer = HttpStatusCode.ServiceUnavailable
+        val services = openScanAndDetect()
+        save()
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.local == LocalMark.QUEUED } }
+        pressBack()
+        rule.onNodeWithText("History").performClick()
+        waitForText("22lr")
+        rule.onAllNodesWithText("22lr")[0].performClick()
+        waitForText("Not uploaded")
         assertEquals(0, posted.size)
     }
 
