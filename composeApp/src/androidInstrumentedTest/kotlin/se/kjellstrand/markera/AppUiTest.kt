@@ -19,6 +19,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
@@ -59,6 +61,7 @@ import kotlinx.io.files.Path
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,6 +71,7 @@ import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.LocalMark
+import se.kjellstrand.markera.series.EncodedImage
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.Caliber
@@ -115,6 +119,8 @@ class AppUiTest {
     private val photoless = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
     /** Set, POST /series answers this instead of taking the series. */
     @Volatile private var postAnswer: HttpStatusCode? = null
+    /** Set, the server no longer knows the token: every signed-in request is a 401. */
+    @Volatile private var tokenExpired = false
 
     /** One series shot an hour ago, with a photo, as the fake server holds it. */
     private val serverSeries = SeriesDto(
@@ -173,7 +179,7 @@ class AppUiTest {
                 Regex("""/series/(\d+)""").matchEntire(path)?.let { gone += it.groupValues[1].toLong() }
                 respond("", HttpStatusCode.NoContent)
             }
-            !authorized -> respond("", HttpStatusCode.Unauthorized)
+            !authorized || tokenExpired -> respond("", HttpStatusCode.Unauthorized)
             request.method == HttpMethod.Get && path.matches(Regex("""/series/\d+/image""")) ->
                 if (path.split('/')[2].toLong() in photoless) respond("", HttpStatusCode.NotFound)
                 else respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
@@ -1132,6 +1138,136 @@ class AppUiTest {
         rule.onAllNodesWithText("22lr")[0].performClick()
         waitForText("Not uploaded")
         assertEquals(0, posted.size)
+    }
+
+    // ---- accounts: local series, the claim dialog, sign-out, delete account, an expired session ----
+
+    /** A series saved on this phone, with its photo, as a signed-out (or [owner]'s) save leaves it. */
+    private fun keepLocal(services: SeriesServices, minutesAgo: Int = 10, owner: Long? = null) = runBlocking {
+        services.repository.keepLocal(
+            SeriesRequest(
+                timestamp = (Clock.System.now() - minutesAgo.minutes).toString(),
+                caliber = "22lr",
+                holes = serverSeries.holes,
+                geometry = GEOMETRY,
+            ),
+            EncodedImage(jpeg, 1000, 1000),
+            owner,
+        )
+    }
+    private fun localSeries(services: SeriesServices) = services.repository.series.value.filter { it.local != null }
+
+    /** Signed out, Home's card counts the series kept on the phone, and Home and History show them. */
+    @Test fun signedOutLocalSeriesAreCountedAndShown() {
+        onServer = emptyList()
+        val services = launch(signedIn = false)
+        keepLocal(services, 10)
+        keepLocal(services, 20)
+        waitForText("2 series only on this phone")
+        waitForText("Latest series")
+        rule.onNodeWithText("History").performClick()
+        waitFor(thumbnail, "a local series' photo in History")
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithText("22lr").fetchSemanticsNodes().size >= 2 }
+        assertTrue(requests.none { it.startsWith("POST") })
+    }
+
+    /** Signing in with series on the phone asks first; Add uploads them to the account. */
+    private fun signInWithALocalSeries(): Pair<SeriesServices, MemoryStore> {
+        onServer = emptyList()
+        val store = MemoryStore(null)
+        val services = launch(signedIn = false, store = store)
+        keepLocal(services)
+        waitForText("1 series only on this phone")
+        runBlocking { services.session.signInDev("ui-test") }
+        waitForText("Series on this device")
+        assertEquals("No token is saved while the choice is open", null, store.auth)
+        return services to store
+    }
+
+    @Test fun claimAddUploadsTheLocalSeries() {
+        val (services, store) = signInWithALocalSeries()
+        click(inDialog(button("Add to account")))
+        waitForPosts(1)
+        rule.waitUntil(TIMEOUT_MS) { store.auth?.token == TOKEN && localSeries(services).isEmpty() }
+        waitForText("series in 7 days")
+    }
+
+    @Test fun claimDeleteAsksThenDeletesFromThePhone() {
+        val (services, store) = signInWithALocalSeries()
+        click(inDialog(button("Delete from device")))
+        waitForText("Delete 1 series and their photos")
+        click(inDialog(button("Delete from device")))
+        rule.waitUntil(TIMEOUT_MS) { store.auth?.token == TOKEN && localSeries(services).isEmpty() }
+        assertEquals(0, posted.size)
+    }
+
+    @Test fun claimStaySignedOutKeepsTheSeriesAndNoToken() {
+        val (services, store) = signInWithALocalSeries()
+        click(inDialog(button("Stay signed out")))
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("Series on this device")) }
+        rule.waitUntil(TIMEOUT_MS) { "DELETE /auth/session" in requests }
+        assertEquals(null, store.auth)
+        assertEquals(null, services.session.auth.value)
+        assertEquals(1, localSeries(services).size)
+        assertEquals(0, posted.size)
+        waitForText("1 series only on this phone")
+    }
+
+    /** Dismissing the dialog (Back) is Stay signed out. */
+    @Test fun claimDismissIsStaySignedOut() {
+        val (services, store) = signInWithALocalSeries()
+        pressBack()
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("Series on this device")) }
+        assertEquals(null, store.auth)
+        assertEquals(null, services.session.auth.value)
+        assertEquals(1, localSeries(services).size)
+    }
+
+    /** Sign out clears the account's series from the phone but keeps work not yet uploaded. */
+    @Test fun signOutKeepsLocalWorkAndClearsSyncedSeries() {
+        postAnswer = HttpStatusCode.ServiceUnavailable
+        val store = MemoryStore(null)
+        val services = launch(signedIn = true, store = store)
+        waitForText("series in 7 days")
+        keepLocal(services, owner = USER)
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.id > 0 } && localSeries(services).size == 1 }
+        openSettings()
+        click(button("Sign out"))
+        waitForText("Signed out")
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.none { it.id > 0 } }
+        assertEquals(null, store.auth)
+        assertEquals(1, localSeries(services).size)
+        pressBack()
+        waitForText("1 series only on this phone")
+    }
+
+    /** Delete account asks for the typed phrase, deletes on the server and leaves local work. */
+    @Test fun deleteAccountAsksThenSignsOut() {
+        postAnswer = HttpStatusCode.ServiceUnavailable
+        val store = MemoryStore(null)
+        val services = launch(signedIn = true, store = store)
+        waitForText("series in 7 days")
+        keepLocal(services, owner = USER)
+        rule.waitUntil(TIMEOUT_MS) { localSeries(services).size == 1 }
+        openSettings()
+        click(button("Delete account"))
+        waitForText("Delete the account?")
+        rule.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextInput("delete me")
+        click(inDialog(button("Delete")))
+        rule.waitUntil(TIMEOUT_MS) { "DELETE /account" in requests }
+        rule.waitUntil(TIMEOUT_MS) { store.auth == null && services.repository.series.value.none { it.id > 0 } }
+        assertEquals(1, localSeries(services).size)
+        waitForText("Not signed in")
+    }
+
+    /** The server no longer takes the token: the app signs out and says why. */
+    @Test fun expiredSessionSignsOutWithAToast() {
+        tokenExpired = true
+        val store = MemoryStore(null)
+        launch(signedIn = true, store = store)
+        waitForText("Signed out: sign in again to save series")
+        rule.waitUntil(TIMEOUT_MS) { store.auth == null }
+        waitForText("Save your series to your account")
     }
 
     private companion object {
