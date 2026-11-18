@@ -21,6 +21,8 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
@@ -72,6 +74,7 @@ import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.LocalMark
 import se.kjellstrand.markera.series.EncodedImage
+import se.kjellstrand.markera.series.SuggestionRequest
 import se.kjellstrand.markera.series.localStamp
 import se.kjellstrand.markera.series.SeriesRequest
 import se.kjellstrand.markera.series.Caliber
@@ -121,6 +124,10 @@ class AppUiTest {
     @Volatile private var postAnswer: HttpStatusCode? = null
     /** Set, the server no longer knows the token: every signed-in request is a 401. */
     @Volatile private var tokenExpired = false
+    /** Every suggestion sent, and whether it came with the token. */
+    private val suggestions = CopyOnWriteArrayList<Pair<SuggestionRequest, Boolean>>()
+    /** Set, POST /suggestions answers this; null takes it. */
+    @Volatile private var suggestionAnswer: HttpStatusCode? = null
 
     /** One series shot an hour ago, with a photo, as the fake server holds it. */
     private val serverSeries = SeriesDto(
@@ -175,6 +182,11 @@ class AppUiTest {
         when {
             request.method == HttpMethod.Post && path == "/auth/dev" ->
                 respond("""{"token":"$TOKEN","userId":$USER}""", HttpStatusCode.OK, json)
+            // Open to signed-out users, as on the real server.
+            request.method == HttpMethod.Post && path == "/suggestions" -> suggestionAnswer?.let { respond("", it) } ?: run {
+                suggestions += seriesJson.decodeFromString<SuggestionRequest>((request.body as TextContent).text) to authorized
+                respond("""{"id":${suggestions.size}}""", HttpStatusCode.Created, json)
+            }
             request.method == HttpMethod.Delete -> {
                 Regex("""/series/(\d+)""").matchEntire(path)?.let { gone += it.groupValues[1].toLong() }
                 respond("", HttpStatusCode.NoContent)
@@ -1268,6 +1280,67 @@ class AppUiTest {
         waitForText("Signed out: sign in again to save series")
         rule.waitUntil(TIMEOUT_MS) { store.auth == null }
         waitForText("Save your series to your account")
+    }
+
+    // ---- the suggestion box ----
+
+    private fun field(label: String) = hasSetTextAction() and hasText(label)
+
+    /** Home's menu → Suggestion; Send stays off until a title and a description are typed. */
+    private fun openSuggestion(signedIn: Boolean) {
+        launch(signedIn)
+        waitForText("Mark")
+        rule.onAllNodes(hasContentDescription("Menu"), useUnmergedTree = true)[0].performClick()
+        click(button("Suggestion"))
+        waitForText("It goes straight to the developer")
+        waitForButton(button("Send"), "Send")
+        rule.onAllNodes(button("Send"))[0].assertIsNotEnabled()
+        rule.onNode(field("Title")).performTextInput("Wind flags")
+        rule.onAllNodes(button("Send"))[0].assertIsNotEnabled()
+        rule.onNode(field("Description")).performTextInput("Show the wind on the scan screen.")
+        rule.onAllNodes(button("Send"))[0].assertIsEnabled()
+    }
+
+    @Test fun suggestionIsSentAndGoesBack() {
+        openSuggestion(signedIn = true)
+        click(button("Send"))
+        waitForText("Thanks! Your suggestion has been sent.")
+        rule.waitUntil(TIMEOUT_MS) { suggestions.size == 1 }
+        val (sent, withToken) = suggestions.single()
+        assertEquals("Wind flags", sent.title)
+        assertEquals("Show the wind on the scan screen.", sent.description)
+        assertEquals(null, sent.email)
+        assertEquals("android", sent.platform)
+        assertTrue(withToken)
+        waitForText("Mark")
+    }
+
+    /** Signed out works too; a typed e-mail rides along, and one that is not an address blocks Send. */
+    @Test fun suggestionWorksSignedOutWithAnEmail() {
+        openSuggestion(signedIn = false)
+        rule.onNode(field("Your e-mail (optional)")).performTextInput("nope")
+        waitForText("That doesn't look like an e-mail address.")
+        rule.onAllNodes(button("Send"))[0].assertIsNotEnabled()
+        rule.onNode(field("Your e-mail (optional)")).performTextInput("@example.com")
+        click(button("Send"))
+        rule.waitUntil(TIMEOUT_MS) { suggestions.size == 1 }
+        val (sent, withToken) = suggestions.single()
+        assertEquals("nope@example.com", sent.email)
+        assertFalse(withToken)
+    }
+
+    /** A server error says so and keeps what was typed, so Send can be tried again. */
+    @Test fun suggestionServerErrorKeepsTheText() {
+        suggestionAnswer = HttpStatusCode.ServiceUnavailable
+        openSuggestion(signedIn = true)
+        click(button("Send"))
+        waitForText("The server had a problem. Try again later.")
+        rule.waitForIdle()
+        waitForExact("Wind flags")
+        waitForExact("Show the wind on the scan screen.")
+        suggestionAnswer = null
+        click(button("Send"))
+        rule.waitUntil(TIMEOUT_MS) { suggestions.size == 1 }
     }
 
     private companion object {
