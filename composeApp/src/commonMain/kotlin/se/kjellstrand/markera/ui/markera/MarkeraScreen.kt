@@ -4,13 +4,7 @@ import se.kjellstrand.markera.vision.byHand
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.Stroke
-import kotlin.math.abs
-import kotlin.time.TimeSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,8 +40,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import se.kjellstrand.markera.ui.LocalToast
 import se.kjellstrand.markera.vision.CentreMethod
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -67,13 +59,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.getString
 import se.kjellstrand.markera.series.SaveStatus
-import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -89,9 +79,6 @@ import se.kjellstrand.markera.ui.history.DeleteHoleDialog
 import se.kjellstrand.markera.ui.TotalBadge
 import se.kjellstrand.markera.ui.PrimaryActionButton
 import se.kjellstrand.markera.ui.SecondaryActionButton
-
-/** Continuous scan is not working yet: false hides its toggle and help everywhere. The code stays. */
-private const val SHOW_CONTINUOUS_SCAN = false
 
 /**
  * The free-marking screen ("Fri markering"): frame a target, scan it, adjust
@@ -127,11 +114,9 @@ fun MarkeraScreen(
     // raw detection overlay (hole/digit boxes, row lines) for diagnostics.
     var showDebug by remember { mutableStateOf(false) }
     var showingHelp by remember { mutableStateOf(false) }
-    var showingContinuousHelp by remember { mutableStateOf(false) }
     // Long press only asks; the dialog's confirm is what removes the hole.
     var pendingDeleteIndex by remember { mutableStateOf<Int?>(null) }
-    // Any hand edit of a result pauses the continuous rescan, so an auto-scan
-    // cannot wipe work the user just did. Cleared when the frame is left.
+    // Any hand edit of a result makes Reset ask first. Cleared when the frame is left.
     var edited by remember { mutableStateOf(false) }
     val onSetScore: (Int, Int) -> Unit = { index, pick ->
         edited = true
@@ -140,9 +125,6 @@ fun MarkeraScreen(
     // Off = photo + geometry only, no ONNX pass: the user taps the holes in
     // themselves. Session-only, like the debug toggle.
     var detectHoles by remember { mutableStateOf(true) }
-    // Phone on a tripod: rescan by itself whenever the target changes, so the
-    // scores follow the series shot by shot. Session-only, like the toggles above.
-    var continuous by remember { mutableStateOf(false) }
     // The scan found no ring or centre and the user is fitting one by hand; null otherwise.
     var placing by remember { mutableStateOf<GeometryDraft?>(null) }
     val onDetectClick: () -> Unit = {
@@ -207,84 +189,6 @@ fun MarkeraScreen(
     var confirmingReset by remember { mutableStateOf(false) }
     val onReset: () -> Unit = { if (edited) confirmingReset = true else discard() }
 
-    // Sample a low-rate luma feed; only a new hole-sized spot on an otherwise
-    // unchanged, still scene runs the scan the button runs. The snapshot-state
-    // reads are current on every tick, so the loop never has to restart.
-    // Detection off stops it too: its switch is hidden then, so nothing else could.
-    val watching = SHOW_CONTINUOUS_SCAN && continuous && detectHoles && frameSource.supportsContinuousScan
-    // Debug builds only: what the watch loop saw on its last tick, drawn over the viewport.
-    var watchDebug by remember { mutableStateOf<WatchDebug?>(null) }
-    LaunchedEffect(watching, frameSource) {
-        if (!watching) return@LaunchedEffect
-        val watch = NewHoleWatch()
-        var ticks = 0
-        var busy = 0
-        var noFrame = 0
-        var fires = 0
-        var movingStreak = 0
-        var recorded = 0
-        var remeters = 0
-        var meteredAt = TimeSource.Monotonic.markNow()
-        fun report(status: String) {
-            if (isDebugBuild) {
-                watchDebug = WatchDebug("tick $ticks · busy $busy · no frame $noFrame · fired $fires · rec $recorded · meter $remeters\n$status", watch.last)
-            }
-        }
-        frameSource.setWatching(true)
-        try {
-            while (true) {
-                delay(CHANGE_SAMPLE_MS)
-                ticks++
-                val phase = viewModel.uiState.value.phase
-                if (phase != ScanPhase.IDLE || edited) {
-                    busy++
-                    report(if (edited) "paused: a result was edited" else "busy: scan phase $phase")
-                    continue
-                }
-                if (remeterDue(meteredAt.elapsedNow().inWholeMilliseconds, watch.last)) {
-                    report("calibrating: metering the light again")
-                    frameSource.remeter()
-                    // Drop the frame taken while it metered. The watch keeps its
-                    // reference and previous sample: the light fit bridges the step.
-                    frameSource.takeLuma()
-                    // ... but the next clean sample starts the reference mean over.
-                    watch.lightChanged()
-                    meteredAt = TimeSource.Monotonic.markNow()
-                    remeters++
-                    continue
-                }
-                val sample = frameSource.takeLuma()
-                if (sample == null) {
-                    noFrame++
-                    report("no luma frame from the camera")
-                    continue
-                }
-                val fired = withContext(Dispatchers.Default) { watch.offer(sample) }
-                if (fired) fires++
-                // Debug builds: keep the frames behind every fire and veto, and every
-                // 5th sample of a moving streak, for ContinuousScanReplayTest.
-                val verdict = watch.last
-                movingStreak = if (verdict?.outcome == WatchOutcome.MOVING) movingStreak + 1 else 0
-                val keep = verdict?.outcome == WatchOutcome.FIRE || verdict?.outcome == WatchOutcome.VETO ||
-                    (movingStreak > 0 && movingStreak % 5 == 0)
-                if (isDebugBuild && keep && verdict != null) {
-                    val saved = withContext(Dispatchers.Default) {
-                        verdict.recording()?.also(frameSource::recordWatch) != null
-                    }
-                    if (saved) recorded++
-                }
-                report(watch.last?.reason.orEmpty())
-                if (fired) {
-                    watch.reset()
-                    onDetectClick()
-                }
-            }
-        } finally {
-            frameSource.setWatching(false)
-            watchDebug = null
-        }
-    }
-
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Box(
         modifier = Modifier
@@ -327,7 +231,6 @@ fun MarkeraScreen(
                         showDebug = showDebug,
                         onError = viewModel::setError,
                         editing = editing,
-                        keepPreviewAlive = watching,
                         modifier = Modifier.fillMaxSize(),
                     )
                     placing?.let { draft ->
@@ -339,7 +242,6 @@ fun MarkeraScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    watchDebug?.let { WatchDebugOverlay(it, Modifier.fillMaxSize()) }
                     // How to aim, on the live picture itself, so the controls below keep the room.
                     if (!isFrozen && !processing && placing == null && importQueue == null) {
                         LiveHint(Modifier.align(Alignment.BottomCenter).padding(12.dp))
@@ -367,12 +269,6 @@ fun MarkeraScreen(
                     onSetScore = onSetScore,
                     detectHoles = detectHoles,
                     onToggleDetectHoles = { detectHoles = it },
-                    // Hidden everywhere while SHOW_CONTINUOUS_SCAN is false; once shown again, debug
-                    // builds only until it is proven on a real range (the switch starts off).
-                    continuousAvailable = SHOW_CONTINUOUS_SCAN && isDebugBuild && frameSource.supportsContinuousScan && detectHoles,
-                    continuous = continuous,
-                    onToggleContinuous = { continuous = it },
-                    onContinuousHelp = { showingContinuousHelp = true },
                     importing = importQueue != null,
                     placing = placing != null,
                     onManualMark = { placing = initialGeometryDraft(uiState) },
@@ -433,23 +329,10 @@ fun MarkeraScreen(
                 Res.string.help_scan_score to Res.string.help_scan_score_body,
                 Res.string.help_scan_caliber to Res.string.help_scan_caliber_body,
                 Res.string.help_scan_save to Res.string.help_scan_save_body,
-                if (SHOW_CONTINUOUS_SCAN && isDebugBuild) Res.string.help_scan_continuous to Res.string.help_scan_continuous_body else null,
                 // Its menu entry exists in debug builds only.
                 if (isDebugBuild) Res.string.help_scan_debug to Res.string.help_scan_debug_body else null,
             ),
             onDismiss = { showingHelp = false },
-        )
-    }
-
-    if (showingContinuousHelp) {
-        HelpDialog(
-            title = stringResource(Res.string.help_scan_continuous),
-            sections = listOf(
-                Res.string.help_scan_continuous_how to Res.string.help_scan_continuous_body,
-                Res.string.help_scan_continuous_setup to Res.string.help_scan_continuous_setup_body,
-                Res.string.help_scan_continuous_limits to Res.string.help_scan_continuous_limits_body,
-            ),
-            onDismiss = { showingContinuousHelp = false },
         )
     }
 }
@@ -470,10 +353,6 @@ private fun BottomArea(
     onSetScore: (index: Int, pick: Int) -> Unit,
     detectHoles: Boolean,
     onToggleDetectHoles: (Boolean) -> Unit,
-    continuousAvailable: Boolean,
-    continuous: Boolean,
-    onToggleContinuous: (Boolean) -> Unit,
-    onContinuousHelp: () -> Unit,
     importing: Boolean,
     placing: Boolean,
     canFinishPlacing: Boolean,
@@ -514,27 +393,13 @@ private fun BottomArea(
                     icon = Icons.Default.PhotoCamera,
                     onClick = onScan,
                 )
-                // Only the rows below scroll when the area runs short (a small phone,
-                // the debug build's extra switch): the chips and Detect stay on screen.
+                // The switch scrolls when the area runs short (a small phone):
+                // the chips and Detect stay on screen.
                 Column(
                     modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    // One switch a row, each saying what it does.
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
-                        // With hole detection off there is nothing for a rescan to find.
-                        if (continuousAvailable) {
-                            ScanToggle(
-                                label = stringResource(Res.string.markera_continuous),
-                                description = stringResource(Res.string.markera_continuous_body),
-                                checked = continuous,
-                                onCheckedChange = onToggleContinuous,
-                                onHelp = onContinuousHelp,
-                            )
-                        }
-                    }
+                    DetectHolesToggle(checked = detectHoles, onCheckedChange = onToggleDetectHoles)
                 }
             }
             else -> ResultsContent(uiState, onResume, onReset, onSetScore, importing, onManualMark, Modifier.fillMaxSize())
@@ -615,14 +480,13 @@ private fun DetectHolesToggle(checked: Boolean, onCheckedChange: (Boolean) -> Un
     )
 }
 
-/** A full-width switch row: label, a line on what it does, the switch; optionally a (?) . */
+/** A full-width switch row: label, a line on what it does, the switch. */
 @Composable
 private fun ScanToggle(
     label: String,
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    onHelp: (() -> Unit)? = null,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // Label and switch are one control: tapping either toggles, and it is read out as one.
@@ -640,16 +504,6 @@ private fun ScanToggle(
                 )
             }
             Switch(checked = checked, onCheckedChange = null)
-        }
-        // The same (?) as the menu's help entry, opening this switch's own HelpDialog.
-        if (onHelp != null) {
-            IconButton(onClick = onHelp) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.HelpOutline,
-                    contentDescription = stringResource(Res.string.help),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }
@@ -778,64 +632,6 @@ private fun TagChip(recorder: SeriesRecorder) {
         tag ?: stringResource(Res.string.badge_add_tag),
         Modifier.widthIn(max = 120.dp),
     )
-}
-
-/** The continuous-scan loop's last tick: counters + status, and the watch's verdict. */
-private class WatchDebug(val text: String, val verdict: WatchVerdict?)
-
-/**
- * Debug builds: the watch loop's status over the viewport, plus every changed
- * blob of the last comparison — green hole-sized, red a veto, grey a speck.
- * Draw-only, so the frozen frame's gestures still reach the scanner beneath.
- */
-@Composable
-private fun WatchDebugOverlay(debug: WatchDebug, modifier: Modifier) {
-    val v = debug.verdict
-    Box(modifier) {
-        if (v != null) {
-            Canvas(Modifier.fillMaxSize()) {
-                val pad = 4.dp.toPx()
-                val stroke = Stroke(2.dp.toPx())
-                for (b in v.blobs) {
-                    val a = v.upright(b.x, b.y)
-                    val c = v.upright(b.x + b.width, b.y + b.height)
-                    val color = when {
-                        b.area < HOLE_MIN_AREA -> Color.LightGray
-                        b.holeSized -> Color.Green
-                        else -> Color.Red
-                    }
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(minOf(a.x, c.x) * size.width - pad, minOf(a.y, c.y) * size.height - pad),
-                        size = Size(abs(c.x - a.x) * size.width + 2 * pad, abs(c.y - a.y) * size.height + 2 * pad),
-                        style = stroke,
-                    )
-                }
-            }
-        }
-        val frame = v?.let { "\nframe ${it.frameWidth}x${it.frameHeight} rot ${it.rotation}° · ${it.blobs.size} blobs" }.orEmpty()
-        Text(
-            text = debug.text + frame,
-            color = Color.White,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(4.dp),
-        )
-    }
-}
-
-/** A frame-pixel point turned upright, as 0..1 of the square viewport. */
-private fun WatchVerdict.upright(x: Int, y: Int): Offset {
-    val u = x.toFloat() / frameWidth
-    val w = y.toFloat() / frameHeight
-    return when (rotation) {
-        90 -> Offset(1 - w, u)
-        180 -> Offset(1 - u, 1 - w)
-        270 -> Offset(w, 1 - u)
-        else -> Offset(u, w)
-    }
 }
 
 /**

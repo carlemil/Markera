@@ -181,16 +181,6 @@ android {
     }
 }
 
-// ContinuousScanReplayTest reads -Dwatch.frames=<dir>; Gradle does not pass -D on
-// to the forked test JVM, so forward it (and show the replay's println output).
-tasks.withType<Test>().configureEach {
-    val frames = providers.systemProperty("watch.frames")
-    if (frames.isPresent) {
-        systemProperty("watch.frames", frames.get())
-        testLogging.showStandardStreams = true
-    }
-}
-
 // Only here to give Sentry the R8 mapping, so release stack traces are readable. Every release
 // build is stamped with a mapping UUID; the upload itself needs `sentry.properties` at the repo
 // root (gitignored: auth.token, defaults.org, defaults.project). Without it nothing is uploaded,

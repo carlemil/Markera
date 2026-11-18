@@ -19,7 +19,6 @@
     <string name="markera_hint">Point the camera at the target and tap to count the hits.</string>
     <string name="markera_analyzing">Analysing hits…</string>
     <string name="markera_detect_holes">Detect holes</string>
-    <string name="markera_continuous">Continuous scan</string>
     <string name="markera_toggle_debug">Show detection data</string>
     <string name="markera_back">Back</string>
     <string name="markera_scanning">SCANNING TARGET…</string>
@@ -233,13 +232,6 @@
     <string name="help_scan_caliber_body">The chip beside the score shows the caliber the series is saved with. Tap it to change — if none is chosen, the app asks when you save. The caliber is shown in the history and can be filtered on in the statistics. At the bottom of the list you can add a caliber of your own, with its bullet diameter (it sizes the hit dots); only your own can be removed again.</string>
     <string name="help_scan_save">Save</string>
     <string name="help_scan_save_body">Saves the series with its photo to your account. You need to be signed in. The ↻ button discards the scan without saving.</string>
-    <string name="help_scan_continuous">Continuous scan</string>
-    <string name="help_scan_continuous_body">Turn on Continuous scan and the app watches the target through the camera, about once a second. When a new hole appears and the picture has stayed still for a moment, it scans by itself, so the score follows the series shot by shot without you touching the phone. The camera keeps running while a result is shown, and each scan replaces the one before it. Changing a score or moving a hole pauses it until you save or start over.</string>
-    <string name="help_scan_continuous_how">How it works</string>
-    <string name="help_scan_continuous_setup">Setting up</string>
-    <string name="help_scan_continuous_setup_body">Put the phone on a stand or tripod so it cannot move, and fill the picture with the target. Hold still for the first couple of seconds: the camera sets its focus, exposure and colour then and keeps them, so the picture does not change on its own. Every half minute or so, when nothing is happening, it measures the light again, in case a cloud or the sun has changed it.</string>
-    <string name="help_scan_continuous_limits">Good to know</string>
-    <string name="help_scan_continuous_limits_body">Only something hole-sized counts. A person, a hand or a shadow passing, a small bump of the stand and a change in the light are ignored, and it waits until the picture is still again. Two shots fired close together are found in the same scan. A missed hole can always be added by tapping it in the photo. Keep the screen on and the phone charged: the camera runs the whole time.</string>
     <string name="help_scan_debug">Troubleshooting</string>
     <string name="help_scan_debug_body">Show detection data in the menu shows the detector’s raw boxes, digit rows and lines, plus the fitted ring and the centre.</string>
 
@@ -375,7 +367,6 @@
     <string name="stats_trend_below">%1$s below the average (%2$s)</string>
     <string name="stats_trend_on_average">On the average (%1$s)</string>
     <string name="markera_detect_holes_body">Off: only the rings are found and you tap each hole.</string>
-    <string name="markera_continuous_body">Scans again by itself when a new hole appears.</string>
     <string name="settings_account">Account</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version %1$s</string>

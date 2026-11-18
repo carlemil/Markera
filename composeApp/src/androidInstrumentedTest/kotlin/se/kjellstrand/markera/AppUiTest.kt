@@ -1171,7 +1171,7 @@ class AppUiTest {
         backHomeWith("0 saved, 1 skipped")
     }
 
-    // ---- the scan screen's side states: camera permission, guide colour, debug overlay, continuous scan ----
+    // ---- the scan screen's side states: camera permission, guide colour, debug overlay ----
 
     /** Denied, the scan screen explains why and asks again on Allow access; granted, the viewfinder is back. */
     @Test fun cameraPermissionDeniedExplainsAndAsksAgain() {
@@ -1239,15 +1239,6 @@ class AppUiTest {
         waitFor(raw, "the raw detection boxes")
         openMenuItem("Show detection data")
         rule.waitUntil(TIMEOUT_MS) { !rule.exists(raw) }
-    }
-
-    /** Continuous scan is switched off in code (SHOW_CONTINUOUS_SCAN): no toggle and no help for it. */
-    @Test fun continuousScanStaysHidden() {
-        openScanAndDetect(signedIn = false)
-        assertFalse(rule.exists(hasText("Continuous scan", substring = true)))
-        openMenuItem("Help")
-        waitForText("Troubleshooting")
-        assertFalse(rule.exists(hasText("Continuous scan", substring = true)))
     }
 
     // ---- the Serie page: editing and walking the list ----

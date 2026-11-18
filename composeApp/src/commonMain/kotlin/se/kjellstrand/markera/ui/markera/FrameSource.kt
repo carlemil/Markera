@@ -23,34 +23,6 @@ interface FrameSource {
 
     /** Called when the user taps "resume live" to drop a frozen snapshot. */
     fun onResumeLive()
-
-    /** Whether this source has a live feed a continuous scan can watch. */
-    val supportsContinuousScan: Boolean get() = false
-
-    /**
-     * Turns the low-rate luma feed [takeLuma] reads on or off; only on while a
-     * continuous scan watches, so the normal scan keeps its camera setup.
-     */
-    fun setWatching(on: Boolean) = Unit
-
-    /**
-     * The mean of the live feed's luma frames since the last call (see [FrameMean]), for change
-     * detection (about [WATCH_GRID] px a side); null when none has arrived.
-     */
-    fun takeLuma(): LumaFrame? = null
-
-    /**
-     * While watching: lets exposure and white balance meter the light again, then
-     * locks them anew (focus stays put); returns once they are locked.
-     */
-    suspend fun remeter() = Unit
-
-    /**
-     * Debug builds: keeps one watch verdict's files (name suffix → bytes, see
-     * [WatchVerdict.recording]) as the next numbered set, for offline replay.
-     * Blocking file IO; a no-op where nothing is kept.
-     */
-    fun recordWatch(files: Map<String, ByteArray>) = Unit
 }
 
 @Composable

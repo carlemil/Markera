@@ -29,7 +29,7 @@ Before anything else, warn the user about every feature still gated to debug bui
 grep -rn "isDebugBuild" composeApp/src/commonMain/kotlin
 ```
 
-Gates that are developer tools (the debug overlay, watch recording) are expected. Feature gates are not. **Continuous scan** (the "Kontinuerlig skanning" switch, `continuousAvailable` in `MarkeraScreen.kt`) was hidden on 2026-09-24 until it is proven on a real range.
+Gates that are developer tools (the debug overlay) are expected. Feature gates are not.
 
 ### 1a. keystore.properties
 Check if `keystore.properties` exists in the project root. If it does **not** exist, stop and tell the user to create it with this format (the `keystore` file is expected at the project root):

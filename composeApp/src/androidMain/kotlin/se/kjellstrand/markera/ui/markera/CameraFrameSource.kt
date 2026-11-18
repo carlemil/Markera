@@ -1,11 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
 import android.graphics.Bitmap
-import android.os.SystemClock
 import android.util.Log
-import android.util.Size
-import androidx.camera.core.Camera
-import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -14,13 +10,9 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
@@ -40,30 +32,14 @@ private const val TAG = "Markera"
 private class CameraFrameSource(
     private val previewView: PreviewView,
     private val imageCapture: ImageCapture,
-    private val imageAnalysis: ImageAnalysis,
-    private val watchDir: File,
 ) : FrameSource {
     override val requiresCameraPermission = true
-
-    // Continuous scan only: binds the analysis stream (and the low frame rate).
-    private var analyzing by mutableStateOf(false)
-    // The frames since the last sample, averaged (guarded by itself: analyzer vs watch loop).
-    private val mean = FrameMean()
-    private var lastSampleAt = 0L
-    // The bound camera (main thread), for [remeter]; CameraPreview owns its binding.
-    private var camera: Camera? = null
-
-    init {
-        imageAnalysis.setAnalyzer(Dispatchers.Default.asExecutor(), ::analyze)
-    }
 
     @Composable
     override fun Preview(onError: (Throwable) -> Unit, modifier: Modifier) {
         CameraPreview(
             previewView = previewView,
             imageCapture = imageCapture,
-            analysis = if (analyzing) imageAnalysis else null,
-            onCamera = { camera = it },
             onError = onError,
             modifier = modifier,
         )
@@ -103,86 +79,6 @@ private class CameraFrameSource(
 
     // The live preview resumes on its own once the frozen snapshot clears.
     override fun onResumeLive() = Unit
-
-    override val supportsContinuousScan = true
-
-    override fun setWatching(on: Boolean) {
-        analyzing = on
-        if (!on) synchronized(mean) { mean.clear() }
-    }
-
-    override fun takeLuma(): LumaFrame? = synchronized(mean) { mean.take() }
-
-    override suspend fun remeter() {
-        camera?.let { remeterExposure(it) }
-    }
-
-    /**
-     * Writes set `<n>-ref.pgm`, `<n>-prev.pgm`, `<n>-cur.pgm`, `<n>-verdict.txt` to
-     * `filesDir/watch/` (n one past the highest kept, zero-padded) and drops all but
-     * the newest [WATCH_SETS_KEPT] sets. Pull them from a debug build with
-     *
-     *     adb exec-out run-as se.kjellstrand.markera tar c files/watch > watch.tar
-     *
-     * and replay them with ContinuousScanReplayTest (`-Dwatch.frames=<dir>`).
-     */
-    override fun recordWatch(files: Map<String, ByteArray>) {
-        try {
-            watchDir.mkdirs()
-            val kept = watchDir.list().orEmpty().mapNotNull { it.substringBefore('-').toIntOrNull() }.toSet()
-            val n = (kept.maxOrNull() ?: 0) + 1
-            val prefix = n.toString().padStart(5, '0')
-            for ((suffix, bytes) in files) File(watchDir, "$prefix-$suffix").writeBytes(bytes)
-            watchDir.listFiles().orEmpty()
-                .filter { (it.name.substringBefore('-').toIntOrNull() ?: n) <= n - WATCH_SETS_KEPT }
-                .forEach { it.delete() }
-        } catch (e: Exception) {
-            Log.w(TAG, "recording watch set failed", e)
-        }
-    }
-
-    /** Adds about every [ANALYSIS_INTERVAL_MS] a frame, box-averaged down to the watch grid, to the running mean. */
-    private fun analyze(image: ImageProxy) {
-        image.use {
-            val now = SystemClock.elapsedRealtime()
-            if (now - lastSampleAt < ANALYSIS_INTERVAL_MS) return
-            lastSampleAt = now
-            val frame = it.lumaFrame()
-            synchronized(mean) { mean.add(frame) }
-        }
-    }
-}
-
-// ponytail: about 4 frames per watch sample off whatever rate the sensor runs at
-// (most phones go no lower than ~5-7 fps, so ~3 land in each sample's mean, ~√3
-// less noise); if battery is still bad, unbind the preview between samples.
-private const val ANALYSIS_INTERVAL_MS = CHANGE_SAMPLE_MS / 4
-
-/** Debug recordings of the watch: this many sets stay in `filesDir/watch/`. */
-private const val WATCH_SETS_KEPT = 30
-
-/** The Y plane inside [ImageProxy.getCropRect], box-averaged to about [WATCH_GRID] a side. */
-private fun ImageProxy.lumaFrame(): LumaFrame {
-    val crop = cropRect
-    val f = maxOf(1, maxOf(crop.width(), crop.height()) / WATCH_GRID)
-    val w = crop.width() / f
-    val h = crop.height() / f
-    val plane = planes[0]
-    val buffer = plane.buffer
-    val row = ByteArray(w * f)
-    val sums = IntArray(w * h)
-    for (y in 0 until h * f) {
-        buffer.position((crop.top + y) * plane.rowStride + crop.left * plane.pixelStride)
-        if (plane.pixelStride == 1) {
-            buffer.get(row, 0, row.size)
-        } else {
-            for (x in row.indices) row[x] = buffer.get(buffer.position() + x * plane.pixelStride)
-        }
-        val base = (y / f) * w
-        for (x in row.indices) sums[base + x / f] += row[x].toInt() and 0xFF
-    }
-    val n = f * f
-    return LumaFrame(w, h, ByteArray(sums.size) { (sums[it] / n).toByte() }, imageInfo.rotationDegrees)
 }
 
 @Composable
@@ -199,9 +95,7 @@ actual fun rememberFrameSource(): FrameSource {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-            // Only while attached: the live preview, and in continuous mode the
-            // preview kept behind a frozen frame, so a tripod-mounted series
-            // does not sleep mid-way.
+            // Only while attached, i.e. while the live preview shows.
             keepScreenOn = true
         }
     }
@@ -216,22 +110,5 @@ actual fun rememberFrameSource(): FrameSource {
             )
             .build()
     }
-    val imageAnalysis = remember {
-        ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-            .setResolutionSelector(
-                ResolutionSelector.Builder()
-                    .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
-                    .setResolutionStrategy(
-                        ResolutionStrategy(
-                            Size(1920, 1440),
-                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
-                        ),
-                    )
-                    .build(),
-            )
-            .build()
-    }
-    return remember { CameraFrameSource(previewView, imageCapture, imageAnalysis, File(context.filesDir, "watch")) }
+    return remember { CameraFrameSource(previewView, imageCapture) }
 }
