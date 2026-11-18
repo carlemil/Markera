@@ -665,7 +665,7 @@ img{display:block;max-width:960px}
 .zoom .shot{display:block;margin-top:0;transform-origin:0 0;--iz:1}
 .zoom.panning,.zoom.panning *{cursor:grabbing}
 .hit,.ghost{position:absolute;transform:translate(-50%,-50%);box-sizing:border-box;
-width:var(--hole,calc(20px * var(--iz,1)));aspect-ratio:1;border:calc(1px * var(--iz,1)) solid;border-radius:50%}
+width:var(--hole,calc(20px * var(--iz,1)));aspect-ratio:1;border:calc(3px * var(--iz,1)) solid;border-radius:50%}
 .hit{display:flex;align-items:center;justify-content:center;font-size:calc(13px * var(--iz,1));line-height:1;
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
