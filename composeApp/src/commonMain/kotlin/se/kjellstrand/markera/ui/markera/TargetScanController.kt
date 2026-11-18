@@ -21,16 +21,13 @@ import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.geometryDto
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
-import se.kjellstrand.markera.vision.DigitDetector
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.vision.HoleDetector
 import se.kjellstrand.markera.vision.PlatformImage
 import se.kjellstrand.markera.vision.centerSquare
 import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.height
-import se.kjellstrand.markera.vision.MODEL_INPUT_SIZE
 import se.kjellstrand.markera.vision.postProcess
 import se.kjellstrand.markera.vision.scoreHits
 import se.kjellstrand.markera.vision.width
@@ -45,10 +42,7 @@ internal const val TAG = "Markera"
  * so it is never rebuilt per screen.
  */
 @OptIn(ExperimentalAtomicApi::class)
-class TargetScanController(
-    val detector: HoleDetector,
-    val digitDetector: DigitDetector,
-) {
+class TargetScanController(private val engine: ScanEngine) {
     // Synchronous re-entry guard. uiState.phase is bridged from a flow via
     // collectAsState and lags a frame, so two rapid taps could both read IDLE
     // and launch concurrent ONNX runs — which crashes natively. This is set on
@@ -79,10 +73,7 @@ class TargetScanController(
         if (detecting.compareAndSet(false, true)) closeDetectors()
     }
 
-    private fun closeDetectors() {
-        detector.close()
-        digitDetector.close()
-    }
+    private fun closeDetectors() = engine.close()
 
     /**
      * Captures a frame, freezes it into [snapshotVm], and runs geometry + hole
@@ -271,7 +262,7 @@ class TargetScanController(
         // rim; an implausible probe ellipse means no ring. The grayscale
         // conversion and probes are CPU-bound, so off-main.
         val ocrStarted = TimeSource.Monotonic.markNow()
-        val digits = digitDetector.detect(snapshot)
+        val digits = engine.digits(snapshot)
         ErrorLog.breadcrumb("scan", "digit OCR: ${digits.size} digits ${ocrStarted.elapsedNow()}")
         val centre = estimateCentre(digits, snapshot.width, snapshot.height)
         val ring = if (centre.method != CentreMethod.NONE) {
@@ -301,15 +292,15 @@ class TargetScanController(
         // Phase 2 — holes: the slow ONNX pass, with the spinner up. The
         // raw frame goes straight to the model — only the input letterbox.
         // The last breadcrumb before an out-of-memory kill says which step was running.
-        ErrorLog.breadcrumb("scan", "hole detection: letterboxing ${snapshot.width}x${snapshot.height} to ${detector.inputSize}")
+        ErrorLog.breadcrumb("scan", "hole detection: letterboxing ${snapshot.width}x${snapshot.height} to ${engine.inputSize}")
         val input = withContext(Dispatchers.Default) {
-            snapshot.toModelInput(detector.inputSize)
+            snapshot.toModelInput(engine.inputSize)
         }
         ErrorLog.breadcrumb("scan", "hole detection: inference started")
         val holesStarted = TimeSource.Monotonic.markNow()
-        val raws = detector.detect(input)
+        val raws = engine.holes(input)
         ErrorLog.breadcrumb("scan", "hole detection: ${raws.size} raw boxes ${holesStarted.elapsedNow()}")
-        val detections = postProcess(raws, detector.inputSize, snapshot.width, snapshot.height)
+        val detections = postProcess(raws, engine.inputSize, snapshot.width, snapshot.height)
         // Score each hole against the digit centre and the 6/7 ring.
         val scores = if (centre.method != CentreMethod.NONE && ring != null) {
             scoreHits(detections, centre, ring)
@@ -344,12 +335,12 @@ class TargetScanController(
  * (never mid-scan on a screen switch).
  */
 @Composable
-fun rememberTargetScanController(modelPath: String): TargetScanController {
+fun rememberTargetScanController(
+    modelPath: String,
+    engine: (() -> ScanEngine)? = null,
+): TargetScanController {
     val controller = remember {
-        TargetScanController(
-            detector = HoleDetector(modelPath, inputSize = MODEL_INPUT_SIZE),
-            digitDetector = DigitDetector(),
-        )
+        TargetScanController(engine?.invoke() ?: DeviceScanEngine(modelPath))
     }
     DisposableEffect(controller) {
         onDispose { controller.close() }

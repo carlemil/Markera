@@ -5,6 +5,8 @@ import android.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -15,10 +17,12 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import android.view.KeyEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,6 +30,12 @@ import androidx.test.platform.app.InstrumentationRegistry
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.http.content.TextContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -56,6 +66,9 @@ import se.kjellstrand.markera.series.BackendTokenStore
 import se.kjellstrand.markera.series.GeometryDto
 import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.SeriesDto
+import se.kjellstrand.markera.series.SeriesRequest
+import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.ui.markera.SCAN_VIEWPORT_TAG
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.db.MarkeraDb
 import se.kjellstrand.markera.series.seriesJson
@@ -86,6 +99,10 @@ class AppUiTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val root = File(context.cacheDir, "ui-test-${System.nanoTime()}")
     private val requests = CopyOnWriteArrayList<String>()
+    /** Every series the app POSTed, as the server got it. */
+    private val posted = CopyOnWriteArrayList<SeriesRequest>()
+    /** What those posts became on the fake server, which GET /series lists newest first. */
+    private val saved = java.util.concurrent.ConcurrentSkipListMap<Long, SeriesDto>()
 
     /** One series shot an hour ago, with a photo, as the fake server holds it. */
     private val serverSeries = SeriesDto(
@@ -145,7 +162,23 @@ class AppUiTest {
             request.method == HttpMethod.Get && path.matches(Regex("""/series/\d+/image""")) ->
                 respond(jpeg, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
             request.method == HttpMethod.Get && path == "/series" ->
-                respond(seriesJson.encodeToString(onServer), HttpStatusCode.OK, json)
+                respond(seriesJson.encodeToString(saved.values.reversed() + onServer), HttpStatusCode.OK, json)
+            request.method == HttpMethod.Post && path == "/series" -> {
+                val req = seriesJson.decodeFromString<SeriesRequest>((request.body as TextContent).text)
+                posted += req
+                val id = 900L + posted.size
+                saved[id] = SeriesDto(id, req.timestamp, req.caliber, req.holes.filterNot { it.deleted }, geometry = req.geometry, tag = req.tag)
+                respond("""{"id":$id}""", HttpStatusCode.Created, json)
+            }
+            request.method == HttpMethod.Post && path.matches(Regex("""/series/\d+/image""")) -> {
+                val id = path.split('/')[2].toLong()
+                saved[id] = saved.getValue(id).copy(
+                    hasImage = true,
+                    imageWidth = request.url.parameters["width"]?.toInt(),
+                    imageHeight = request.url.parameters["height"]?.toInt(),
+                )
+                respond("", HttpStatusCode.NoContent)
+            }
             else -> respond("", HttpStatusCode.NotFound)
         }
     }
@@ -156,7 +189,10 @@ class AppUiTest {
         var insightsEnabled: Boolean? = null,
         var sightSetups: String? = null,
         var dismissedInsights: String? = null,
+        var caliber: Caliber = Caliber.DEFAULT,
     ) : BackendTokenStore {
+        override suspend fun readCaliber() = caliber
+        override suspend fun writeCaliber(caliber: Caliber) { this.caliber = caliber }
         override suspend fun read() = auth
         override suspend fun write(auth: BackendAuth) { this.auth = auth }
         override suspend fun clear() { auth = null }
@@ -175,6 +211,7 @@ class AppUiTest {
     private fun launch(
         signedIn: Boolean,
         store: MemoryStore = MemoryStore(null),
+        scanEngine: FakeScanEngine = FakeScanEngine(),
         seed: (MarkeraDb) -> Unit = {},
     ): SeriesServices {
         store.auth = if (signedIn) BackendAuth(TOKEN, USER, "dev") else null
@@ -188,7 +225,13 @@ class AppUiTest {
             cacheDir = Path(File(root, "cache").apply { mkdirs() }.path),
             filesDir = Path(File(root, "files").apply { mkdirs() }.path),
         )
-        val app = AppServices(series = services, modelPath = "no-model-in-ui-tests", shareFile = {})
+        // Never the phone's camera or models: the drawn target and its stand-in detectors.
+        val app = AppServices(
+            series = services,
+            modelPath = "no-model-in-ui-tests",
+            shareFile = {},
+            scanStandIns = ScanStandIns(FakeFrameSource()) { scanEngine },
+        )
         rule.setContent { MarkeraApp(app) }
         return services
     }
@@ -755,6 +798,157 @@ class AppUiTest {
         waitForText("Sights adjusted")
         waitForText("judged on the 0 shots since then")
         assertFalse(rule.exists(hasTestTag(SIGHT_CORRECTION_TAG)))
+    }
+
+    // ---- the scan screen (free marking): FakeTarget, its stand-in detectors, the real pipeline ----
+
+    private fun waitForExact(text: String) = waitFor(hasText(text), "exactly \"$text\"")
+    private fun button(label: String) = hasText(label) and hasClickAction()
+    /** A button merges its label into its own node, so it is looked for in the merged tree. */
+    private fun waitForButton(matcher: SemanticsMatcher, what: String) {
+        try {
+            rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }
+        } catch (e: Throwable) {
+            throw AssertionError("Never showed $what; requests: $requests " + rule.onRoot().printToString(), e)
+        }
+    }
+    private fun click(matcher: SemanticsMatcher, what: String = "the button") {
+        waitForButton(matcher, what)
+        val node = rule.onAllNodes(matcher)[0]
+        // Only a button inside a scrolling column can (and needs to) be scrolled to.
+        if (rule.onAllNodes(matcher and hasAnyAncestor(hasScrollAction())).fetchSemanticsNodes().isNotEmpty()) node.performScrollTo()
+        node.performClick()
+    }
+
+    /** Home → Mark → Detect: the five drawn holes score 10, 9, 8, 7, 6. */
+    private fun openScanAndDetect(signedIn: Boolean = true, store: MemoryStore = MemoryStore(null)): SeriesServices {
+        onServer = emptyList()
+        val services = launch(signedIn, store)
+        click(button("Mark"))
+        click(button("Detect"))
+        waitForExact("40")
+        return services
+    }
+
+    /** Taps (or long-presses) the frozen frame at image pixel [x],[y]. */
+    private fun onPhoto(x: Float, y: Float, long: Boolean = false) {
+        rule.onNodeWithTag(SCAN_VIEWPORT_TAG).performTouchInput {
+            val at = Offset(x * width / FakeTarget.SIZE, y * height / FakeTarget.SIZE)
+            if (long) longClick(at) else click(at)
+        }
+    }
+
+    private fun save() {
+        click(button("Save"))
+    }
+
+    private fun waitForPosts(n: Int): List<SeriesRequest> {
+        rule.waitUntil(TIMEOUT_MS) { posted.size >= n }
+        return posted.toList()
+    }
+
+    @Test fun scanFillsTheTotalAndTheScores() {
+        openScanAndDetect()
+        listOf("10", "9", "8", "7", "6").forEach { waitForButton(button(it), "a score box $it") }
+        waitForText("Tap the photo to add a hit")
+    }
+
+    /** A typed score replaces the detector's; the save carries both, and the series lands in History with its photo. */
+    @Test fun typedScoreIsSavedAndTheSeriesShowsInHistory() {
+        openScanAndDetect()
+        click(button("6"))
+        waitForText("Score")
+        click(button("X"))
+        waitForExact("44")
+        save()
+        waitForExact("Saved")
+        val sent = waitForPosts(1).single()
+        assertEquals("22lr", sent.caliber)
+        val typed = sent.holes.single { it.innerTen }
+        assertEquals(10, typed.ring)
+        assertEquals(6, typed.detectedRing)
+        assertEquals(listOf(10, 10, 9, 8, 7), sent.holes.map { it.ring }.sortedDescending())
+        rule.waitUntil(TIMEOUT_MS) { requests.any { it.matches(Regex("""POST /series/\d+/image""")) } }
+
+        pressBack()
+        rule.onNodeWithText("History").performClick()
+        waitForText("44")
+        waitFor(thumbnail, "the saved series' photo in History")
+    }
+
+    /** A tap on the photo adds the missed hole as a hand-placed one: scored, saved with no detector values. */
+    @Test fun tapAddsAMissedHole() {
+        openScanAndDetect()
+        val (x, y) = FakeTarget.at(40f, 200f)
+        onPhoto(x, y)
+        waitForExact("49")
+        save()
+        val sent = waitForPosts(1).single()
+        assertEquals(6, sent.holes.size)
+        val manual = sent.holes.single { it.detectedX == null }
+        assertEquals(9, manual.ring)
+        assertEquals(null, manual.detectedRing)
+    }
+
+    /** A long press asks, then removes the hit; the save keeps the detection as a deleted hole. */
+    @Test fun longPressRemovesAHit() {
+        openScanAndDetect()
+        val (x, y) = FakeTarget.HOLES.last()
+        onPhoto(x, y, long = true)
+        waitForText("Remove the hit?")
+        click(button("Remove"))
+        waitForExact("34")
+        save()
+        val sent = waitForPosts(1).single()
+        assertEquals(listOf(10, 9, 8, 7), sent.holes.filterNot { it.deleted }.map { it.ring }.sortedDescending())
+        assertEquals(6, sent.holes.single { it.deleted }.detectedRing)
+    }
+
+    /** No caliber chosen yet: Save asks for one first, and the tag picked on the badge rides along. */
+    @Test fun saveWithoutACaliberAsksForOne() {
+        val store = MemoryStore(null, caliber = Caliber.NONE)
+        openScanAndDetect(store = store)
+        click(button("+ Tag"))
+        waitForText("Choose tag")
+        click(button("Practice"))
+        waitForExact("Practice")
+        save()
+        waitForText("Choose caliber")
+        assertEquals("Nothing is sent before a caliber is chosen", 0, posted.size)
+        click(button("9mm"))
+        waitForExact("Saved")
+        val sent = waitForPosts(1).single()
+        assertEquals("9mm", sent.caliber)
+        assertEquals("Practice", sent.tag)
+        rule.waitUntil(TIMEOUT_MS) { store.caliber == Caliber.MM9 }
+    }
+
+    /** A saved scan survives the next one: scanning again and resetting sends nothing more. */
+    @Test fun rescanDropsOnlyThePendingScan() {
+        openScanAndDetect()
+        save()
+        waitForExact("Saved")
+        waitForPosts(1)
+        click(button("Detect"))
+        waitForExact("40")
+        // The "Saved" snackbar may still cover the action row, so click through semantics.
+        rule.onAllNodes(hasContentDescription("Reset") and hasClickAction())[0]
+            .performSemanticsAction(SemanticsActions.OnClick)
+        rule.waitUntil(TIMEOUT_MS) {
+            rule.exists(hasText("Discard your changes?")) || rule.onAllNodes(button("Detect")).fetchSemanticsNodes().isNotEmpty()
+        }
+        assertFalse("An untouched scan must reset without asking", rule.exists(hasText("Discard your changes?")))
+        rule.waitForIdle()
+        assertEquals(1, posted.size)
+    }
+
+    /** Signed out, Save keeps the series on the phone and sends nothing. */
+    @Test fun signedOutSaveStaysOnThePhone() {
+        val services = openScanAndDetect(signedIn = false)
+        save()
+        waitForText("Saved on this device")
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.id < 0 } }
+        assertEquals(0, posted.size)
     }
 
     private companion object {

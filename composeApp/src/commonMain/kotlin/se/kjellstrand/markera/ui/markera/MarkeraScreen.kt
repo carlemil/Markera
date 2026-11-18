@@ -1,6 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
 import se.kjellstrand.markera.vision.byHand
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.Canvas
@@ -101,6 +102,9 @@ private const val SHOW_CONTINUOUS_SCAN = false
  * instead, one per turn: Save or Skip moves on; in auto mode a scan that scored
  * is saved without stopping (see [importDecision]).
  */
+/** The square photo/preview, for UI tests that tap the frozen frame. */
+const val SCAN_VIEWPORT_TAG = "scan-viewport"
+
 @Composable
 fun MarkeraScreen(
     frameSource: FrameSource = rememberFrameSource(),
@@ -313,7 +317,7 @@ fun MarkeraScreen(
                         },
                     ),
                 )
-                Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
+                Box(Modifier.fillMaxWidth().aspectRatio(1f).testTag(SCAN_VIEWPORT_TAG)) {
                     TargetScanner(
                         frameSource = frameSource,
                         snapshotVm = snapshotVm,

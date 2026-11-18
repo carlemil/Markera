@@ -136,8 +136,10 @@ fun MarkeraApp(app: AppServices, competition: CompetitionHost? = null) {
     val stack = remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
 
     val seriesServices = app.series
-    val frameSource = rememberFrameSource()
-    val scanController = rememberTargetScanController(app.modelPath)
+    // The camera is always composed (it is a remembered platform resource); a UI test's stand-in replaces it.
+    val deviceFrameSource = rememberFrameSource()
+    val frameSource = app.scanStandIns?.frameSource ?: deviceFrameSource
+    val scanController = rememberTargetScanController(app.modelPath, app.scanStandIns?.engine)
     // Auto-save: every scan the shared controller completes is offered to the
     // recorder, whichever screen started it.
     val recorder = remember {
