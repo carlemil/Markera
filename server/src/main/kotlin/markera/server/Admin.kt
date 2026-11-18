@@ -179,7 +179,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
         val holes = series.holes.mapIndexed { i, h -> holeRow(i, h, readOnly = h.deleted || series.deleted) }.joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
         val photo = if (!hasImage) "" else {
-            """<div class="zoom"><div class="shot"><img src="/admin/series/$seriesId/image">""" +
+            """<div class="zoom"><div class="shot"${holeSizeAttrs(series)}><img src="/admin/series/$seriesId/image">""" +
                 """${geometrySvg(series)}${markers(series)}</div></div>"""
         }
         // Without the frame size there is nowhere to put a marker, so holes can only be added position-less.
@@ -229,10 +229,13 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "Series ${series.id}",
                 (if (embed) "" else """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""") + verdict +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") + trainingNote +
+                    // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
+                    // Embedded (curate), the details head the left column and the photo fills the rest,
+                    // fitted to the window's height, so a wide screen shows it all without scrolling.
+                    """<div class="cols${if (embed) " embed" else ""}"><div>""" +
                     "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
-                    // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
-                    """<div class="cols"><div>""" + (if (embed) "" else paging) +
+                    (if (embed) "" else paging) +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p></div><div>""" +
                     photo + note + "</div></div>" +
@@ -391,6 +394,21 @@ private suspend fun RoutingContext.notFromPage(): Boolean {
  * is drawn for series stored before the upload carried the frame size, or for typed holes (no position).
  * `data-i` is the hole's index, which is how the editor script pairs a marker with its table row.
  */
+/**
+ * Sizes the markers as the bullet's hole on the photo: `--hole` is the caliber's diameter as a share of the
+ * frame's width, so a marker grows with the photo and its zoom. `data-pctmm` (percent of the width per mm) and
+ * `data-cal` (the caliber table) let the editor resize them when the caliber is changed. Without a ring there is
+ * no mm scale, and the markers keep their fixed screen size.
+ */
+private fun holeSizeAttrs(series: Series): String {
+    val width = series.imageWidth?.takeIf { it > 0 } ?: return ""
+    val perMm = pxPerMm(series) ?: return ""
+    val pctMm = perMm / width * 100
+    val table = CALIBER_DIAMETER_MM.entries.joinToString(",", "{", "}") { (k, v) -> "&quot;$k&quot;:$v" }
+    return """ style="--hole:${round2(caliberDiameterMm(series.caliber) * pctMm)}%" data-pctmm="$pctMm" """ +
+        """data-cal="$table" data-dflt="$DEFAULT_DIAMETER_MM""""
+}
+
 private fun markers(series: Series): String {
     val width = series.imageWidth ?: return ""
     val height = series.imageHeight ?: return ""
@@ -628,15 +646,23 @@ tr[onclick]{cursor:pointer}
 tr[onclick]:hover td{background:#1c2416}
 img{display:block;max-width:960px}
 .cols{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.cols.embed{flex-wrap:nowrap}
+.cols.embed>div:last-child{flex:1;min-width:0}
+.cols.embed .zoom,.cols.embed .shot{margin-top:0}
+.cols.embed img{max-width:100%;max-height:calc(100vh - 24px)}
 /* Margin and border live on the box, not the img: markers and the ring are placed as percentages of
    this box, so its padding box must be exactly the image pixels for a click to land where it points. */
 .shot{position:relative;display:inline-block;margin-top:12px;border:1px solid #35402c}
-/* Wheel zoom (ZOOM_JS) scales .shot inside this clipping box; --iz = 1/zoom keeps markers their screen size. */
+/* Wheel zoom (ZOOM_JS) scales .shot inside this clipping box; --iz = 1/zoom keeps text and lines their screen
+   size. A marker is the bullet's hole (--hole, a share of the photo's width), so it zooms with the photo; with no
+   ring to measure by it falls back to a fixed 20 px on screen. */
 .zoom{display:inline-block;overflow:hidden;margin-top:12px;max-width:100%;vertical-align:top}
 .zoom .shot{display:block;margin-top:0;transform-origin:0 0;--iz:1}
 .zoom.panning,.zoom.panning *{cursor:grabbing}
-.hit{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));width:20px;height:20px;border:1px solid;border-radius:50%;
-font-size:13px;line-height:20px;text-align:center;text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
+.hit,.ghost{position:absolute;transform:translate(-50%,-50%);box-sizing:border-box;
+width:var(--hole,calc(20px * var(--iz,1)));aspect-ratio:1;border:calc(1px * var(--iz,1)) solid;border-radius:50%}
+.hit{display:flex;align-items:center;justify-content:center;font-size:calc(13px * var(--iz,1));line-height:1;
+text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
@@ -644,10 +670,9 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 tr.gone{text-decoration:line-through}
 .hit.gone{border-style:dashed;cursor:default;opacity:.6}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
-.ghost{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));width:20px;height:20px;border:1px dashed;border-radius:50%;
-opacity:.5;pointer-events:none}
+.ghost{border-style:dashed;opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
-.lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:11px;line-height:1;font-style:normal;
+.lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:calc(11px * var(--iz,1));line-height:1;font-style:normal;
 pointer-events:none}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
@@ -844,7 +869,13 @@ if (add) add.onclick = () => addHole(null, null);
 
 // Every edit saves at once — there is no Save button. The state stays local, so no reload afterwards.
 // Each PUT waits for the one before it: two in flight could land out of order and leave the older state stored.
-document.getElementById('caliber').onchange = () => save();
+document.getElementById('caliber').onchange = () => { holeSize(); save(); };
+// The markers are the new caliber's hole (holeSizeAttrs on the server).
+function holeSize() {
+  if (!shot || !shot.dataset.pctmm) return;
+  const d = JSON.parse(shot.dataset.cal)[document.getElementById('caliber').value.trim()];
+  shot.style.setProperty('--hole', (d || Number(shot.dataset.dflt)) * Number(shot.dataset.pctmm) + '%');
+}
 document.getElementById('tag').onchange = () => save();
 let queue = Promise.resolve();
 // For /admin/curate: a verdict waits until the edits made in this frame are stored.

@@ -40,13 +40,13 @@ data class SeriesTraining(
 )
 
 /** Nominal bullet diameters in mm, the app's `Caliber` table: the server only needs them for the fallback box. */
-private val CALIBER_DIAMETER_MM = mapOf(
+internal val CALIBER_DIAMETER_MM = mapOf(
     "22lr" to 5.66, "22wmr" to 5.70, "17hmr" to 4.37, "32" to 7.92, "380" to 9.02, "9mm" to 9.02, "38" to 9.07,
     "357" to 9.07, "40" to 10.16, "10mm" to 10.16, "44" to 10.90, "45" to 11.45, "223" to 5.69, "243" to 6.17,
     "6.5x55" to 6.71, "6.5cm" to 6.71, "270" to 7.04, "308" to 7.82, "30-06" to 7.82, "7.62x39" to 7.90,
     "8x57" to 8.20, "9.3x62" to 9.30, "300wm" to 7.82,
 )
-private const val DEFAULT_DIAMETER_MM = 7.92
+internal const val DEFAULT_DIAMETER_MM = 7.92
 private const val BLACK_RING_RADIUS_MM = 100.0
 
 /**
@@ -115,12 +115,15 @@ fun classifySeries(series: Series): SeriesTraining? {
 }
 
 /** A caliber-sized hole box side in source px: the caliber's diameter at the scan's scale, else 3% of the frame. */
-private fun fallbackSidePx(series: Series, width: Int): Double {
-    val geometry = series.geometry ?: return width * 0.03
-    if (geometry.ringSemiMajor <= 0.0) return width * 0.03
-    val diameter = CALIBER_DIAMETER_MM[series.caliber] ?: DEFAULT_DIAMETER_MM
-    return diameter * geometry.ringSemiMajor / BLACK_RING_RADIUS_MM
-}
+private fun fallbackSidePx(series: Series, width: Int): Double =
+    pxPerMm(series)?.let { caliberDiameterMm(series.caliber) * it } ?: (width * 0.03)
+
+/** The bullet's nominal diameter; an unknown caliber gets the default. */
+internal fun caliberDiameterMm(caliber: String) = CALIBER_DIAMETER_MM[caliber] ?: DEFAULT_DIAMETER_MM
+
+/** Source px per target mm at the scan's scale (the 6/7 ellipse's semi-major is 100 mm); null without a ring. */
+internal fun pxPerMm(series: Series): Double? =
+    series.geometry?.ringSemiMajor?.takeIf { it > 0.0 }?.let { it / BLACK_RING_RADIUS_MM }
 
 private fun f(v: Double) = String.format(Locale.ROOT, "%.6f", v)
 
