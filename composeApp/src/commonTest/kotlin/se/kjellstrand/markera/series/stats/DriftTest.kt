@@ -22,7 +22,7 @@ class DriftTest {
         SeriesDto(id = id, timestamp = timestamp, caliber = "9mm", holes = holes.toList(), geometry = geometry)
 
     @Test
-    fun `one point per day over every hit of that day's series together, oldest first`() {
+    fun `one point per day over every hit of that day's series together and oldest first`() {
         val days = listOf(
             // Day two, one series: mean (20, 0), median (20, 0).
             series(3, "2026-09-02T09:00:00Z", hole(520.0, 500.0)),
@@ -51,7 +51,7 @@ class DriftTest {
     }
 
     @Test
-    fun `a typed hole is skipped and its series kept, a day with no positioned hit has no point`() {
+    fun `a typed hole is skipped and its series kept while a day with no positioned hit has no point`() {
         val mixed = series(1, "2026-09-01T10:00:00Z", hole(540.0, 500.0), hole(null, null))
         val typedOnly = series(2, "2026-09-02T10:00:00Z", hole(null, null))
         // The other tabs still drop the whole series.
@@ -64,7 +64,7 @@ class DriftTest {
     }
 
     @Test
-    fun `per series gives every series its own point, oldest first, a typed-only series none`() {
+    fun `per series gives every series its own point oldest first and a typed-only series none`() {
         val points = listOf(
             series(3, "2026-09-02T09:00:00Z", hole(520.0, 500.0)),
             series(2, "2026-09-01T18:00:00Z", hole(530.0, 500.0), hole(590.0, 500.0)),

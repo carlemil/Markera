@@ -21,7 +21,7 @@ class WeekSummaryTest {
     )
 
     @Test
-    fun `counts, averages and finds the best of the last seven days only`() {
+    fun `counts and averages and finds the best of the last seven days only`() {
         val summary = listOf(
             series(1, "2026-09-15T09:00:00Z", 10, 10, 9, 9, 8), // 46
             series(2, "2026-09-10T09:00:00Z", 8, 8, 8, 8, 8), // 40
