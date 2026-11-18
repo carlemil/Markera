@@ -68,6 +68,12 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
 import se.kjellstrand.markera.ui.history.HistoryFilter
+import se.kjellstrand.markera.ui.markera.CameraPermissionState
+import se.kjellstrand.markera.ui.markera.DEBUG_DETECTIONS_TAG
+import se.kjellstrand.markera.ui.markera.GUIDE_SWATCH_TAG
+import se.kjellstrand.markera.ui.markera.SWATCHES
+import se.kjellstrand.markera.ui.settings.DEFAULT_GUIDE_COLOR
+import androidx.compose.ui.graphics.toArgb
 import se.kjellstrand.markera.ui.history.decodeHistoryFilter
 import se.kjellstrand.markera.ui.history.decodeOpenDays
 import se.kjellstrand.markera.ui.history.encode
@@ -278,7 +284,10 @@ class AppUiTest {
         var theme: String? = null,
         var historyFilter: String? = null,
         var openDays: String? = null,
+        var guideColor: Long? = null,
     ) : BackendTokenStore {
+        override suspend fun readGuideColor() = guideColor
+        override suspend fun writeGuideColor(argb: Long) { guideColor = argb }
         override suspend fun readCaliber() = caliber
         override suspend fun writeCaliber(caliber: Caliber) { this.caliber = caliber }
         override suspend fun read() = auth
@@ -308,6 +317,8 @@ class AppUiTest {
         scanEngine: FakeScanEngine = FakeScanEngine(),
         /** What Import's picker hands back, for either source; null leaves the system picker. */
         picks: ((ImageSource) -> List<PickedImage>)? = null,
+        /** The scan screen's camera permission; null grants it, as the fake camera needs none. */
+        cameraPermission: (@androidx.compose.runtime.Composable () -> CameraPermissionState)? = null,
         seed: (MarkeraDb) -> Unit = {},
     ): SeriesServices {
         store.auth = if (signedIn) BackendAuth(TOKEN, USER, "dev") else null
@@ -326,7 +337,7 @@ class AppUiTest {
             series = services,
             modelPath = "no-model-in-ui-tests",
             shareFile = { shared += it },
-            scanStandIns = ScanStandIns(FakeFrameSource(), picks) { scanEngine },
+            scanStandIns = ScanStandIns(FakeFrameSource(), picks, cameraPermission) { scanEngine },
         )
         val links = object : UriHandler {
             override fun openUri(uri: String) { opened += uri }
@@ -1160,8 +1171,86 @@ class AppUiTest {
         backHomeWith("0 saved, 1 skipped")
     }
 
-    // ---- the Serie page: editing and walking the list ----
+    // ---- the scan screen's side states: camera permission, guide colour, debug overlay, continuous scan ----
 
+    /** Denied, the scan screen explains why and asks again on Allow access; granted, the viewfinder is back. */
+    @Test fun cameraPermissionDeniedExplainsAndAsksAgain() {
+        val granted = androidx.compose.runtime.mutableStateOf(false)
+        val asked = java.util.concurrent.atomic.AtomicInteger()
+        // The first ask is refused, the second allowed.
+        launch(signedIn = false, cameraPermission = {
+            CameraPermissionState(granted.value) { if (asked.incrementAndGet() >= 2) granted.value = true }
+        })
+        click(button("Mark"))
+        waitForText("The camera is needed to mark hits")
+        assertFalse("No scanning without the camera", rule.exists(button("Detect")))
+        click(button("Allow access"))
+        rule.waitUntil(TIMEOUT_MS) { asked.get() == 1 }
+        rule.waitForIdle()
+        assertTrue("Still refused, still explained", rule.exists(hasText("The camera is needed to mark hits", substring = true)))
+        click(button("Allow access"))
+        waitForButton(button("Detect"), "Detect")
+        assertFalse(rule.exists(hasText("The camera is needed to mark hits", substring = true)))
+        assertEquals(2, asked.get())
+    }
+
+    private fun guideColorButton() = hasContentDescription("Guide colour") and hasClickAction()
+    private fun swatch(i: Int) = hasTestTag("$GUIDE_SWATCH_TAG-$i")
+    private fun stored(i: Int) = SWATCHES[i].toArgb().toLong() and 0xFFFFFFFFL
+
+    /** The palette's pick is saved on Done, is the one marked when it opens again and after a restart; Default is white. */
+    @Test fun guideColourIsPickedAndKept() {
+        val store = MemoryStore(null)
+        launch(signedIn = false, store = store)
+        click(button("Mark"))
+        click(guideColorButton(), "the palette button")
+        waitFor(swatch(2), "the swatches")
+        rule.onNode(swatch(2)).performClick()
+        rule.onNode(swatch(2) and isSelected()).assertExists()
+        click(button("Done"))
+        rule.waitUntil(TIMEOUT_MS) { store.guideColor == stored(2) }
+        click(guideColorButton(), "the palette button")
+        waitFor(swatch(2) and isSelected(), "the picked swatch marked")
+        // Cancel keeps it.
+        rule.onNode(swatch(4)).performClick()
+        click(button("Cancel"))
+        rule.waitForIdle()
+        assertEquals(stored(2), store.guideColor)
+        click(guideColorButton(), "the palette button")
+        click(button("Default"))
+        rule.waitUntil(TIMEOUT_MS) { store.guideColor == DEFAULT_GUIDE_COLOR }
+    }
+
+    /** A colour stored earlier is the guide's colour on the next start. */
+    @Test fun guideColourIsReadBackOnStart() {
+        launch(signedIn = false, store = MemoryStore(null, guideColor = stored(6)))
+        click(button("Mark"))
+        click(guideColorButton(), "the palette button")
+        waitFor(swatch(6) and isSelected(), "the stored swatch marked")
+    }
+
+    /** Debug builds: Show detection data draws the raw boxes over the result, and a second tap hides them. */
+    @Test fun debugOverlayShowsAndHidesTheRawBoxes() {
+        org.junit.Assume.assumeTrue(se.kjellstrand.markera.ui.markera.isDebugBuild)
+        openScanAndDetect(signedIn = false)
+        val raw = hasTestTag(DEBUG_DETECTIONS_TAG)
+        assertFalse("The clean view has no raw boxes", rule.exists(raw))
+        openMenuItem("Show detection data")
+        waitFor(raw, "the raw detection boxes")
+        openMenuItem("Show detection data")
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(raw) }
+    }
+
+    /** Continuous scan is switched off in code (SHOW_CONTINUOUS_SCAN): no toggle and no help for it. */
+    @Test fun continuousScanStaysHidden() {
+        openScanAndDetect(signedIn = false)
+        assertFalse(rule.exists(hasText("Continuous scan", substring = true)))
+        openMenuItem("Help")
+        waitForText("Troubleshooting")
+        assertFalse(rule.exists(hasText("Continuous scan", substring = true)))
+    }
+
+    // ---- the Serie page: editing and walking the list ----
     private fun inDialog(matcher: SemanticsMatcher) = matcher and hasAnyAncestor(isDialog())
     private fun waitForPuts(n: Int): List<Pair<Long, SeriesRequest>> {
         try {

@@ -40,6 +40,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
@@ -49,8 +52,11 @@ import se.kjellstrand.markera.ui.settings.DEFAULT_GUIDE_COLOR
 /** The guide keeps its 80% opacity whatever colour is picked, so the target shows through. */
 private const val GUIDE_ALPHA = 0.8f
 
+/** UI tests find swatch i as "$GUIDE_SWATCH_TAG-i", the palette button by its description. */
+const val GUIDE_SWATCH_TAG = "guide-swatch"
+
 /** Ready-made picks: the default white first, then colours that stand out on a black/white target. */
-private val SWATCHES: List<Color> = listOf(
+internal val SWATCHES: List<Color> = listOf(
     Color(DEFAULT_GUIDE_COLOR),
     Color.Black,
     Color(0xFFFFEB3B), // yellow
@@ -145,6 +151,8 @@ private fun GuideColorDialog(
                             val selected = swatch.toArgb() == picked.toArgb()
                             Box(
                                 modifier = Modifier
+                                    .testTag("$GUIDE_SWATCH_TAG-${SWATCHES.indexOf(swatch)}")
+                                    .semantics { this.selected = selected }
                                     .size(40.dp)
                                     .clip(CircleShape)
                                     .background(swatch.copy(alpha = 1f))

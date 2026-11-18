@@ -1,6 +1,8 @@
 package se.kjellstrand.markera
 
+import androidx.compose.runtime.Composable
 import se.kjellstrand.markera.series.SeriesServices
+import se.kjellstrand.markera.ui.markera.CameraPermissionState
 import se.kjellstrand.markera.ui.markera.FrameSource
 import se.kjellstrand.markera.ui.markera.ImageSource
 import se.kjellstrand.markera.ui.markera.PickedImage
@@ -21,10 +23,12 @@ class AppServices(
 
 /**
  * A fixed [frameSource] for the camera and an [engine] for the two detectors, see [AppServices.scanStandIns].
- * [pickImages], when set, answers Import in place of the system picker.
+ * [pickImages], when set, answers Import in place of the system picker, and [cameraPermission]
+ * the scan screen's camera permission in place of the system's.
  */
 class ScanStandIns(
     val frameSource: FrameSource,
     val pickImages: ((ImageSource) -> List<PickedImage>)? = null,
+    val cameraPermission: (@Composable () -> CameraPermissionState)? = null,
     val engine: () -> ScanEngine,
 )

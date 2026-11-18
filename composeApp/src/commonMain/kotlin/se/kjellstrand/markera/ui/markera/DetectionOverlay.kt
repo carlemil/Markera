@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,9 @@ import se.kjellstrand.markera.vision.ringOutline
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
+
+/** On the overlay while it draws the raw detection boxes (debug), for UI tests. */
+const val DEBUG_DETECTIONS_TAG = "debug-detections"
 
 /** Hand-placed holes: the photo marker and their score box share it. */
 val MANUAL_HIT_COLOR = Color(0xFFFFB74D)
@@ -86,7 +90,8 @@ fun DetectionOverlay(
     manualColor: Color = MANUAL_HIT_COLOR,
 ) {
     val textMeasurer = rememberTextMeasurer()
-    Canvas(modifier = modifier) {
+    val drawsRaw = showDebug && (detections.isNotEmpty() || digits.isNotEmpty())
+    Canvas(modifier = if (drawsRaw) modifier.testTag(DEBUG_DETECTIONS_TAG) else modifier) {
         if (imageWidth <= 0 || imageHeight <= 0) return@Canvas
         val scale = min(size.width / imageWidth, size.height / imageHeight)
         val offsetX = (size.width - imageWidth * scale) / 2f

@@ -301,6 +301,7 @@ fun AppNavHost(
             frameSource = frameSource,
             scanController = scanController,
             onBack = pop,
+            cameraPermission = app.scanStandIns?.cameraPermission,
         )
 
         is Screen.Import -> MarkeraScreen(

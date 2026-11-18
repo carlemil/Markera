@@ -111,6 +111,8 @@ fun MarkeraScreen(
     scanController: TargetScanController,
     onBack: (() -> Unit)? = null,
     importQueue: ImportQueue<PickedImage>? = null,
+    /** UI tests: the permission gate in place of the system's; fixed for the screen's lifetime. */
+    cameraPermission: (@Composable () -> CameraPermissionState)? = null,
 ) {
     // An import keeps its own pair, so a frame frozen in free marking never shows up in it.
     val vmKey = importQueue?.let { "import" }
@@ -118,7 +120,7 @@ fun MarkeraScreen(
     val snapshotVm: MarkeraSnapshotViewModel = viewModel(key = vmKey) { MarkeraSnapshotViewModel() }
     val uiState by viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    val permission = rememberCameraPermission(frameSource)
+    val permission = cameraPermission?.invoke() ?: rememberCameraPermission(frameSource)
 
     val errorInference = stringResource(Res.string.markera_error_inference)
     // Off by default — the clean result view. Toggle in the top bar reveals the
