@@ -21,6 +21,9 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.performScrollTo
@@ -109,6 +112,8 @@ class AppUiTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val root = File(context.cacheDir, "ui-test-${System.nanoTime()}")
     private val requests = CopyOnWriteArrayList<String>()
+    /** Links the app opened; never a real browser. */
+    private val opened = CopyOnWriteArrayList<String>()
     /** Every series the app POSTed, as the server got it. */
     private val posted = CopyOnWriteArrayList<SeriesRequest>()
     /** What those posts became on the fake server, which GET /series lists newest first. */
@@ -238,14 +243,19 @@ class AppUiTest {
         var sightSetups: String? = null,
         var dismissedInsights: String? = null,
         var caliber: Caliber = Caliber.DEFAULT,
+        // English unless a test says otherwise, whatever the phone's language, so the texts below match.
+        var language: String? = "en",
+        var theme: String? = null,
     ) : BackendTokenStore {
         override suspend fun readCaliber() = caliber
         override suspend fun writeCaliber(caliber: Caliber) { this.caliber = caliber }
         override suspend fun read() = auth
         override suspend fun write(auth: BackendAuth) { this.auth = auth }
         override suspend fun clear() { auth = null }
-        // English whatever the phone's language, so the texts below match.
-        override suspend fun readLanguage() = "en"
+        override suspend fun readLanguage() = language
+        override suspend fun writeLanguage(value: String?) { language = value }
+        override suspend fun readTheme() = theme
+        override suspend fun writeTheme(value: String) { theme = value }
         override suspend fun readShootingHand() = shootingHand
         override suspend fun writeShootingHand(value: String) { shootingHand = value }
         override suspend fun readInsightsEnabled() = insightsEnabled
@@ -280,7 +290,10 @@ class AppUiTest {
             shareFile = {},
             scanStandIns = ScanStandIns(FakeFrameSource()) { scanEngine },
         )
-        rule.setContent { MarkeraApp(app) }
+        val links = object : UriHandler {
+            override fun openUri(uri: String) { opened += uri }
+        }
+        rule.setContent { CompositionLocalProvider(LocalUriHandler provides links) { MarkeraApp(app) } }
         return services
     }
 
@@ -1339,8 +1352,73 @@ class AppUiTest {
         waitForExact("Wind flags")
         waitForExact("Show the wind on the scan screen.")
         suggestionAnswer = null
-        click(button("Send"))
+        // The error snackbar may still cover Send; click it through its semantics.
+        rule.onAllNodes(button("Send"))[0].performSemanticsAction(SemanticsActions.OnClick)
         rule.waitUntil(TIMEOUT_MS) { suggestions.size == 1 }
+    }
+
+    // ---- Settings: language, theme, About ----
+
+    /** Svenska re-keys the whole app into Swedish and is saved; English switches it back. */
+    @Test fun settingsLanguageSwitchesTheAppAndIsSaved() {
+        val store = MemoryStore(null)
+        launch(signedIn = true, store = store)
+        waitForText("series in 7 days")
+        openSettings()
+        pick("Svenska")
+        // Section headers are drawn upper-case; the title is not.
+        waitForExact("Inställningar")
+        waitForSelected("Svenska")
+        rule.waitUntil(TIMEOUT_MS) { store.language == "sv" }
+        pressBack()
+        waitForExact("Historik")
+        waitForExact("Statistik")
+        rule.onAllNodes(hasContentDescription("Meny"), useUnmergedTree = true)[0].performClick()
+        rule.onAllNodesWithText("Inställningar")[0].performClick()
+        pick("English")
+        waitForExact("Settings")
+        rule.waitUntil(TIMEOUT_MS) { store.language == "en" }
+        pressBack()
+        waitForExact("History")
+    }
+
+    /** A saved Swedish is there from the first frame. */
+    @Test fun settingsShowSavedLanguage() {
+        launch(signedIn = true, store = MemoryStore(null, language = "sv"))
+        waitForExact("Historik")
+        waitForExact("Statistik")
+    }
+
+    /** Dark is picked, saved, and a saved choice shows picked. */
+    @Test fun settingsThemeIsSaved() {
+        val store = MemoryStore(null)
+        launch(signedIn = true, store = store)
+        waitForText("series in 7 days")
+        openSettings()
+        pick("Dark")
+        waitForSelected("Dark")
+        rule.waitUntil(TIMEOUT_MS) { store.theme == "DARK" }
+        pick("Light")
+        waitForSelected("Light")
+        rule.waitUntil(TIMEOUT_MS) { store.theme == "LIGHT" }
+    }
+
+    @Test fun settingsShowSavedTheme() {
+        launch(signedIn = true, store = MemoryStore(null, theme = "DARK"))
+        waitForText("series in 7 days")
+        openSettings()
+        waitForSelected("Dark")
+    }
+
+    /** About names the installed version, and the privacy link opens the public page. */
+    @Test fun settingsAboutShowsTheVersionAndOpensPrivacy() {
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        openSettings()
+        waitForExact("Version ${BuildConfig.VERSION_NAME}")
+        click(button("Privacy policy"))
+        rule.waitUntil(TIMEOUT_MS) { opened.isNotEmpty() }
+        assertEquals(listOf("https://markera.duckdns.org/privacy"), opened.toList())
     }
 
     private companion object {
