@@ -13,7 +13,7 @@ import se.kjellstrand.markera.BuildConfig
  */
 fun initErrorReporting(app: Application) {
     val dsn = BuildConfig.SENTRY_DSN
-    if (dsn.isBlank()) return
+    if (dsn.isBlank() || underInstrumentation()) return
     SentryAndroid.init(app) { options ->
         options.dsn = dsn
         // Debug builds log what the SDK does (tag "Sentry" in logcat).
@@ -27,6 +27,17 @@ fun initErrorReporting(app: Application) {
         options.logs.isEnabled = true
     }
     ErrorLog.sink = SentryErrorSink
+}
+
+/**
+ * True in a `connectedAndroidTest` process: the test APK shares the app's process, so its
+ * runner is loadable. The UI tests fake server errors on purpose; those are not bugs to report.
+ */
+private fun underInstrumentation(): Boolean = try {
+    Class.forName("androidx.test.platform.app.InstrumentationRegistry")
+    true
+} catch (_: ClassNotFoundException) {
+    false
 }
 
 private object SentryErrorSink : ErrorSink {
