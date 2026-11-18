@@ -74,7 +74,7 @@ targets:
         # Mirrors the Android versionCode, but ASC rejects a build number <= one
         # already uploaded, so the beta lane bumps past it and this follows:
         # 1.7.0 went up as build 11 because 10 was already taken.
-        CURRENT_PROJECT_VERSION: 21
+        CURRENT_PROJECT_VERSION: 22
         TARGETED_DEVICE_FAMILY: 1
         SWIFT_VERSION: 5.0
         SWIFT_OBJC_BRIDGING_HEADER: iosApp/Bridging.h   # OrtRunner.c
