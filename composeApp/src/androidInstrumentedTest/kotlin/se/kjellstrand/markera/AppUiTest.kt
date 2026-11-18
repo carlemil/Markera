@@ -61,6 +61,21 @@ import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant as KxInstant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.toInstant
+import se.kjellstrand.markera.ui.history.HistoryFilter
+import se.kjellstrand.markera.ui.history.decodeHistoryFilter
+import se.kjellstrand.markera.ui.history.decodeOpenDays
+import se.kjellstrand.markera.ui.history.encode
+import se.kjellstrand.markera.series.stats.DatePreset
+import androidx.compose.ui.test.hasStateDescription
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.swipeDown
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.files.Path
@@ -135,6 +150,8 @@ class AppUiTest {
     @Volatile private var postAnswer: HttpStatusCode? = null
     /** Set, the server no longer knows the token: every signed-in request is a 401. */
     @Volatile private var tokenExpired = false
+    /** Set, every request fails as with no network. */
+    @Volatile private var offline = false
     /** Every suggestion sent, and whether it came with the token. */
     private val suggestions = CopyOnWriteArrayList<Pair<SuggestionRequest, Boolean>>()
     /** Set, POST /suggestions answers this; null takes it. */
@@ -188,6 +205,7 @@ class AppUiTest {
     private val engine = MockEngine { request ->
         val path = request.url.encodedPath
         requests += "${request.method.value} $path"
+        if (offline) throw java.io.IOException("offline")
         val authorized = request.headers[HttpHeaders.Authorization] == "Bearer $TOKEN"
         val json = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         when {
@@ -252,6 +270,8 @@ class AppUiTest {
         // English unless a test says otherwise, whatever the phone's language, so the texts below match.
         var language: String? = "en",
         var theme: String? = null,
+        var historyFilter: String? = null,
+        var openDays: String? = null,
     ) : BackendTokenStore {
         override suspend fun readCaliber() = caliber
         override suspend fun writeCaliber(caliber: Caliber) { this.caliber = caliber }
@@ -261,6 +281,10 @@ class AppUiTest {
         override suspend fun readLanguage() = language
         override suspend fun writeLanguage(value: String?) { language = value }
         override suspend fun readTheme() = theme
+        override suspend fun readHistoryFilter() = historyFilter
+        override suspend fun writeHistoryFilter(value: String) { historyFilter = value }
+        override suspend fun readOpenDays() = openDays
+        override suspend fun writeOpenDays(value: String) { openDays = value }
         override suspend fun writeTheme(value: String) { theme = value }
         override suspend fun readShootingHand() = shootingHand
         override suspend fun writeShootingHand(value: String) { shootingHand = value }
@@ -1604,6 +1628,185 @@ class AppUiTest {
         assertFalse(backIsHandled())
         pressBack()
         rule.waitUntil(TIMEOUT_MS) { rule.activity.isFinishing }
+    }
+
+    // ---- History: filters, day groups, export, refresh ----
+
+    private val zone = TimeZone.currentSystemDefault()
+    private fun localDay(daysAgo: Int): LocalDate =
+        KxInstant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
+            .minus(daysAgo, DateTimeUnit.DAY)
+    /** Local noon [daysAgo] days back, so the day and its UTC day agree. */
+    private fun noon(daysAgo: Int) = LocalDateTime(localDay(daysAgo), LocalTime(12, 0)).toInstant(zone).toString()
+
+    /**
+     * Five series on five days: today's 22lr ([serverSeries]), yesterday's 9mm tagged Club, 22lr two days
+     * back, 22lr tagged Club three days back, and 22lr forty days back.
+     */
+    private val varied by lazy {
+        listOf(
+            serverSeries,
+            offsetSeries[0].copy(id = 502, timestamp = noon(1), caliber = "9mm", tag = "Club"),
+            offsetSeries[1].copy(id = 503, timestamp = noon(2)),
+            offsetSeries[2].copy(id = 504, timestamp = noon(3), tag = "Club"),
+            offsetSeries[2].copy(id = 505, timestamp = noon(40)),
+        )
+    }
+    private fun day(daysAgo: Int) = localDay(daysAgo).toString()
+    private val today get() = localStamp(serverSeries.timestamp).take(10)
+
+    private val dayHeader = SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription) and hasClickAction()
+    private fun header(day: String) = dayHeader and hasText(day)
+    /** The day headers History shows now, top to bottom. */
+    private fun shownDays() = rule.onAllNodes(dayHeader).fetchSemanticsNodes()
+        .sortedBy { it.boundsInRoot.top }
+        .map { it.config[SemanticsProperties.Text].first().text }
+    private fun waitForDays(vararg days: String) {
+        try {
+            rule.waitUntil(TIMEOUT_MS) { shownDays() == days.toList() }
+        } catch (e: Throwable) {
+            throw AssertionError("Expected days ${days.toList()}, showed ${shownDays()}", e)
+        }
+    }
+    private val allDays get() = arrayOf(today, day(1), day(2), day(3), day(40))
+    private fun filterIs(store: MemoryStore, expected: HistoryFilter) =
+        rule.waitUntil(TIMEOUT_MS) { decodeHistoryFilter(store.historyFilter) == expected }
+
+    private fun openHistory(store: MemoryStore = MemoryStore(null)): MemoryStore {
+        onServer = varied
+        launch(signedIn = true, store = store)
+        waitForText(homeMarker)
+        click(button("History"))
+        waitOn(onHistory, "History")
+        return store
+    }
+    private fun chip(label: String) = click(button(label), "the \"$label\" chip")
+
+    /** Caliber, tag and date chips narrow the list, combine, and are saved as they change. */
+    @Test fun historyFiltersNarrowTheListAndAreSaved() {
+        val store = openHistory()
+        waitForDays(*allDays)
+        chip("Filter")
+        chip("9mm")
+        waitForDays(day(1))
+        filterIs(store, HistoryFilter(calibers = setOf(Caliber.fromLabel("9mm"))))
+        chip("Clear filters")
+        waitForDays(*allDays)
+        filterIs(store, HistoryFilter())
+        chip("Club")
+        waitForDays(day(1), day(3))
+        chip("22lr")
+        waitForDays(day(3))
+        filterIs(store, HistoryFilter(calibers = setOf(Caliber.fromLabel("22lr")), tags = setOf("Club")))
+        chip("Clear filters")
+        chip("Today")
+        waitForDays(today)
+        chip("30 d")
+        waitForDays(today, day(1), day(2), day(3))
+        filterIs(store, HistoryFilter(preset = DatePreset.MONTH))
+        // A filter that matches nothing says so.
+        chip("9mm")
+        chip("Club")
+        chip("Today")
+        waitForText("No series match the filter.")
+    }
+
+    /** A saved filter (here a picked date range) is there when History opens; Pick… offers the range dialog. */
+    @Test fun historyShowsTheSavedFilter() {
+        val start = localDay(3).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+        val end = localDay(2).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+        val saved = HistoryFilter(preset = DatePreset.CUSTOM, customRange = start to end)
+        val store = openHistory(MemoryStore(null, historyFilter = saved.encode()))
+        waitForDays(day(2), day(3))
+        waitForButton(button("Clear filters"), "Clear filters")
+        chip("Filter")
+        chip("${day(3)} – ${day(2)}")
+        waitForText("Done")
+        click(inDialog(button("Cancel")))
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("Done")) }
+        waitForDays(day(2), day(3))
+        assertEquals(saved, decodeHistoryFilter(store.historyFilter))
+    }
+
+    /** The newest day opens unfolded and the rest folded; a tap folds or unfolds one, and that is saved. */
+    @Test fun historyDayGroupsFoldAndAreSaved() {
+        val store = openHistory()
+        waitForDays(*allDays)
+        waitForButton(header(today) and hasStateDescription("Expanded"), "today unfolded")
+        waitForButton(header(day(2)) and hasStateDescription("Collapsed"), "two days back folded")
+        assertEquals(1, rule.onAllNodes(thumbnail, useUnmergedTree = true).fetchSemanticsNodes().size)
+        click(header(day(2)))
+        waitForButton(header(day(2)) and hasStateDescription("Expanded"), "two days back unfolded")
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(thumbnail, useUnmergedTree = true).fetchSemanticsNodes().size == 2 }
+        click(header(today))
+        waitForButton(header(today) and hasStateDescription("Collapsed"), "today folded")
+        rule.waitUntil(TIMEOUT_MS) { decodeOpenDays(store.openDays) == setOf(day(2), "!$today") }
+    }
+
+    @Test fun historyShowsTheSavedDayGroups() {
+        openHistory(MemoryStore(null, openDays = "${day(3)};!$today"))
+        waitForDays(*allDays)
+        waitForButton(header(today) and hasStateDescription("Collapsed"), "today folded")
+        waitForButton(header(day(3)) and hasStateDescription("Expanded"), "three days back unfolded")
+        waitForButton(header(day(1)) and hasStateDescription("Collapsed"), "yesterday folded")
+    }
+
+    /** A changed filter takes the list back to the top. */
+    @Test fun historyFilterScrollsBackToTheTop() {
+        onServer = List(40) { i -> offsetSeries[0].copy(id = 700L + i, timestamp = noon(i)) }
+        launch(signedIn = true)
+        waitForText(homeMarker)
+        click(button("History"))
+        waitForButton(header(day(0)), "today's group")
+        rule.onNode(hasScrollToIndexAction()).performScrollToIndex(40)
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(header(day(0))).fetchSemanticsNodes().isEmpty() }
+        chip("Filter")
+        chip("1 yr")
+        waitForButton(header(day(0)), "today's group again")
+    }
+
+    /** Export zips what the filter shows: both CSVs (one row per series, one per hole) and each photo. */
+    @Test fun historyExportZipsTheShownSeries() {
+        openHistory()
+        waitForDays(*allDays)
+        chip("Filter")
+        chip("Club")
+        waitForDays(day(1), day(3))
+        openMenuItem("Export")
+        rule.waitUntil(TIMEOUT_MS) { shared.isNotEmpty() }
+        java.util.zip.ZipFile(shared.single()).use { zip ->
+            val names = zip.entries().toList().map { it.name }.toSet()
+            assertEquals(setOf("series.csv", "holes.csv", "images/502.jpg", "images/504.jpg"), names)
+            fun rows(name: String) = zip.getInputStream(zip.getEntry(name)).readBytes().toString(Charsets.UTF_8)
+                .split("\r\n").filter { it.isNotBlank() }
+            assertEquals("A header and the two Club series", 3, rows("series.csv").size)
+            assertEquals("A header and their ten holes", 11, rows("holes.csv").size)
+        }
+    }
+
+    /** Pulling the list down asks the server again; offline, the saved series stay and a toast says so. */
+    @Test fun historyPullToRefreshAndOffline() {
+        openHistory()
+        waitForDays(*allDays)
+        val before = requests.count { it == "GET /series" }
+        rule.onNode(hasScrollToIndexAction()).performTouchInput { swipeDown() }
+        rule.waitUntil(TIMEOUT_MS) { requests.count { it == "GET /series" } > before }
+        offline = true
+        rule.onNode(hasScrollToIndexAction()).performTouchInput { swipeDown() }
+        waitForText("showing saved series")
+        waitForDays(*allDays)
+    }
+
+    /** With nothing saved and no network, History says it couldn't load; Try again loads it. */
+    @Test fun historyOfflineWithNothingSavedCanRetry() {
+        onServer = varied
+        offline = true
+        launch(signedIn = true)
+        click(button("History"))
+        waitForText("Couldn't load")
+        offline = false
+        click(button("Try again"))
+        waitForDays(*allDays)
     }
 
     private companion object {
