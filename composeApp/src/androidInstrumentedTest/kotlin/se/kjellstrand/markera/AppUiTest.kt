@@ -11,7 +11,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
@@ -60,7 +60,6 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant as KxInstant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -178,7 +177,7 @@ class AppUiTest {
     private fun earlierToday(): kotlin.time.Instant {
         val now = Clock.System.now()
         val zone = TimeZone.currentSystemDefault()
-        val today = KxInstant.fromEpochMilliseconds(now.toEpochMilliseconds()).toLocalDateTime(zone).date
+        val today = kotlin.time.Instant.fromEpochMilliseconds(now.toEpochMilliseconds()).toLocalDateTime(zone).date
         val midnight = kotlin.time.Instant.fromEpochMilliseconds(today.atStartOfDayIn(zone).toEpochMilliseconds())
         val sinceMidnight = now - midnight
         return if (sinceMidnight > 2.hours) now - 1.hours else midnight + sinceMidnight / 2
@@ -711,7 +710,7 @@ class AppUiTest {
         // All four on one local day: just after midnight, the whole set moves back before it.
         var newest = Clock.System.now() - 1.hours
         val zone = TimeZone.currentSystemDefault()
-        if (newest.toEpochMilliseconds().let { ms -> KxInstant.fromEpochMilliseconds(ms).toLocalDateTime(zone).time.toSecondOfDay() } < 600) {
+        if (newest.toEpochMilliseconds().let { ms -> kotlin.time.Instant.fromEpochMilliseconds(ms).toLocalDateTime(zone).time.toSecondOfDay() } < 600) {
             newest -= 15.minutes
         }
         onServer = listOf(serverSeries.copy(timestamp = newest.toString())) + offsetSeries.mapIndexed { i, s ->
@@ -733,7 +732,7 @@ class AppUiTest {
     private val insightCard = hasTestTag(HOME_INSIGHT_TAG)
 
     /** The key the offset is dismissed under: type, caliber, newest series' time. */
-    private val offsetKey get() = "offset|22lr|${KxInstant.parse(serverSeries.timestamp).toEpochMilliseconds()}"
+    private val offsetKey get() = "offset|22lr|${kotlin.time.Instant.parse(serverSeries.timestamp).toEpochMilliseconds()}"
 
     /** Round groups, the newest centred and three right of the centre: the offset is the only finding. */
     private val roundHoles = listOf(0.0 to 0.0, 12.0 to -8.0, -10.0 to 10.0, 8.0 to 14.0, -12.0 to -6.0).map { (dx, dy) ->
@@ -808,7 +807,7 @@ class AppUiTest {
      */
     @Test fun insightsShowTheSessionFatigueFinding() {
         val zone = TimeZone.currentSystemDefault()
-        val today = KxInstant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
+        val today = kotlin.time.Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
         val start = today.atStartOfDayIn(zone).toEpochMilliseconds()
         val totals = listOf(listOf(48, 47, 43, 44), listOf(47, 48, 44, 42), listOf(48, 46, 43, 43))
         onServer = totals.flatMapIndexed { d, day ->
@@ -852,7 +851,7 @@ class AppUiTest {
     private fun withStableOffset() {
         // Mid-morning of each local day, so the two series of a day never straddle midnight.
         val zone = TimeZone.currentSystemDefault()
-        val today = KxInstant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
+        val today = kotlin.time.Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
         val start = today.atStartOfDayIn(zone).toEpochMilliseconds()
         onServer = (1..3).flatMap { day ->
             (0..1).map { n ->
@@ -1867,7 +1866,7 @@ class AppUiTest {
 
     private val zone = TimeZone.currentSystemDefault()
     private fun localDay(daysAgo: Int): LocalDate =
-        KxInstant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
+        kotlin.time.Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(zone).date
             .minus(daysAgo, DateTimeUnit.DAY)
     /** Local noon [daysAgo] days back, so the day and its UTC day agree. */
     private fun noon(daysAgo: Int) = LocalDateTime(localDay(daysAgo), LocalTime(12, 0)).toInstant(zone).toString()
@@ -2138,7 +2137,7 @@ class AppUiTest {
     /** A day opened from the Serie page filters only that look: the filter History shares is left as it was. */
     @Test fun statisticsDayLeavesTheHistoryFilterAlone() {
         var newest = Clock.System.now() - 1.hours
-        if (newest.toEpochMilliseconds().let { ms -> KxInstant.fromEpochMilliseconds(ms).toLocalDateTime(zone).time.toSecondOfDay() } < 600) {
+        if (newest.toEpochMilliseconds().let { ms -> kotlin.time.Instant.fromEpochMilliseconds(ms).toLocalDateTime(zone).time.toSecondOfDay() } < 600) {
             newest -= 15.minutes
         }
         onServer = listOf(serverSeries.copy(timestamp = newest.toString())) + offsetSeries.mapIndexed { i, s ->

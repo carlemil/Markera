@@ -4,7 +4,6 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import kotlinx.datetime.Instant as KxInstant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -88,7 +87,7 @@ fun dayFinding(
 ): Pair<LocalDate, Finding>? {
     val at = series.instant() ?: return null
     if (series.caliber.isBlank() || series.caliber == Caliber.NONE.label) return null
-    fun day(t: Instant) = KxInstant.fromEpochMilliseconds(t.toEpochMilliseconds()).toLocalDateTime(zone).date
+    fun day(t: Instant) = t.toLocalDateTime(zone).date
     val date = day(at)
     val wholeDay = all.filter {
         !it.deleted && it.caliber == series.caliber && it.holes.size == series.holes.size &&

@@ -8,7 +8,6 @@ import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.Instant as CalendarInstant
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.centre
@@ -37,13 +36,8 @@ enum class DatePreset(private val days: Int?) {
     /** `from to to` for this preset — open-ended above, and both null for [ALL]/[CUSTOM]. */
     fun range(now: Instant, zone: TimeZone = TimeZone.currentSystemDefault()): Pair<Instant?, Instant?> =
         when (this) {
-            // The calendar day where the phone stands, not the last 24 hours. Via epoch
-            // millis because the calendar maths lives on kotlinx-datetime 0.6's own Instant.
-            TODAY -> {
-                val midnight = CalendarInstant.fromEpochMilliseconds(now.toEpochMilliseconds())
-                    .toLocalDateTime(zone).date.atStartOfDayIn(zone)
-                Instant.fromEpochMilliseconds(midnight.toEpochMilliseconds()) to null
-            }
+            // The calendar day where the phone stands, not the last 24 hours.
+            TODAY -> now.toLocalDateTime(zone).date.atStartOfDayIn(zone) to null
             else -> days?.let { (now - it.days) to null } ?: (null to null)
         }
 }

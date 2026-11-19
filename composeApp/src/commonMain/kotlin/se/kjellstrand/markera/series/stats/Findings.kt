@@ -7,7 +7,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 import kotlin.time.ExperimentalTime
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -619,8 +618,7 @@ private fun List<PlottedSeries>.sessionTrend(zone: TimeZone, t: FindingThreshold
 
 @OptIn(ExperimentalTime::class)
 private fun dayOf(series: PlottedSeries, zone: TimeZone): LocalDate =
-    // kotlinx-datetime 0.6 has no conversion from kotlin.time.Instant.
-    Instant.fromEpochMilliseconds(series.at.toEpochMilliseconds()).toLocalDateTime(zone).date
+    series.at.toLocalDateTime(zone).date
 
 /** Clockwise from 12 o'clock, [0, 360), the [GroupShape.mpiBearingDeg] convention (y down). */
 private fun bearingDeg(x: Double, y: Double): Double {

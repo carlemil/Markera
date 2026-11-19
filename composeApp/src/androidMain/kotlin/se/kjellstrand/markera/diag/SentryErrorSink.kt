@@ -19,8 +19,10 @@ fun initErrorReporting(app: Application) {
         // Debug builds log what the SDK does (tag "Sentry" in logcat).
         options.isDebug = BuildConfig.DEBUG
         options.environment = if (BuildConfig.DEBUG) "debug" else "release"
-        // No IP address, no user: the privacy policy promises technical data only.
-        options.isSendDefaultPii = false
+        // No IP address, no user: the privacy policy promises technical data only. That is
+        // the SDK's default (sendDefaultPii off, now deprecated). Leave `options.dataCollection`
+        // untouched: setting any of its fields turns on its defaults for the rest (file paths,
+        // HTTP bodies, cookies), which would collect more, not less.
         options.isAttachScreenshot = false
         options.isAttachViewHierarchy = false
         // Every breadcrumb also goes up as a Sentry log, error or not (Explore → Logs).

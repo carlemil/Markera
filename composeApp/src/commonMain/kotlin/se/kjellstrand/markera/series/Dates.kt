@@ -5,6 +5,7 @@ import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
@@ -19,7 +20,7 @@ private fun Int.pad(width: Int = 2) = toString().padStart(width, '0')
 /** `yyyy-MM-dd HH:mm` in [zone]; the raw string back if it isn't an ISO instant. */
 fun localStamp(timestamp: String, zone: TimeZone = TimeZone.currentSystemDefault()): String = try {
     val t = Instant.parse(timestamp).toLocalDateTime(zone)
-    "${t.year.pad(4)}-${t.monthNumber.pad()}-${t.dayOfMonth.pad()} ${t.hour.pad()}:${t.minute.pad()}"
+    "${t.year.pad(4)}-${t.month.number.pad()}-${t.day.pad()} ${t.hour.pad()}:${t.minute.pad()}"
 } catch (_: Exception) {
     timestamp
 }
@@ -45,7 +46,7 @@ fun exportStamp(
     zone: TimeZone = TimeZone.currentSystemDefault(),
 ): String {
     val t = now.toLocalDateTime(zone)
-    return "${t.year.pad(4)}${t.monthNumber.pad()}${t.dayOfMonth.pad()}-${t.hour.pad()}${t.minute.pad()}"
+    return "${t.year.pad(4)}${t.month.number.pad()}${t.day.pad()}-${t.hour.pad()}${t.minute.pad()}"
 }
 
 /**

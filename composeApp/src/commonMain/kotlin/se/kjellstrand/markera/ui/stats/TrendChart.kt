@@ -45,7 +45,7 @@ import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.log10
 import kotlin.math.pow
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import se.kjellstrand.markera.series.stats.DAY_MS

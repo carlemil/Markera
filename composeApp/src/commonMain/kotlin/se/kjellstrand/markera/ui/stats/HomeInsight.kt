@@ -25,7 +25,6 @@ import se.kjellstrand.markera.series.stats.insights
 import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.sector
 import se.kjellstrand.markera.ui.settings.ShootingHand
-import kotlinx.datetime.Instant as CalendarInstant
 
 /**
  * Home's coaching card (docs/coaching-plan.md, card 6): one finding of the last [HOME_INSIGHT_DAYS]
@@ -170,5 +169,4 @@ private fun List<SeriesDto>.findingsIn(day: InsightsDay, zone: TimeZone, sights:
 
 @OptIn(ExperimentalTime::class)
 private fun localDate(at: Instant, zone: TimeZone): LocalDate =
-    // kotlinx-datetime 0.6 has no conversion from kotlin.time.Instant.
-    CalendarInstant.fromEpochMilliseconds(at.toEpochMilliseconds()).toLocalDateTime(zone).date
+    at.toLocalDateTime(zone).date

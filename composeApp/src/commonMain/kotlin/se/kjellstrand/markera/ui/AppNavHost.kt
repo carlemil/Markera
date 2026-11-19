@@ -31,7 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.backhandler.BackHandler
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -263,7 +265,11 @@ fun AppNavHost(
     // Swaps the top entry, so stepping between series leaves one Back to the list.
     val replace: (Screen) -> Unit = { stack = stack.dropLast(1) + it }
 
-    BackHandler(enabled = stack.size > 1) { pop() }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = stack.size > 1,
+        onBackCompleted = { pop() },
+    )
 
     // The cache is published before the delta lands, so History has rows at once.
     LaunchedEffect(Unit) {

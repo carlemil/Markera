@@ -3,7 +3,7 @@ package se.kjellstrand.markera.series.stats
 import kotlin.math.sqrt
 import kotlin.time.ExperimentalTime
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -49,8 +49,7 @@ fun List<PlottedSeries>.trend(
     bucket: Bucket,
     zone: TimeZone = TimeZone.currentSystemDefault(),
 ): List<TrendPoint> =
-    // kotlinx-datetime 0.6 has no conversion from kotlin.time.Instant.
-    groupBy { bucketStart(Instant.fromEpochMilliseconds(it.at.toEpochMilliseconds()), bucket, zone) }
+    groupBy { bucketStart(it.at, bucket, zone) }
         .map { (start, group) -> TrendPoint(start, group.statistics()!!.value(metric), group.size) }
         .sortedBy { it.at }
 
@@ -97,7 +96,7 @@ private fun bucketStart(at: Instant, bucket: Bucket, zone: TimeZone): Instant {
         Bucket.SERIES -> return at
         Bucket.DAY -> date
         Bucket.WEEK -> date.minus(date.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY) // Monday
-        Bucket.MONTH -> LocalDate(date.year, date.monthNumber, 1)
+        Bucket.MONTH -> LocalDate(date.year, date.month, 1)
     }
     return start.atStartOfDayIn(zone)
 }

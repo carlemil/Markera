@@ -34,7 +34,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
@@ -132,7 +134,11 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
     )
     // Rows leave the composition once the closing spring has settled.
     if (progress <= 0.01f) return
-    BackHandler(enabled = host.open) { host.close() }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = host.open,
+        onBackCompleted = { host.close() },
+    )
 
     Box(
         Modifier

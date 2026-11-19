@@ -31,7 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -228,7 +228,7 @@ fun StatsScreen(
                 onBack = onBack,
                 menuItems = listOf(MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true }),
             )
-            TabRow(selectedTabIndex = tab) {
+            PrimaryTabRow(selectedTabIndex = tab) {
                 val labels = listOf(Res.string.stats_tab_target, Res.string.stats_tab_trend, Res.string.stats_tab_drift) +
                     listOfNotNull(Res.string.stats_tab_insights.takeIf { insightsOn })
                 labels.forEachIndexed { i, label ->
@@ -442,7 +442,7 @@ fun insightsDayFor(
     val finding = dayFinding(series, all, zone)?.second
     if (finding !is Finding.LowDay && finding !is Finding.WideRoundGroup) return InsightsDay(date, caliber)
     val first = all.filter { !it.deleted && it.caliber == series.caliber }
-        .mapNotNull { runCatching { kotlinx.datetime.Instant.parse(it.timestamp) }.getOrNull() }
+        .mapNotNull { runCatching { kotlin.time.Instant.parse(it.timestamp) }.getOrNull() }
         .minOrNull()?.toLocalDateTime(zone)?.date
     return InsightsDay(date, caliber, from = first?.takeIf { it < date } ?: date)
 }

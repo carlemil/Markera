@@ -38,7 +38,6 @@ import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import kotlinx.datetime.Instant as KxInstant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -249,7 +248,7 @@ internal fun plainNumber(v: Double, mark: String): String {
 @OptIn(ExperimentalTime::class)
 @Composable
 private fun AdjustedNote(at: Instant, shots: Int, onUndo: () -> Unit) {
-    val date = KxInstant.fromEpochMilliseconds(at.toEpochMilliseconds()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val date = at.toLocalDateTime(TimeZone.currentSystemDefault()).date
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             stringResource(Res.string.sight_adjusted_note, date.toString(), shots),

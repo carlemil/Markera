@@ -1,7 +1,6 @@
 package se.kjellstrand.markera.series.stats
 
 import kotlin.time.ExperimentalTime
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -63,8 +62,7 @@ fun List<DriftPoint>.smoothed(window: Int = 3): List<DriftPoint> = mapIndexed { 
 
 @OptIn(ExperimentalTime::class)
 private fun PlottedSeries.localDate(zone: TimeZone): LocalDate =
-    // kotlinx-datetime 0.6 has no conversion from kotlin.time.Instant.
-    Instant.fromEpochMilliseconds(at.toEpochMilliseconds()).toLocalDateTime(zone).date
+    at.toLocalDateTime(zone).date
 
 private fun List<PlottedSeries>.point(date: LocalDate): DriftPoint? {
     val stats = statistics()?.takeIf { it.hitCount > 0 } ?: return null

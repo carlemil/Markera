@@ -134,5 +134,4 @@ fun List<PlottedSeries>.insights(
 
 @OptIn(ExperimentalTime::class)
 private fun localDay(at: Instant, zone: TimeZone) =
-    // kotlinx-datetime 0.6 has no conversion from kotlin.time.Instant.
-    kotlinx.datetime.Instant.fromEpochMilliseconds(at.toEpochMilliseconds()).toLocalDateTime(zone).date
+    at.toLocalDateTime(zone).date
