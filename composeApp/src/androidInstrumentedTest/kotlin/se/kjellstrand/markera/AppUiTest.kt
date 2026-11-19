@@ -602,6 +602,18 @@ class AppUiTest {
         waitForSelected("Off")
     }
 
+    /** The hand toggle puts Left on the left and Right on the right (they were the other way round). */
+    @Test fun settingsShootingHandLeftIsOnTheLeft() {
+        launch(signedIn = true)
+        waitForText("series in 7 days")
+        openSettings()
+        waitForSelected("Right")
+        rule.onNode(option("Left")).performScrollTo()
+        val left = rule.onNode(option("Left")).fetchSemanticsNode().boundsInRoot
+        val right = rule.onNode(option("Right")).fetchSemanticsNode().boundsInRoot
+        assertTrue("Left ($left) must sit left of Right ($right)", left.right <= right.left)
+    }
+
     /** A saved value the app does not know (an older or newer build's) falls back to right-handed. */
     @Test fun settingsUnknownShootingHandFallsBackToRight() {
         launch(signedIn = false, store = MemoryStore(null, shootingHand = "BOTH"))

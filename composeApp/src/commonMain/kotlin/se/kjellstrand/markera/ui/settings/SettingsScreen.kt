@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.ui.AccountActions
@@ -113,6 +114,9 @@ val LANGUAGES = listOf(
 
 /** The languages written right to left; picking one in-app mirrors the layout too. */
 private val RTL_LANGUAGES = setOf("ar", "fa", "he")
+
+/** The shooting-hand toggle's order, left to right on screen (not the enum's order). */
+private val HAND_ORDER = listOf(ShootingHand.LEFT, ShootingHand.RIGHT)
 
 /** Right to left for a picked [RTL_LANGUAGES] tag, null (keep the system's) otherwise. */
 fun layoutDirectionFor(language: String?): LayoutDirection? = when {
@@ -289,18 +293,22 @@ fun SettingsScreen(settings: AppSettings, seriesServices: SeriesServices, onBack
                 )
                 Spacer(Modifier.height(8.dp))
                 SectionHeader(stringResource(Res.string.settings_shooting_hand))
-                Segmented(
-                    options = ShootingHand.entries.map { hand ->
-                        when (hand) {
-                            ShootingHand.RIGHT -> stringResource(Res.string.settings_hand_right)
-                            ShootingHand.LEFT -> stringResource(Res.string.settings_hand_left)
-                        }
-                    },
-                    selected = shootingHand.ordinal,
-                    onSelect = { settings.setShootingHand(ShootingHand.entries[it]) },
-                    modifier = Modifier.fillMaxWidth(),
-                    fill = true,
-                )
+                // Left on the left, right on the right: physical sides, so not mirrored for
+                // right-to-left languages either.
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Segmented(
+                        options = HAND_ORDER.map { hand ->
+                            when (hand) {
+                                ShootingHand.RIGHT -> stringResource(Res.string.settings_hand_right)
+                                ShootingHand.LEFT -> stringResource(Res.string.settings_hand_left)
+                            }
+                        },
+                        selected = HAND_ORDER.indexOf(shootingHand),
+                        onSelect = { settings.setShootingHand(HAND_ORDER[it]) },
+                        modifier = Modifier.fillMaxWidth(),
+                        fill = true,
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 SectionHeader(stringResource(Res.string.settings_insights))
                 Segmented(
