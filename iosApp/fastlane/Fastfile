@@ -78,6 +78,19 @@ platform :ios do
     UI.success("Available in #{on.size}: #{on.join(",")}")
   end
 
+  # submit sets automatic_release: false, so an approved version waits in
+  # PENDING_DEVELOPER_RELEASE until this (or the button in App Store Connect).
+  desc "Release the approved version (PENDING_DEVELOPER_RELEASE) to the App Store."
+  lane :publish do
+    asc_key
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    version = app.get_app_store_versions(filter: { appStoreState: "PENDING_DEVELOPER_RELEASE" }, includes: "build").first
+    UI.user_error!("No version is waiting for developer release") unless version
+    UI.message("Releasing #{version.version_string} (build #{version.build&.version})")
+    Spaceship::ConnectAPI.post_app_store_version_release_request(app_store_version_id: version.id)
+    state
+  end
+
   # Apple locks a submitted version's screenshots, so `metadata` fails with
   # "Failed verification of all screenshots deleted" while a submission is in
   # flight — even though spaceship counts WAITING_FOR_REVIEW as editable and
