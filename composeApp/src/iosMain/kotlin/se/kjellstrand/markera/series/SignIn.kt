@@ -11,6 +11,7 @@ import platform.AuthenticationServices.ASAuthorizationController
 import platform.AuthenticationServices.ASAuthorizationControllerDelegateProtocol
 import platform.AuthenticationServices.ASAuthorizationControllerPresentationContextProvidingProtocol
 import platform.AuthenticationServices.ASAuthorizationErrorCanceled
+import platform.AuthenticationServices.ASAuthorizationErrorUnknown
 import platform.AuthenticationServices.ASPresentationAnchor
 import platform.Foundation.NSBundle
 import platform.Foundation.NSError
@@ -36,7 +37,7 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 suspend fun signInWithProvider(session: BackendSessionRepository): BackendAuth {
     val idToken = requestAppleIdToken()
-    ErrorLog.breadcrumb("signin", "apple: exchanging the id token with the backend")
+    ErrorLog.breadcrumb("signin", "apple: exchanging with the backend")
     return session.signInApple(idToken).also { ErrorLog.breadcrumb("signin", "apple: signed in") }
 }
 
@@ -55,7 +56,8 @@ private suspend fun requestAppleIdToken(): String {
     controller.presentationContextProvider = delegate
     inFlight += delegate
     inFlight += controller
-    ErrorLog.breadcrumb("signin", "apple: asking ASAuthorizationController")
+    // Breadcrumb wording avoids "auth"/"token": Sentry's scrubber blanks such values to [Filtered].
+    ErrorLog.breadcrumb("signin", "apple: request sent")
     controller.performRequests()
     try {
         return result.await()
@@ -80,7 +82,7 @@ private class AppleSignInDelegate(
         val token = credential?.identityToken?.let {
             NSString.create(data = it, encoding = NSUTF8StringEncoding) as String?
         }
-        ErrorLog.breadcrumb("signin", "apple: got credential, token=${if (token == null) "missing" else "present"}")
+        ErrorLog.breadcrumb("signin", "apple: got credential, id ${if (token == null) "missing" else "present"}")
         if (token == null) {
             result.completeExceptionally(IllegalStateException("No Apple identity token"))
         } else {
@@ -96,6 +98,10 @@ private class AppleSignInDelegate(
         if (error.code == ASAuthorizationErrorCanceled) {
             ErrorLog.breadcrumb("signin", "apple: cancelled")
             result.completeExceptionally(SignInCancelledException())
+        } else if (error.code == ASAuthorizationErrorUnknown) {
+            // 1000 with no sheet: this device cannot use Sign in with Apple (App Review's devices
+            // return it at once). Not a bug; the user is told and stays signed out.
+            result.completeExceptionally(SignInUnavailableException(describe(error)))
         } else {
             ErrorLog.breadcrumb("signin", "apple: failed ${error.domain} ${error.code}")
             // The whole NSError goes in the message: Sentry scrubs extras with auth-ish words.

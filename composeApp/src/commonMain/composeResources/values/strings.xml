@@ -297,6 +297,7 @@
     <string name="error_session_expired">Your session has expired. Sign in again.</string>
     <string name="error_server">The server had a problem. Try again later.</string>
     <string name="error_generic">Something went wrong. Try again.</string>
+    <string name="error_signin_unavailable">Sign in with Apple isn't available on this device. Check that you're signed in to your Apple Account with two-factor authentication in Settings. You can keep using Markera without signing in.</string>
     <string name="markera_error_camera">The camera could not start.</string>
     <string name="guide_color_title">Guide colour</string>
     <string name="guide_color_hue">Hue</string>

@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.SeriesApiException
 import se.kjellstrand.markera.series.SignInCancelledException
+import se.kjellstrand.markera.series.SignInUnavailableException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -15,6 +16,7 @@ class UserErrorTest {
         assertEquals(Res.string.error_server, SeriesApiException(500, "x").userMessage())
         assertEquals(Res.string.error_network, kotlinx.io.IOException("x").userMessage())
         assertEquals(Res.string.error_generic, IllegalStateException("x").userMessage())
+        assertEquals(Res.string.error_signin_unavailable, SignInUnavailableException("x").userMessage())
         assertNull(SignInCancelledException().userMessage())
         assertNull(CancellationException("x").userMessage())
     }
