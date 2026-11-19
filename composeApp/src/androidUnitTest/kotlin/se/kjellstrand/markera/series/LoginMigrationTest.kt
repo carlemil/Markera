@@ -58,6 +58,38 @@ class LoginMigrationTest {
             dir.deleteRecursively()
         }
     }
+
+    @Test
+    fun historyViewStateIsDroppedFromTheBackedUpSettingsFile() = runBlocking {
+        val filter = stringPreferencesKey("history_filter")
+        val openDays = stringPreferencesKey("history_open_days")
+        val dir = Files.createTempDirectory("view").toFile()
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val legacy = MemoryPrefs()
+            legacy.edit {
+                it[filter] = "calibers=22lr;tags=;preset=WEEK"
+                it[openDays] = "2026-11-19"
+                it[theme] = "dark"
+            }
+            val view = PreferenceDataStoreFactory.create(
+                migrations = listOf(DropViewStateFromSettings(legacy)),
+                scope = scope,
+            ) { dir.resolve("markera_view.preferences_pb") }
+
+            // A restored backup's filter is not carried over: History opens unfiltered.
+            val fresh = view.data.first()
+            assertNull(fresh[filter])
+            assertNull(fresh[openDays])
+            val left = legacy.data.first()
+            assertNull(left[filter])
+            assertNull(left[openDays])
+            assertEquals("dark", left[theme])
+        } finally {
+            scope.cancel()
+            dir.deleteRecursively()
+        }
+    }
 }
 
 private class MemoryPrefs : DataStore<Preferences> {

@@ -18,6 +18,12 @@ private val Context.authDataStore by preferencesDataStore(
     name = "markera_auth",
     produceMigrations = { listOf(MoveLoginOut(it.backendDataStore)) },
 )
+// Historik's filter and unfolded days, also excluded from backup: a reinstall restored a
+// months-old "22lr, this week" filter, and the first History after sign-in looked half empty.
+private val Context.viewDataStore by preferencesDataStore(
+    name = "markera_view",
+    produceMigrations = { listOf(DropViewStateFromSettings(it.backendDataStore)) },
+)
 
 private object Keys {
     val token = stringPreferencesKey("token")
@@ -38,25 +44,39 @@ private object Keys {
 }
 
 /** Moves a login saved before [authDataStore] existed out of the settings file. */
-internal class MoveLoginOut(private val legacy: DataStore<Preferences>) : DataMigration<Preferences> {
-    override suspend fun shouldMigrate(currentData: Preferences) =
-        legacy.data.first()[Keys.token] != null
+internal fun MoveLoginOut(legacy: DataStore<Preferences>) =
+    MoveKeysOut(legacy, listOf(Keys.token, Keys.userId, Keys.provider))
+
+/**
+ * Drops Historik's view state from the backed-up settings file instead of moving it: the copy
+ * there may itself be a months-old restore, and moving it would show that stale filter again.
+ * History opens unfiltered once after the update.
+ */
+internal fun DropViewStateFromSettings(legacy: DataStore<Preferences>) =
+    MoveKeysOut(legacy, listOf(Keys.historyFilter, Keys.openDays), copy = false)
+
+/** Moves [keys] out of [legacy] into the store this migrates (or only drops them); the rest stays. */
+internal class MoveKeysOut(
+    private val legacy: DataStore<Preferences>,
+    private val keys: List<Preferences.Key<*>>,
+    private val copy: Boolean = true,
+) : DataMigration<Preferences> {
+    override suspend fun shouldMigrate(currentData: Preferences): Boolean {
+        val old = legacy.data.first()
+        return keys.any { it in old }
+    }
 
     override suspend fun migrate(currentData: Preferences): Preferences {
+        if (!copy) return currentData
         val old = legacy.data.first()
         return currentData.toMutablePreferences().apply {
-            old[Keys.token]?.let { this[Keys.token] = it }
-            old[Keys.userId]?.let { this[Keys.userId] = it }
-            old[Keys.provider]?.let { this[Keys.provider] = it }
+            @Suppress("UNCHECKED_CAST")
+            keys.forEach { key -> old[key]?.let { this[key as Preferences.Key<Any>] = it } }
         }.toPreferences()
     }
 
     override suspend fun cleanUp() {
-        legacy.edit {
-            it.remove(Keys.token)
-            it.remove(Keys.userId)
-            it.remove(Keys.provider)
-        }
+        legacy.edit { prefs -> keys.forEach { prefs.remove(it) } }
     }
 }
 
@@ -65,6 +85,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
 
     private val dataStore = context.applicationContext.backendDataStore
     private val authStore = context.applicationContext.authDataStore
+    private val viewStore = context.applicationContext.viewDataStore
 
     // Stored as "" rather than removed, so "cleared the tag" and "never set one" read alike.
     override suspend fun readTag(): String? = normalizeTag(dataStore.data.first()[Keys.tag])
@@ -129,16 +150,16 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
         dataStore.edit { it[Keys.customCalibers] = calibers.encodeCustomCalibers() }
     }
 
-    override suspend fun readHistoryFilter(): String? = dataStore.data.first()[Keys.historyFilter]
+    override suspend fun readHistoryFilter(): String? = viewStore.data.first()[Keys.historyFilter]
 
     override suspend fun writeHistoryFilter(value: String) {
-        dataStore.edit { it[Keys.historyFilter] = value }
+        viewStore.edit { it[Keys.historyFilter] = value }
     }
 
-    override suspend fun readOpenDays(): String? = dataStore.data.first()[Keys.openDays]
+    override suspend fun readOpenDays(): String? = viewStore.data.first()[Keys.openDays]
 
     override suspend fun writeOpenDays(value: String) {
-        dataStore.edit { it[Keys.openDays] = value }
+        viewStore.edit { it[Keys.openDays] = value }
     }
 
     override suspend fun read(): BackendAuth? {
@@ -162,9 +183,7 @@ class DataStoreBackendTokenStore(context: Context) : BackendTokenStore {
     override suspend fun clear() {
         // The login plus what names this user's tags; the caliber is a device preference.
         authStore.edit { it.clear() }
-        dataStore.edit { prefs ->
-            prefs.remove(Keys.tag)
-            prefs.remove(Keys.historyFilter)
-        }
+        dataStore.edit { it.remove(Keys.tag) }
+        viewStore.edit { it.remove(Keys.historyFilter) }
     }
 }

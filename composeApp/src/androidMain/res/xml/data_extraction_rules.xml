@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- API 31+. Logins never leave the device; the model sits in noBackupFilesDir. -->
+<!-- API 31+. Logins and Historik's filter/open days never leave the device; the model sits in noBackupFilesDir. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="datastore/markera_auth.preferences_pb"/>
+        <exclude domain="file" path="datastore/markera_view.preferences_pb"/>
         <exclude domain="file" path="datastore/webshooter_session.preferences_pb"/>
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="datastore/markera_auth.preferences_pb"/>
+        <exclude domain="file" path="datastore/markera_view.preferences_pb"/>
         <exclude domain="file" path="datastore/webshooter_session.preferences_pb"/>
     </device-transfer>
 </data-extraction-rules>
