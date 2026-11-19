@@ -12,7 +12,7 @@ Funktioner
 • Taggar per serie, till exempel träning eller tävling
 • Historik med bilder och redigering i efterhand
 • Statistik över träffbild och mått över tid
-• På svenska eller engelska
+• På 36 språk: svenska, engelska, arabiska, belarusiska, bulgariska, danska, estniska, finska, franska, grekiska, hebreiska, hindi, italienska, kazakiska, kinesiska (förenklad), koreanska, kroatiska, lettiska, litauiska, nederländska, norska, persiska, polska, portugisiska (Brasilien), rumänska, serbiska, slovakiska, slovenska, spanska, thai, tjeckiska, turkiska, tyska, ukrainska, ungerska och vietnamesiska
 • Export av alla serier som CSV med bilder
 • Radera enskilda serier eller hela kontot när du vill
 

@@ -35,6 +35,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -70,6 +71,7 @@ import se.kjellstrand.markera.ui.settings.LocalAppLocale
 import se.kjellstrand.markera.ui.settings.SettingsScreen
 import se.kjellstrand.markera.ui.settings.SystemBarsForTheme
 import se.kjellstrand.markera.ui.settings.ThemeMode
+import se.kjellstrand.markera.ui.settings.layoutDirectionFor
 import se.kjellstrand.markera.ui.stats.StatsScreen
 import se.kjellstrand.markera.ui.suggestion.SuggestionScreen
 import se.kjellstrand.markera.ui.theme.MarkeraTheme
@@ -166,7 +168,13 @@ fun MarkeraApp(app: AppServices) {
         localeReady = true
     }
     if (!localeReady) return
-    CompositionLocalProvider(LocalAppLocale provides applied, LocalAppSettings provides settings) {
+    // A language picked in-app sets the direction too (the system's own language already does).
+    val direction = layoutDirectionFor(applied) ?: LocalLayoutDirection.current
+    CompositionLocalProvider(
+        LocalAppLocale provides applied,
+        LocalAppSettings provides settings,
+        LocalLayoutDirection provides direction,
+    ) {
         key(applied) {
             MarkeraTheme(dark) {
                 SystemBarsForTheme(dark)

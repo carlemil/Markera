@@ -12,7 +12,7 @@ Features
 • Tags per series, such as training or competition
 • History with photos and editing afterwards
 • Statistics on shot pattern and measures over time
-• In English or Swedish
+• In 36 languages: English, Swedish, Arabic, Belarusian, Bulgarian, Chinese (Simplified), Croatian, Czech, Danish, Dutch, Estonian, Finnish, French, German, Greek, Hebrew, Hindi, Hungarian, Italian, Kazakh, Korean, Latvian, Lithuanian, Norwegian, Persian, Polish, Portuguese (Brazil), Romanian, Serbian, Slovak, Slovenian, Spanish, Thai, Turkish, Ukrainian and Vietnamese
 • Export of all series as CSV with photos
 • Delete single series or your whole account whenever you like
 

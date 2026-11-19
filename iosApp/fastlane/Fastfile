@@ -37,6 +37,47 @@ platform :ios do
     end
   end
 
+  # App Store availability (the ASC API's appAvailabilityV2): without options it prints the
+  # territories (ISO alpha-3) the app is on; `add:DEU,FRA` makes those available too.
+  desc "List the App Store territories, or open more with add:<ISO3,...>."
+  lane :territories do |options|
+    require "net/http"
+    require "json"
+    asc_key
+    token = Spaceship::ConnectAPI.token.text
+    call = lambda do |method, path, body = nil|
+      uri = URI("https://api.appstoreconnect.apple.com#{path}")
+      req = (method == :get ? Net::HTTP::Get : Net::HTTP::Patch).new(uri)
+      req["Authorization"] = "Bearer #{token}"
+      req["Content-Type"] = "application/json"
+      req.body = body.to_json if body
+      res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |h| h.request(req) }
+      UI.user_error!("#{method.upcase} #{path}: #{res.code} #{res.body}") unless res.code.start_with?("2")
+      JSON.parse(res.body)
+    end
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    availability = call.(:get, "/v1/apps/#{app.id}/appAvailabilityV2")["data"]["id"]
+    rows = []
+    path = "/v2/appAvailabilities/#{availability}/territoryAvailabilities?limit=200&include=territory"
+    while path
+      page = call.(:get, path)
+      rows += page["data"].map { |d| [d["relationships"]["territory"]["data"]["id"], d["id"], d["attributes"]["available"]] }
+      nxt = page.dig("links", "next")
+      path = nxt && nxt.sub("https://api.appstoreconnect.apple.com", "")
+    end
+    wanted = (options[:add] || "").split(",").map(&:strip).reject(&:empty?)
+    unknown = wanted - rows.map(&:first)
+    UI.user_error!("Unknown territories: #{unknown.join(",")}") unless unknown.empty?
+    rows.each do |code, id, available|
+      next unless wanted.include?(code) && !available
+      call.(:patch, "/v1/territoryAvailabilities/#{id}",
+            { data: { type: "territoryAvailabilities", id: id, attributes: { available: true } } })
+      UI.message("Opened #{code}")
+    end
+    on = rows.select { |r| r[2] || wanted.include?(r[0]) }.map(&:first).sort
+    UI.success("Available in #{on.size}: #{on.join(",")}")
+  end
+
   # Apple locks a submitted version's screenshots, so `metadata` fails with
   # "Failed verification of all screenshots deleted" while a submission is in
   # flight — even though spaceship counts WAITING_FOR_REVIEW as editable and

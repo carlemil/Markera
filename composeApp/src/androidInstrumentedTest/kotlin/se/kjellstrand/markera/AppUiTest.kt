@@ -5,6 +5,7 @@ import android.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasContentDescription
@@ -73,6 +74,7 @@ import se.kjellstrand.markera.ui.markera.DEBUG_DETECTIONS_TAG
 import se.kjellstrand.markera.ui.markera.GUIDE_SWATCH_TAG
 import se.kjellstrand.markera.ui.markera.SWATCHES
 import se.kjellstrand.markera.ui.settings.DEFAULT_GUIDE_COLOR
+import se.kjellstrand.markera.ui.settings.LANGUAGE_ROW_TAG
 import androidx.compose.ui.graphics.toArgb
 import se.kjellstrand.markera.ui.history.decodeHistoryFilter
 import se.kjellstrand.markera.ui.history.decodeOpenDays
@@ -552,6 +554,12 @@ class AppUiTest {
     private fun option(label: String) = hasText(label) and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)
     private fun waitForSelected(label: String) = waitFor(option(label) and isSelected(), "\"$label\" picked")
     private fun pick(label: String) = rule.onNode(option(label)).performScrollTo().performClick()
+
+    /** Opens the language list and picks [name] (as the list writes it, in its own language). */
+    private fun pickLanguage(name: String) {
+        rule.onNode(hasTestTag(LANGUAGE_ROW_TAG)).performScrollTo().performClick()
+        rule.onNode(hasAnyAncestor(isDialog()) and option(name)).performScrollTo().performClick()
+    }
 
     /** A fresh install shoots right-handed with Insights on; picking Left and Off is saved and stays picked. */
     @Test fun settingsSaveShootingHandAndInsights() {
@@ -1621,23 +1629,23 @@ class AppUiTest {
 
     // ---- Settings: language, theme, About ----
 
-    /** Svenska re-keys the whole app into Swedish and is saved; English switches it back. */
+    /** Svenska (from the language list) re-keys the whole app into Swedish and is saved; English switches it back. */
     @Test fun settingsLanguageSwitchesTheAppAndIsSaved() {
         val store = MemoryStore(null)
         launch(signedIn = true, store = store)
         waitForText("series in 7 days")
         openSettings()
-        pick("Svenska")
+        pickLanguage("Svenska")
         // Section headers are drawn upper-case; the title is not.
         waitForExact("Inställningar")
-        waitForSelected("Svenska")
+        waitFor(hasTestTag(LANGUAGE_ROW_TAG) and hasAnyDescendant(hasText("Svenska")), "Svenska shown")
         rule.waitUntil(TIMEOUT_MS) { store.language == "sv" }
         pressBack()
         waitForExact("Historik")
         waitForExact("Statistik")
         rule.onAllNodes(hasContentDescription("Meny"), useUnmergedTree = true)[0].performClick()
         rule.onAllNodesWithText("Inställningar")[0].performClick()
-        pick("English")
+        pickLanguage("English")
         waitForExact("Settings")
         rule.waitUntil(TIMEOUT_MS) { store.language == "en" }
         pressBack()

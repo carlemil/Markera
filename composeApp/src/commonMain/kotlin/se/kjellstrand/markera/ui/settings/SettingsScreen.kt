@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,8 +67,62 @@ const val DEFAULT_GUIDE_COLOR: Long = 0xCCFFFFFF
 /** The device preferences, provided by [se.kjellstrand.markera.ui.MarkeraApp]; null in previews. */
 val LocalAppSettings = staticCompositionLocalOf<AppSettings?> { null }
 
-/** The UI languages; the names stay in their own language so they are findable from either. */
-val LANGUAGES = listOf("en" to "English", "sv" to "Svenska")
+/**
+ * The UI languages: a BCP 47 tag (its language part names the `values-xx` folder) and the
+ * name in that language, so each is findable whatever the app is showing. English and
+ * Swedish first, the rest by name.
+ */
+val LANGUAGES = listOf(
+    "en" to "English",
+    "sv" to "Svenska",
+    "cs" to "Čeština",
+    "da" to "Dansk",
+    "de" to "Deutsch",
+    "et" to "Eesti",
+    "es" to "Español",
+    "fr" to "Français",
+    "hr" to "Hrvatski",
+    "it" to "Italiano",
+    "lv" to "Latviešu",
+    "lt" to "Lietuvių",
+    "hu" to "Magyar",
+    "nl" to "Nederlands",
+    "nb" to "Norsk bokmål",
+    "pl" to "Polski",
+    "pt-BR" to "Português (Brasil)",
+    "ro" to "Română",
+    "sk" to "Slovenčina",
+    "sl" to "Slovenščina",
+    "fi" to "Suomi",
+    "vi" to "Tiếng Việt",
+    "tr" to "Türkçe",
+    "el" to "Ελληνικά",
+    "be" to "Беларуская",
+    "bg" to "Български",
+    "kk" to "Қазақ тілі",
+    "sr" to "Српски",
+    "uk" to "Українська",
+    "he" to "עברית",
+    "ar" to "العربية",
+    "fa" to "فارسی",
+    "hi" to "हिन्दी",
+    "th" to "ไทย",
+    "ko" to "한국어",
+    "zh-Hans" to "简体中文",
+)
+
+/** The languages written right to left; picking one in-app mirrors the layout too. */
+private val RTL_LANGUAGES = setOf("ar", "fa", "he")
+
+/** Right to left for a picked [RTL_LANGUAGES] tag, null (keep the system's) otherwise. */
+fun layoutDirectionFor(language: String?): LayoutDirection? = when {
+    language == null -> null
+    language.substringBefore('-') in RTL_LANGUAGES -> LayoutDirection.Rtl
+    else -> LayoutDirection.Ltr
+}
+
+/** The Settings row that opens the language list. */
+const val LANGUAGE_ROW_TAG = "settings_language_row"
 
 /**
  * Device preferences, kept in the same store as the caliber and surviving sign-out.
@@ -214,13 +269,10 @@ fun SettingsScreen(settings: AppSettings, seriesServices: SeriesServices, onBack
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SectionHeader(stringResource(Res.string.settings_language))
-                val languages = listOf<String?>(null) + LANGUAGES.map { it.first }
-                Segmented(
-                    options = listOf(system) + LANGUAGES.map { it.second },
-                    selected = languages.indexOf(language).coerceAtLeast(0),
-                    onSelect = { settings.setLanguage(languages[it]) },
-                    modifier = Modifier.fillMaxWidth(),
-                    fill = true,
+                LanguagePicker(
+                    language = language,
+                    systemLabel = stringResource(Res.string.settings_system),
+                    onPick = settings::setLanguage,
                 )
                 Spacer(Modifier.height(8.dp))
                 SectionHeader(stringResource(Res.string.settings_theme))
