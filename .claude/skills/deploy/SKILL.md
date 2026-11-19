@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: Build the app and install + launch it on the USB-connected phone. Invoke as /deploy. Project-specific — :composeApp debug APK via adb; includes USB-mode and lockscreen troubleshooting.
+description: Build the app and install + launch it on the phone over wifi adb. Invoke as /deploy. Project-specific — :composeApp debug APK via adb; includes wireless-debugging and lockscreen troubleshooting.
 user_invocable: true
 ---
 
@@ -55,35 +55,34 @@ composeApp\build\outputs\apk\debug\composeApp-debug.apk
 
 ## Step 2 — Find the phone
 
+The phone is a Pixel 11 Pro XL on **wifi adb** (wireless debugging), not USB.
+adb is not on PATH: use `$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe`.
+
 ```
-adb devices
+adb mdns services
+adb devices -l
 ```
 
-Expect a serial with state `device`. Troubleshooting, in order:
+Expect `model:Pixel_11_Pro_XL` with state `device`, usually under its mdns
+serial `adb-66161FDDV004LD-…._adb-tls-connect._tcp` (copy it exactly from the
+list). Use `adb -s <that serial> ...` for every later command, and set
+`ANDROID_SERIAL` to it for Gradle device tasks: `emulator-5554` is often listed
+too, and an emulator must never be used. Troubleshooting, in order:
 
-1. **Empty list** — restart the server (`adb kill-server; adb devices`) and
-   check whether Windows sees the phone at all:
-   ```powershell
-   Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -match '^USB\\VID_18D1' } | Select-Object Status, Class, FriendlyName, InstanceId
-   ```
-   `VID_18D1` is Google. If a composite device shows up but adb stays empty,
-   the phone is enumerating **without an ADB interface** (e.g. PID `4EE8` =
-   MIDI-only — this has happened on this phone). Ask the user to toggle
-   **Settings → Developer options → USB debugging** off/on and accept the
-   "Allow USB debugging?" dialog, then re-check.
-2. **`unauthorized`** — the user must accept the RSA-fingerprint dialog on the
-   phone.
-3. Still nothing — the user must check cable/port; stop and report.
-
-Use the USB OnePlus 9 Pro, serial `34282ee3`; do not start an emulator. Use
-`adb -s 34282ee3 ...` for every later command in case more devices appear.
+1. **Missing or `offline`** — the port changes whenever wireless debugging
+   restarts (phone asleep, wifi dropped), so an old `192.168.1.220:<port>` entry
+   goes offline. Run `adb mdns services` for the current address and
+   `adb connect <ip:port>`. If mdns lists nothing, ask the user to turn
+   **Settings → Developer options → Wireless debugging** back on, then re-check.
+2. **`unauthorized`** — the user must accept the debugging prompt on the phone.
+3. Still nothing — the phone and PC must be on the same network; stop and report.
 
 ---
 
 ## Step 3 — Install
 
 ```
-adb -s 34282ee3 install -r "<absolute path to the built or verified debug APK>"
+adb -s <serial> install -r "<absolute path to the built or verified debug APK>"
 ```
 
 Use the actual build checkout's APK path (including a card worktree when applicable),
@@ -125,8 +124,9 @@ State the device serial, and the verification result
 (pid + top activity). If the user's request implies exercising a change (not
 just deploying), the detect flow can be driven and observed with:
 
-- Tap the detect FAB (bottom-right): `adb -s <serial> shell input tap 1264 2880`
-  (valid for this phone's 1440×3216 @ 640 dpi screen).
+- Tap Scan: the phone's screen is 1080×2404 @ 390 dpi; find the button's
+  position with `adb -s <serial> shell uiautomator dump` rather than guessing
+  coordinates.
 - Watch results: `adb -s <serial> logcat -d -s Markera HoleDetector System.out` — the app
   (`TargetScanner`'s `println`s land under `System.out`)
   logs snapshot size, raw/kept detection counts, centre method, and

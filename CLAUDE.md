@@ -100,7 +100,8 @@ geometry/scoring pipeline. The training dataset lives outside the repo
 at `D:/ml/holes/dataset/images/train` (the default `mosaic.images`).
 
 Project skills exist for the routine workflows: `/deploy` (build + adb install/launch on
-the USB phone), `/eval` (detection-quality mosaic), `/release` (version bump + Play
+the Pixel 11 Pro XL over wifi adb; never an emulator, and pin `ANDROID_SERIAL` to the phone
+for `connectedDebugAndroidTest`, with it upright or auto-rotate off), `/eval` (detection-quality mosaic), `/release` (version bump + Play
 internal track).
 
 ### iOS (simulator on the Mac mini)

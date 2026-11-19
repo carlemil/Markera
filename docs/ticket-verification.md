@@ -16,7 +16,7 @@ shortcut never substitutes for Android/native coverage after module wiring chang
 | Detection postprocessing | `vision/DetectionPostProcessTest`; use the eval skill for model/detection quality changes |
 | `series/` DTOs, recording, export, statistics | Matching `series/*Test` and `series/stats/*Test`; persistence also includes `SeriesRepositoryTest`, `SeriesMigrationTest`, `LoginMigrationTest` in `androidUnitTest` |
 | Scan/import/history/stats UI logic | Matching `ui/markera/*Test`, `ui/history/HistoryFilterTest`, `ui/stats/*Test` |
-| Android image/cache/sign-in platform code | Matching `androidUnitTest` tests; JPEG/device behavior also needs applicable `androidInstrumentedTest` tests on USB phone `34282ee3` |
+| Android image/cache/sign-in platform code | Matching `androidUnitTest` tests; JPEG/device behavior also needs applicable `androidInstrumentedTest` tests on the Pixel 11 Pro XL over wifi adb (never an emulator) |
 | iOS platform code or shared behavior affecting iOS | Relevant tests above plus `:vision:iosSimulatorArm64Test` and `:composeApp:iosSimulatorArm64Test` and simulator build via the Mac recipes in `iosApp/README.md` |
 | Standalone `server/` | Matching `server/src/test/kotlin/markera/server/*Test` during development; final standalone server suite |
 | Build files, dependencies, shared fixtures, unmapped code | Full affected suite; app build configuration changes also require packaging |
