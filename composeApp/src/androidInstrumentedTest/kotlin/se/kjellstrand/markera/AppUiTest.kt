@@ -372,7 +372,10 @@ class AppUiTest {
             rule.waitUntil(TIMEOUT_MS) { rule.exists(matcher) }
         } catch (e: Throwable) {
             // Every root: a dialog is a second one, and onRoot() would throw on it.
-            throw AssertionError("Never showed $what; requests: $requests " + rule.onAllNodes(isRoot(), useUnmergedTree = true).printToString(), e)
+            // The printout must not hide e: with no hierarchy at all it throws too.
+            val tree = runCatching { rule.onAllNodes(isRoot(), useUnmergedTree = true).printToString() }
+                .getOrElse { "(no tree: $it)" }
+            throw AssertionError("Never showed $what; requests: $requests $tree", e)
         }
     }
 

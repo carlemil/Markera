@@ -14,8 +14,8 @@ plugins {
 kotlin {
     androidTarget()
 
+    // No iosX64: Compose Multiplatform 1.12 dropped the Intel simulator (Xcode 27 is Apple silicon only).
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { target ->
@@ -123,10 +123,9 @@ android {
     // Play symbolises native crashes only when the AAB carries the .so symbol tables;
     // extracting them needs an NDK that is actually installed (AGP's default may not be).
     ndkVersion = "29.0.13113456"
+    // androidx Compose 1.12 (under Compose Multiplatform 1.12) must be compiled against API 37.
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     defaultConfig {

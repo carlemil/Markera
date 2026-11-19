@@ -1,7 +1,7 @@
 package se.kjellstrand.markera.series
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.UtcOffset
@@ -10,8 +10,8 @@ import kotlinx.datetime.toLocalDateTime
 
 /**
  * The date formatting the UI needs, on kotlinx-datetime — the screens are common
- * code. 0.6.x on purpose: Compose material3's date pickers link against 0.6, and
- * 0.7 drops the `kotlinx.datetime.Instant` they use (iOS would crash on open).
+ * code. 0.7.x, with the standard library's `kotlin.time.Instant`/`Clock`: Compose
+ * Multiplatform 1.12's material3 pulls 0.7.1 on iOS itself.
  */
 
 private fun Int.pad(width: Int = 2) = toString().padStart(width, '0')

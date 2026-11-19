@@ -2,7 +2,7 @@ package se.kjellstrand.markera.series
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 
 class DatesTest {
