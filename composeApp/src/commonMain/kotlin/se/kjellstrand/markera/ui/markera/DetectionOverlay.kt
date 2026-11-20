@@ -11,7 +11,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -22,7 +21,6 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import se.kjellstrand.markera.series.Caliber
-import se.kjellstrand.markera.series.HIT_DOT_ALPHA
 import se.kjellstrand.markera.series.hitDotRadiusMm
 import se.kjellstrand.markera.ui.theme.MarkeraGreen
 import se.kjellstrand.markera.vision.CentreEstimate
@@ -51,6 +49,10 @@ private val CENTRE_COLOR = Color(0xFFFF1744)
 private val ROW_LINE_COLOR = Color(0xFFFFC400)
 private val RING_COLOR = MarkeraGreen
 private const val STROKE_WIDTH_PX = 4f
+/** The hole marker's outline width on the photo. */
+private val HOLE_OUTLINE = 1.dp
+/** Opaque: a thin outline at the dots' 80% faded into the photo. */
+private const val HOLE_OUTLINE_ALPHA = 1f
 
 /**
  * Draws the scoring result over the frozen frame, fit-centre letterboxed to
@@ -133,14 +135,16 @@ fun DetectionOverlay(
         // from the target. No ring, no mm scale: then a fixed round dot.
         val holeK = caliber.hitDotRadiusMm() / TARGET_BLACK_RING_RADIUS_MM.toFloat()
         val dotRadius = max(3f, STROKE_WIDTH_PX * 1.1f)
+        // An outline, not a filled dot, so the hole itself stays visible under the marker.
+        val holeStroke = Stroke(width = HOLE_OUTLINE.toPx())
         fun drawHole(color: Color, x: Float, y: Float) {
             if (ring != null) {
                 drawTargetRing(
                     FittedEllipse(x, y, ring.semiMajor * holeK, ring.semiMinor * holeK, ring.rotationRad),
-                    scale, offsetX, offsetY, color, style = Fill,
+                    scale, offsetX, offsetY, color, style = holeStroke,
                 )
             } else {
-                drawCircle(color, radius = dotRadius, center = Offset(x * scale + offsetX, y * scale + offsetY))
+                drawCircle(color, radius = dotRadius, center = Offset(x * scale + offsetX, y * scale + offsetY), style = holeStroke)
             }
         }
         if (showDebug) {
@@ -155,7 +159,7 @@ fun DetectionOverlay(
         } else if (scores.isNotEmpty()) {
             scores.forEach { hit ->
                 drawHole(
-                    (if (hit.byHand) manualColor else holeColor).copy(alpha = HIT_DOT_ALPHA),
+                    (if (hit.byHand) manualColor else holeColor).copy(alpha = HOLE_OUTLINE_ALPHA),
                     hit.centerXpx, hit.centerYpx,
                 )
             }
@@ -167,7 +171,7 @@ fun DetectionOverlay(
             }
         } else {
             detections.forEach { d ->
-                drawHole(holeColor.copy(alpha = HIT_DOT_ALPHA), (d.left + d.right) / 2f, (d.top + d.bottom) / 2f)
+                drawHole(holeColor.copy(alpha = HOLE_OUTLINE_ALPHA), (d.left + d.right) / 2f, (d.top + d.bottom) / 2f)
             }
         }
 
