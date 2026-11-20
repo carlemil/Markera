@@ -404,7 +404,9 @@ private suspend fun RoutingContext.notFromPage(): Boolean {
  */
 /** Under an editable photo: how to fix the ring and centre (the editor's ring handles). */
 private const val RING_NOTE = """<p class="note">Drag the orange dots onto the edge of the black (6/7), each in line """ +
-    """with the digits, and the cross to the centre; Shift-drag moves it all. Holes whose score matches the ring """ +
+    """with the digits, and the cross to the centre; Shift-drag moves it all. A hollow ring halfway to a dot """ +
+    """moves that dot twice as far with the centre held, so the edge can go past the photo's border. """ +
+    """Holes whose score matches the ring """ +
     """are re-scored as it moves; a score set by hand stays.</p>"""
 
 private fun holeSizeAttrs(series: Series): String {
@@ -692,13 +694,16 @@ text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:2;vector-effect:non-scaling-stroke}
 .geom ellipse:not(.inner){stroke-width:6;stroke:#e53935}
-.geom .axis{stroke-width:2}
+.geom .axis{stroke-width:4}
 .geom .inner{opacity:.45}
 .geom .draft{stroke-dasharray:6 4}
 .geom .axis{stroke:#ffb74d;opacity:.35}
 /* The ring handles (the app's GeometryPlacer): four dots on the 6/7 edge and the centre cross, screen-sized. */
 .handle{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));cursor:move;touch-action:none}
 .handle.edge{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#ffb74d 0 6px,rgba(0,0,0,.55) 6px 8px,transparent 8px)}
+/* Halfway between the centre and an edge dot: dragging it moves that edge twice as far with the centre held,
+   so the 6/7 edge can be placed past the photo's border. A hollow ring, to tell it from the edge dots. */
+.handle.mid{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,transparent 0 4px,#ffb74d 4px 6.5px,rgba(0,0,0,.55) 6.5px 8px,transparent 8px)}
 .handle.centre{width:30px;height:30px}
 .handle.centre::before,.handle.centre::after{content:"";position:absolute;background:#ffb74d;box-shadow:0 0 0 1px rgba(0,0,0,.55)}
 .handle.centre::before{left:0;right:0;top:13.5px;height:3px}
@@ -1055,11 +1060,12 @@ function initRing() {
     const r = g ? g.ringSemiMajor : 0.35 * Math.min(W, H), cx = g ? g.centreX : W / 2, cy = g ? g.centreY : H / 2;
     D = {xs: [cx - r, cx + r, cx, cx], ys: [cy, cy, cy - r, cy + r], cx: cx, cy: cy, fixed: !!g};
   }
-  handles = ['0', '1', '2', '3', 'c'].map(k => {
+  handles = ['m0', 'm1', 'm2', 'm3', '0', '1', '2', '3', 'c'].map(k => {
     const el = document.createElement('div');
-    el.className = 'handle ' + (k === 'c' ? 'centre' : 'edge');
+    el.className = 'handle ' + (k === 'c' ? 'centre' : k[0] === 'm' ? 'mid' : 'edge');
     el.dataset.h = k;
-    el.title = k === 'c' ? 'centre' : 'edge of the black (6/7)';
+    el.title = k === 'c' ? 'centre' : k[0] === 'm' ? 'moves its edge dot twice as far, the centre stays'
+                                                    : 'edge of the black (6/7)';
     shot.appendChild(el);
     return el;
   });
@@ -1089,9 +1095,12 @@ function drawRing() {
   out += '<path class="axis" d="M' + D.xs[0] + ' ' + D.ys[0] + 'L' + D.xs[1] + ' ' + D.ys[1] +
       'M' + D.xs[2] + ' ' + D.ys[2] + 'L' + D.xs[3] + ' ' + D.ys[3] + '"/>';
   svg.innerHTML = out;
-  handles.forEach((el, k) => {
-    el.style.left = ((k === 4 ? D.cx : D.xs[k]) / W * 100) + '%';
-    el.style.top = ((k === 4 ? D.cy : D.ys[k]) / H * 100) + '%';
+  handles.forEach(el => {
+    const k = el.dataset.h, m = k[0] === 'm', i = Number(m ? k.slice(1) : k);
+    const x = k === 'c' ? D.cx : m ? (D.cx + D.xs[i]) / 2 : D.xs[i];
+    const y = k === 'c' ? D.cy : m ? (D.cy + D.ys[i]) / 2 : D.ys[i];
+    el.style.left = (x / W * 100) + '%';
+    el.style.top = (y / H * 100) + '%';
   });
 }
 // The new draft, when its four points make a ring: geometry, hole sizes, distances and followers' scores follow.
@@ -1120,6 +1129,8 @@ function moveGrip(grip, p) {
   const d = {xs: s.xs.slice(), ys: s.ys.slice(), cx: s.cx, cy: s.cy, fixed: s.fixed};
   if (grip.kind === 'c') { d.cx = cx(s.cx + dx); d.cy = cy(s.cy + dy); d.fixed = true; }
   else if (grip.kind === 'all') { d.xs = d.xs.map(x => x + dx); d.ys = d.ys.map(y => y + dy); d.cx += dx; d.cy += dy; }
+  // A midpoint: its edge point moves twice the pointer's motion, unclamped (it may leave the photo), centre held.
+  else if (grip.kind[0] === 'm') { const k = Number(grip.kind.slice(1)); d.xs[k] = s.xs[k] + 2 * dx; d.ys[k] = s.ys[k] + 2 * dy; d.fixed = true; }
   else { const k = Number(grip.kind); d.xs[k] = cx(s.xs[k] + dx); d.ys[k] = cy(s.ys[k] + dy); }
   if (setDraft(d, grip.follow)) grip.moved = true;
 }
