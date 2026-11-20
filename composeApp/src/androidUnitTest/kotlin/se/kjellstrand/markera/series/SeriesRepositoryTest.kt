@@ -230,7 +230,7 @@ class SeriesRepositoryTest {
                 else -> json("""{"id":5}""", postStatus).also { postStatus = HttpStatusCode.Created }
             }
         }
-        val req = SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList())
+        val req = SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(HoleDto(null, null, 9, false, null)))
         repo.enqueue(req, null)
         repo.enqueue(req.copy(caliber = "22lr"), EncodedImage(byteArrayOf(1), 10, 10))
 
@@ -247,7 +247,7 @@ class SeriesRepositoryTest {
     fun anOfflineRefreshKeepsTheOutbox() = runBlocking {
         val db = testSeriesDb()
         val repo = repo(db = db) { json("""{"error":"down"}""", HttpStatusCode.ServiceUnavailable) }
-        repo.enqueue(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList()), null)
+        repo.enqueue(SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(HoleDto(null, null, 9, false, null))), null)
 
         assertNotNull(repo.refresh())
 
@@ -261,7 +261,7 @@ class SeriesRepositoryTest {
         val repo = repo(db = db) { request ->
             if (request.method == HttpMethod.Get) json("[]") else json("""{"error":"quota"}""", HttpStatusCode.TooManyRequests)
         }
-        repo.enqueue(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList()), null)
+        repo.enqueue(SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(HoleDto(null, null, 9, false, null))), null)
 
         assertNull(repo.refresh())
 
@@ -296,7 +296,7 @@ class SeriesRepositoryTest {
     fun saveCachesThePostedSeriesWithoutAnotherFetch() = runBlocking {
         val repo = repo { json("""{"id":7}""", HttpStatusCode.Created) }
 
-        val id = repo.save(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList()))
+        val id = repo.save(SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(HoleDto(null, null, 9, false, null))))
 
         assertEquals(7L, id)
         assertEquals(listOf(7L), repo.series.value.map { it.id })
@@ -348,7 +348,7 @@ class SeriesRepositoryTest {
         }
         val refresh = async { repo.refresh() }
         awaitRequests(1)
-        val save = async { repo.save(SeriesRequest("2026-09-05T10:00:00Z", "9mm", emptyList())) }
+        val save = async { repo.save(SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(HoleDto(null, null, 9, false, null)))) }
         delay(100)
         gate.complete(Unit)
 

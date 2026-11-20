@@ -156,6 +156,13 @@ class SeriesRepository(
             "Local series belongs to another account"
         }
         val req = seriesJson.decodeFromString<SeriesRequest>(row.request)
+        // Saved before the recorder refused empty scans: the server would only answer 400 again, so it stays
+        // a refused local row without a request or a report (Sentry KOTLIN-8). Detail's Delete removes it.
+        if (row.server_id == null && req.holes.none { !it.deleted }) {
+            q.localFailure("refused", 400, 1, localId)
+            reload()
+            throw SeriesApiException(400, "holes must not be empty")
+        }
         try {
             var posted = row
             val id = row.server_id ?: offLock { api.postSeries(req) }.also { serverId ->

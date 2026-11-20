@@ -232,6 +232,41 @@ class LocalSaveRefusedTest {
     @Test fun recorderOfflineSaysQueued() = recorderStatus(0)
     @Test fun recorderTimeoutSaysQueued() = recorderStatus(-1)
     @Test fun recorder201SaysUploaded() = recorderStatus(201)
+
+    /** KOTLIN-8: a scan with no hole and every picker at 0 was kept and refused on every upload. */
+    @Test fun scanWithoutHolesSavesNothing() = runBlocking {
+        val f = Fixture().also { it.code = 201 }
+        val scope = CoroutineScope(coroutineContext + SupervisorJob(coroutineContext[Job]))
+        val recorder = SeriesRecorder(f.repository, f.session, { Caliber.DEFAULT }, {}, { null }, {}, { encoded }, scope)
+        try {
+            recorder.caliber.first { it == Caliber.DEFAULT }
+            recorder.onSeriesDetected(emptyList(), testImage(), null)
+            assertFalse(recorder.commit(listOf(0, 0, 0, 0, 0)).await())
+            assertEquals(SaveStatus.Idle, recorder.status.value)
+            assertTrue(f.db.seriesQueries.selectLocal().executeAsList().isEmpty())
+            assertTrue(f.posts.isEmpty())
+        } finally { recorder.dispose(); scope.cancel() }
+    }
+
+    /** One saved before that fix stays a refused local row: never posted, never reported. */
+    @Test fun storedSeriesWithoutHolesIsNeitherSentNorReported() = runBlocking {
+        val f = Fixture().also { it.code = 201 }
+        val reports = mutableListOf<Throwable>()
+        val old = ErrorLog.sink
+        ErrorLog.sink = object : ErrorSink {
+            override fun breadcrumb(category: String, message: String) {}
+            override fun report(where: String, error: Throwable, details: Map<String, String>) { reports += error }
+        }
+        try {
+            val empty = request().copy(holes = listOf(HoleDto(1.0, 1.0, 3, false, 50.0, deleted = true)))
+            val id = f.repository.keepLocal(empty, encoded, owner = 17L)
+            runCatching { f.repository.send(id) }
+            f.repository.refresh()
+            assertTrue(f.posts.isEmpty())
+            assertTrue(reports.isEmpty())
+            assertEquals("refused", f.db.seriesQueries.localById(id).executeAsOne().state)
+        } finally { ErrorLog.sink = old }
+    }
 }
 
 

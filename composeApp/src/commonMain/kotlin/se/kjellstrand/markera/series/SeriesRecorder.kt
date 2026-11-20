@@ -171,8 +171,13 @@ class SeriesRecorder(
         // After withPicks, so the picker slots stay aligned with the holes that are still there.
         // A repeated commit (caliber dialog dismissed, then Spara again) starts from the live holes, so the removed
         // ones are neither re-picked nor appended twice.
-        val live = p.request.copy(holes = p.request.holes.filterNot { it.deleted })
-        p.request = live.withPicks(topScores).let { it.copy(holes = it.holes + p.removed) }
+        val live = p.request.copy(holes = p.request.holes.filterNot { it.deleted }).withPicks(topScores)
+        // No hole found, placed or typed: nothing to save. The server refuses such a series (Sentry KOTLIN-8).
+        if (live.holes.isEmpty()) {
+            clear()
+            return CompletableDeferred(false)
+        }
+        p.request = live.copy(holes = live.holes + p.removed)
         p.committed = true
         val caliber = _caliber.value
         if (caliber == Caliber.NONE) {
