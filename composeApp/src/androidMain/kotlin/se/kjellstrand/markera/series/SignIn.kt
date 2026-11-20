@@ -27,7 +27,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import se.kjellstrand.markera.BuildConfig
 import se.kjellstrand.markera.diag.ErrorLog
@@ -47,11 +47,11 @@ suspend fun signInWithProvider(context: Context, session: BackendSessionReposito
     check(clientId.isNotBlank()) {
         "Google client id not configured (markera.google.client.id in local.properties)"
     }
-    val option = GetGoogleIdOption.Builder()
-        .setServerClientId(clientId)
-        .setFilterByAuthorizedAccounts(false)
-        .setAutoSelectEnabled(false)
-        .build()
+    // The "Sign in with Google" button flow, not One Tap (GetGoogleIdOption): it always shows the
+    // account chooser, with "Add account", and has no cooldown. One Tap failed with
+    // NoCredentialException ("Cannot find a matching credential", Sentry KOTLIN-6) whenever it
+    // offered no account: none on the phone, or One Tap cooling down after being dismissed.
+    val option = GetSignInWithGoogleOption.Builder(clientId).build()
     ErrorLog.breadcrumb("signin", "google: asking Credential Manager")
     val response = try {
         CredentialManager.create(context)
