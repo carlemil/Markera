@@ -685,7 +685,7 @@ background:currentColor;--rw:calc(1.5px * var(--iz,1));
 -webkit-mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)));
 mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)))}
 .hit.gone::before,.ghost::before{background:repeating-conic-gradient(currentColor 0 10deg,transparent 10deg 20deg)}
-/* The score digits are half the circle's width (container units), so they zoom with it; the letter label beside
+/* The score digits are three quarters of the circle's width (container units), so they zoom with it; the letter label beside
    it (.lbl) keeps its screen size. */
 .hit{display:flex;align-items:center;justify-content:center;container-type:inline-size;line-height:1;
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
@@ -710,7 +710,7 @@ tr.gone{text-decoration:line-through}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
 .ghost{opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
-.hit .sc{font-size:50cqw}
+.hit .sc{font-size:75cqw}
 .lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:calc(11px * var(--iz,1));line-height:1;font-style:normal;
 pointer-events:none}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
