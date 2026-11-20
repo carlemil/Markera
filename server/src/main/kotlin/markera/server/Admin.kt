@@ -430,7 +430,7 @@ private fun ghost(i: Int, h: Hole, width: Int, height: Int): String {
     if (h.x == dx && h.y == dy) return ""
     val color = if (h.deleted) DELETED_COLOR else DETECTED_COLOR
     return """<div class="ghost" data-g="$i" style="left:${round2(dx / width * 100)}%;""" +
-        """top:${round2(dy / height * 100)}%;border-color:$color"></div>"""
+        """top:${round2(dy / height * 100)}%;border-color:$color;color:$color"></div>"""
 }
 
 private fun marker(i: Int, h: Hole, width: Int, height: Int): String {
@@ -665,12 +665,21 @@ img{display:block;max-width:960px}
 .zoom .shot{display:block;margin-top:0;transform-origin:0 0;--iz:1}
 .zoom.panning,.zoom.panning *{cursor:grabbing}
 .hit,.ghost{position:absolute;transform:translate(-50%,-50%);box-sizing:border-box;
-width:var(--hole,calc(20px * var(--iz,1)));aspect-ratio:1;border:calc(3px * var(--iz,1)) solid;border-radius:50%}
+width:var(--hole,calc(20px * var(--iz,1)));aspect-ratio:1;border-radius:50%}
+/* The ring is a masked ::before, not a border: a browser rounds a border under 1 px up to 1 px before the zoom's
+   scale, so a zoomed-in border drew several times its width. The mask keeps 1.5 px on screen at any zoom, dashed
+   (a conic gradient) for a removed hole and a ghost. Colour is the marker's own `color`. */
+.hit::before,.ghost::before{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+background:currentColor;--rw:calc(1.5px * var(--iz,1));
+-webkit-mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)));
+mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)))}
+.hit.gone::before,.ghost::before{background:repeating-conic-gradient(currentColor 0 10deg,transparent 10deg 20deg)}
 .hit{display:flex;align-items:center;justify-content:center;font-size:calc(13px * var(--iz,1));line-height:1;
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
-stroke-width:1;vector-effect:non-scaling-stroke}
-.geom ellipse:not(.inner){stroke-width:3}
+stroke-width:2;vector-effect:non-scaling-stroke}
+.geom ellipse:not(.inner){stroke-width:6}
+.geom .axis{stroke-width:1}
 .geom .inner{opacity:.45}
 .geom .draft{stroke-dasharray:6 4}
 .geom .axis{stroke:#ffb74d;opacity:.35}
@@ -684,9 +693,9 @@ stroke-width:1;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
-.hit.gone{border-style:dashed;cursor:default;opacity:.6}
+.hit.gone{cursor:default;opacity:.6}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
-.ghost{border-style:dashed;opacity:.5;pointer-events:none}
+.ghost{opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
 .lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:calc(11px * var(--iz,1));line-height:1;font-style:normal;
 pointer-events:none}
@@ -788,7 +797,7 @@ function ghost(i) {
     g.dataset.g = i;
     shot.insertBefore(g, img.nextSibling);
   }
-  g.style.borderColor = h.removed ? '$DELETED_COLOR' : '$DETECTED_COLOR';
+  g.style.borderColor = g.style.color = h.removed ? '$DELETED_COLOR' : '$DETECTED_COLOR';
   g.style.left = (h.detectedX / S.imageWidth * 100) + '%';
   g.style.top = (h.detectedY / S.imageHeight * 100) + '%';
 }
@@ -1168,6 +1177,7 @@ if (del) del.onclick = () => {
 
 /**
  * Wheel zoom on the series photo, around the cursor (1x..12x); dragging the photo itself pans while zoomed.
+ * The page opens zoomed so the live holes fill the box with a 5% margin.
  * A drag that moved swallows its click, so panning never drops a hole; markers still drag as before
  * (the editor's `at()` reads the transformed rect, so positions stay exact). No dollar sign: Kotlin would eat it.
  */
@@ -1217,6 +1227,27 @@ private const val ZOOM_JS = """
   // Zoomed in, the image's own drag would start a browser image drag instead of a pan.
   box.addEventListener('dragstart', e => e.preventDefault());
   window.addEventListener('resize', apply);
+  // Open zoomed onto the holes: the live (not removed) markers' outer edges, with 5% of the box free on every
+  // side. Clamped to 1x..12x, and apply() keeps the photo covering the box, so a hole by the photo's edge
+  // stays in view with less margin on that side.
+  function fit() {
+    const w = shot.offsetWidth, h = shot.offsetHeight;
+    const hits = [...shot.querySelectorAll('.hit:not(.gone)')];
+    if (!w || !h || !hits.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    hits.forEach(m => {
+      const x = parseFloat(m.style.left) / 100 * w, y = parseFloat(m.style.top) / 100 * h, r = m.offsetWidth / 2;
+      x0 = Math.min(x0, x - r); x1 = Math.max(x1, x + r);
+      y0 = Math.min(y0, y - r); y1 = Math.max(y1, y + r);
+    });
+    z = Math.min(0.9 * w / Math.max(1, x1 - x0), 0.9 * h / Math.max(1, y1 - y0));
+    z = Math.min(12, Math.max(1, z));
+    tx = w / 2 - (x0 + x1) / 2 * z;
+    ty = h / 2 - (y0 + y1) / 2 * z;
+    apply();
+  }
+  const img = shot.querySelector('img');
+  if (img && !img.complete) img.addEventListener('load', fit, {once: true}); else fit();
 })();
 """
 
