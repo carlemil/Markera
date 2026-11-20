@@ -691,7 +691,7 @@ mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(1
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:2;vector-effect:non-scaling-stroke}
-.geom ellipse:not(.inner){stroke-width:6}
+.geom ellipse:not(.inner){stroke-width:6;stroke:#e53935}
 .geom .axis{stroke-width:2}
 .geom .inner{opacity:.45}
 .geom .draft{stroke-dasharray:6 4}
