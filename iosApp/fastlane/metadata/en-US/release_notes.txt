@@ -1,8 +1,6 @@
-New in 1.15.0:
-• Insights: a new Statistics tab reads your groups and gives advice, with a sight correction in mm and clicks.
-• Home shows the past week and your strongest recent finding.
-• Series page compares a series with your average; tap a hit to ring it.
-• Statistics: Drift shows how your group's center moves over time.
-• A clearer Trend chart; filters fold into one line.
-• Settings holds account, language, theme and shooting hand.
-• Faster start on iPhone.
+New in 1.16.0:
+• Holes on the photo are thin outlines, so you can still see the hole itself.
+• Google sign-in always offers your accounts, and lets you add one.
+• A scan with no holes is no longer saved as an empty series.
+• History opens without an old filter after reinstalling.
+• Shooting hand reads Left, Right.

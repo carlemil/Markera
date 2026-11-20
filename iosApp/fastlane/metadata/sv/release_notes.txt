@@ -1,8 +1,6 @@
-Nytt i 1.15.0:
-• Analys: ny flik i Statistik som läser dina träffbilder och ger råd, med siktkorrigering i mm och klick.
-• Startsidan visar senaste veckan och din tydligaste iakttagelse.
-• Seriesidan jämför serien med ditt snitt; tryck på en träff för att ringa in den.
-• Statistik: Drift visar hur träffbildens mitt flyttar sig över tid.
-• Tydligare Trend-diagram; filtren ryms på en rad.
-• Inställningar samlar konto, språk, tema och skjuthand.
-• Snabbare start på iPhone.
+Nytt i 1.16.0:
+• Hålen på bilden ritas som tunna ringar, så själva hålet syns.
+• Google-inloggningen visar alltid dina konton och låter dig lägga till ett.
+• En skanning utan hål sparas inte längre som en tom serie.
+• Historik öppnas utan gammalt filter efter ominstallation.
+• Skjuthand visas som Vänster, Höger.
