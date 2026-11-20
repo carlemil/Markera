@@ -229,18 +229,20 @@ fun Route.adminRoutes(db: Db, images: File, password: String) {
                 "Series ${series.id}",
                 (if (embed) "" else """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""") + verdict +
                     (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") + trainingNote +
-                    // Table on the left, photo on the right; .cols wraps to a stack on a narrow window.
-                    // Embedded (curate), the details head the left column and the photo fills the rest,
-                    // fitted to the window's height, so a wide screen shows it all without scrolling.
-                    """<div class="cols${if (embed) " embed" else ""}"><div>""" +
+                    // Embedded (curate), the details head the left column and the photo fills the rest, fitted to
+                    // the window's height. On its own page (.split) the photo is a fixed panel on the right from
+                    // the top of the window, and everything else scrolls on the left; a narrow window stacks them.
+                    """<div class="${if (embed) "cols embed" else "split"}"><div class="left">""" +
                     "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     (if (embed) "" else paging) +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
-                    """<p>$actions<span id="msg"></span></p></div><div>""" +
-                    photo + note + (if (placeable && !series.deleted) RING_NOTE else "") + "</div></div>" +
+                    """<p>$actions<span id="msg"></span></p>""" +
+                    (if (embed) "</div><div>$photo" else "") +
+                    note + (if (placeable && !series.deleted) RING_NOTE else "") +
+                    (if (embed) "</div></div>" else """</div><div class="right">$photo</div>""") +
                     (if (hasImage) "<script>$ZOOM_JS</script>" else "") +
-                    script + (if (embed) "" else auditSummary(db.auditEvents(seriesId))),
+                    script + (if (embed) "" else """<div class="left">${auditSummary(db.auditEvents(seriesId))}</div></div>"""),
             )
         )
     }
@@ -442,7 +444,7 @@ private fun marker(i: Int, h: Hole, width: Int, height: Int): String {
         else -> DETECTED_COLOR
     }
     return """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
-        """top:${round2(y / height * 100)}%;border-color:$color;color:$color">${score(h.ring, h.innerTen)}""" +
+        """top:${round2(y / height * 100)}%;border-color:$color;color:$color"><span class="sc">${score(h.ring, h.innerTen)}</span>""" +
         """<span class="lbl">${holeLabel(i)}</span></div>"""
 }
 
@@ -655,6 +657,15 @@ img{display:block;max-width:960px}
 .cols.embed>div:last-child{flex:1;min-width:0}
 .cols.embed .zoom,.cols.embed .shot{margin-top:0}
 .cols.embed img{max-width:100%;max-height:calc(100vh - 24px)}
+/* The series page: the photo panel is square-ish, as tall as the window allows while leaving the left side
+   660 px for the table; the left column keeps clear of it. Below 1100 px wide the two stack. */
+.split{--pw:min(calc(100vh - 48px),calc(100vw - 708px))}
+.split>.left{margin-right:calc(var(--pw) + 24px)}
+.split>.right{position:fixed;top:24px;right:24px;width:var(--pw)}
+.split .zoom,.split .shot{margin-top:0}
+.split img{max-width:100%;max-height:calc(100vh - 48px)}
+@media (max-width:1100px){.split>.left{margin-right:0}
+.split>.right{position:static;width:auto;margin-top:12px}}
 /* Margin and border live on the box, not the img: markers and the ring are placed as percentages of
    this box, so its padding box must be exactly the image pixels for a click to land where it points. */
 .shot{position:relative;display:inline-block;margin-top:12px;border:1px solid #35402c}
@@ -674,12 +685,14 @@ background:currentColor;--rw:calc(1.5px * var(--iz,1));
 -webkit-mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)));
 mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)))}
 .hit.gone::before,.ghost::before{background:repeating-conic-gradient(currentColor 0 10deg,transparent 10deg 20deg)}
-.hit{display:flex;align-items:center;justify-content:center;font-size:calc(13px * var(--iz,1));line-height:1;
+/* The score digits are half the circle's width (container units), so they zoom with it; the letter label beside
+   it (.lbl) keeps its screen size. */
+.hit{display:flex;align-items:center;justify-content:center;container-type:inline-size;line-height:1;
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
 stroke-width:2;vector-effect:non-scaling-stroke}
 .geom ellipse:not(.inner){stroke-width:6}
-.geom .axis{stroke-width:1}
+.geom .axis{stroke-width:2}
 .geom .inner{opacity:.45}
 .geom .draft{stroke-dasharray:6 4}
 .geom .axis{stroke:#ffb74d;opacity:.35}
@@ -697,6 +710,7 @@ tr.gone{text-decoration:line-through}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
 .ghost{opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
+.hit .sc{font-size:50cqw}
 .lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:calc(11px * var(--iz,1));line-height:1;font-style:normal;
 pointer-events:none}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
@@ -776,7 +790,7 @@ function refresh(i) {
   if (m) {
     m.style.left = (h.x / S.imageWidth * 100) + '%';
     m.style.top = (h.y / S.imageHeight * 100) + '%';
-    m.firstChild.nodeValue = sc(h.ring, h.innerTen);
+    m.firstChild.textContent = sc(h.ring, h.innerTen);
     // Orange as soon as the hole is no longer the detector's own, like the app; kind() is empty exactly then.
     m.style.borderColor = m.style.color = kind(h) ? '$BY_HAND_COLOR' : '$DETECTED_COLOR';
   }
@@ -818,7 +832,9 @@ function addHole(x, y) {
     const l = document.createElement('span');
     l.className = 'lbl';
     l.textContent = lbl(i);
-    m.append('', l);
+    const s = document.createElement('span');
+    s.className = 'sc';
+    m.append(s, l);
     shot.appendChild(m);
   }
   refresh(i);
