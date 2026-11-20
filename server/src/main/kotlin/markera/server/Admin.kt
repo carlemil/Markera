@@ -697,7 +697,7 @@ stroke-width:2;vector-effect:non-scaling-stroke}
 .geom .axis{stroke-width:4}
 .geom .inner{opacity:.45}
 .geom .draft{stroke-dasharray:6 4}
-.geom .axis{stroke:#ffb74d;opacity:.35}
+.geom .axis{stroke:#ffb74d;opacity:.7}
 /* The ring handles (the app's GeometryPlacer): four dots on the 6/7 edge and the centre cross, screen-sized. */
 .handle{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));cursor:move;touch-action:none}
 .handle.edge{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#ffb74d 0 6px,rgba(0,0,0,.55) 6px 8px,transparent 8px)}
