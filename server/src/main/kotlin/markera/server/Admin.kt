@@ -434,9 +434,8 @@ private fun ghost(i: Int, h: Hole, width: Int, height: Int): String {
     val dx = h.detectedX ?: return ""
     val dy = h.detectedY ?: return ""
     if (h.x == dx && h.y == dy) return ""
-    val color = if (h.deleted) DELETED_COLOR else DETECTED_COLOR
     return """<div class="ghost" data-g="$i" style="left:${round2(dx / width * 100)}%;""" +
-        """top:${round2(dy / height * 100)}%;border-color:$color;color:$color"></div>"""
+        """top:${round2(dy / height * 100)}%;border-color:$GHOST_COLOR;color:$GHOST_COLOR"></div>"""
 }
 
 private fun marker(i: Int, h: Hole, width: Int, height: Int): String {
@@ -477,7 +476,7 @@ private fun geometrySvg(series: Series): String {
  */
 private fun holeRow(i: Int, h: Hole, readOnly: Boolean = h.deleted) =
     """<tr data-i="$i"${if (readOnly) """ class="gone"""" else ""}><td>${holeLabel(i)}</td>""" +
-        """<td>${num(h.x)}</td><td>${num(h.y)}</td>""" +
+        """<td>${pos(h.x, h.detectedX)}</td><td>${pos(h.y, h.detectedY)}</td>""" +
         """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td>""" +
         """<td>${if (readOnly) score(h.ring, h.innerTen) else manualSelect(h)}</td>""" +
         """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td>""" +
@@ -498,6 +497,9 @@ internal fun holeLabel(i: Int): String {
     }
     return s.toString()
 }
+
+/** The dashed circle where the detector put a hole that has since been moved: pale red. */
+private const val GHOST_COLOR = "#ef9a9a"
 
 /** The marker and row colour of a hole the user deleted in the app. */
 private const val DELETED_COLOR = "#8a6fb3"
@@ -622,6 +624,10 @@ private fun row(vararg cells: Any?, href: String? = null, gone: Boolean = false)
 /** Millimetres and pixel positions are shown as whole numbers; the extra digits are noise here. */
 private fun num(value: Double?) = value?.let { "%.0f".format(Locale.ROOT, it) } ?: ""
 
+/** A position cell: where the hole is now, and after it, pale, where the detector put it when it was moved. */
+private fun pos(now: Double?, detected: Double?) =
+    num(now) + if (detected != null && now != null && now != detected) """ <span class="was">(${num(detected)})</span>""" else ""
+
 /** Marker percentages, where whole numbers would visibly snap the markers to a coarse grid. */
 private fun round2(value: Double) = "%.2f".format(Locale.ROOT, value).trimEnd('0').trimEnd('.')
 
@@ -721,7 +727,9 @@ tr.gone{text-decoration:line-through}
 background:linear-gradient(45deg,transparent calc(50% - var(--xw)),currentColor calc(50% - var(--xw)) calc(50% + var(--xw)),transparent calc(50% + var(--xw))),
 linear-gradient(-45deg,transparent calc(50% - var(--xw)),currentColor calc(50% - var(--xw)) calc(50% + var(--xw)),transparent calc(50% + var(--xw)))}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
-.ghost{opacity:.5;pointer-events:none}
+.ghost{opacity:.85;pointer-events:none}
+/* The detector's position after a moved hole's x and y in the table. */
+.was{color:#ef9a9a;opacity:.8}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
 .hit .sc{font-size:75cqw}
 .lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:calc(11px * var(--iz,1));line-height:1;font-style:normal;
@@ -749,6 +757,8 @@ const shot = document.querySelector('.shot'), img = shot ? shot.querySelector('i
 const placeable = !!(shot && S.imageWidth && S.imageHeight);
 const sc = (ring, x) => x ? 'X' : String(ring);
 const num = v => v == null ? '' : String(Math.round(v));
+// pos() on the server: the position now, then the detector's in brackets once the hole was moved. Numbers only.
+const pos = (now, det) => num(now) + (det != null && now != null && now !== det ? ' <span class="was">(' + num(det) + ')</span>' : '');
 const total = () => document.getElementById('total').textContent =
     S.holes.reduce((t, h) => t + (h && !h.deleted && !h.removed ? h.ring : 0), 0);
 const mark = i => shot ? shot.querySelector('.hit[data-i="' + i + '"]') : null;
@@ -795,8 +805,8 @@ function kind(h) {
 function refresh(i) {
   const h = S.holes[i], r = tb.querySelector('tr[data-i="' + i + '"]'), m = mark(i);
   r.cells[0].textContent = lbl(i);
-  r.cells[1].textContent = num(h.x);
-  r.cells[2].textContent = num(h.y);
+  r.cells[1].innerHTML = pos(h.x, h.detectedX);
+  r.cells[2].innerHTML = pos(h.y, h.detectedY);
   r.cells[3].classList.toggle('dim', r.querySelector('select.manual').value !== '');
   r.cells[5].textContent = num(h.distanceMm);
   r.cells[6].textContent = kind(h);
@@ -825,7 +835,7 @@ function ghost(i) {
     g.dataset.g = i;
     shot.insertBefore(g, img.nextSibling);
   }
-  g.style.borderColor = g.style.color = h.removed ? '$DELETED_COLOR' : '$DETECTED_COLOR';
+  g.style.borderColor = g.style.color = '$GHOST_COLOR';
   g.style.left = (h.detectedX / S.imageWidth * 100) + '%';
   g.style.top = (h.detectedY / S.imageHeight * 100) + '%';
 }

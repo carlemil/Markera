@@ -513,7 +513,7 @@ class ApiTest {
         assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d"><span class="sc">8</span><span class="lbl">d</span></div>""" in page, page)
         assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d"><span class="sc">6</span><span class="lbl">e</span></div>""" in page, page)
         // Only the dragged detection leaves a ghost, at the detector's spot.
-        assertTrue("""<div class="ghost" data-g="4" style="left:70%;top:50%;border-color:#9ccc65;color:#9ccc65"></div>""" in page, page)
+        assertTrue("""<div class="ghost" data-g="4" style="left:70%;top:50%;border-color:#ef9a9a;color:#ef9a9a"></div>""" in page, page)
         assertEquals(1, Regex("""class="ghost"""").findAll(page).count(), page)
         // The table names every hole, the typed one (no marker) included.
         listOf("a", "b", "c", "d", "e").forEachIndexed { i, l -> assertTrue("""<tr data-i="$i"><td>$l</td>""" in page, l) }
