@@ -521,10 +521,10 @@ class ApiTest {
         assertEquals(100 to 200, stored.imageWidth to stored.imageHeight)
 
         val page = client.admin("/admin/series/$id").bodyAsText()
-        assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65"><span class="sc">9</span><span class="lbl">a</span></div>""" in page, page)
-        assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d"><span class="sc">7</span><span class="lbl">b</span></div>""" in page, page)
-        assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d"><span class="sc">8</span><span class="lbl">d</span></div>""" in page, page)
-        assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d"><span class="sc">6</span><span class="lbl">e</span></div>""" in page, page)
+        assertTrue("""style="left:25%;top:25%;border-color:#9ccc65;color:#9ccc65"><span class="sc">9</span></div>""" in page, page)
+        assertTrue("""style="left:75%;top:25%;border-color:#ffb74d;color:#ffb74d"><span class="sc">7</span></div>""" in page, page)
+        assertTrue("""style="left:25%;top:50%;border-color:#ffb74d;color:#ffb74d"><span class="sc">8</span></div>""" in page, page)
+        assertTrue("""style="left:75%;top:50%;border-color:#ffb74d;color:#ffb74d"><span class="sc">6</span></div>""" in page, page)
         // Only the dragged detection leaves a ghost, at the detector's spot.
         assertTrue("""<div class="ghost" data-g="4" style="left:70%;top:50%;border-color:#ef9a9a;color:#ef9a9a"></div>""" in page, page)
         assertEquals(1, Regex("""class="ghost"""").findAll(page).count(), page)

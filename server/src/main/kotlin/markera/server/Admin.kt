@@ -465,7 +465,7 @@ private fun marker(i: Int, h: Hole, width: Int, height: Int): String {
     }
     return """<div class="hit${if (h.deleted) " gone" else ""}" data-i="$i" style="left:${round2(x / width * 100)}%;""" +
         """top:${round2(y / height * 100)}%;border-color:$color;color:$color"><span class="sc">${score(h.ring, h.innerTen)}</span>""" +
-        """<span class="lbl">${holeLabel(i)}</span></div>"""
+        "</div>"
 }
 
 /**
@@ -713,8 +713,8 @@ background:currentColor;--rw:calc(1.5px * var(--iz,1));
 -webkit-mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)));
 mask:radial-gradient(closest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw)))}
 .hit.gone::before,.ghost::before{background:repeating-conic-gradient(currentColor 0 10deg,transparent 10deg 20deg)}
-/* The score digits are three quarters of the circle's width (container units), so they zoom with it; the letter label beside
-   it (.lbl) keeps its screen size. */
+/* The score digits are three quarters of the circle's width (container units), so they zoom with it. No letter on the
+   photo: pointing at a marker or its row highlights the other (.hl). */
 .hit{display:flex;align-items:center;justify-content:center;container-type:inline-size;line-height:1;
 text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 .geom{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#9ccc65;
@@ -752,10 +752,7 @@ linear-gradient(-45deg,transparent calc(50% - var(--xw)),currentColor calc(50% -
 .ghost{pointer-events:none}
 /* The detector's position after a moved hole's x and y in the table. */
 .was{color:#ef9a9a;opacity:.8}
-/* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
 .hit .sc{font-size:75cqw}
-.lbl{position:absolute;left:100%;bottom:70%;margin-left:1px;font-size:calc(11px * var(--iz,1));line-height:1;font-style:normal;
-pointer-events:none}
 select,button,input{font:inherit;background:#1c2416;color:#e6ead9;border:1px solid #35402c;padding:2px 6px}
 button{cursor:pointer}
 .sortable th{cursor:pointer;user-select:none}
@@ -874,13 +871,10 @@ function addHole(x, y) {
     const m = document.createElement('div');
     m.className = 'hit';
     m.dataset.i = i;
-    // Score text first (refresh rewrites it), then the label, as on the server-rendered markers.
-    const l = document.createElement('span');
-    l.className = 'lbl';
-    l.textContent = lbl(i);
+    // Just the score text (refresh rewrites it), as on the server-rendered markers.
     const s = document.createElement('span');
     s.className = 'sc';
-    m.append(s, l);
+    m.append(s);
     shot.appendChild(m);
   }
   refresh(i);
@@ -1429,7 +1423,6 @@ private const val CURATE_LINE_CSS = """
 .hit::before,.ghost::before{--rw:calc(2px * var(--iz,1))}
 .hit.gone::after{--xw:calc(1px * var(--iz,1))}
 .cols.embed .geom *{stroke-width:2}
-.hit .lbl{display:none}
 .handle.mid{background:radial-gradient(circle,transparent 0 5px,#ffb74d 5px 7px,rgba(0,0,0,.55) 7px 8px,transparent 8px)}
 .handle.centre::before{top:14px;height:2px}
 .handle.centre::after{left:14px;width:2px}
