@@ -1338,8 +1338,8 @@ private const val ZOOM_JS = """
     tx = w / 2 - (x0 + x1) / 2 * z;
     ty = h / 2 - (y0 + y1) / 2 * z;
     apply();
-    // Curate's hole letters: 25 px on screen at this opening zoom, then zooming with the photo.
-    shot.style.setProperty('--lblfs', (25 / z) + 'px');
+    // Curate's hole letters: 37.5 px on screen at this opening zoom, then zooming with the photo.
+    shot.style.setProperty('--lblfs', (37.5 / z) + 'px');
   }
   const img = shot.querySelector('img');
   if (img && !img.complete) img.addEventListener('load', fit, {once: true}); else fit();
@@ -1411,13 +1411,13 @@ apply();
 /**
  * The curate editor draws every line, circle and knob outline 2 px wide on screen at any zoom: the hole rings
  * (and ghosts), the deleted holes' cross, the 6/7 ring, the inner rings, the axes, the centre cross and the ring handles.
- * The hole letters are 25 px on screen at the opening zoom (ZOOM_JS's fit sets --lblfs) and zoom with the photo from there.
+ * The hole letters are 37.5 px on screen at the opening zoom (ZOOM_JS's fit sets --lblfs) and zoom with the photo from there.
  */
 private const val CURATE_LINE_CSS = """
 .hit::before,.ghost::before{--rw:calc(2px * var(--iz,1))}
 .hit.gone::after{--xw:calc(1px * var(--iz,1))}
 .cols.embed .geom *{stroke-width:2}
-.hit .lbl{font-size:var(--lblfs,calc(25px * var(--iz,1)))}
+.hit .lbl{font-size:var(--lblfs,calc(37.5px * var(--iz,1)))}
 .handle.mid{background:radial-gradient(circle,transparent 0 5px,#ffb74d 5px 7px,rgba(0,0,0,.55) 7px 8px,transparent 8px)}
 .handle.centre::before{top:14px;height:2px}
 .handle.centre::after{left:14px;width:2px}
