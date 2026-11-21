@@ -421,12 +421,14 @@ private fun holeSizeAttrs(series: Series): String {
 private fun markers(series: Series): String {
     val width = series.imageWidth ?: return ""
     val height = series.imageHeight ?: return ""
-    return series.holes.mapIndexed { i, h -> ghost(i, h, width, height) + marker(i, h, width, height) }.joinToString("")
+    // A deleted hole is left off the photo altogether, marker and ghost; its greyed table row keeps the record.
+    return series.holes.mapIndexed { i, h -> if (h.deleted) "" else ghost(i, h, width, height) + marker(i, h, width, height) }
+        .joinToString("")
 }
 
 /**
  * Where the detector put a hole that has since been dragged away: a faint dashed outline, drawn under the markers
- * and deaf to the pointer. A deleted hole that never moved needs none, its own marker is already dashed and faint.
+ * and deaf to the pointer.
  */
 private fun ghost(i: Int, h: Hole, width: Int, height: Int): String {
     val dx = h.detectedX ?: return ""
@@ -803,12 +805,13 @@ function refresh(i) {
   total();
 }
 
-// The detection's original spot, shown while the hole sits elsewhere or was removed here (see ghost() on the server).
+// The detection's original spot, shown while the hole sits elsewhere (see ghost() on the server). A hole removed
+// here leaves the photo entirely, ghost included.
 function ghost(i) {
   const h = S.holes[i];
   let g = shot && shot.querySelector('.ghost[data-g="' + i + '"]');
-  const show = placeable && h.detectedX != null && h.detectedY != null &&
-               (h.removed || h.x !== h.detectedX || h.y !== h.detectedY);
+  const show = placeable && !h.removed && h.detectedX != null && h.detectedY != null &&
+               (h.x !== h.detectedX || h.y !== h.detectedY);
   if (!show) { if (g) g.remove(); return; }
   if (!g) {
     g = document.createElement('div');
