@@ -741,7 +741,7 @@ tr.gone{text-decoration:line-through}
 .hit.gone{cursor:default}
 /* The hole under the pointer, on the photo and in the table (the editor's highlight): a white halo and a lit row. */
 .hit.hl{box-shadow:0 0 0 calc(2px * var(--iz,1)) #fff,0 0 calc(8px * var(--iz,1)) calc(2px * var(--iz,1)) #fff;z-index:1}
-tr.hl td{background:#3a4a2c}
+tr.hl td{background:#5b7d3a}
 /* Its score would tangle with the cross and counts for nothing; the struck-through row still shows it. */
 .hit.gone .sc{visibility:hidden}
 /* A deleted hole (a false positive) is crossed out: two purple diagonals over its dashed ring, screen-thin at any zoom. */
