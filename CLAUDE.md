@@ -6,6 +6,16 @@ Markera is a Kotlin Multiplatform + Compose Multiplatform app (Android + iOS) th
 scores precision-shooting series from a photo of the target. See `README.md` for the
 goal and a history of detection approaches tried (and which are in use vs. abandoned).
 
+## Signposts (reading big files)
+
+Every code file (`.kt`, `.kts`, `.swift`, `.c`, `.h`, `.py`, `.sh`, `.js`/`.mjs`) has a hidden, gitignored
+**signpost** beside it: `.<file name>.h`, e.g. `server/.../.Admin.kt.h` for `Admin.kt`. It lists the file's
+functions, classes, Ktor routes and the JS functions inside `const val …JS = """` strings, each with an
+inclusive line range. Before reading a code file of more than ~300 lines, read its signpost and then only the
+ranges you need (`Read` with `offset`/`limit`). The header's sha1 is the source's; if the file changed since,
+treat the ranges as approximate. `.claude/hooks/signposts.mjs` keeps them current (after every
+Edit/Write, and `--sync` at session start); `node .claude/hooks/signposts.mjs <file>` regenerates one by hand.
+
 ## Build & test commands
 
 ```sh

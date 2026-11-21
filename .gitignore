@@ -1,4 +1,6 @@
 *.iml
+# Signposts: local function/line indexes beside each code file (.claude/hooks/signposts.mjs), never committed.
+.*.h
 .gradle/
 .kotlin/
 /local.properties
