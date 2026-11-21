@@ -52,6 +52,12 @@ data class Config(
     val smtp: SmtpConfig? = null,
     /** This server's public origin; only used to link the admin page from a suggestion mail. */
     val publicUrl: String? = null,
+    /**
+     * `ADMIN_LOCAL_NO_AUTH=true`, for a local test copy only: the server listens on 127.0.0.1 alone and the admin
+     * pages skip the password for a caller on this machine, so a browser has no credentials to send. Never set
+     * it in production (Docker's port mapping needs 0.0.0.0, so the server would not even be reachable there).
+     */
+    val adminLocalNoAuth: Boolean = false,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -83,6 +89,7 @@ data class Config(
                 appleWeb = appleWebFromEnv(),
                 smtp = SmtpConfig.fromEnv(contactEmail),
                 publicUrl = System.getenv("PUBLIC_URL")?.ifBlank { null },
+                adminLocalNoAuth = System.getenv("ADMIN_LOCAL_NO_AUTH") == "true",
             )
         }
     }
@@ -226,8 +233,10 @@ fun main() {
     check(config.adminPassword != "change-me") { "ADMIN_PASSWORD is still the .env.example placeholder" }
     if ((config.adminPassword?.length ?: 16) < 16) System.err.println("WARNING: ADMIN_PASSWORD is shorter than 16 characters")
     if (config.smtp == null) System.err.println("NOTE: SMTP_* not set - suggestions are stored but not mailed")
+    if (config.adminLocalNoAuth) System.err.println("WARNING: ADMIN_LOCAL_NO_AUTH - admin pages open to this machine, listening on 127.0.0.1 only")
     val db = Db(config.dbPath)
-    embeddedServer(Netty, port = config.port, host = "0.0.0.0") { markeraModule(config, db) }.start(wait = true)
+    val host = if (config.adminLocalNoAuth) "127.0.0.1" else "0.0.0.0"
+    embeddedServer(Netty, port = config.port, host = host) { markeraModule(config, db) }.start(wait = true)
 }
 
 fun Application.markeraModule(
@@ -441,7 +450,7 @@ fun Application.markeraModule(
             call.respondFile(file)
         }
 
-        config.adminPassword?.takeIf { it.isNotBlank() }?.let { adminRoutes(db, images, it) }
+        config.adminPassword?.takeIf { it.isNotBlank() }?.let { adminRoutes(db, images, it, config.adminLocalNoAuth) }
     }
 }
 

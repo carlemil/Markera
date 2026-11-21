@@ -42,6 +42,17 @@ import kotlin.test.assertTrue
 
 class ApiTest {
 
+    @Test fun `admin local no-auth opens the admin pages to a loopback caller only when set`() {
+        assertTrue(isLoopback("127.0.0.1") && isLoopback("0:0:0:0:0:0:0:1") && isLoopback("::1"))
+        assertFalse(isLoopback("10.0.0.5") || isLoopback("172.17.0.1") || isLoopback("192.168.1.2"))
+        apiTest(adminPassword = ADMIN_PW, adminLocalNoAuth = true) { client ->
+            assertEquals(HttpStatusCode.OK, client.get("/admin").status)
+        }
+        apiTest(adminPassword = ADMIN_PW) { client ->
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin").status)
+        }
+    }
+
     @Test fun `review requires admin shows inferred signals and tracked actor and escapes owner`() = apiTest(adminPassword = ADMIN_PW) { client ->
         val auth = client.devAuth("review")
         val raw = Hole(1.0, 2.0, 9, false, 3.0, 9, false, 1.0, 2.0)
@@ -242,6 +253,7 @@ class ApiTest {
         adminPassword: String? = null,
         contactEmail: String? = null,
         mailer: Mailer? = null,
+        adminLocalNoAuth: Boolean = false,
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
@@ -249,7 +261,8 @@ class ApiTest {
             imagesDir = File(dbFile.path + "-images").also { it.deleteOnExit() }
             application {
                 markeraModule(
-                    Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword, contactEmail),
+                    Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword, contactEmail,
+                        adminLocalNoAuth = adminLocalNoAuth),
                     Db(dbFile.path),
                     mailer = mailer,
                 )
