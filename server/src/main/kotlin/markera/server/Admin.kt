@@ -1415,7 +1415,7 @@ private const val CURATE_LINE_CSS = """
 .hit::before,.ghost::before{--rw:calc(2px * var(--iz,1))}
 .hit.gone::after{--xw:calc(1px * var(--iz,1))}
 .cols.embed .geom *{stroke-width:2}
-.hit .lbl{font-size:40cqw}
+.hit .lbl{font-size:60cqw}
 .handle.mid{background:radial-gradient(circle,transparent 0 5px,#ffb74d 5px 7px,rgba(0,0,0,.55) 7px 8px,transparent 8px)}
 .handle.centre::before{top:14px;height:2px}
 .handle.centre::after{left:14px;width:2px}
