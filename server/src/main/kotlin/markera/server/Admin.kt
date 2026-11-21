@@ -224,19 +224,28 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
         val verdict = if (embed) "" else "<div>Training: " +
             (curation?.let { "${it.status.wire} ${time(it.at)}" } ?: "not reviewed") +
             """ &middot; <a href="/admin/curate?id=$seriesId">review</a></div>"""
+        val heading = (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") + trainingNote
         respondHtml(
             page(
                 "Series ${series.id}",
                 (if (embed) "" else """<div><a href="/admin/users/$userId">&larr; user $userId</a></div>""") + verdict +
-                    (if (series.deleted) """<p class="gone">Deleted ${time(series.updatedAt)}</p>""" else "") + trainingNote +
-                    // Embedded (curate), the details head the left column and the photo fills the rest, fitted to
-                    // the window's height. On its own page (.split) the photo is a fixed panel on the right from
+                    (if (embed) "" else heading) +
+                    // Embedded (curate), two panels from the top: the title, notes and details on the left, the photo
+                    // on the right, fitted to the window's height (the page's own h1 gives way to one in the left panel).
+                    // On its own page (.split) the photo is a fixed panel on the right from
                     // the top of the window, and everything else scrolls on the left; a narrow window stacks them.
+                    (if (embed) "<style>body>h1{display:none}$CURATE_LINE_CSS</style>" else "") +
                     """<div class="${if (embed) "cols embed" else "split"}"><div class="left">""" +
+                    (if (embed) "<h1>Series ${series.id}</h1>$heading" else "") +
                     "<div>${time(series.timestamp)}</div><div>$caliber &middot; $tag &middot; " +
                     """total <span id="total">${series.holes.filterNot { it.deleted }.sumOf { it.ring }}</span></div>""" +
                     (if (embed) "" else paging) +
-                    table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
+                    // Curate's left panel is narrow: short headers there.
+                    table(
+                        if (embed) listOf("hole", "x", "y", "det", "manual", "dist", "kind", "")
+                        else listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""),
+                        holes,
+                    ) +
                     """<p>$actions<span id="msg"></span></p>""" +
                     // Curate moves its approved/rejected list in here, under Undo delete.
                     (if (embed) """<style>$CURATE_LIST_CSS</style><div id="curate-slot"></div>""" else "") +
@@ -674,6 +683,7 @@ img{display:block;max-width:960px}
 .cols.embed{flex-wrap:nowrap}
 .cols.embed>div:last-child{flex:1;min-width:0}
 .cols.embed .zoom,.cols.embed .shot{margin-top:0}
+.cols.embed>.left .note{max-width:540px}
 .cols.embed img{max-width:100%;max-height:calc(100vh - 24px)}
 /* The series page: the photo panel is square-ish, as tall as the window allows while leaving the left side
    660 px for the table; the left column keeps clear of it. Below 1100 px wide the two stack. */
@@ -1298,7 +1308,18 @@ private const val ZOOM_JS = """
   box.addEventListener('click', e => { if (moved) { e.stopPropagation(); moved = false; } }, true);
   // Zoomed in, the image's own drag would start a browser image drag instead of a pan.
   box.addEventListener('dragstart', e => e.preventDefault());
-  window.addEventListener('resize', apply);
+  // The box can still change size after the first fit (the curate frame's panels settle late). Until the user zooms or
+  // pans, fit again; after that keep the same view, its offsets scaled with the box.
+  let touched = false, lastW = 0;
+  box.addEventListener('wheel', () => touched = true, {passive: true});
+  box.addEventListener('pointerdown', e => { if (z > 1 && e.button === 0 && !e.target.closest('.hit,.handle')) touched = true; });
+  new ResizeObserver(() => {
+    const w = shot.offsetWidth;
+    if (!w || w === lastW) return;
+    if (!touched) fit();
+    else if (lastW) { tx *= w / lastW; ty *= w / lastW; apply(); }
+    lastW = w;
+  }).observe(box);
   // Open zoomed onto the holes: the live (not removed) markers' outer edges, with 5% of the box free on every
   // side. Clamped to 1x..12x, and apply() keeps the photo covering the box, so a hole by the photo's edge
   // stays in view with less margin on that side.
@@ -1383,6 +1404,21 @@ t.tHead.addEventListener('input', apply);
 hide.onchange = () => { try { localStorage.hideEmpty = hide.checked ? '1' : '' } catch (e) {} apply(); };
 try { hide.checked = localStorage.hideEmpty === '1' } catch (e) {}
 apply();
+"""
+
+/**
+ * The curate editor draws every line, circle and knob outline 2 px wide on screen at any zoom: the hole rings
+ * (and ghosts), the deleted holes' cross, the 6/7 ring, the inner rings, the axes, the centre cross and the ring handles.
+ * The hole letters are a share of the hole circle (container units), so they zoom with it like the score digits.
+ */
+private const val CURATE_LINE_CSS = """
+.hit::before,.ghost::before{--rw:calc(2px * var(--iz,1))}
+.hit.gone::after{--xw:calc(1px * var(--iz,1))}
+.cols.embed .geom *{stroke-width:2}
+.hit .lbl{font-size:40cqw}
+.handle.mid{background:radial-gradient(circle,transparent 0 5px,#ffb74d 5px 7px,rgba(0,0,0,.55) 7px 8px,transparent 8px)}
+.handle.centre::before{top:14px;height:2px}
+.handle.centre::after{left:14px;width:2px}
 """
 
 /** Curate's approved/rejected list: styled in the curate page (no series open) and in the embedded editor (its usual home). */
