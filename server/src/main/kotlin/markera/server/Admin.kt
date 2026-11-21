@@ -238,6 +238,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
                     (if (embed) "" else paging) +
                     table(listOf("hole", "x", "y", "detected", "manual", "distanceMm", "kind", ""), holes) +
                     """<p>$actions<span id="msg"></span></p>""" +
+                    // Curate moves its approved/rejected list in here, under Undo delete.
+                    (if (embed) """<style>$CURATE_LIST_CSS</style><div id="curate-slot"></div>""" else "") +
                     (if (embed) "</div><div>$photo" else "") +
                     note + (if (placeable && !series.deleted) RING_NOTE else "") +
                     (if (embed) "</div></div>" else """</div><div class="right">$photo</div>""") +
@@ -709,9 +711,10 @@ text-shadow:0 0 3px #000;cursor:crosshair;touch-action:none}
 stroke-width:2;vector-effect:non-scaling-stroke}
 .geom ellipse:not(.inner){stroke-width:6;stroke:#e53935}
 .geom .axis{stroke-width:4}
-.geom .inner{opacity:.45}
 .geom .draft{stroke-dasharray:6 4}
-.geom .axis{stroke:#ffb74d;opacity:.7}
+.geom .axis{stroke:#ffb74d}
+/* Everything drawn over the photo is fully opaque by default; curate's transparency slider sets --ov for all of it at once. */
+.shot>:not(img){opacity:var(--ov,1)}
 /* The ring handles (the app's GeometryPlacer): four dots on the 6/7 edge and the centre cross, screen-sized. */
 .handle{position:absolute;transform:translate(-50%,-50%) scale(var(--iz,1));cursor:move;touch-action:none}
 .handle.edge{width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#ffb74d 0 6px,rgba(0,0,0,.55) 6px 8px,transparent 8px)}
@@ -725,7 +728,7 @@ stroke-width:2;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
-.hit.gone{cursor:default;opacity:.85}
+.hit.gone{cursor:default}
 /* Its score would tangle with the cross and counts for nothing; the struck-through row still shows it. */
 .hit.gone .sc{visibility:hidden}
 /* A deleted hole (a false positive) is crossed out: two purple diagonals over its dashed ring, screen-thin at any zoom. */
@@ -733,7 +736,7 @@ tr.gone{text-decoration:line-through}
 background:linear-gradient(45deg,transparent calc(50% - var(--xw)),currentColor calc(50% - var(--xw)) calc(50% + var(--xw)),transparent calc(50% + var(--xw))),
 linear-gradient(-45deg,transparent calc(50% - var(--xw)),currentColor calc(50% - var(--xw)) calc(50% + var(--xw)),transparent calc(50% + var(--xw)))}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
-.ghost{opacity:.85;pointer-events:none}
+.ghost{pointer-events:none}
 /* The detector's position after a moved hole's x and y in the table. */
 .was{color:#ef9a9a;opacity:.8}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
@@ -1382,10 +1385,10 @@ try { hide.checked = localStorage.hideEmpty === '1' } catch (e) {}
 apply();
 """
 
-/** The curate page's frame: verdicts on the left, the verdict buttons over the embedded editor. */
-private const val CURATE_BODY = """<style>
-.curate{display:flex;gap:16px;align-items:flex-start;margin-top:12px}
-.curate aside{width:240px;flex:none;max-height:calc(100vh - 130px);overflow:auto;border:1px solid #35402c}
+/** Curate's approved/rejected list: styled in the curate page (no series open) and in the embedded editor (its usual home). */
+private const val CURATE_LIST_CSS = """
+#side{width:240px;max-height:calc(100vh - 130px);overflow:auto;border:1px solid #35402c}
+#curate-slot #side{width:auto;max-width:420px;max-height:45vh;margin-top:12px}
 #counts{padding:6px 8px;background:#1c2416;position:sticky;top:0}
 #history{list-style:none;margin:0;padding:0}
 #history li{padding:4px 8px;cursor:pointer;border-top:1px solid #35402c;white-space:nowrap}
@@ -1393,17 +1396,28 @@ private const val CURATE_BODY = """<style>
 #history li.approved b{color:#9ccc65}
 #history li.rejected b{color:#e57373}
 #history li.gone{text-decoration:line-through}
+"""
+
+/**
+ * The curate page's frame: the verdict buttons beside the title, the overlay transparency slider under it, then the
+ * embedded editor. The verdict list lives in the editor, under Undo delete; with no series open it docks on the left.
+ */
+private const val CURATE_BODY = """<style>$CURATE_LIST_CSS
+body>h1{display:inline-block;margin:0 16px 8px 0;vertical-align:middle}
+.bar{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;vertical-align:middle;margin-bottom:8px}
+.ovrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.ovrow input{width:200px}
+.curate{display:flex;gap:16px;align-items:flex-start;margin-top:8px}
 .curate main{flex:1;min-width:0}
-.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 #approve{border-color:#9ccc65;color:#9ccc65}
 #reject{border-color:#e57373;color:#e57373}
-#frame{display:block;width:100%;height:calc(100vh - 160px);margin-top:8px;border:1px solid #35402c;background:#12160f}
+#frame{display:block;width:100%;height:calc(100vh - 150px);border:1px solid #35402c;background:#12160f}
 kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
-</style>
-<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a></div>
-<div class="curate"><aside><div id="counts"></div><ul id="history"></ul></aside><main>
-<div class="bar"><button id="approve">Approve <kbd>A</kbd></button><button id="reject">Reject <kbd>R</kbd></button>
+</style><div class="bar"><button id="approve">Approve <kbd>A</kbd></button><button id="reject">Reject <kbd>R</kbd></button>
 <button id="skip">Skip <kbd>S</kbd></button><span id="current"></span><span id="remaining"></span><span id="cmsg"></span></div>
+<label class="ovrow">Overlay transparency <input type="range" id="ov" min="0" max="100" step="5" value="0"><span id="ovv">0%</span></label>
+<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a></div>
+<div class="curate"><aside id="dock"><div id="side"><div id="counts"></div><ul id="history"></ul></div></aside><main>
 <p id="none" hidden>Every series with a photo has a verdict. Pick one on the left to change it.</p>
 <iframe id="frame" title="series editor"></iframe></main></div>"""
 
@@ -1414,6 +1428,9 @@ kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
 private const val CURATE_JS = """
 const frame = document.getElementById('frame'), hist = document.getElementById('history');
 const cur = document.getElementById('current'), msg = document.getElementById('cmsg');
+// The list moves between documents (into the editor frame, back to the dock), so keep the nodes, not ids.
+const side = document.getElementById('side'), counts = document.getElementById('counts'), dock = document.getElementById('dock');
+const ov = document.getElementById('ov'), ovv = document.getElementById('ovv');
 const get = url => fetch(url, {credentials: 'include'}).then(r => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.json(); });
 const fail = e => msg.textContent = '· ' + (e.message || e);
 let current = null, busy = false;
@@ -1451,10 +1468,9 @@ function loadHistory() {
       const b = document.createElement('b');
       b.textContent = c.status === 'approved' ? '✓ ' : '✗ ';
       li.append(b, '#' + c.id + '  ' + c.at);
-      li.onclick = () => show(c.id, c.status);
       hist.appendChild(li);
     });
-    document.getElementById('counts').textContent = ok + ' approved, ' + (list.length - ok) + ' rejected';
+    counts.textContent = ok + ' approved, ' + (list.length - ok) + ' rejected';
     markActive();
   });
 }
@@ -1509,8 +1525,30 @@ function onKey(e) {
   e.preventDefault();
 }
 document.addEventListener('keydown', onKey);
+// A list row opens its series. Listened for on the documents, not the rows: a row's own handler is lost when
+// the list moves into the frame's document.
+function onListClick(e) {
+  const li = e.target.closest && e.target.closest('#history li');
+  if (li) show(Number(li.dataset.id), li.dataset.status);
+}
+document.addEventListener('click', onListClick);
+// The transparency of everything drawn over the photo (the editor's --ov), 0 % = fully opaque; remembered per browser.
+function applyOv() {
+  ovv.textContent = ov.value + '%';
+  try { frame.contentDocument.documentElement.style.setProperty('--ov', String(1 - ov.value / 100)); } catch (e) {}
+}
+try { if (localStorage.curateOv) ov.value = localStorage.curateOv; } catch (e) {}
+ov.oninput = () => { try { localStorage.curateOv = ov.value; } catch (e) {} applyOv(); };
+applyOv();
+
 frame.addEventListener('load', () => {
-  try { frame.contentDocument.addEventListener('keydown', onKey); } catch (e) {}
+  try { frame.contentDocument.addEventListener('keydown', onKey); frame.contentDocument.addEventListener('click', onListClick); } catch (e) {}
+  applyOv();
+  // The verdict list sits under the editor's Undo delete; with no editor (none left) it docks on the left.
+  let slot = null;
+  try { slot = frame.contentDocument.getElementById('curate-slot'); } catch (e) {}
+  (slot || dock).appendChild(side);
+  dock.hidden = !!slot;
   // The editor's Delete leaves for the user page: that series is gone, so go on to the next one.
   try {
     const path = frame.contentWindow.location.pathname;
