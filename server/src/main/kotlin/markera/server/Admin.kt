@@ -739,6 +739,9 @@ stroke-width:2;vector-effect:non-scaling-stroke}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
 .hit.gone{cursor:default}
+/* The hole under the pointer, on the photo and in the table (the editor's highlight): a white halo and a lit row. */
+.hit.hl{box-shadow:0 0 0 calc(2px * var(--iz,1)) #fff,0 0 calc(8px * var(--iz,1)) calc(2px * var(--iz,1)) #fff;z-index:1}
+tr.hl td{background:#3a4a2c}
 /* Its score would tangle with the cross and counts for nothing; the struck-through row still shows it. */
 .hit.gone .sc{visibility:hidden}
 /* A deleted hole (a false positive) is crossed out: two purple diagonals over its dashed ring, screen-thin at any zoom. */
@@ -926,6 +929,17 @@ tbl.addEventListener('click', e => {
   setRemoved(i, true);
 });
 undo.onclick = () => { if (undone.length) setRemoved(undone.pop(), false); };
+
+// Pointing at a hole's row lights up its marker on the photo, and pointing at a marker lights up its row.
+function highlight(i) {
+  document.querySelectorAll('.hl').forEach(el => el.classList.remove('hl'));
+  if (i == null || i < 0) return;
+  document.querySelectorAll('tr[data-i="' + i + '"], .hit[data-i="' + i + '"]').forEach(el => el.classList.add('hl'));
+}
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest && e.target.closest('tr[data-i], .hit[data-i]');
+  highlight(t ? Number(t.dataset.i) : null);
+});
 
 if (placeable) {
   let drag = null, grip = null, swallow = false, down = null;
@@ -1338,8 +1352,6 @@ private const val ZOOM_JS = """
     tx = w / 2 - (x0 + x1) / 2 * z;
     ty = h / 2 - (y0 + y1) / 2 * z;
     apply();
-    // Curate's hole letters: 37.5 px on screen at this opening zoom, then zooming with the photo.
-    shot.style.setProperty('--lblfs', (37.5 / z) + 'px');
   }
   const img = shot.querySelector('img');
   if (img && !img.complete) img.addEventListener('load', fit, {once: true}); else fit();
@@ -1411,13 +1423,13 @@ apply();
 /**
  * The curate editor draws every line, circle and knob outline 2 px wide on screen at any zoom: the hole rings
  * (and ghosts), the deleted holes' cross, the 6/7 ring, the inner rings, the axes, the centre cross and the ring handles.
- * The hole letters are 37.5 px on screen at the opening zoom (ZOOM_JS's fit sets --lblfs) and zoom with the photo from there.
+ * No hole letters: pointing at a row or a marker highlights the other (the editor's `highlight`).
  */
 private const val CURATE_LINE_CSS = """
 .hit::before,.ghost::before{--rw:calc(2px * var(--iz,1))}
 .hit.gone::after{--xw:calc(1px * var(--iz,1))}
 .cols.embed .geom *{stroke-width:2}
-.hit .lbl{font-size:var(--lblfs,calc(37.5px * var(--iz,1)))}
+.hit .lbl{display:none}
 .handle.mid{background:radial-gradient(circle,transparent 0 5px,#ffb74d 5px 7px,rgba(0,0,0,.55) 7px 8px,transparent 8px)}
 .handle.centre::before{top:14px;height:2px}
 .handle.centre::after{left:14px;width:2px}
