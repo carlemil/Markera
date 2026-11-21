@@ -421,8 +421,8 @@ private fun holeSizeAttrs(series: Series): String {
 private fun markers(series: Series): String {
     val width = series.imageWidth ?: return ""
     val height = series.imageHeight ?: return ""
-    // A deleted hole is left off the photo altogether, marker and ghost; its greyed table row keeps the record.
-    return series.holes.mapIndexed { i, h -> if (h.deleted) "" else ghost(i, h, width, height) + marker(i, h, width, height) }
+    // A deleted hole (a false positive) is drawn crossed out in purple where it sits, with no ghost; its row is struck through.
+    return series.holes.mapIndexed { i, h -> (if (h.deleted) "" else ghost(i, h, width, height)) + marker(i, h, width, height) }
         .joinToString("")
 }
 
@@ -713,7 +713,13 @@ stroke-width:2;vector-effect:non-scaling-stroke}
 .dim{color:#6f7a63;text-decoration:line-through}
 .gone{color:#8a6fb3;font-style:italic}
 tr.gone{text-decoration:line-through}
-.hit.gone{cursor:default;opacity:.6}
+.hit.gone{cursor:default;opacity:.85}
+/* Its score would tangle with the cross and counts for nothing; the struck-through row still shows it. */
+.hit.gone .sc{visibility:hidden}
+/* A deleted hole (a false positive) is crossed out: two purple diagonals over its dashed ring, screen-thin at any zoom. */
+.hit.gone::after{content:"";position:absolute;inset:15%;pointer-events:none;--xw:calc(1px * var(--iz,1));
+background:linear-gradient(45deg,transparent calc(50% - var(--xw)),currentColor calc(50% - var(--xw)) calc(50% + var(--xw)),transparent calc(50% + var(--xw))),
+linear-gradient(-45deg,transparent calc(50% - var(--xw)),currentColor calc(50% - var(--xw)) calc(50% + var(--xw)),transparent calc(50% + var(--xw)))}
 /* A detection's original spot, once its hole was dragged off it or removed here. */
 .ghost{opacity:.5;pointer-events:none}
 /* The hole's label, just off the marker's top right so it never covers the score or the hole itself. */
@@ -805,8 +811,8 @@ function refresh(i) {
   total();
 }
 
-// The detection's original spot, shown while the hole sits elsewhere (see ghost() on the server). A hole removed
-// here leaves the photo entirely, ghost included.
+// The detection's original spot, shown while the hole sits elsewhere (see ghost() on the server). A removed hole
+// gets none: its crossed-out marker already shows where it is.
 function ghost(i) {
   const h = S.holes[i];
   let g = shot && shot.querySelector('.ghost[data-g="' + i + '"]');
@@ -861,14 +867,24 @@ tbl.addEventListener('change', e => {
   save();
 });
 
-// Deleting hides the row and marker and flags the hole; Undo unhides in reverse order. The stack
-// lives in this page only — a reload starts over with nothing to undo.
+// Deleting flags the hole; Undo restores in reverse order. The stack lives in this page only — a reload
+// starts over with nothing to undo. A removed detection (a false positive, saved as deleted) stays in view as
+// the server draws a deleted hole: row struck through and marker crossed out, both purple. A removed
+// hand-placed hole is not saved at all, so it just disappears.
 const undone = [], undo = document.getElementById('undo');
 const setRemoved = (i, removed) => {
   const h = S.holes[i], tr = tb.querySelector('tr[data-i="' + i + '"]'), m = mark(i);
   h.removed = removed;
-  tr.hidden = removed;
-  if (m) m.hidden = removed;
+  const detected = h.detectedRing != null;
+  tr.hidden = removed && !detected;
+  tr.classList.toggle('gone', removed && detected);
+  tr.querySelectorAll('select,button').forEach(c => c.disabled = removed);
+  if (m) {
+    m.hidden = removed && !detected;
+    m.classList.toggle('gone', removed && detected);
+    if (removed) m.style.borderColor = m.style.color = '$DELETED_COLOR';
+  }
+  if (!removed) refresh(i);
   ghost(i);
   undo.disabled = undone.length === 0;
   total();
@@ -909,6 +925,13 @@ if (placeable) {
     if (grip) { moveGrip(grip, at(e)); return; }
     if (!drag) return;
     const i = drag.dataset.i, h = S.holes[i], p = at(e);
+    // Back within a quarter of the marker (at least 6 px on screen) of where the detector put it: snap onto that
+    // exact spot, so the hole is the detector's own again, no longer "moved", with no ghost and its own colour.
+    if (h.detectedX != null && h.detectedY != null) {
+      const perPx = S.imageWidth / img.getBoundingClientRect().width;
+      const snap = Math.max(6, drag.getBoundingClientRect().width / 4) * perPx;
+      if (Math.hypot(p[0] - h.detectedX, p[1] - h.detectedY) <= snap) { p[0] = h.detectedX; p[1] = h.detectedY; }
+    }
     h.x = p[0];
     h.y = p[1];
     h.distanceMm = distanceMm(h);   // null without geometry: nothing left to measure against
