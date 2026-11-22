@@ -337,10 +337,12 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
     }
 
     // A random live series with a photo and no verdict yet ([exclude] is the one being skipped), and how many are left.
+    // ?corrected=1: only series where the user moved or deleted a detected hole.
     get("/admin/curate/next") {
         if (unauthorized(password, localNoAuth)) return@get
         val exclude = call.request.queryParameters["exclude"]?.toLongOrNull()
-        val open = db.uncuratedSeriesIds().filter { imageFile(images, it).isFile }
+        val corrected = if (call.request.queryParameters["corrected"] == "1") db.seriesWithCorrectedDetections() else null
+        val open = db.uncuratedSeriesIds().filter { (corrected == null || it in corrected) && imageFile(images, it).isFile }
         val pick = open.filter { it != exclude }.randomOrNull() ?: open.firstOrNull()
         respondJson(buildJsonObject { put("id", pick); put("remaining", open.size) }.toString())
     }
@@ -1449,7 +1451,7 @@ private const val CURATE_BODY = """<style>$CURATE_LIST_CSS
 body>h1{display:inline-block;margin:0 16px 8px 0;vertical-align:middle}
 .bar{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;vertical-align:middle;margin-bottom:8px}
 .ovrow{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-.ovrow input{width:200px}
+.ovrow input[type=range]{width:200px}
 .curate{display:flex;gap:16px;align-items:flex-start;margin-top:8px}
 .curate main{flex:1;min-width:0}
 #approve{border-color:#9ccc65;color:#9ccc65}
@@ -1459,9 +1461,10 @@ kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
 </style><div class="bar"><button id="approve">Approve <kbd>A</kbd></button><button id="reject">Reject <kbd>R</kbd></button>
 <button id="skip">Skip <kbd>S</kbd></button><span id="current"></span><span id="remaining"></span><span id="cmsg"></span></div>
 <label class="ovrow">Overlay transparency <input type="range" id="ov" min="0" max="100" step="5" value="0"><span id="ovv">0%</span></label>
+<label class="ovrow"><input type="checkbox" id="corr"> Only series with moved or deleted holes</label>
 <div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a></div>
 <div class="curate"><aside id="dock"><div id="side"><div id="counts"></div><ul id="history"></ul></div></aside><main>
-<p id="none" hidden>Every series with a photo has a verdict. Pick one on the left to change it.</p>
+<p id="none" hidden>Every series with a photo has a verdict<span id="nonecorr" hidden> among those with moved or deleted holes</span>. Pick one on the left to change it.</p>
 <iframe id="frame" title="series editor"></iframe></main></div>"""
 
 /**
@@ -1494,9 +1497,29 @@ function show(id, status) {
 
 function remaining(n) { document.getElementById('remaining').textContent = '· ' + n + ' left'; }
 
-function next(exclude) {
-  return get('/admin/curate/next' + (exclude != null ? '?exclude=' + exclude : '')).then(j => { remaining(j.remaining); show(j.id, null); });
+// "Only series with moved or deleted holes": the random pick and the count come from that subset; remembered per browser.
+const corr = document.getElementById('corr');
+try { corr.checked = localStorage.curateCorrected === '1'; } catch (e) {}
+function nextUrl(exclude) {
+  const q = [];
+  if (exclude != null) q.push('exclude=' + exclude);
+  if (corr.checked) q.push('corrected=1');
+  return '/admin/curate/next' + (q.length ? '?' + q.join('&') : '');
 }
+function applyCorr() { document.getElementById('nonecorr').hidden = !corr.checked; }
+applyCorr();
+
+function next(exclude) {
+  return get(nextUrl(exclude)).then(j => { remaining(j.remaining); show(j.id, null); });
+}
+
+// A random pick is replaced by one from the new subset; a series opened from the list stays, only the count changes.
+corr.onchange = () => {
+  try { localStorage.curateCorrected = corr.checked ? '1' : '0'; } catch (e) {}
+  applyCorr();
+  const fromList = current != null && document.getElementById('skip').disabled;
+  (fromList ? get(nextUrl()).then(j => remaining(j.remaining)) : next()).catch(fail);
+};
 
 function loadHistory() {
   return get('/admin/curate/history').then(list => {
@@ -1604,6 +1627,6 @@ loadHistory().then(() => {
   if (start == null) return next();
   const li = hist.querySelector('li[data-id="' + Number(start) + '"]');
   show(Number(start), li ? li.dataset.status : null);
-  return get('/admin/curate/next').then(j => remaining(j.remaining));
+  return get(nextUrl()).then(j => remaining(j.remaining));
 }).catch(fail);
 """

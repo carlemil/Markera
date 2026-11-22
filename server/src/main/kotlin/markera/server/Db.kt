@@ -473,6 +473,20 @@ class Db(dbPath: String) : AutoCloseable {
         ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
     }
 
+    /**
+     * Series where the user moved or removed a detection: a hole with a detected position it no longer sits at, or a
+     * deleted detection (a removed hand-placed hole does not count). The user's own holes, not the admin's training copy.
+     * /admin/curate's "moved or deleted holes only" switch.
+     */
+    @Synchronized
+    fun seriesWithCorrectedDetections(): Set<Long> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT DISTINCT series_id FROM holes WHERE (deleted = 1 AND detected_ring IS NOT NULL) " +
+                "OR (deleted = 0 AND detected_x IS NOT NULL AND detected_y IS NOT NULL AND x IS NOT NULL AND y IS NOT NULL " +
+                "AND (x <> detected_x OR y <> detected_y))"
+        ).use { rs -> buildSet { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
     /** Live series approved for training, oldest first: the approved-only training export's input. */
     @Synchronized
     fun approvedSeriesIds(): List<Long> = conn.createStatement().use { st ->

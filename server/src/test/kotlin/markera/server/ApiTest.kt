@@ -182,6 +182,33 @@ class ApiTest {
         sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_curation").use { it.next(); assertEquals(0, it.getInt(1)) } }
     }
 
+    @Test fun `curate can pick only series with moved or deleted detections`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("curate-corrected")
+        val kept = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, 20.0, 20.0, 0.7)
+        val manual = Hole(150.0, 50.0, 8, false, 10.0, null, null, null, null, null, null, null)
+        val untouched = client.createSeries(auth.token, series().copy(holes = listOf(kept, manual)))
+        val moved = client.createSeries(auth.token, series().copy(holes = listOf(kept.copy(x = 104.0))))
+        val deleted = client.createSeries(auth.token, series().copy(holes = listOf(kept, kept.copy(x = 300.0, detectedX = 300.0, deleted = true))))
+        val manualDeleted = client.createSeries(auth.token, series().copy(holes = listOf(kept, manual.copy(deleted = true))))
+        val movedNoPhoto = client.createSeries(auth.token, series().copy(holes = listOf(kept.copy(y = 40.0))))
+        listOf(untouched, moved, deleted, manualDeleted).forEach { client.putImage(auth.token, it, jpeg(), query = "?width=1000&height=500") }
+        suspend fun pick(query: String) =
+            kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/curate/next$query").bodyAsText()).jsonObject
+
+        assertEquals(4, pick("")["remaining"]!!.jsonPrimitive.int)
+        assertEquals(2, pick("?corrected=1")["remaining"]!!.jsonPrimitive.int)
+        assertTrue(pick("?corrected=1")["id"]!!.jsonPrimitive.long in setOf(moved, deleted))
+        assertEquals(deleted, pick("?corrected=1&exclude=$moved")["id"]!!.jsonPrimitive.long)
+        assertTrue(client.admin("/admin/curate").bodyAsText().contains("Only series with moved or deleted holes"))
+
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$moved?status=approved")
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$deleted?status=rejected")
+        val done = pick("?corrected=1")
+        assertEquals(0, done["remaining"]!!.jsonPrimitive.int)
+        // movedNoPhoto has no photo, so it is never offered either way.
+        assertEquals(kotlinx.serialization.json.JsonNull, done["id"])
+    }
+
     @Test fun `curate edits go to a training copy and never change the user's series`() = apiTest(adminPassword = ADMIN_PW) { client ->
         val auth = client.devAuth("training-copy")
         val live = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, 20.0, 20.0, 0.7)
