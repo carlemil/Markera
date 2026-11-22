@@ -939,6 +939,11 @@ document.addEventListener('mouseover', e => {
 
 if (placeable) {
   let drag = null, grip = null, swallow = false, down = null;
+  // Embedded (curate), the photo takes whatever width the table leaves; the table's x/y/distance cells change width
+  // while a hole or the ring is dragged, so the photo resized under the pointer, which moved the hole again: it shook.
+  // The table column keeps its width for the length of a drag.
+  const left = document.querySelector('.cols.embed>.left');
+  const lockLeft = on => { if (left) left.style.width = on ? left.getBoundingClientRect().width + 'px' : ''; };
   const at = e => {
     const r = img.getBoundingClientRect();
     return [Math.round((e.clientX - r.left) / r.width * S.imageWidth),
@@ -951,6 +956,7 @@ if (placeable) {
     if (hd || (e.shiftKey && e.button === 0 && !e.target.closest('.hit'))) {
       e.preventDefault();
       shot.setPointerCapture(e.pointerId);
+      lockLeft(true);
       grip = {kind: hd ? hd.dataset.h : 'all', from: at(e), start: D, follow: followers(), moved: false};
       return;
     }
@@ -958,6 +964,7 @@ if (placeable) {
     if (!m || m.classList.contains('gone')) return;
     e.preventDefault();
     m.setPointerCapture(e.pointerId);
+    lockLeft(true);
     drag = m;
   });
   shot.addEventListener('pointermove', e => {
@@ -976,11 +983,15 @@ if (placeable) {
     h.distanceMm = distanceMm(h);   // null without geometry: nothing left to measure against
     refresh(i);
   });
-  shot.addEventListener('pointerup', () => {
+  const endDrag = () => {
+    lockLeft(false);
     if (grip) { if (grip.moved) { save(); swallow = true; } grip = null; return; }
     if (drag) save();
     drag = null;
-  });
+  };
+  shot.addEventListener('pointerup', endDrag);
+  // A lost capture (Esc, a window switch) ends the drag too, so the column is never left locked.
+  shot.addEventListener('lostpointercapture', () => { if (drag || grip) endDrag(); });
   // A click that is not on a marker drops a new hole there; a drag ends on its own marker, so it is skipped.
   shot.addEventListener('click', e => {
     // A Shift-drag of the ring ends in a click on the photo: that is no new hole.
@@ -1322,7 +1333,11 @@ private const val ZOOM_JS = """
   // pans, fit again; after that keep the same view, its offsets scaled with the box.
   let touched = false, lastW = 0;
   box.addEventListener('wheel', () => touched = true, {passive: true});
-  box.addEventListener('pointerdown', e => { if (z > 1 && e.button === 0 && !e.target.closest('.hit,.handle')) touched = true; });
+  // Grabbing a hole or a ring handle counts too: a refit fits the holes, the dragged one included, so a refit while it
+  // moved (the box resizing as the table's cells changed) shifted the photo under the pointer and the hole with it.
+  box.addEventListener('pointerdown', e => {
+    if (e.button === 0 && (e.target.closest('.hit,.handle') || z > 1)) touched = true;
+  });
   new ResizeObserver(() => {
     const w = shot.offsetWidth;
     if (!w || w === lastW) return;
@@ -1422,6 +1437,7 @@ apply();
  * No hole letters: pointing at a row or a marker highlights the other (the editor's `highlight`).
  */
 private const val CURATE_LINE_CSS = """
+html{scrollbar-gutter:stable}
 .hit::before,.ghost::before{--rw:calc(2px * var(--iz,1))}
 .hit.gone::after{--xw:calc(1px * var(--iz,1))}
 .cols.embed .geom *{stroke-width:2}
