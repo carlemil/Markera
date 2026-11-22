@@ -1,0 +1,6 @@
+#!/bin/sh
+# Signposts: refresh the hidden .<file>.h indexes after git changes files (pull, checkout, rebase).
+# Enabled per clone with: git config core.hooksPath .githooks
+command -v node >/dev/null 2>&1 || exit 0
+node "$(git rev-parse --show-toplevel)/.claude/hooks/signposts.mjs" --sync >/dev/null 2>&1
+exit 0

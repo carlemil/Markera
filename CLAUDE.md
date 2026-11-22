@@ -14,7 +14,9 @@ functions, classes, Ktor routes and the JS functions inside `const val …JS = "
 inclusive line range. Before reading a code file of more than ~300 lines, read its signpost and then only the
 ranges you need (`Read` with `offset`/`limit`). The header's sha1 is the source's; if the file changed since,
 treat the ranges as approximate. `.claude/hooks/signposts.mjs` keeps them current (after every
-Edit/Write, and `--sync` at session start); `node .claude/hooks/signposts.mjs <file>` regenerates one by hand.
+Edit/Write, and `--sync` at session start and from the git hooks in `.githooks/` after a pull, checkout or
+rebase — each clone enables those once with `git config core.hooksPath .githooks`);
+`node .claude/hooks/signposts.mjs <file>` regenerates one by hand.
 
 ## Build & test commands
 
