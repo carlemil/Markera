@@ -17,6 +17,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.response.respondText
@@ -58,9 +59,18 @@ data class Config(
      * it in production (Docker's port mapping needs 0.0.0.0, so the server would not even be reachable there).
      */
     val adminLocalNoAuth: Boolean = false,
+    /**
+     * The file served at `/.well-known/apple-developer-domain-association.txt` (Apple fetches it to verify the
+     * domain). It is not in git: it comes from the Apple Developer portal. Defaults next to the database, so it
+     * can be dropped into Docker's data volume; `APPLE_DOMAIN_ASSOCIATION_FILE` overrides it. Absent means 404.
+     */
+    val appleDomainAssociationFile: String = defaultAppleDomainAssociationFile(dbPath),
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
+
+        fun defaultAppleDomainAssociationFile(dbPath: String) =
+            File(File(dbPath).absoluteFile.parentFile, "apple-developer-domain-association.txt").path
 
         /** All five or nothing: a half-configured Apple web flow would fail at Apple, not here. */
         private fun appleWebFromEnv(): AppleWebConfig? {
@@ -90,6 +100,8 @@ data class Config(
                 smtp = SmtpConfig.fromEnv(contactEmail),
                 publicUrl = System.getenv("PUBLIC_URL")?.ifBlank { null },
                 adminLocalNoAuth = System.getenv("ADMIN_LOCAL_NO_AUTH") == "true",
+                appleDomainAssociationFile = System.getenv("APPLE_DOMAIN_ASSOCIATION_FILE")?.ifBlank { null }
+                    ?: defaultAppleDomainAssociationFile(dbPath),
             )
         }
     }
@@ -341,11 +353,12 @@ fun Application.markeraModule(
             call.respond(AuthResponse(db.createSession(userId), userId))
         }
 
-        // Apple verifies the domain by fetching this; the blob is a public token, so it is committed.
+        // Apple verifies the domain by fetching this. The blob is public, but it is not in git: it is read from
+        // Config.appleDomainAssociationFile (beside the database unless APPLE_DOMAIN_ASSOCIATION_FILE says otherwise).
         get("/.well-known/apple-developer-domain-association.txt") {
-            val blob = Config::class.java.getResourceAsStream("/apple-developer-domain-association.txt")
-            if (blob == null) call.respond(HttpStatusCode.NotFound, ErrorResponse("no domain association file"))
-            else call.respondText(blob.use { it.readBytes().decodeToString() }, ContentType.Text.Plain)
+            val blob = File(config.appleDomainAssociationFile)
+            if (!blob.isFile) call.respond(HttpStatusCode.NotFound, ErrorResponse("no domain association file"))
+            else call.respondBytes(blob.readBytes(), ContentType.Text.Plain)
         }
         if (config.devAuth) {
             post("/auth/dev") {
