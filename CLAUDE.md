@@ -25,7 +25,7 @@ rebase — each clone enables those once with `git config core.hooksPath .githoo
 ./gradlew :composeApp:installDebug
 
 ./gradlew :composeApp:testDebugUnitTest # JVM unit tests
-./gradlew :vision:jvmTest              # fast pure geometry/scoring tests (69)
+./gradlew :vision:jvmTest              # fast pure geometry/scoring tests (80)
 # single test class:
 ./gradlew :vision:jvmTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```

@@ -76,7 +76,7 @@ class LocalStorageRobustnessTest {
         q.enqueue("1", seriesJson.encodeToString(request("good")), null, byteArrayOf(5), 10, 10)
 
         assertEquals(1, f.repository.localCount(2), "the good row is offered to another account")
-        assertEquals(0, f.repository.needsDecision(BackendAuth("tok", 1, "dev")), "own rows need no decision")
+        assertEquals(0, f.repository.needsDecision(BackendAuth("tok", 1, "dev")) {}, "own rows need no decision")
         assertNull(f.repository.refresh())
         assertNull(f.repository.refresh())
         assertEquals(0, f.repository.localCount(2))
