@@ -581,7 +581,8 @@ private suspend fun RoutingContext.providerAuth(db: Db, provider: String, verifi
     }
     val idToken = receiveCapped<IdTokenRequest>(MAX_AUTH_BYTES)?.idToken ?: return
     val identity = try {
-        verifier.identity(idToken)
+        // The first use of a key may read the provider's key set over the network.
+        withContext(Dispatchers.IO) { verifier.identity(idToken) }
     } catch (e: JWTVerificationException) {
         call.respond(HttpStatusCode.Unauthorized, ErrorResponse(e.message ?: "invalid id token"))
         return

@@ -1,20 +1,98 @@
 package markera.server
 
-import com.auth0.jwk.JwkProvider
-import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwk.Jwk
+import com.auth0.jwk.UrlJwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import java.net.URI
 import java.security.interfaces.RSAPublicKey
-import java.util.concurrent.TimeUnit
+import java.time.Duration
+import java.time.Instant
 
 /** Who the provider says the caller is. [name] is the `name` claim, else the part of `email` before the `@`. */
 data class Identity(val subject: String, val name: String?)
 
+/** Reads a provider's whole published key set (JWKS). */
+fun interface KeySetSource {
+    fun fetch(): List<Jwk>
+}
+
+/**
+ * A provider's RSA signing keys by key id. The whole set is read at most once per [minRefreshInterval],
+ * whichever key id is asked for: a key id missing from a set read within the interval is answered with
+ * null straight away. The interval runs from the last read attempt, so a key the provider adds is found on
+ * the first lookup once the interval has passed. After a failed read the next one is allowed sooner
+ * ([initialRetryDelay], doubling while reads keep failing, up to the interval); a successful read
+ * returns to the full interval. A set older than [maxAge] is
+ * read again even on a hit, so retired keys drop out. Lookups of cached keys in a set younger than
+ * [maxAge] never wait for a read in progress.
+ */
+class JwksKeySet(
+    private val source: KeySetSource,
+    private val minRefreshInterval: Duration = Duration.ofSeconds(60),
+    private val maxAge: Duration = Duration.ofHours(24),
+    private val clock: () -> Instant = Instant::now,
+    /** Wait after a failed read; it doubles while reads keep failing, up to [minRefreshInterval]. */
+    private val initialRetryDelay: Duration = Duration.ofSeconds(5),
+) {
+    @Volatile private var keys: Map<String, RSAPublicKey> = emptyMap()
+    // Both guarded by refreshLock.
+    private var nextReadAfter: Duration = minRefreshInterval
+    private var retryDelay: Duration? = null
+    @Volatile private var lastAttempt: Instant? = null
+    @Volatile private var lastSuccess: Instant? = null
+    private val refreshLock = Any()
+
+    fun key(kid: String): RSAPublicKey? {
+        val cached = keys[kid]
+        if (cached != null && !stale()) return cached
+        synchronized(refreshLock) {
+            // Another caller may have refreshed while this one waited.
+            val fresh = keys[kid]
+            if (fresh != null && !stale()) return fresh
+            val last = lastAttempt
+            val now = clock()
+            if (last == null || Duration.between(last, now) >= nextReadAfter) {
+                lastAttempt = now
+                try {
+                    keys = source.fetch().mapNotNull(::usable).toMap()
+                    lastSuccess = now
+                    nextReadAfter = minRefreshInterval
+                    retryDelay = null
+                } catch (_: Exception) {
+                    // Keep the keys we have and retry soon, doubling the wait while reads keep failing.
+                    val delay = retryDelay?.multipliedBy(2)?.coerceAtMost(minRefreshInterval)
+                        ?: initialRetryDelay.coerceAtMost(minRefreshInterval)
+                    retryDelay = delay
+                    nextReadAfter = delay
+                }
+            }
+            return keys[kid]
+        }
+    }
+
+    private fun stale(): Boolean {
+        val success = lastSuccess ?: return true
+        return Duration.between(success, clock()) > maxAge
+    }
+
+    /** The key id and RSA key of [jwk], or null for an entry that is not a usable RSA key. */
+    private fun usable(jwk: Jwk): Pair<String, RSAPublicKey>? {
+        val kid = jwk.id ?: return null
+        if (jwk.type != "RSA") return null
+        val key = try {
+            jwk.publicKey as? RSAPublicKey
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        return kid to key
+    }
+}
+
 /** Verifies an RS256 provider ID token against a JWKS and returns its `sub` plus a display name. */
 class TokenVerifier(
-    private val jwks: JwkProvider,
+    private val keys: JwksKeySet,
     /** Accepted `aud` values; any one matching is enough (native iOS carries the bundle id, Apple's web flow the Services ID). */
     private val audiences: List<String>,
     private val issuers: List<String>,
@@ -22,11 +100,16 @@ class TokenVerifier(
     /** @throws JWTVerificationException if the signature, issuer, audience or expiry is wrong. */
     fun identity(idToken: String): Identity {
         val decoded = JWT.decode(idToken)
-        val key = try {
-            jwks.get(decoded.keyId).publicKey as RSAPublicKey
-        } catch (e: Exception) {
-            throw JWTVerificationException("unknown key id ${decoded.keyId}", e)
-        }
+        // Cheap checks on the unverified claims first, so only plausible tokens reach the key set.
+        // The full verification below stays the authority.
+        if (decoded.algorithm != "RS256") throw JWTVerificationException("unsupported algorithm")
+        val kid = decoded.keyId ?: throw JWTVerificationException("missing key id")
+        if (decoded.issuer !in issuers) throw JWTVerificationException("wrong issuer")
+        if (decoded.audience.orEmpty().none { it in audiences }) throw JWTVerificationException("wrong audience")
+        val expiresAt = decoded.expiresAtAsInstant ?: throw JWTVerificationException("missing expiry")
+        if (!expiresAt.isAfter(Instant.now())) throw JWTVerificationException("token expired")
+
+        val key = keys.key(kid) ?: throw JWTVerificationException("unknown key id")
         val verified = JWT.require(Algorithm.RSA256(key, null))
             .withIssuer(*issuers.toTypedArray()) // java-jwt: passes when the claim matches any of them
             // withAudience() would demand *all* of them; this passes on any one.
@@ -41,22 +124,24 @@ class TokenVerifier(
     }
 }
 
-private fun cachedJwks(url: String): JwkProvider =
-    JwkProviderBuilder(URI(url).toURL())
-        .cached(10, 24, TimeUnit.HOURS)
-        // Unknown key ids miss the cache; this keeps a flood of forged ones from hammering the provider.
-        .rateLimited(10, 1, TimeUnit.MINUTES)
-        .build()
+private const val JWKS_CONNECT_TIMEOUT_MS = 3_000
+private const val JWKS_READ_TIMEOUT_MS = 5_000
+
+/** The key set published at [url], read with explicit connect and read timeouts. */
+private fun remoteKeySet(url: String): JwksKeySet {
+    val provider = UrlJwkProvider(URI(url).toURL(), JWKS_CONNECT_TIMEOUT_MS, JWKS_READ_TIMEOUT_MS)
+    return JwksKeySet({ provider.all })
+}
 
 fun googleVerifier(clientId: String) = TokenVerifier(
-    cachedJwks("https://www.googleapis.com/oauth2/v3/certs"),
+    remoteKeySet("https://www.googleapis.com/oauth2/v3/certs"),
     listOf(clientId),
     listOf("https://accounts.google.com", "accounts.google.com"),
 )
 
 /** [audiences] is the iOS bundle id, the Apple Services ID (the Android web flow), or both. */
 fun appleVerifier(audiences: List<String>) = TokenVerifier(
-    cachedJwks("https://appleid.apple.com/auth/keys"),
+    remoteKeySet("https://appleid.apple.com/auth/keys"),
     audiences,
     listOf("https://appleid.apple.com"),
 )
