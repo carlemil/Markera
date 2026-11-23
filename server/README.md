@@ -5,6 +5,9 @@ Ktor + SQLite backend for scanned series. Standalone Gradle build (not part of t
 - Run locally: `DEV_AUTH=true ./gradlew run` (or `./gradlew installDist && build/install/server/bin/server`)
 - Tests: `./gradlew test`
 - Docker: `cp .env.example .env` then `docker compose up -d --build` (bound to 127.0.0.1:8090 for the host's Caddy, which serves it as `https://markera.duckdns.org`; SQLite on the `markera-data` volume)
+- The container runs as the non-root user `markera`, UID/GID 10001. A fresh volume gets that owner from the image;
+  a volume written by an older (root) image must be handed over once before the first start, from this directory:
+  `docker compose run --rm --no-deps --user root --entrypoint chown markera-server -R 10001:10001 /data`
 
 Env vars: `PORT` (8080), `DB_PATH` (`./data/markera.db`), `IMAGES_DIR` (`<DB_PATH dir>/images`),
 `GOOGLE_CLIENT_ID`, `APPLE_BUNDLE_ID`, `DEV_AUTH` (`true` enables `POST /auth/dev`, never in production),
