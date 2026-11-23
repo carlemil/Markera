@@ -28,6 +28,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
@@ -408,7 +409,8 @@ fun Application.markeraModule(
         delete("/account") {
             val userId = authenticate(db) ?: return@delete
             val ids = db.deleteAccount(userId)
-            withContext(Dispatchers.IO) { db.erasePhotos(images, ids) }
+            // The rows are gone: a client hanging up now must not skip the files.
+            withContext(Dispatchers.IO + NonCancellable) { db.erasePhotos(images, ids) }
             call.respond(HttpStatusCode.NoContent)
         }
 

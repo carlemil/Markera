@@ -15,6 +15,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
@@ -316,7 +317,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
         val userId = pathId()
         if (db.getUser(userId) == null) return@delete notFound("Unknown user")
         val ids = db.deleteAccount(userId)
-        withContext(Dispatchers.IO) { db.erasePhotos(images, ids) }
+        withContext(Dispatchers.IO + NonCancellable) { db.erasePhotos(images, ids) }
         call.respond(HttpStatusCode.NoContent)
     }
 

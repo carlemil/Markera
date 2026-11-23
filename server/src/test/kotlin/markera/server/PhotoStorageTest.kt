@@ -112,6 +112,44 @@ class PhotoStorageTest {
         }
     }
 
+    @Test fun `an upload racing an account erasure leaves no photo behind`() = fixture { db, _, images, owner, id ->
+        db.storePhoto(images, id, jpeg(1), 10, 10, AuditActor.app(owner))
+        val writing = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            val upload = pool.submit {
+                db.storePhoto(images, id, jpeg(2), 10, 10, AuditActor.app(owner)) { path, data ->
+                    writing.countDown()
+                    release.await(10, TimeUnit.SECONDS)
+                    java.nio.file.Files.write(path, data)
+                }
+            }
+            assertTrue(writing.await(10, TimeUnit.SECONDS), "the upload never started writing")
+            val erase = pool.submit { db.erasePhotos(images, db.deleteAccount(owner)) }
+            // The rows go at once; the files wait for the upload holding this series' photo lock.
+            assertTrue(runCatching { erase.get(500, TimeUnit.MILLISECONDS) }.isFailure)
+            assertNull(db.getSeries(id, includeDeleted = true))
+            release.countDown()
+            assertFails { upload.get(10, TimeUnit.SECONDS) }
+            erase.get(10, TimeUnit.SECONDS)
+            assertEquals(emptyList(), images.list()!!.toList())
+        } finally {
+            release.countDown()
+            pool.shutdownNow()
+        }
+    }
+
+    @Test fun `an empty series table sweeps no photos`() {
+        val dir = kotlin.io.path.createTempDirectory("markera-photos-").toFile()
+        try {
+            val images = File(dir, "images").also { it.mkdir() }
+            imageFile(images, 5).writeBytes(jpeg(1))
+            Db(File(dir, "db.sqlite").path).use { it.recoverPhotos(images) }
+            assertTrue(imageFile(images, 5).isFile)
+        } finally { dir.deleteRecursively() }
+    }
+
     @Test fun `concurrent uploads to one series leave one consistent photo and no recovery files`() =
         fixture { db, _, images, owner, id ->
             val pool = Executors.newFixedThreadPool(4)
