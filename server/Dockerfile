@@ -1,7 +1,7 @@
 # Base images are pinned by digest (multi-arch index; Dependabot can bump them).
 # Built with the project's own Gradle wrapper, so the image uses the same Gradle
 # as a local ./gradlew (gradle/wrapper/gradle-wrapper.properties).
-FROM eclipse-temurin:17-jdk@sha256:7a0b2bc7e1372bb05ee361fb79e8a9e822df47343b8716253b3bbaa75060653e AS build
+FROM eclipse-temurin:24-jdk@sha256:7493205ffe6caa8074fa8a06a276bb1c5ac41d3dd0fd43a0db66d7f776e80b3e AS build
 WORKDIR /src
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle ./gradle
@@ -9,7 +9,7 @@ COPY src ./src
 # gradlew is mode 644 in git.
 RUN chmod +x gradlew && ./gradlew installDist --no-daemon
 
-FROM eclipse-temurin:17-jre@sha256:541b08fc7f494edf14e436ff6bfb55767e4a115c87bfc547b8c5de957b58737f
+FROM eclipse-temurin:24-jre@sha256:8cb2387a28af84cf0db0948d9c67d4480192f4e567027a3963f145d218e8b4f2
 # A fixed non-root user (1000 is taken by the image's "ubuntu" user). /data is
 # created owned by it, so a fresh named volume mounted there inherits that owner.
 # A volume first written by the old root container must be chowned once, see
