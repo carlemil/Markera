@@ -147,10 +147,13 @@ data class SeriesStatistics(
     val seriesCount: Int,
     val hitCount: Int,
     val meanDistanceMm: Double,
-    val meanPairwiseMm: Double,
+    /** Null when no series has two hits: there is no pair to measure, which is not 0 mm. */
+    val meanPairwiseMm: Double?,
     val meanScore: Double,
-    val meanGroupSizeMm: Double,
-    val meanRadiusMm: Double,
+    /** Null like [meanPairwiseMm]. */
+    val meanGroupSizeMm: Double?,
+    /** Null like [meanPairwiseMm]. */
+    val meanRadiusMm: Double?,
     val radialSdMm: Double,
     val impactXMm: Double,
     val impactYMm: Double,
@@ -162,7 +165,8 @@ data class SeriesStatistics(
  * Group measurements over the plotted selection, or null when it is empty.
  * Per-hit means (distance, impact) run over every hit; the
  * per-series means (pairwise spread, group size, mean radius, score) average the
- * series, and a one-hole series has no pair so it sits out those three.
+ * series, and a one-hole series has no pair so it sits out those three; with no
+ * series of two or more hits they are null, never a made-up 0 mm.
  * [SeriesStatistics.meanRadiusMm] and [SeriesStatistics.radialSdMm] measure the
  * spread around the hits' own mean point, so they ignore the target centre entirely.
  */
@@ -177,10 +181,10 @@ fun List<PlottedSeries>.statistics(): SeriesStatistics? {
         seriesCount = size,
         hitCount = hits.size,
         meanDistanceMm = hits.map { hypot(it.xMm, it.yMm) }.mean(),
-        meanPairwiseMm = pairwise.map { it.mean() }.mean(),
+        meanPairwiseMm = pairwise.map { it.mean() }.meanOrNull(),
         meanScore = map { it.series.total().toDouble() }.mean(),
-        meanGroupSizeMm = pairwise.map { it.max() }.mean(),
-        meanRadiusMm = withPairs.map { it.hits.radiiFromOwnMean().mean() }.mean(),
+        meanGroupSizeMm = pairwise.map { it.max() }.meanOrNull(),
+        meanRadiusMm = withPairs.map { it.hits.radiiFromOwnMean().mean() }.meanOrNull(),
         radialSdMm = sqrt(hits.map { hypot(it.xMm - impactX, it.yMm - impactY).let { d -> d * d } }.mean()),
         impactXMm = impactX,
         impactYMm = impactY,
@@ -209,6 +213,9 @@ private fun List<PlottedHit>.radiiFromOwnMean(): List<Double> {
 
 /** Mean, with an empty selection reading 0 rather than NaN. */
 private fun List<Double>.mean(): Double = if (isEmpty()) 0.0 else sum() / size
+
+/** Mean, or null for nothing to average. */
+private fun List<Double>.meanOrNull(): Double? = if (isEmpty()) null else sum() / size
 
 /** Median (even count → the mean of the two middle values), 0 when empty. */
 private fun List<Double>.median(): Double {

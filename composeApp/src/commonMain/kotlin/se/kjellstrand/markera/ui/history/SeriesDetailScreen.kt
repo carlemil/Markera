@@ -184,11 +184,13 @@ fun SeriesDetailScreen(
     val settings = LocalAppSettings.current
     val insightsOn = settings?.insightsEnabled?.collectAsState()?.value ?: true
     val hand = settings?.shootingHand?.collectAsState()?.value ?: ShootingHand.RIGHT
+    // The day finding judges an offset after "I adjusted the sights" as Insights does.
+    val sights = settings?.sightSetups?.collectAsState()?.value ?: emptyMap()
     val comparison = remember(cached, series, insightsOn) {
         if (insightsOn) compareWithAverage(series, cached) else null
     }
-    val dayNote = remember(cached, series, insightsOn) {
-        if (insightsOn) dayFinding(series, cached) else null
+    val dayNote = remember(cached, series, insightsOn, sights) {
+        if (insightsOn) dayFinding(series, cached, sights = sights) else null
     }
     val zoomPan = rememberZoomPan(series.id)
     val savedText = stringResource(Res.string.detail_saved)

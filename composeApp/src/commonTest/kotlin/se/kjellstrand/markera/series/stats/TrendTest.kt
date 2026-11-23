@@ -62,4 +62,41 @@ class TrendTest {
         assertEquals(41.5, fit.at(points[0].at), 1e-9)
         assertEquals(null, points.take(1).fit())
     }
+
+    /** Two holes [gap] mm apart on a line through the centre. */
+    private fun pair(id: Long, timestamp: String, gap: Double) = SeriesDto(
+        id = id,
+        timestamp = timestamp,
+        caliber = "9mm",
+        holes = listOf(HoleDto(500.0, 500.0, 10, false, 0.0), HoleDto(500.0 + gap, 500.0, 9, false, gap)),
+        geometry = geometry,
+    )
+
+    @Test
+    fun aOneHoleSeriesHasNoPointOnThePairBasedCharts() {
+        val all = listOf(
+            pair(1, "2026-09-01T10:00:00Z", 20.0),
+            series(2, "2026-09-02T10:00:00Z", "9mm", 10),
+            pair(3, "2026-09-03T10:00:00Z", 40.0),
+        ).plotSeries(StatsFilter())
+        for (metric in listOf(Metric.MEAN_PAIRWISE, Metric.GROUP_SIZE, Metric.MEAN_RADIUS)) {
+            val each = all.trend(metric, Bucket.SERIES)
+            assertEquals(listOf(1L, 3L), each.map { p -> all.first { it.at == p.at }.series.id }, "$metric")
+            assertEquals(false, each.any { it.value == 0.0 }, "$metric")
+        }
+        assertEquals(listOf(20.0, 40.0), all.trend(Metric.GROUP_SIZE, Bucket.SERIES).map { it.value })
+        // The other rows still have a value for it.
+        assertEquals(3, all.trend(Metric.SCORE, Bucket.SERIES).size)
+        assertEquals(3, all.trend(Metric.MEAN_DISTANCE, Bucket.SERIES).size)
+    }
+
+    @Test
+    fun aCaliberOfOnlyOneHoleSeriesHasAnEmptyPairBasedLine() {
+        val all = listOf(
+            series(1, "2026-09-01T10:00:00Z", "9mm", 10),
+            series(2, "2026-09-02T10:00:00Z", "9mm", 9),
+        ).plotSeries(StatsFilter())
+        assertEquals(emptyList(), all.trend(Metric.MEAN_PAIRWISE, Bucket.DAY, TimeZone.UTC))
+        assertEquals(emptyList(), all.trendByCaliber(Metric.GROUP_SIZE, Bucket.WEEK, TimeZone.UTC).getValue(Caliber.MM9))
+    }
 }

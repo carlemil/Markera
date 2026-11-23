@@ -170,9 +170,9 @@ class SeriesStatsTest {
         // distances 0, 30, 40, 0, 30 → 100 / 5
         assertEquals(20.0, stats.meanDistanceMm, 1e-9)
         // A: one pair, 30. B: 40, 70, 30 → 140/3. (30 + 140/3) / 2
-        assertEquals((30.0 + 140.0 / 3.0) / 2.0, stats.meanPairwiseMm, 1e-9)
+        assertEquals((30.0 + 140.0 / 3.0) / 2.0, stats.meanPairwiseMm!!, 1e-9)
         // largest pair per series: 30 and 70
-        assertEquals(50.0, stats.meanGroupSizeMm, 1e-9)
+        assertEquals(50.0, stats.meanGroupSizeMm!!, 1e-9)
         assertEquals(23.0, stats.meanScore, 1e-9)
         // x: 0+30+0+0+0 = 30; y: 0+0+40+0-30 = 10
         assertEquals(6.0, stats.impactXMm, 1e-9)
@@ -194,7 +194,7 @@ class SeriesStatsTest {
     fun `mean radius and radial SD measure the group around its own mean point`() {
         val stats = listOf(square(1)).plotSeries(StatsFilter()).statistics()!!
         // Every corner sits sqrt(50) mm from the centre (5,5), so both read the same.
-        assertEquals(7.0710678, stats.meanRadiusMm, 1e-6)
+        assertEquals(7.0710678, stats.meanRadiusMm!!, 1e-6)
         assertEquals(7.0710678, stats.radialSdMm, 1e-6)
     }
 
@@ -202,7 +202,7 @@ class SeriesStatsTest {
     fun `a one-hit series sits out the mean radius but counts in the radial SD`() {
         val far = series(id = 2, timestamp = "2026-09-02T10:00:00Z", holes = listOf(hole(600.0, 600.0, 5)))
         val stats = listOf(square(1), far).plotSeries(StatsFilter()).statistics()!!
-        assertEquals(7.0710678, stats.meanRadiusMm, 1e-6)
+        assertEquals(7.0710678, stats.meanRadiusMm!!, 1e-6)
         // Five hits: (0,0),(10,0),(0,10),(10,10),(100,100) → mean (24,24).
         val xs = listOf(0.0, 10.0, 0.0, 10.0, 100.0)
         // x and y match on every hit, so the squared distance to (24,24) is 2*(x-24)^2.
@@ -213,10 +213,20 @@ class SeriesStatsTest {
     }
 
     @Test
+    fun `only one-hit series have no pair-based measures rather than 0 mm`() {
+        val one = series(id = 1, holes = listOf(hole(530.0, 500.0, 9)))
+        val stats = listOf(one).plotSeries(StatsFilter()).statistics()!!
+        assertNull(stats.meanPairwiseMm)
+        assertNull(stats.meanGroupSizeMm)
+        assertNull(stats.meanRadiusMm)
+        assertEquals(30.0, stats.meanDistanceMm, 1e-9)
+    }
+
+    @Test
     fun `both spread measures ignore where on the target the group sits`() {
         val here = listOf(square(1)).plotSeries(StatsFilter()).statistics()!!
         val shifted = listOf(square(2, dx = 50.0)).plotSeries(StatsFilter()).statistics()!!
-        assertEquals(here.meanRadiusMm, shifted.meanRadiusMm, 1e-9)
+        assertEquals(here.meanRadiusMm!!, shifted.meanRadiusMm!!, 1e-9)
         assertEquals(here.radialSdMm, shifted.radialSdMm, 1e-9)
     }
 

@@ -51,12 +51,13 @@ import se.kjellstrand.markera.series.stats.SightCorrection
 import se.kjellstrand.markera.series.stats.SightSetup
 import se.kjellstrand.markera.series.stats.parsePositiveDecimal
 import se.kjellstrand.markera.series.stats.sightCorrection
-import se.kjellstrand.markera.series.stats.InsightMark
 import se.kjellstrand.markera.series.stats.InsightSection
 import se.kjellstrand.markera.series.stats.PlottedSeries
 import se.kjellstrand.markera.series.stats.adviceFor
 import se.kjellstrand.markera.series.stats.insights
-import se.kjellstrand.markera.series.stats.mark
+import se.kjellstrand.markera.series.stats.pickedIndex
+import se.kjellstrand.markera.series.stats.pickedMark
+import se.kjellstrand.markera.series.stats.toggledPick
 import se.kjellstrand.markera.ui.history.adviceString
 import se.kjellstrand.markera.ui.settings.AppSettings
 import se.kjellstrand.markera.ui.settings.LocalAppSettings
@@ -125,11 +126,14 @@ private fun InsightSectionView(
         return
     }
     val advice = remember(section, hand) { adviceFor(section.findings, hand) }
-    // The picked finding, by its place in the list; tapping it again lets it go.
-    // Keyed on the caliber: a sight edit rebuilds the section but keeps the pick.
-    var picked by remember(section.caliber.label) { mutableStateOf<Int?>(null) }
+    // The picked finding, by its kind (not its place: the list changes when the sights are
+    // adjusted); tapping it again lets it go. Keyed on the caliber: a sight edit rebuilds the
+    // section but keeps the pick.
+    var picked by remember(section.caliber.label) { mutableStateOf<String?>(null) }
     var editingClicks by remember { mutableStateOf(false) }
-    val highlight = picked?.let { advice.getOrNull(it)?.finding?.mark() } ?: InsightMark.NONE
+    val shown = advice.map { it.finding }
+    val pickedAt = shown.pickedIndex(picked)
+    val highlight = shown.pickedMark(picked)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         InsightsTarget(section, calibers, highlight)
         Text(
@@ -153,7 +157,7 @@ private fun InsightSectionView(
             Note(if (numbers == null) nothing else "$nothing\n$numbers")
         }
         advice.forEachIndexed { i, a ->
-            AdviceCard(a, selected = picked == i, onClick = { picked = if (picked == i) null else i }) {
+            AdviceCard(a, selected = pickedAt == i, onClick = { picked = shown.toggledPick(picked, i) }) {
                 val offset = a.finding as? Finding.OffsetGroup
                 if (offset != null && offset.stable) {
                     SightCorrectionView(

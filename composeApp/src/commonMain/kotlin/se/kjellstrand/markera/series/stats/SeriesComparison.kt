@@ -76,7 +76,9 @@ fun compareWithAverage(
  * The strongest finding that is about [series]' own day: the day has 3+ series of the caliber and
  * a low day or a wide group dated that day (judged against the history up to it), or an offset or
  * stretched group in that day's own holes. Null otherwise. The finding carries its numbers; the
- * words come from [advice].
+ * words come from [advice]. [sights] are the per-caliber sight setups, as [insights] takes them:
+ * once the sights were adjusted on or before that day, the offset is judged only on the series
+ * taken after the adjustment, so the page agrees with the Insights tab its day link opens.
  */
 @OptIn(ExperimentalTime::class)
 fun dayFinding(
@@ -84,6 +86,7 @@ fun dayFinding(
     all: List<SeriesDto>,
     zone: TimeZone = TimeZone.currentSystemDefault(),
     thresholds: FindingThresholds = FindingThresholds(),
+    sights: Map<String, SightSetup> = emptyMap(),
 ): Pair<LocalDate, Finding>? {
     val at = series.instant() ?: return null
     if (series.caliber.isBlank() || series.caliber == Caliber.NONE.label) return null
@@ -104,7 +107,9 @@ fun dayFinding(
     val dated = plotted.findings(zone, thresholds).filter {
         (it is Finding.LowDay && it.date == date) || (it is Finding.WideRoundGroup && it.date == date)
     }
-    val own = plotted.filter { day(it.at) == date }.findings(zone, thresholds).filter {
+    // As Insights over a window ending that day: an adjustment after the day leaves it as it was.
+    val cutOff = sights[Caliber.fromLabel(series.caliber).label].offsetCutOff()?.takeIf { day(it) <= date }
+    val own = plotted.filter { day(it.at) == date }.findings(zone, thresholds, cutOff).filter {
         it is Finding.OffsetGroup || it is Finding.StretchedGroup
     }
     return (dated + own).maxByOrNull { it.confidence }?.let { date to it }

@@ -73,6 +73,7 @@ import se.kjellstrand.markera.series.stats.Bucket
 import se.kjellstrand.markera.series.stats.DatePreset
 import se.kjellstrand.markera.series.stats.Metric
 import se.kjellstrand.markera.series.stats.SeriesStatistics
+import se.kjellstrand.markera.series.stats.SightSetup
 import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.dailyImpact
 import se.kjellstrand.markera.series.stats.seriesImpact
@@ -429,7 +430,8 @@ data class InsightsDay(val date: LocalDate, val caliber: Caliber, val from: Loca
 /**
  * What the Serie page's day link opens for [series] on [date]: its caliber, and that day. A low or
  * wide day is judged against the series before it, so those open from the caliber's first series
- * through that day, where the tab finds the same finding again.
+ * through that day, where the tab finds the same finding again. [sights] as the page's own
+ * [dayFinding] takes them, so the link opens on the finding the page shows.
  */
 @OptIn(ExperimentalTime::class)
 fun insightsDayFor(
@@ -437,9 +439,10 @@ fun insightsDayFor(
     date: LocalDate,
     all: List<SeriesDto>,
     zone: TimeZone = TimeZone.currentSystemDefault(),
+    sights: Map<String, SightSetup> = emptyMap(),
 ): InsightsDay {
     val caliber = Caliber.fromLabel(series.caliber)
-    val finding = dayFinding(series, all, zone)?.second
+    val finding = dayFinding(series, all, zone, sights = sights)?.second
     if (finding !is Finding.LowDay && finding !is Finding.WideRoundGroup) return InsightsDay(date, caliber)
     val first = all.filter { !it.deleted && it.caliber == series.caliber }
         .mapNotNull { runCatching { kotlin.time.Instant.parse(it.timestamp) }.getOrNull() }
@@ -533,7 +536,8 @@ private const val LIMITED = " *"
 /** The measurements as label/value rows under three headings; [totalHits] is every hit, ring or not. */
 @Composable
 private fun MeasurementRows(stats: SeriesStatistics, totalHits: Int) {
-    val mm = @Composable { value: Double -> stringResource(Res.string.stats_mm, value.roundToInt()) }
+    // A pair-based row over one-hole series has no value: a dash, not 0 mm.
+    val mm = @Composable { value: Double? -> value?.let { stringResource(Res.string.stats_mm, it.roundToInt()) } ?: "–" }
     val heading = @Composable { text: String ->
         Text(text, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
     }
