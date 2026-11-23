@@ -58,6 +58,12 @@ data class Config(
      * it in production (Docker's port mapping needs 0.0.0.0, so the server would not even be reachable there).
      */
     val adminLocalNoAuth: Boolean = false,
+    /** New series per 24 h from all users together (`MAX_SERIES_PER_DAY_ALL`); [MAX_SERIES_PER_DAY] is per user. */
+    val maxSeriesPerDayAll: Int = 2000,
+    /** Photo bytes accepted per UTC day from all users together (`MAX_PHOTO_MB_PER_DAY_ALL`, in MB). */
+    val maxPhotoBytesPerDayAll: Long = 5L * 1024 * 1024 * 1024,
+    /** Photo uploads answer 507 while the images directory's disk has less free space than this (`MIN_FREE_DISK_MB`). */
+    val minFreeDiskBytes: Long = 2L * 1024 * 1024 * 1024,
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -90,6 +96,9 @@ data class Config(
                 smtp = SmtpConfig.fromEnv(contactEmail),
                 publicUrl = System.getenv("PUBLIC_URL")?.ifBlank { null },
                 adminLocalNoAuth = System.getenv("ADMIN_LOCAL_NO_AUTH") == "true",
+                maxSeriesPerDayAll = System.getenv("MAX_SERIES_PER_DAY_ALL")?.toIntOrNull() ?: 2000,
+                maxPhotoBytesPerDayAll = (System.getenv("MAX_PHOTO_MB_PER_DAY_ALL")?.toLongOrNull() ?: 5120L) * 1024 * 1024,
+                minFreeDiskBytes = (System.getenv("MIN_FREE_DISK_MB")?.toLongOrNull() ?: 2048L) * 1024 * 1024,
             )
         }
     }
@@ -255,6 +264,9 @@ fun Application.markeraModule(
         exception<BadRequestException> { call, e ->
             call.respond(HttpStatusCode.BadRequest, ErrorResponse(e.message ?: "malformed request"))
         }
+        exception<LimitExceededException> { call, e ->
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse(e.message ?: "over a limit"))
+        }
     }
 
     val images = File(config.imagesDir).also { it.mkdirs() }
@@ -268,6 +280,20 @@ fun Application.markeraModule(
     val identifyAppleCode = appleCodeIdentity
         ?: { code -> apple!!.identity(exchangeAppleCode(appleWeb!!, code)) }
     val pendingLogins = PendingLogins()
+    // In memory and per module instance, like pendingLogins: one container, and tests get a fresh set each.
+    val issuedStates = IssuedStates()
+    val appleStartLimiter = RateLimiter(MAX_APPLE_WEB_PER_WINDOW, APPLE_WEB_WINDOW_MILLIS)
+    val appleCallbackLimiter = RateLimiter(MAX_APPLE_WEB_PER_WINDOW, APPLE_WEB_WINDOW_MILLIS)
+    val editLimiter = RateLimiter(MAX_SERIES_EDITS_PER_HOUR, 3600_000L)
+    val suggestionLimiter = RateLimiter(MAX_SUGGESTIONS_PER_SENDER_PER_DAY, 24 * 3600_000L)
+    val photoBytesToday = DailyBytes()
+    val warnings = DailyWarnings(environment.log)
+
+    suspend fun RoutingContext.photoCapReached() {
+        warnings.warn("photos", "global daily photo cap (${config.maxPhotoBytesPerDayAll / (1024 * 1024)} MB) reached; photo uploads answer 429")
+        call.response.header(HttpHeaders.RetryAfter, "3600")
+        call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("the server takes no more photos today, try again later"))
+    }
 
     routing {
         get("/health") {
@@ -294,12 +320,15 @@ fun Application.markeraModule(
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("state must be a hex sha256"))
                 return@get
             }
+            if (tooManyRequests(appleStartLimiter, clientIp(call), "too many sign-in attempts, try again later")) return@get
+            issuedStates.issue(state)
             call.respondRedirect(appleAuthorizeUrl(web, state))
         }
 
         // ponytail: GET only - Apple posts the callback only when scopes are requested, and we request none.
         get("/auth/apple/callback") {
             if (appleWeb == null) return@get appleWebUnavailable()
+            if (tooManyRequests(appleCallbackLimiter, clientIp(call), "too many sign-in attempts, try again later")) return@get
             val state = call.request.queryParameters["state"]
             if (state == null || !APPLE_STATE_SHAPE.matches(state)) {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("state must be a hex sha256"))
@@ -313,6 +342,11 @@ fun Application.markeraModule(
             val code = call.request.queryParameters["code"]
             if (code == null) {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("missing code"))
+                return@get
+            }
+            // Only a state this server handed out in the last few minutes, once: checked before Apple is called.
+            if (!issuedStates.consume(state)) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("unknown or expired sign-in, start again"))
                 return@get
             }
             val identity = try {
@@ -355,7 +389,7 @@ fun Application.markeraModule(
         }
 
         // The app's suggestion box; open to signed-out users too (see postSuggestion).
-        post("/suggestions") { postSuggestion(db, mailer, config.publicUrl) }
+        post("/suggestions") { postSuggestion(db, mailer, config.publicUrl, suggestionLimiter, warnings) }
 
         post("/series") {
             val userId = authenticate(db) ?: return@post
@@ -365,6 +399,12 @@ fun Application.markeraModule(
                 call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("at most $MAX_SERIES_PER_DAY series a day"))
                 return@post
             }
+            if (db.overGlobalDailyQuota(userId, req.clientId, config.maxSeriesPerDayAll)) {
+                warnings.warn("series", "global daily series cap (${config.maxSeriesPerDayAll}) reached; new series answer 429")
+                call.response.header(HttpHeaders.RetryAfter, "3600")
+                call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("the server takes no more new series today, try again later"))
+                return@post
+            }
             val id = db.insertSeries(userId, req.timestamp, req.caliber, req.holes, req.geometry, req.normalisedTag(), req.clientId)
             call.respond(HttpStatusCode.Created, IdResponse(id))
         }
@@ -372,9 +412,11 @@ fun Application.markeraModule(
         // Editing a saved series: same body as POST, replaces timestamp, caliber and every hole.
         put("/series/{id}") {
             val seriesId = ownedSeries(db) ?: return@put
+            val userId = authenticate(db) ?: return@put
+            if (tooManyRequests(editLimiter, userId.toString(), "at most $MAX_SERIES_EDITS_PER_HOUR edits an hour")) return@put
             val req = receiveSeries() ?: return@put
             if (invalid(req)) return@put
-            db.replaceSeries(seriesId, req, AuditActor.app(authenticate(db) ?: return@put))
+            db.replaceSeries(seriesId, req, AuditActor.app(userId))
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -422,6 +464,13 @@ fun Application.markeraModule(
                 call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("image must be at most $MAX_IMAGE_BYTES bytes"))
                 return@post
             }
+            // 507 is a 5xx, so the app keeps the photo queued and sends it again later.
+            if (images.usableSpace < config.minFreeDiskBytes) {
+                warnings.warn("disk", "free disk below ${config.minFreeDiskBytes / (1024 * 1024)} MB on ${images.path}; photo uploads answer 507")
+                call.respond(HttpStatusCode.InsufficientStorage, ErrorResponse("the server is low on storage, try again later"))
+                return@post
+            }
+            if (photoBytesToday.used() + (declared ?: 0) > config.maxPhotoBytesPerDayAll) return@post photoCapReached()
             val bytes = call.receiveChannel().readRemaining(MAX_IMAGE_BYTES + 1L).readByteArray()
             if (bytes.size > MAX_IMAGE_BYTES) {
                 call.respond(HttpStatusCode.PayloadTooLarge, ErrorResponse("image must be at most $MAX_IMAGE_BYTES bytes"))
@@ -431,6 +480,7 @@ fun Application.markeraModule(
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("not a JPEG"))
                 return@post
             }
+            if (!photoBytesToday.tryAdd(bytes.size.toLong(), config.maxPhotoBytesPerDayAll)) return@post photoCapReached()
             // ?width=&height= is the size of the frame the hole coordinates were measured in, so the admin
             // page can place markers on the (downscaled but same-aspect) JPEG. Nonsense values are ignored.
             val width = call.request.queryParameters["width"]?.toIntOrNull()?.takeIf { it > 0 }
@@ -525,6 +575,14 @@ private suspend fun RoutingContext.authenticate(db: Db): Long? {
 
 private fun RoutingContext.bearerToken(): String? =
     call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()?.takeIf { it.isNotEmpty() }
+
+/** Counts one request against [key]; over the limit it responds 429 with `Retry-After` and returns true. */
+internal suspend fun RoutingContext.tooManyRequests(limiter: RateLimiter, key: String, message: String): Boolean {
+    val retryAfter = limiter.acquire(key) ?: return false
+    call.response.header(HttpHeaders.RetryAfter, retryAfter.toString())
+    call.respond(HttpStatusCode.TooManyRequests, ErrorResponse(message))
+    return true
+}
 
 private suspend fun RoutingContext.appleWebUnavailable() =
     call.respond(HttpStatusCode.ServiceUnavailable, ErrorResponse("apple web sign-in is not configured"))

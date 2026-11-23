@@ -166,16 +166,25 @@ internal fun suggestionMail(s: SuggestionRow, publicUrl: String?): Mail {
  * missing or stale one is not an error. Stored first, then mailed; a mail that fails is logged and the suggestion
  * stays on `/admin/suggestions` (unmailed), so the sender still gets their 201.
  */
-internal suspend fun RoutingContext.postSuggestion(db: Db, mailer: Mailer?, publicUrl: String?) {
+internal suspend fun RoutingContext.postSuggestion(
+    db: Db,
+    mailer: Mailer?,
+    publicUrl: String?,
+    perSender: RateLimiter,
+    warnings: DailyWarnings,
+) {
     val req = receiveCapped<SuggestionRequest>(MAX_SUGGESTION_BYTES)?.normalised() ?: return
     suggestionError(req)?.let {
         call.respond(HttpStatusCode.BadRequest, ErrorResponse(it))
         return
     }
     if (db.suggestionsLastDay() >= MAX_SUGGESTIONS_PER_DAY) {
+        warnings.warn("suggestions", "global daily suggestion cap ($MAX_SUGGESTIONS_PER_DAY) reached; suggestions answer 429")
         call.respond(HttpStatusCode.TooManyRequests, ErrorResponse("too many suggestions today, try again tomorrow"))
         return
     }
+    // Counted only once a suggestion is valid and would be stored, so a typo does not use up the sender's share.
+    if (tooManyRequests(perSender, clientIp(call), "too many suggestions from here today, try again tomorrow")) return
     val userId = call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()
         ?.takeIf { it.isNotEmpty() }
         ?.let { db.userForToken(it) }

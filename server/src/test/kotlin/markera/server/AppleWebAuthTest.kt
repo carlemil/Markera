@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -68,7 +69,12 @@ class AppleWebAuthTest {
         block(client)
     }
 
+    /** A whole round: `/start` issues [state], then Apple's redirect lands on the callback. */
     private suspend fun HttpClient.callback(state: String = STATE, code: String = "apple-code") =
+        get("/auth/apple/start?state=$state").let { rawCallback(state, code) }
+
+    /** The callback alone, without a `/start` before it. */
+    private suspend fun HttpClient.rawCallback(state: String = STATE, code: String = "apple-code") =
         get("/auth/apple/callback?code=$code&state=$state")
 
     /** Runs the callback and returns the nonce its deep link carried. */
@@ -193,6 +199,51 @@ class AppleWebAuthTest {
         assertEquals(webConfig.servicesId, jwt.subject)
         assertEquals(listOf("https://appleid.apple.com"), jwt.audience)
         assertTrue(jwt.expiresAtAsInstant.isAfter(jwt.issuedAtAsInstant))
+    }
+
+    @Test
+    fun aCallbackWithoutAStartIsRefusedBeforeAppleIsAsked() {
+        var exchanges = 0
+        appleTest(identity = { exchanges++; Identity("apple-sub-1", null) }) { client ->
+            assertEquals(HttpStatusCode.BadRequest, client.rawCallback().status)
+            assertEquals(HttpStatusCode.BadRequest, client.rawCallback(sha256("never started")).status)
+            assertEquals(0, exchanges)
+        }
+    }
+
+    @Test
+    fun aStartedStateIsGoodForOneCallback() {
+        var exchanges = 0
+        appleTest(identity = { exchanges++; Identity("apple-sub-1", null) }) { client ->
+            assertEquals(HttpStatusCode.Found, client.callback().status)
+            assertEquals(HttpStatusCode.BadRequest, client.rawCallback().status)
+            assertEquals(1, exchanges)
+        }
+    }
+
+    @Test
+    fun anIssuedStateExpires() {
+        var now = 0L
+        val states = IssuedStates(ttlMillis = 1000, clock = { now })
+        states.issue(STATE)
+        now = 1001
+        assertEquals(false, states.consume(STATE))
+        states.issue(STATE)
+        assertEquals(true, states.consume(STATE))
+        assertEquals(false, states.consume(STATE))
+    }
+
+    @Test
+    fun theCallbackIsThrottledPerClientIp() = appleTest { client ->
+        repeat(MAX_APPLE_WEB_PER_WINDOW) {
+            client.get("/auth/apple/callback?error=x&state=$STATE") { header("X-Forwarded-For", "203.0.113.7") }
+        }
+        val refused = client.get("/auth/apple/callback?error=x&state=$STATE") { header("X-Forwarded-For", "203.0.113.7") }
+        assertEquals(HttpStatusCode.TooManyRequests, refused.status)
+        assertNotNull(refused.headers[HttpHeaders.RetryAfter])
+        // Another sender is unaffected.
+        val other = client.get("/auth/apple/callback?error=x&state=$STATE") { header("X-Forwarded-For", "203.0.113.8") }
+        assertEquals(HttpStatusCode.Found, other.status)
     }
 
     @Test

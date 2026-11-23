@@ -368,14 +368,23 @@ class Db(dbPath: String) : AutoCloseable {
             }
         }
         val kept = storedDeletedSpots(seriesId)
-        insertHoles(
-            seriesId,
-            req.holes.filterNot { h ->
-                h.deleted && h.detectedX != null && h.detectedY != null && (h.detectedX to h.detectedY) in kept
-            },
-        )
+        val toInsert = req.holes.filterNot { h ->
+            h.deleted && h.detectedX != null && h.detectedY != null && (h.detectedX to h.detectedY) in kept
+        }
+        // Only a request that adds deleted holes can pass the cap; one that adds none always saves.
+        val added = toInsert.count { it.deleted }
+        if (added > 0 && storedDeletedCount(seriesId) + added > MAX_STORED_DELETED_HOLES) {
+            throw LimitExceededException("a series keeps at most $MAX_STORED_DELETED_HOLES removed holes")
+        }
+        insertHoles(seriesId, toInsert)
         recordAudit(seriesId, actor, "updated", before)
     }
+
+    private fun storedDeletedCount(seriesId: Long): Int =
+        conn.prepareStatement("SELECT COUNT(*) FROM holes WHERE series_id = ? AND deleted = 1").use {
+            it.setLong(1, seriesId)
+            it.executeQuery().use { rs -> rs.next(); rs.getInt(1) }
+        }
 
     private fun storedDeletedSpots(seriesId: Long): Set<Pair<Double, Double>> = buildSet {
         conn.prepareStatement(
@@ -712,6 +721,11 @@ class Db(dbPath: String) : AutoCloseable {
             it.setString(4, actor.type); it.setString(5, actor.id); it.setString(6, operation)
             it.setInt(7, if (baseline) 1 else 0); it.setString(8, before); it.setString(9, after); it.executeUpdate()
         }
+        // Each row holds the whole before and after state: keep every baseline and the newest MAX_AUDIT_EDITS edits.
+        conn.prepareStatement("""DELETE FROM series_audit WHERE series_id = ? AND baseline = 0 AND id NOT IN
+            (SELECT id FROM series_audit WHERE series_id = ? AND baseline = 0 ORDER BY id DESC LIMIT $MAX_AUDIT_EDITS)""").use {
+            it.setLong(1, id); it.setLong(2, id); it.executeUpdate()
+        }
     }
 
     @Synchronized
@@ -831,18 +845,29 @@ class Db(dbPath: String) : AutoCloseable {
      */
     @Synchronized
     fun overDailyQuota(userId: Long, clientId: String?): Boolean {
-        if (clientId != null) {
-            conn.prepareStatement("SELECT 1 FROM series WHERE user_id = ? AND client_id = ?").use {
-                it.setLong(1, userId)
-                it.setString(2, clientId)
-                it.executeQuery().use { rs -> if (rs.next()) return false }
-            }
-        }
+        if (alreadyStored(userId, clientId)) return false
         conn.prepareStatement("SELECT COUNT(*) FROM series WHERE user_id = ? AND created_at >= datetime('now', '-1 day')").use {
             it.setLong(1, userId)
             it.executeQuery().use { rs -> rs.next(); return rs.getInt(1) >= MAX_SERIES_PER_DAY }
         }
     }
+
+    /** Like [overDailyQuota], for every user together against [max]; a retry of a stored series still passes. */
+    @Synchronized
+    fun overGlobalDailyQuota(userId: Long, clientId: String?, max: Int): Boolean {
+        if (alreadyStored(userId, clientId)) return false
+        conn.createStatement().use { st ->
+            st.executeQuery("SELECT COUNT(*) FROM series WHERE created_at >= datetime('now', '-1 day')")
+                .use { rs -> rs.next(); return rs.getInt(1) >= max }
+        }
+    }
+
+    private fun alreadyStored(userId: Long, clientId: String?): Boolean = clientId != null &&
+        conn.prepareStatement("SELECT 1 FROM series WHERE user_id = ? AND client_id = ?").use {
+            it.setLong(1, userId)
+            it.setString(2, clientId)
+            it.executeQuery().use { rs -> rs.next() }
+        }
 
     /** @return the new suggestion's id. [req] is already normalised and validated. */
     @Synchronized

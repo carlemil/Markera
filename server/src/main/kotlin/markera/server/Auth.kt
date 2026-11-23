@@ -46,6 +46,8 @@ private fun cachedJwks(url: String): JwkProvider =
         .cached(10, 24, TimeUnit.HOURS)
         // Unknown key ids miss the cache; this keeps a flood of forged ones from hammering the provider.
         .rateLimited(10, 1, TimeUnit.MINUTES)
+        // Milliseconds: connect, then read. Without them a stalled provider holds the sign-in request open.
+        .timeouts(5_000, 10_000)
         .build()
 
 fun googleVerifier(clientId: String) = TokenVerifier(
