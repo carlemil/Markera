@@ -22,6 +22,34 @@ class SeriesAuditTest {
     private val request = SeriesRequest("2026-10-20T00:00:00Z", "9mm", listOf(detected, detected.copy(x = 4.0, detectedX = 4.0)))
     private fun corrections(db: Db, id: Long) = db.auditEvents(id).filterNot { it.baseline }
 
+    @Test fun `audit keeps every baseline and only the newest edits`() = fixture { db, _, images, owner, id ->
+        db.storePhoto(images, id, byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 1), 10, 10, AuditActor.app(owner))
+        repeat(MAX_AUDIT_EDITS + 10) { i -> db.replaceSeries(id, request.copy(tag = "t$i"), AuditActor.app(owner)) }
+        val events = db.auditEvents(id)
+        assertEquals(listOf("created baseline", "photo baseline"), events.filter { it.baseline }.map { it.operation }.sorted())
+        val edits = events.filterNot { it.baseline }
+        assertEquals(MAX_AUDIT_EDITS, edits.size)
+        // Newest first, and the newest is the last edit.
+        assertTrue("t${MAX_AUDIT_EDITS + 9}" in edits.first().after)
+        assertFalse(edits.any { "\"t9\"" in it.after })
+    }
+
+    @Test fun `a series keeps a bounded number of removed holes and an edit adding none still saves`() = fixture { db, _, _, owner, id ->
+        fun removed(n: Int, from: Int) = (from until from + n).map { detected.copy(x = it.toDouble(), detectedX = it.toDouble(), deleted = true) }
+        db.replaceSeries(id, request.copy(holes = request.holes + removed(MAX_DELETED_HOLES, 100)), AuditActor.app(owner))
+        db.replaceSeries(id, request.copy(holes = request.holes + removed(MAX_STORED_DELETED_HOLES - MAX_DELETED_HOLES, 1000)), AuditActor.app(owner))
+        assertEquals(MAX_STORED_DELETED_HOLES, db.getSeries(id, includeDeleted = true)!!.holes.count { it.deleted })
+        assertFailsWith<LimitExceededException> {
+            db.replaceSeries(id, request.copy(tag = "x", holes = request.holes + removed(1, 5000)), AuditActor.app(owner))
+        }
+        // Rolled back whole: the tag did not change either.
+        assertNull(db.getSeries(id)!!.tag)
+        db.replaceSeries(id, request.copy(tag = "kept"), AuditActor.app(owner))
+        assertEquals("kept", db.getSeries(id)!!.tag)
+        // Re-sending a removal already stored adds nothing, so it saves too.
+        db.replaceSeries(id, request.copy(holes = request.holes + removed(1, 100)), AuditActor.app(owner))
+    }
+
     @Test fun `creation retry normalized noop and hole order do not become edits`() = fixture { db, _, _, owner, id ->
         assertTrue(corrections(db, id).isEmpty())
         assertEquals(id, db.insertSeries(owner, "other", "22lr", emptyList(), clientId = "first"))

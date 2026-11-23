@@ -381,6 +381,9 @@ class ApiTest {
         mailer: Mailer? = null,
         adminLocalNoAuth: Boolean = false,
         adminThrottle: AdminLoginThrottle = AdminLoginThrottle(),
+        maxSeriesPerDayAll: Int = 2000,
+        maxPhotoBytesPerDayAll: Long = Long.MAX_VALUE,
+        minFreeDiskBytes: Long = 0,
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
@@ -389,7 +392,8 @@ class ApiTest {
             application {
                 markeraModule(
                     Config(0, dbFile.path, null, null, devAuth, imagesDir.path, adminPassword, contactEmail,
-                        adminLocalNoAuth = adminLocalNoAuth),
+                        adminLocalNoAuth = adminLocalNoAuth, maxSeriesPerDayAll = maxSeriesPerDayAll,
+                        maxPhotoBytesPerDayAll = maxPhotoBytesPerDayAll, minFreeDiskBytes = minFreeDiskBytes),
                     Db(dbFile.path),
                     mailer = mailer,
                     adminThrottle = adminThrottle,
@@ -2264,5 +2268,134 @@ class ApiTest {
             st.executeQuery("SELECT group_concat(title) FROM suggestions").use { it.next(); it.getString(1) }
         }
         assertEquals("anonymous", left)
+    }
+
+    @Test
+    fun seriesEditsAreLimitedPerUserPerHour() = apiTest { client ->
+        val me = client.devAuth("editor")
+        val other = client.devAuth("other")
+        val id = client.createSeries(me.token)
+        val othersId = client.createSeries(other.token)
+        suspend fun put(token: String, seriesId: Long) = client.put("/series/$seriesId") {
+            bearerAuth(token); contentType(ContentType.Application.Json); setBody(series())
+        }
+        repeat(MAX_SERIES_EDITS_PER_HOUR) { assertEquals(HttpStatusCode.NoContent, put(me.token, id).status) }
+        val refused = put(me.token, id)
+        assertEquals(HttpStatusCode.TooManyRequests, refused.status)
+        assertTrue((refused.headers[HttpHeaders.RetryAfter]?.toLong() ?: 0) > 0)
+        // Per user: someone else still saves.
+        assertEquals(HttpStatusCode.NoContent, put(other.token, othersId).status)
+    }
+
+    @Test
+    fun theAdminAuditViewsWorkAfterOldEditsArePruned() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("audited")
+        val id = client.createSeries(me.token)
+        repeat(MAX_AUDIT_EDITS + 5) { i ->
+            assertEquals(HttpStatusCode.NoContent, client.put("/series/$id") {
+                bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series().copy(tag = "t$i"))
+            }.status)
+        }
+        val page = client.admin("/admin/series/$id")
+        assertEquals(HttpStatusCode.OK, page.status)
+        assertTrue("baseline, not an edit" in page.bodyAsText())
+        val review = client.admin("/admin/review")
+        assertEquals(HttpStatusCode.OK, review.status)
+        assertTrue("href=\"/admin/series/$id\"" in review.bodyAsText())
+        sql { st ->
+            st.executeQuery("SELECT COUNT(*) FROM series_audit WHERE series_id = $id AND baseline = 0").use {
+                it.next(); assertEquals(MAX_AUDIT_EDITS, it.getInt(1))
+            }
+        }
+    }
+
+    @Test
+    fun aPutOverTheStoredRemovedHoleCapIs400() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("remover")
+        val id = client.createSeries(me.token)
+        fun removed(n: Int, from: Int) = (from until from + n).map { Hole(it.toDouble(), 2.0, 9, false, 3.0, 9, false, it.toDouble(), 2.0, deleted = true) }
+        suspend fun put(holes: List<Hole>) = client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series().copy(holes = series().holes + holes))
+        }
+        assertEquals(HttpStatusCode.NoContent, put(removed(MAX_DELETED_HOLES, 100)).status)
+        assertEquals(HttpStatusCode.NoContent, put(removed(MAX_STORED_DELETED_HOLES - MAX_DELETED_HOLES, 1000)).status)
+        assertEquals(HttpStatusCode.BadRequest, put(removed(1, 5000)).status)
+        // The admin editor shares the replace and answers the same.
+        assertEquals(HttpStatusCode.BadRequest,
+            client.adminWrite(HttpMethod.Put, "/admin/series/$id", series().copy(holes = series().holes + removed(1, 5000))).status)
+        assertEquals(HttpStatusCode.NoContent, put(emptyList()).status)
+    }
+
+    @Test
+    fun newSeriesAreCappedPerDayForEveryoneTogether() = apiTest(maxSeriesPerDayAll = 3) { client ->
+        val a = client.devAuth("a")
+        val b = client.devAuth("b")
+        suspend fun post(token: String, clientId: String) = client.post("/series") {
+            bearerAuth(token); contentType(ContentType.Application.Json); setBody(series().copy(clientId = clientId))
+        }
+        assertEquals(HttpStatusCode.Created, post(a.token, "a1").status)
+        assertEquals(HttpStatusCode.Created, post(a.token, "a2").status)
+        assertEquals(HttpStatusCode.Created, post(b.token, "b1").status)
+        val refused = post(b.token, "b2")
+        assertEquals(HttpStatusCode.TooManyRequests, refused.status)
+        assertTrue(refused.headers[HttpHeaders.RetryAfter] != null)
+        // A retry of a stored series still gets its id back.
+        assertEquals(HttpStatusCode.Created, post(a.token, "a1").status)
+    }
+
+    @Test
+    fun photoBytesAreCappedPerDayForEveryoneTogether() = apiTest(maxPhotoBytesPerDayAll = 100) { client ->
+        val me = client.devAuth("photos")
+        val first = client.createSeries(me.token)
+        val second = client.createSeries(me.token)
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, first, jpeg(60)).status)
+        val refused = client.putImage(me.token, second, jpeg(60))
+        assertEquals(HttpStatusCode.TooManyRequests, refused.status)
+        assertTrue(refused.headers[HttpHeaders.RetryAfter] != null)
+        assertEquals(HttpStatusCode.NoContent, client.putImage(me.token, second, jpeg(40)).status)
+    }
+
+    @Test
+    fun photoUploadsAnswer507WhenTheDiskIsLow() = apiTest(minFreeDiskBytes = Long.MAX_VALUE) { client ->
+        val me = client.devAuth("disk")
+        val id = client.createSeries(me.token)
+        assertEquals(HttpStatusCode.InsufficientStorage, client.putImage(me.token, id, jpeg()).status)
+        assertFalse(imageFile(imagesDir, id).exists())
+    }
+
+    @Test
+    fun suggestionsAreLimitedPerSender() = apiTest { client ->
+        suspend fun suggestFrom(ip: String) = client.post("/suggestions") {
+            header("X-Forwarded-For", "198.51.100.9, $ip")
+            contentType(ContentType.Application.Json)
+            setBody(SuggestionRequest("T", "D"))
+        }
+        repeat(MAX_SUGGESTIONS_PER_SENDER_PER_DAY) { assertEquals(HttpStatusCode.Created, suggestFrom("203.0.113.1").status) }
+        val refused = suggestFrom("203.0.113.1")
+        assertEquals(HttpStatusCode.TooManyRequests, refused.status)
+        assertTrue(refused.headers[HttpHeaders.RetryAfter] != null)
+        assertEquals(HttpStatusCode.Created, suggestFrom("203.0.113.2").status)
+    }
+
+    @Test
+    fun forwardedAddressesAreTrustedOnlyFromALocalPeer() {
+        assertTrue(isPrivateAddress("172.17.0.1") && isPrivateAddress("192.168.5.2") && isPrivateAddress("10.1.2.3"))
+        assertTrue(isPrivateAddress("fd00::1") && isPrivateAddress("127.0.0.1"))
+        assertFalse(isPrivateAddress("203.0.113.5") || isPrivateAddress("8.8.8.8") || isPrivateAddress("example.com"))
+    }
+
+    @Test
+    fun theRateLimiterSlidesItsWindow() {
+        var now = 0L
+        val limiter = RateLimiter(max = 2, windowMillis = 1000, maxKeys = 2, clock = { now })
+        assertEquals(null, limiter.acquire("a"))
+        assertEquals(null, limiter.acquire("a"))
+        assertEquals(1L, limiter.acquire("a"))
+        now = 1000
+        assertEquals(null, limiter.acquire("a"))
+        // Bounded: a third key forgets the oldest one rather than growing.
+        assertEquals(null, limiter.acquire("b"))
+        assertEquals(null, limiter.acquire("c"))
+        assertEquals(null, limiter.acquire("a"))
     }
 }

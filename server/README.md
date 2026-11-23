@@ -24,7 +24,7 @@ start with it beside `PUBLIC_URL`),
 Suggestion box: `POST /suggestions` `{title, description, email?, platform?, appVersion?}` → 201 `{id}`. Open to
 signed-out users (a valid Bearer token only links the suggestion to its user; a stale one is ignored). Title
 ≤ 120 and description ≤ 5000 characters, both required; `email` optional but must look like an address. At most
-50 a day from everyone together (then 429). Each is stored (`/admin/suggestions`, deleted with the sender's
+50 a day from everyone together and 5 a day per client IP (then 429). Each is stored (`/admin/suggestions`, deleted with the sender's
 account) and, with `SMTP_HOST`, `SMTP_USER` and `SMTP_PASSWORD` set, mailed to `SUGGESTIONS_TO` (default
 `CONTACT_EMAIL`, then `SMTP_USER`) from `SMTP_FROM` (default `SMTP_USER`) with Reply-To = the sender's
 address. `SMTP_PORT` defaults to 587 (STARTTLS); 465 is implicit TLS. A failed mail is logged, the suggestion
@@ -56,6 +56,16 @@ every hole → 204) / `DELETE /series/{id}` (→ 204, 404 if not yours) with
 so the token stops working), `POST /series/{id}/image` (raw `image/jpeg` body ≤ 10 MB → 204) /
 `GET /series/{id}/image`. `POST /series` answers 429 once a user has created 300 series in 24 h (a
 retry of a stored `clientId` still gets its id); the app keeps a 429 in its outbox for later.
+
+Quotas and limits for all users together, env-configurable: `MAX_SERIES_PER_DAY_ALL` (default 2000 new series
+in 24 h; then `POST /series` answers 429), `MAX_PHOTO_MB_PER_DAY_ALL` (default 5120 MB of photos per UTC day,
+counted in memory; then 429) and `MIN_FREE_DISK_MB` (default 2048; below it photo uploads answer 507). Each
+logs one warning a day when hit. `PUT /series/{id}` takes 300 a user per hour (429 + `Retry-After`); a series
+keeps at most 250 removed holes (a PUT that adds more is 400); the audit history keeps every baseline row and
+the newest 50 edits per series. The Apple web callback only goes to Apple for a `state` that `/start` issued in
+the last 10 minutes (once; 400 otherwise), and `/start` and `/callback` each take 20 requests per client IP per
+10 minutes. The client IP is the right-most `X-Forwarded-For` entry when the socket peer is loopback or a private
+address (the host's Caddy through Docker), else the peer itself.
 
 `GET /series` returns a plain array, newest first, and pages with `?limit=` (default 50, clamped to 1..200)
 and `?before=<series id>` (only ids below it). Page by passing the last id of the previous page.
