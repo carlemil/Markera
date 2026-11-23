@@ -30,11 +30,18 @@ import java.util.Locale
 
 /**
  * Admin pages behind HTTP Basic (user `admin`, [password]). Registered only when
- * `ADMIN_PASSWORD` is set. [localNoAuth] opens them to loopback callers (see [unauthorized]).
+ * `ADMIN_PASSWORD` is set. [localNoAuth] opens them to loopback callers (see [unauthorized]); [throttle] counts
+ * wrong passwords.
  */
-fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boolean = false) {
+fun Route.adminRoutes(
+    db: Db,
+    images: File,
+    password: String,
+    localNoAuth: Boolean = false,
+    throttle: AdminLoginThrottle = AdminLoginThrottle(),
+) {
     get("/admin") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val allUsers = db.listUsers()
         val perProvider = allUsers.groupingBy { it.provider }.eachCount().toSortedMap()
             .entries.joinToString(", ") { "${esc(it.key)} ${it.value}" }
@@ -70,7 +77,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
     }
 
     get("/admin/review") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val deleted = call.request.queryParameters["deleted"] == "1"
         val offset = (call.request.queryParameters["offset"]?.toIntOrNull() ?: 0).coerceAtLeast(0)
         val matches = db.reviewPage(deleted, offset)
@@ -104,7 +111,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // The suggestion box, newest first: the record of every suggestion, including any whose mail never went out.
     get("/admin/suggestions") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val rows = db.listSuggestions().joinToString("") { s ->
             row(
                 s.id,
@@ -126,7 +133,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
     }
 
     get("/admin/users/{id}") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val user = db.getUser(pathId()) ?: return@get notFound("Unknown user")
         // Soft-deleted series ride along greyed, so they can be opened and restored.
         val series = db.listSeries(user.id, includeDeleted = true, deletedHoles = true)
@@ -164,7 +171,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // The editor: server-rendered rows and markers, then one inline script mutates them and PUTs the lot back.
     get("/admin/series/{id}") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val seriesId = pathId()
         // Inside /admin/curate's frame: just the editor, no navigation or audit trail around it.
         val embed = call.request.queryParameters["embed"] == "1"
@@ -260,7 +267,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // Edit any user's series: the same replace as `PUT /series/{id}`.
     put("/admin/series/{id}") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@put
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@put
         val seriesId = pathId()
         if (db.seriesOwner(seriesId) == null) return@put notFound("Unknown series")
         val req = receiveSeries() ?: return@put
@@ -271,7 +278,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // The curate editor's save: the same body as the PUT above, stored as the training copy only.
     put("/admin/series/{id}/training") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@put
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@put
         val seriesId = pathId()
         if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@put notFound("Unknown series")
         val req = receiveSeries() ?: return@put
@@ -282,7 +289,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // Drops the training copy, so training uses the user's version again.
     delete("/admin/series/{id}/training") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@delete
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@delete
         val seriesId = pathId()
         if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@delete notFound("Unknown series")
         db.clearTrainingCopy(seriesId)
@@ -291,7 +298,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // Same removal as `DELETE /series/{id}`, for any user's series.
     delete("/admin/series/{id}") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@delete
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@delete
         val seriesId = pathId()
         if (db.seriesOwner(seriesId) == null) return@delete notFound("Unknown series")
         db.deleteSeries(seriesId, AuditActor.Admin)
@@ -300,7 +307,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // Undoes a soft delete (the app's or the admin page's); the holes and image were kept, so they come back too.
     post("/admin/series/{id}/restore") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@post
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
         val seriesId = pathId()
         if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
         db.restoreSeries(seriesId, AuditActor.Admin)
@@ -310,7 +317,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
     // The hard delete, the one the series delete above is not: the same path as `DELETE /account`, so the
     // user, their sessions, every series (soft-deleted ones included), the holes and the JPEGs all go for good.
     delete("/admin/users/{id}") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@delete
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@delete
         val userId = pathId()
         if (db.getUser(userId) == null) return@delete notFound("Unknown user")
         db.deleteAccount(userId).forEach { deleteSeriesPhotos(images, it) }
@@ -319,7 +326,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // Every user's photos with the confirmed holes as YOLO labels, plus the false positives (see TrainingExport.kt).
     get("/admin/training-export.zip") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"markera-training.zip\"")
         call.respondOutputStream(ContentType.Application.Zip) {
             // ?approved=1: only what /admin/curate approved.
@@ -332,14 +339,14 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // Approve series for training one at a time: a random unreviewed one in the editor, the verdicts on the side.
     get("/admin/curate") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         respondHtml(page("Approve series for training", CURATE_BODY + "<script>$CURATE_JS</script>"))
     }
 
     // A random live series with a photo and no verdict yet ([exclude] is the one being skipped), and how many are left.
     // ?corrected=1: only series where the user moved or deleted a detected hole.
     get("/admin/curate/next") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val exclude = call.request.queryParameters["exclude"]?.toLongOrNull()
         val corrected = if (call.request.queryParameters["corrected"] == "1") db.seriesWithCorrectedDetections() else null
         val open = db.uncuratedSeriesIds().filter { (corrected == null || it in corrected) && imageFile(images, it).isFile }
@@ -348,7 +355,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
     }
 
     get("/admin/curate/history") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         respondJson(buildJsonArray {
             db.curationHistory().forEach { c ->
                 add(buildJsonObject {
@@ -360,7 +367,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 
     // ?status=approved|rejected; a series already judged just gets the new verdict.
     post("/admin/curate/{id}") {
-        if (unauthorized(password, localNoAuth) || notFromPage()) return@post
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
         val seriesId = pathId()
         val status = CurationStatus.entries.firstOrNull { it.wire == call.request.queryParameters["status"] }
             ?: return@post call.respondText("status must be approved or rejected", status = HttpStatusCode.BadRequest)
@@ -370,7 +377,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
     }
 
     get("/admin/series/{id}/image") {
-        if (unauthorized(password, localNoAuth)) return@get
+        if (unauthorized(password, localNoAuth, throttle)) return@get
         val file = imageFile(images, pathId())
         if (!file.isFile) return@get notFound("No image")
         call.response.header("X-Content-Type-Options", "nosniff")
@@ -381,19 +388,43 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
 /**
  * HTTP Basic by hand — ktor-server-auth would be a whole dependency for one password. Responds 401 (and
  * returns true) unless the caller sent exactly `admin:[password]`. With [localNoAuth] (`ADMIN_LOCAL_NO_AUTH`, a
- * local test copy) a caller whose socket is this machine's loopback needs no password; the socket's own peer, not
- * a forwarded header, so a proxy in front cannot claim it.
+ * local test copy) a caller whose socket is this machine's loopback, whose `Host` names this machine and that
+ * carries no `X-Forwarded-For` needs no password; anything else falls back to the password.
+ *
+ * Wrong passwords count per client address in [throttle] (a request without credentials, a browser's first
+ * try, does not); a locked address gets 429 with `Retry-After`, the correct password included. The compare is
+ * constant-time, and the log names the address only.
  */
-private suspend fun RoutingContext.unauthorized(password: String, localNoAuth: Boolean): Boolean {
-    if (localNoAuth && isLoopback(call.request.local.remoteAddress)) return false
-    val credentials = call.request.headers[HttpHeaders.Authorization]
+private suspend fun RoutingContext.unauthorized(password: String, localNoAuth: Boolean, throttle: AdminLoginThrottle): Boolean {
+    if (localNoAuth && localNoAuthCaller()) return false
+    val ip = clientIp(call)
+    throttle.lockedFor(ip)?.let { waitMs ->
+        call.response.header(HttpHeaders.RetryAfter, ((waitMs + 999) / 1000).toString())
+        call.respondText("too many admin login attempts, try again later", status = HttpStatusCode.TooManyRequests)
+        return true
+    }
+    val header = call.request.headers[HttpHeaders.Authorization]
+    val credentials = header
         ?.takeIf { it.startsWith("Basic ", ignoreCase = true) }
         ?.let { runCatching { Base64.getDecoder().decode(it.substring(6).trim()) }.getOrNull() }
-    if (credentials != null && MessageDigest.isEqual(credentials, "admin:$password".toByteArray())) return false
+    if (credentials != null && MessageDigest.isEqual(credentials, "admin:$password".toByteArray())) {
+        throttle.success(ip)
+        return false
+    }
+    if (header != null) {
+        throttle.failure(ip)
+        call.application.environment.log.warn("admin login failed from {}", ip)
+    }
     call.response.header(HttpHeaders.WWWAuthenticate, """Basic realm="markera-admin"""")
     call.respondText("admin login required", status = HttpStatusCode.Unauthorized)
     return true
 }
+
+/** The local no-auth conditions: loopback socket peer, a local `Host`, and no forwarding proxy in between. */
+private fun RoutingContext.localNoAuthCaller(): Boolean =
+    isLoopback(call.request.local.remoteAddress) &&
+        isLocalHostHeader(call.request.headers[HttpHeaders.Host]) &&
+        call.request.headers[HttpHeaders.XForwardedFor] == null
 
 internal fun isLoopback(address: String): Boolean =
     address == "127.0.0.1" || address == "::1" || address == "0:0:0:0:0:0:0:1" || address == "localhost"
