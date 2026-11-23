@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -182,7 +183,13 @@ class SeriesRepository(
             if (_series.value.none { it.id == id }) insert(dto(id, req, posted.has_image != 0L, posted.image_width, posted.image_height))
             if (posted.has_image != 0L) {
                 val bytes = localImages.read(localId) ?: error("Local photo unavailable")
-                offLock { api.postSeriesImage(id, bytes, posted.image_width!!.toInt(), posted.image_height!!.toInt()) }
+                try {
+                    offLock { api.postSeriesImage(id, bytes, posted.image_width!!.toInt(), posted.image_height!!.toInt()) }
+                } catch (e: SeriesApiException) {
+                    // The series is gone on the server (deleted elsewhere): nothing to upload the photo to.
+                    if (e.status == 404) { forgetPhotoPendingLocked(id, row.owner_user_id!!); reload() }
+                    throw e
+                }
                 images.write(id, bytes)
             }
             deleteLocalLocked(localId)
@@ -191,6 +198,7 @@ class SeriesRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            if (q.localById(localId).executeAsOneOrNull() == null) throw e // removed above (a 404)
             val status = (e as? SeriesApiException)?.status
             val refused = status != null && status in 400..499 && status != 401 && status != 429
             q.localFailure(if (refused) "refused" else "queued", status?.toLong(),
@@ -283,6 +291,7 @@ class SeriesRepository(
         if (stamp != null && stamp.user_id != user) wipe()
         val since = stamp?.takeIf { it.user_id == user }?.last_sync?.takeIf { it.isNotEmpty() }
         reload()
+        val started = generation()
         try {
             // First, so what it sends comes back in the load below like any other series.
             drainLocal(user)
@@ -292,7 +301,11 @@ class SeriesRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            if (e is SeriesApiException && e.isUnauthorized) expire()
+            if (e is SeriesApiException && e.isUnauthorized) {
+                // Signed out (or in as someone else) while it ran: its 401 is that sign-out, not an expiry.
+                if (started != generation()) return null
+                expire()
+            }
             return e
         }
     }
@@ -321,11 +334,12 @@ class SeriesRepository(
     /** One write at a time, and never inside a refresh; a 401 signs out on the way. */
     private suspend fun <T> locked(block: suspend () -> T): T = netLock.withLock {
         dbLock.withLock {
+            val started = generation()
             try {
                 // SQLite and multi-MB JPEG file I/O: never on the caller's (often Main) thread.
                 withContext(Dispatchers.Default) { block() }
             } catch (e: SeriesApiException) {
-                if (e.isUnauthorized) expire()
+                if (e.isUnauthorized && started == generation()) expire()
                 throw e
             }
         }
@@ -473,8 +487,12 @@ class SeriesRepository(
             }?.let { localImages.read(it.local_id) }
         }?.let { return it }
         withContext(Dispatchers.Default) { images.read(id) }?.let { return it }
+        val started = generation()
         return try {
-            api.getSeriesImage(id).also { withContext(Dispatchers.Default) { images.write(id, it) } }
+            val bytes = api.getSeriesImage(id)
+            // Under the store lock, as [wipe] is: a download that outlived a sign-out is not cached.
+            if (dbLock.withLock { withContext(Dispatchers.Default) { current(started) { images.write(id, bytes) } } }) bytes
+            else null
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -487,10 +505,12 @@ class SeriesRepository(
         val store = if (id < 0) localImages else images
         val key = if (id < 0) -id else id
         withContext(Dispatchers.Default) { store.readThumb(key) }?.let { return it }
+        val started = generation()
         val full = image(id) ?: return null
-        return withContext(Dispatchers.Default) {
-            thumbnailJpeg(full, maxDim)?.also { store.writeThumb(key, it) }
-        }
+        val thumb = withContext(Dispatchers.Default) { thumbnailJpeg(full, maxDim) } ?: return null
+        if (id < 0) withContext(Dispatchers.Default) { store.writeThumb(key, thumb) }
+        else if (!dbLock.withLock { withContext(Dispatchers.Default) { current(started) { store.writeThumb(key, thumb) } } }) return null
+        return thumb
     }
 
     /** Sign-out, account deletion, or a different user: nothing cached survives. */
@@ -499,6 +519,25 @@ class SeriesRepository(
             wipe()
             reload()
         }
+    }
+
+    /** [clear] after Delete account: the [userId]'s series the server had (photo still pending) went with it. */
+    suspend fun clearDeletedAccount(userId: Long) = locked {
+        withContext(Dispatchers.Default) {
+            q.selectLocal().executeAsList()
+                .filter { it.server_id != null && it.owner_user_id == userId.toString() }
+                .forEach { deleteLocalLocked(it.local_id) }
+            wipe()
+            reload()
+        }
+    }
+
+    /** [owner]'s photo-pending row for a series the server no longer has, its JPEG, and the cached copy. */
+    private fun forgetPhotoPendingLocked(serverId: Long, owner: String) {
+        q.selectLocal().executeAsList().filter { it.server_id == serverId && it.owner_user_id == owner }
+            .forEach { deleteLocalLocked(it.local_id) }
+        q.deleteById(serverId)
+        images.delete(serverId)
     }
 
     private suspend fun fullLoad(user: String) {
@@ -520,7 +559,7 @@ class SeriesRepository(
         q.transaction {
             changed.forEach { if (it.deleted) q.deleteById(it.id) else insert(it) }
         }
-        changed.filter { it.deleted }.forEach { images.delete(it.id) }
+        changed.filter { it.deleted }.forEach { images.delete(it.id); forgetPhotoPendingLocked(it.id, user) }
         stamp(changed, user)
     }
 
@@ -579,5 +618,15 @@ class SeriesRepository(
         // A page left open from the previous account must not reach the next one's server.
         serverIds.clear()
         _acknowledgedIds.value = emptyMap()
+        wipes.update { it + 1 }
     }
+
+    /** Bumped by [wipe], under [dbLock]. With the login's generation, what a network call that began
+     * earlier checks before it acts on its answer: a 401 after a sign-out, a late photo (#27, #28). */
+    private val wipes = MutableStateFlow(0L)
+    private fun generation() = session.generation to wipes.value
+
+    /** Runs [write] only if nothing signed out or wiped since [started]; call it holding [dbLock]. */
+    private inline fun current(started: Pair<Long, Long>, write: () -> Unit): Boolean =
+        (started == generation()).also { if (it) write() }
 }
