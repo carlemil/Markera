@@ -37,13 +37,10 @@ actual fun rememberImagePicker(onPicked: (List<PickedImage>) -> Unit): (ImageSou
     }
 }
 
-/** The camera still's square is about this; a bigger photo is subsampled towards it. */
-private const val IMPORT_SQUARE_SIDE = 3000
-
 /**
  * Decodes [uri] off the main thread at the largest power-of-two subsample that keeps
- * the shorter side (the square the scan crops) at least [IMPORT_SQUARE_SIDE], turned
- * upright by its EXIF orientation.
+ * the shorter side (the square the scan crops) at least [IMPORT_SQUARE_SIDE], then
+ * scales it to exactly that (never below) and turns it upright by its EXIF orientation.
  */
 private suspend fun loadUri(context: Context, uri: Uri): LoadedImage? = withContext(Dispatchers.IO) {
     try {
@@ -52,16 +49,28 @@ private suspend fun loadUri(context: Context, uri: Uri): LoadedImage? = withCont
         resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
         val shorter = minOf(bounds.outWidth, bounds.outHeight)
         if (shorter <= 0) return@withContext null
-        var sample = 1
-        while (shorter / (sample * 2) >= IMPORT_SQUARE_SIDE) sample *= 2
+        val sample = importSampleSize(shorter)
         val decoded = resolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
         } ?: return@withContext null
         val exif = resolver.openInputStream(uri)?.use { ExifInterface(it) }
         val rotation = exif?.rotationDegrees ?: 0
-        val upright = if (rotation == 0) decoded else {
-            Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, Matrix().apply { postRotate(rotation.toFloat()) }, true)
-                .also { if (it !== decoded) decoded.recycle() }
+        // The subsample leaves the short side anywhere in [target, 2 * target); scale and turn
+        // it in one copy, and let the bigger decode go as soon as that copy exists.
+        val (width, height) = importScaledSize(decoded.width, decoded.height)
+        val upright = if (rotation == 0 && width == decoded.width && height == decoded.height) decoded else {
+            val matrix = Matrix().apply {
+                setScale(width.toFloat() / decoded.width, height.toFloat() / decoded.height)
+                postRotate(rotation.toFloat())
+            }
+            val copy = try {
+                Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+            } catch (e: Throwable) {
+                decoded.recycle()
+                throw e
+            }
+            // createBitmap may hand back the source itself; only a real copy frees it.
+            copy.also { if (it !== decoded) decoded.recycle() }
         }
         LoadedImage(
             upright,
