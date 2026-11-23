@@ -30,6 +30,8 @@ rebase — each clone enables those once with `git config core.hooksPath .githoo
 ./gradlew :vision:jvmTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```
 
+CI (`.github/workflows/ci.yml`, GitHub Actions) runs the four Gradle tasks below plus `server/`'s `test` on every push to master and every PR; no iOS job.
+
 ### Tickets verification and test map
 
 Follow [the project verification guide](docs/ticket-verification.md) for the
