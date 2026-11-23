@@ -126,9 +126,12 @@ internal fun AccountActions(auth: BackendAuth?, seriesServices: SeriesServices) 
                     busy = true
                     scope.launch {
                         try {
+                            val userId = seriesServices.session.auth.value?.userId
                             seriesServices.api.deleteAccount()
                             seriesServices.session.signOut()
-                            seriesServices.repository.clear()
+                            // Its photo-pending series went with the account; unsent local work stays.
+                            if (userId != null) seriesServices.repository.clearDeletedAccount(userId)
+                            else seriesServices.repository.clear()
                         } catch (e: CancellationException) {
                             throw e
                         } catch (_: Throwable) {

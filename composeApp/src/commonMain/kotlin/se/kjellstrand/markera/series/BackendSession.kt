@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /** The persisted Markera backend login. [provider] is `google`, `apple` or `dev`. */
 data class BackendAuth(val token: String, val userId: Long, val provider: String)
@@ -94,7 +95,7 @@ class BackendSessionRepository(
         val pending = _pendingAuth.value ?: return null
         // Persistence precedes public state: observers may start refresh immediately.
         store.write(pending)
-        _auth.value = pending
+        setAuth(pending)
         _pendingAuth.value = null
         return pending
     }
@@ -108,9 +109,22 @@ class BackendSessionRepository(
     private val _auth = MutableStateFlow<BackendAuth?>(null)
     val auth: StateFlow<BackendAuth?> = _auth.asStateFlow()
 
+    private val _generation = MutableStateFlow(0L)
+
+    /**
+     * Bumped every time the login changes (sign-in, sign-out, restore). A network call that began under
+     * an older generation was overtaken: its 401 is not an expired session and its answer is not cached.
+     */
+    val generation: Long get() = _generation.value
+
+    private fun setAuth(value: BackendAuth?) {
+        _auth.value = value
+        _generation.update { it + 1 }
+    }
+
     val currentToken: String? get() = _auth.value?.token
 
-    suspend fun restore(): BackendAuth? = store.read().also { _auth.value = it }
+    suspend fun restore(): BackendAuth? = store.read().also { setAuth(it) }
 
     suspend fun signInGoogle(idToken: String): BackendAuth =
         publish("google", api.authGoogle(idToken))
@@ -132,7 +146,7 @@ class BackendSessionRepository(
     suspend fun signOut() {
         discardPending()
         val token = currentToken
-        _auth.value = null
+        setAuth(null)
         store.clear()
         if (token != null) {
             try {
@@ -150,13 +164,13 @@ class BackendSessionRepository(
             discardPending()
             // Switching providers/accounts cannot leave the previous login active
             // behind a dialog promising to stay signed out.
-            _auth.value = null
+            setAuth(null)
             store.clear()
             _pendingAuth.value = auth
             return auth
         }
         store.write(auth)
-        _auth.value = auth
+        setAuth(auth)
         return auth
     }
 }

@@ -265,7 +265,12 @@ Schema v4 retains the old outbox until restart-safe adoption moves each request 
 to the local store; a failed file write never deletes the outbox row.
 
 Sign-out, account deletion and account switch clear only `series`, `sync` and the synced image
-cache. Local work survives. All sign-in providers go through the held-auth gate: the token is
+cache. Local work survives, except that Delete account (`clearDeletedAccount`) also drops that owner's
+photo-pending rows and their JPEGs (the server copy went with the account); a delta tombstone or a 404 on
+the photo upload drops such a row too. `BackendSessionRepository.generation` changes with every login
+change and `wipe()` bumps the repository's own count: a 401 from a call that began before a sign-out does
+not `expire()` (a refresh returns null), and a photo or thumbnail downloaded across a sign-out is not
+cached. All sign-in providers go through the held-auth gate: the token is
 not persisted or published while rows saved signed out or for another account need a decision.
 The shared `LocalClaimController`/dialog offers Add, confirmed Delete, or Stay signed out;
 dismiss means Stay. Add transfers every offered row in one transaction before publishing auth,
