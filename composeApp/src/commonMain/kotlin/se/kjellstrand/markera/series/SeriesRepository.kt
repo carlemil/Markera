@@ -173,8 +173,11 @@ class SeriesRepository(
                     insert(dto(serverId, req, posted.has_image != 0L, posted.image_width, posted.image_height))
                     q.localPosted(serverId, localId)
                 }
+                // Before the list changes, so an open Serie page finds the series under its new id.
+                rememberAcknowledged(localId, serverId)
                 reload()
             }
+            rememberAcknowledged(localId, id) // also a row acknowledged before a restart
             // After a crash/switch the acknowledged row may no longer be in the read cache.
             if (_series.value.none { it.id == id }) insert(dto(id, req, posted.has_image != 0L, posted.image_width, posted.image_height))
             if (posted.has_image != 0L) {
@@ -382,24 +385,51 @@ class SeriesRepository(
         }
     }
 
+    /**
+     * Local ids the server acknowledged in this process, kept after the row goes (photo uploaded):
+     * a Serie page opened on the local series still holds `-localId`. Guarded by [dbLock]; never
+     * reused, since `local_id` is AUTOINCREMENT.
+     */
+    private val acknowledged = mutableMapOf<Long, Long>()
+    private val _acknowledgedIds = MutableStateFlow<Map<Long, Long>>(emptyMap())
+
+    /** `localId -> serverId` for local series the server has taken: the Serie page follows it. */
+    val acknowledgedIds: StateFlow<Map<Long, Long>> = _acknowledgedIds.asStateFlow()
+
+    private fun rememberAcknowledged(localId: Long, serverId: Long) {
+        acknowledged[localId] = serverId
+        _acknowledgedIds.value = acknowledged.toMap()
+    }
+
+    /** The id an edit or delete of [id] acts on: a negative id the server acknowledged becomes its
+     * server id; one neither stored nor acknowledged fails, so nothing is silently dropped. */
+    private fun resolveLocked(id: Long): Long {
+        if (id >= 0) return id
+        val row = q.localById(-id).executeAsOneOrNull()
+            ?: return acknowledged[-id] ?: error("Local series no longer exists")
+        return row.server_id ?: id
+    }
+
     suspend fun update(id: Long, req: SeriesRequest) = locked {
-        if (id < 0) {
-            val row = q.localById(-id).executeAsOne()
+        // A refresh may have sent a local series since the page holding its negative id opened.
+        val target = resolveLocked(id)
+        if (target < 0) {
+            val row = q.localById(-target).executeAsOne()
             val original = seriesJson.decodeFromString<SeriesRequest>(row.request)
             val stillRemoved = original.holes.filter { old -> old.deleted && req.holes.none { next ->
                 !next.deleted && old.detectedX != null && old.detectedY != null &&
                     next.detectedX == old.detectedX && next.detectedY == old.detectedY
             } }
             q.editLocal(seriesJson.encodeToString(req.copy(clientId = original.clientId,
-                holes = (req.holes + stillRemoved).distinct())), -id)
+                holes = (req.holes + stillRemoved).distinct())), -target)
             reload()
             return@locked
         }
-        offLock { api.updateSeries(id, req) }
+        offLock { api.updateSeries(target, req) }
         // Deleted holes go up for training and never come back down.
         val kept = req.holes.filterNot { it.deleted }
         withContext(Dispatchers.Default) {
-            val cached = _series.value.firstOrNull { it.id == id }
+            val cached = _series.value.firstOrNull { it.id == target }
             insert(
                 cached?.copy(
                     timestamp = req.timestamp,
@@ -407,13 +437,15 @@ class SeriesRepository(
                     holes = kept,
                     geometry = req.geometry,
                     tag = req.tag,
-                ) ?: SeriesDto(id, req.timestamp, req.caliber, kept, geometry = req.geometry, tag = req.tag),
+                ) ?: SeriesDto(target, req.timestamp, req.caliber, kept, geometry = req.geometry, tag = req.tag),
             )
             reload()
         }
     }
 
-    suspend fun delete(id: Long) = locked {
+    suspend fun delete(seriesId: Long) = locked {
+        // A refresh may have sent a local series since the page holding its negative id opened.
+        val id = resolveLocked(seriesId)
         if (id < 0) {
             deleteLocalLocked(-id)
             reload()
@@ -544,5 +576,8 @@ class SeriesRepository(
         q.deleteAllSeries()
         q.clearSync()
         images.clear()
+        // A page left open from the previous account must not reach the next one's server.
+        acknowledged.clear()
+        _acknowledgedIds.value = emptyMap()
     }
 }
