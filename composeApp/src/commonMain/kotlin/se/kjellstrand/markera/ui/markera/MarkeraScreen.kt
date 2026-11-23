@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.getString
 import se.kjellstrand.markera.series.SaveStatus
@@ -158,22 +159,43 @@ fun MarkeraScreen(
         )
     }
 
-    val onResumeLive: () -> Unit = {
-        // Read the pickers before clearResults() wipes them.
+    // A Save waiting for its local result: a second Save or a Reset meanwhile would leave the
+    // frame (and move an import on) twice.
+    var saving by remember { mutableStateOf(false) }
+    val onResumeLive: () -> Unit = resume@{
+        if (saving) return@resume
+        // Saving is what leaves the frozen frame, with the edited scores; the commit runs
+        // before clearResults() wipes the pickers.
         val picks = uiState.topScores
         val scored = uiState.scores.isNotEmpty()
-        edited = false
-        placing = null
-        snapshotVm.clear()
-        viewModel.clearResults()
-        // Leaving the frozen frame is what saves the scan, with the edited scores.
-        recorder?.commit(picks)
-        frameSource.onResumeLive()
-        importQueue?.next(if (scored) ImportDecision.Save else ImportDecision.Skip)
+        val save = recorder?.commit(picks)
+        saving = true
+        coroutineScope.launch {
+            val decision = try {
+                // Without a recorder (previews) nothing is saved; the scan counts as it did.
+                if (recorder == null || save == null) {
+                    if (scored) ImportDecision.Save else ImportDecision.Skip
+                } else {
+                    afterSave(save.await(), recorder.retainedAfterFailure)
+                }
+            } finally {
+                saving = false
+            }
+            // Not kept on the phone, but retained: the frame and results stay for Save again,
+            // under the failure toast. An import stays on this image; Skip still moves on.
+            if (decision == null) return@launch
+            edited = false
+            placing = null
+            snapshotVm.clear()
+            viewModel.clearResults()
+            frameSource.onResumeLive()
+            importQueue?.next(decision)
+        }
     }
     // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
     // In an import that is Skip: the next image.
-    val discard: () -> Unit = {
+    val discard: () -> Unit = discard@{
+        if (saving) return@discard
         edited = false
         placing = null
         snapshotVm.clear()

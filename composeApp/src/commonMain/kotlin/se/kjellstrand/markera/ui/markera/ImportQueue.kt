@@ -17,6 +17,22 @@ fun importDecision(auto: Boolean, hasScores: Boolean, caliber: Caliber): ImportD
     if (auto && hasScores && caliber != Caliber.NONE) ImportDecision.Save else ImportDecision.Review
 
 /**
+ * What Save on the frozen frame leads to once the commit has answered: null keeps the
+ * frame and its results on screen, so Save can be pressed again; otherwise the frame is
+ * left and, in an import, the image counts as this decision.
+ *
+ * [kept] is the commit's local result (the row and photo are durably on the phone).
+ * [retained] means the save failed and the recorder still holds the scan for a retry:
+ * the only case that stays. A false commit for any other reason (nothing to save, or
+ * waiting for the caliber dialog, which saves it later) leaves as before, uncounted.
+ */
+fun afterSave(kept: Boolean, retained: Boolean): ImportDecision? = when {
+    kept -> ImportDecision.Save
+    retained -> null
+    else -> ImportDecision.Skip
+}
+
+/**
  * The images picked for import, worked through one at a time. In [auto] mode the
  * images sent to [ImportDecision.Review] are held back and, once the pass is done,
  * become the queue again, reviewed by hand.

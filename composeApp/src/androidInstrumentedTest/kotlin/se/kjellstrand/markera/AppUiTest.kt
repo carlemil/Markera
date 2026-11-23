@@ -1224,6 +1224,57 @@ class AppUiTest {
         backHomeWith("0 saved, 1 skipped")
     }
 
+    /** A file where the durable photo folder goes: every local photo write fails until it is removed. */
+    private fun blockLocalPhotos(): File {
+        File(root, "files").mkdirs()
+        return File(root, "files/local-series").apply { writeText("not a folder") }
+    }
+
+    /** The failed save's toast (storage errors read as network or generic): the commit has answered. */
+    private fun waitForSaveFailedToast() = rule.waitUntil(TIMEOUT_MS) {
+        rule.exists(hasText("Network error", substring = true)) || rule.exists(hasText("Something went wrong", substring = true))
+    }
+
+    /** #34, manual: a Save that cannot be kept on the phone is not counted; the image stays for Save again or Skip. */
+    @Test fun manualImportFailedLocalSaveIsNotCountedSaved() {
+        val engine = FakeScanEngine()
+        blockLocalPhotos()
+        launch(signedIn = true, scanEngine = engine, picks = { listOf(picked(engine)) })
+        startImport(auto = false)
+        waitForText("Import 1 / 1")
+        waitForExact("40")
+        save()
+        waitForSaveFailedToast()
+        rule.waitForIdle()
+        // Still on the same image with its results, nothing loaded again and nothing sent.
+        waitForText("Import 1 / 1")
+        waitForExact("40")
+        waitForButton(button("Save"), "Save, for a retry")
+        assertEquals(1, loads.get())
+        assertEquals(0, posted.size)
+        skip()
+        backHomeWith("0 saved, 1 skipped")
+    }
+
+    /** A free-scan Save that cannot be kept on the phone keeps the frozen frame; Save again works once storage does. */
+    @Test fun freeScanFailedSaveKeepsTheFrozenFrame() {
+        val blocker = blockLocalPhotos()
+        openScanAndDetect()
+        save()
+        waitForSaveFailedToast()
+        rule.waitForIdle()
+        waitForExact("40")
+        waitForButton(button("Save"), "Save, for a retry")
+        assertFalse("The frame must stay frozen, not go back to live", rule.exists(button("Detect")))
+        assertEquals(0, posted.size)
+        // Storage works again: the same scan saves.
+        blocker.delete()
+        save()
+        waitForExact("Saved")
+        assertEquals(1, waitForPosts(1).size)
+        waitForButton(button("Detect"), "Detect, back on the live view")
+    }
+
     // ---- the scan screen's side states: camera permission, guide colour, debug overlay ----
 
     /** Denied, the scan screen explains why and asks again on Allow access; granted, the viewfinder is back. */

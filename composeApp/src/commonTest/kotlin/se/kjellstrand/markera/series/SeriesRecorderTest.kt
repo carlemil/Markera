@@ -716,20 +716,42 @@ class SeriesRecorderTest {
         }
         val recorder = recorder(signedIn = false, stored = Caliber.LR22, encodeJpeg = { encoded }, localImages = flaky)
         recorder.onSeriesDetected(scores, image, null)
+        assertFalse(recorder.retainedAfterFailure)
         assertFalse(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        // Readable as soon as the waiter wakes: the scan screen keeps the frame on it.
+        assertTrue(recorder.retainedAfterFailure)
         assertIs<SaveStatus.Failed>(recorder.awaitDone())
-        // Save again once storage works: the same pending scan is kept.
+        // Save again once storage works, straight away: the same pending scan is kept and no longer in flight.
         fail = false
         assertTrue(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        assertFalse(recorder.retainedAfterFailure)
+    }
+
+    @Test
+    fun aFailedSaveIsRetriedImmediatelyAfterItsResult() = runBlocking<Unit> {
+        var fail = true
+        val flaky = object : ImageCache by FakeImageCache() {
+            override fun write(id: Long, bytes: ByteArray) { if (fail) error("disk full") }
+        }
+        val recorder = recorder(signedIn = false, stored = Caliber.LR22, encodeJpeg = { encoded }, localImages = flaky)
+        recorder.onSeriesDetected(scores, image, null)
+        assertFalse(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        fail = false
+        // No wait for the status: the retry must not be refused as a save still in flight.
+        assertTrue(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        assertEquals(1, repository.series.first { it.isNotEmpty() }.size)
     }
 
     @Test
     fun commitReportsFalseWithoutACaliberOrAPendingScan() = runBlocking<Unit> {
         val recorder = recorder(stored = Caliber.NONE)
         assertFalse(recorder.commit(noPicks).await())
+        assertFalse(recorder.retainedAfterFailure, "Nothing pending is nothing to retry")
         recorder.onSeriesDetected(scores, image, null)
         assertFalse(recorder.commit(noPicks).await())
         assertEquals(SaveStatus.NeedsCaliber, recorder.status.value)
+        // Waiting for the caliber dialog is not a failure: the scan screen leaves the frame.
+        assertFalse(recorder.retainedAfterFailure)
     }
 
     @Test

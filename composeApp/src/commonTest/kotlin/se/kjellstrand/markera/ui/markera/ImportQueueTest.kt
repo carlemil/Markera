@@ -57,6 +57,36 @@ class ImportQueueTest {
     }
 
     @Test
+    fun saveCountsOnlyWhatWasKeptAndStaysOnARetainedFailure() {
+        assertEquals(ImportDecision.Save, afterSave(kept = true, retained = false))
+        // Storage failed, the scan is retained: stay on the frame for Save again.
+        assertNull(afterSave(kept = false, retained = true))
+        // Nothing to save, or waiting for the caliber dialog: leave, uncounted as saved.
+        assertEquals(ImportDecision.Skip, afterSave(kept = false, retained = false))
+    }
+
+    /** #34: a manual Save whose local save failed is not counted; the image stays for a retry or Skip. */
+    @Test
+    fun aFailedManualSaveIsNotCountedAndKeepsTheImage() {
+        val queue = ImportQueue(listOf("a", "b"), auto = false)
+        afterSave(kept = false, retained = true)?.let(queue::next)
+        assertEquals("a", queue.current)
+        assertEquals(0, queue.saved)
+
+        // Save again succeeds.
+        afterSave(kept = true, retained = false)?.let(queue::next)
+        assertEquals("b", queue.current)
+        // It fails again and the user gives up: Skip.
+        afterSave(kept = false, retained = true)?.let(queue::next)
+        assertEquals("b", queue.current)
+        queue.next(ImportDecision.Skip)
+
+        assertNull(queue.current)
+        assertEquals(1, queue.saved)
+        assertEquals(1, queue.skipped)
+    }
+
+    @Test
     fun aManualQueueEndsAfterItsLastImage() {
         val queue = ImportQueue(listOf("a", "b"), auto = false)
         queue.next(ImportDecision.Save)

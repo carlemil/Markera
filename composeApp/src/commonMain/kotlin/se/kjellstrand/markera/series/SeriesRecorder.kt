@@ -99,10 +99,20 @@ class SeriesRecorder(
 
         /** The running or last save attempt's local-persistence outcome; per request, not the shared status. */
         var local: CompletableDeferred<Boolean>? = null
+
+        /** Its last save attempt could not keep it on the phone; it is retained for Save again. */
+        var failed = false
     }
 
     /** The scanned series waiting for a caliber (or for its POST to finish). */
     private var pending: Pending? = null
+
+    /**
+     * The pending scan was committed and its last save failed to keep it on the phone (encoding
+     * or storage), so it is still here for Save again. Distinguishes that false [commit] result
+     * from the others (nothing to save, or waiting for the caliber dialog), which leave the frame.
+     */
+    val retainedAfterFailure: Boolean get() = pending?.failed == true
 
     /** The one whose POST is running: a second save of it (the chip tapped mid-save) is refused. */
     private var inFlight: Pending? = null
@@ -281,6 +291,7 @@ class SeriesRecorder(
         val request = p.request.copy(caliber = caliber.label, tag = _tag.value)
         val image = p.image
         inFlight = p
+        p.failed = false
         val local = CompletableDeferred<Boolean>()
         p.local = local
         _status.value = SaveStatus.Saving
@@ -324,7 +335,12 @@ class SeriesRecorder(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Encoding or durable storage failed: retain the scan for Save again.
+                // Encoding or durable storage failed: retain the scan for Save again. Marked, and
+                // no longer in flight, before the waiter wakes, so it sees why and can retry at once.
+                if (!local.isCompleted) {
+                    p.failed = true
+                    if (inFlight === p) inFlight = null
+                }
                 local.complete(false)
                 _status.value = SaveStatus.Failed(e)
             } finally {
