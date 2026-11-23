@@ -1,6 +1,8 @@
-New in 1.16.0:
-• Holes on the photo are thin outlines, so you can still see the hole itself.
-• Google sign-in always offers your accounts, and lets you add one.
-• A scan with no holes is no longer saved as an empty series.
-• History opens without an old filter after reinstalling.
-• Shooting hand reads Left, Right.
+New in 1.17.0:
+• Back on an unsaved scan asks before dropping it.
+• A failed save keeps the photo and results, so you can save again.
+• A scan survives a dark mode or language switch.
+• History keeps its place when you go back from a series.
+• More accurate scores for holes on angled photos.
+• Sync no longer stalls on one stuck series.
+• Many fixes to sign-in, storage and import.

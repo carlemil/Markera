@@ -1,6 +1,8 @@
-Nytt i 1.16.0:
-• Hålen på bilden ritas som tunna ringar, så själva hålet syns.
-• Google-inloggningen visar alltid dina konton och låter dig lägga till ett.
-• En skanning utan hål sparas inte längre som en tom serie.
-• Historik öppnas utan gammalt filter efter ominstallation.
-• Skjuthand visas som Vänster, Höger.
+Nytt i 1.17.0:
+• Bakåt på en osparad skanning frågar innan den släpps.
+• Misslyckas sparandet finns bilden och resultatet kvar, så du kan spara igen.
+• En skanning klarar byte av mörkt läge eller språk.
+• Historik behåller sin plats när du går tillbaka från en serie.
+• Säkrare poäng för hål på snett tagna bilder.
+• Synkningen fastnar inte längre på en enda serie.
+• Många rättelser i inloggning, lagring och import.
