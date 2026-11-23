@@ -321,8 +321,12 @@ class SeriesRepository(
         val started = generation()
         try {
             // First, so what it sends comes back in the load below like any other series.
-            drainLocal(user)
+            val stoppedAt = drainLocal(user)
             if (since == null) fullLoad(user) else applyDelta(offLock { api.listSeriesSince(since) }, user)
+            // The server answered, so that IOException was the row (a photo timing out on a slow
+            // link), not the network: the rows queued after it go now. Offline, the load above
+            // failed instead and that failure is the refresh's outcome.
+            if (stoppedAt != null) drainLocal(user, after = stoppedAt)
             reload()
             return null
         } catch (e: CancellationException) {
@@ -337,25 +341,39 @@ class SeriesRepository(
         }
     }
 
-    private suspend fun drainLocal(user: String) {
+    /**
+     * Sends this account's queue in local-id order. One row's failure never blocks the rest (#17):
+     * a refused (4xx) or failing (5xx) row stays queued and the next one goes. A 401 throws (sign
+     * out, no delta); a 429 stops the queue for this refresh. The first IOException stops it too,
+     * so an offline refresh costs one request, and returns that row's local id: [refreshLocked]
+     * resumes [after] it once the server has answered the delta. Resuming, an IOException only
+     * skips its row, and [MAX_RESUMED_IO_FAILURES] of them end the pass (each may be a timeout
+     * that holds every save and edit behind [netLock]).
+     */
+    private suspend fun drainLocal(user: String, after: Long? = null): Long? {
+        var ioFailures = 0
         for (row in q.selectLocal().executeAsList().filter { it.owner_user_id == user }) {
+            if (after != null && row.local_id <= after) continue
             if (row.state == "refused" && !refusedRetried.add(row.local_id)) continue
             try {
                 sendLocked(row.local_id)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: SeriesApiException) {
-                if (e.status == 429) return
-                if (e.isUnauthorized || e.isRetryable) throw e
-                // A refused row stays visible but does not block the following rows.
-            } catch (e: IOException) {
-                throw e
+                if (e.status == 429) return null
+                if (e.isUnauthorized) throw e
+                // A refused or failing row stays visible (refused or queued) but does not block
+                // the following rows; a failing one goes again on the next refresh.
+            } catch (_: IOException) {
+                if (after == null) return row.local_id
+                if (++ioFailures >= MAX_RESUMED_IO_FAILURES) return null
             } catch (e: Exception) {
                 // A local defect (e.g. a missing photo file) must not stop the delta below
                 // or the rows after it; the row stays queued for an explicit retry.
                 ErrorLog.report("local-series-send", e)
             }
         }
+        return null
     }
 
     /** One write at a time, and never inside a refresh; a 401 signs out on the way. */
@@ -657,3 +675,6 @@ class SeriesRepository(
     private inline fun current(started: Pair<Long, Long>, write: () -> Unit): Boolean =
         (started == generation()).also { if (it) write() }
 }
+
+/** IOExceptions that end a resumed queue pass (see `drainLocal`). */
+private const val MAX_RESUMED_IO_FAILURES = 2

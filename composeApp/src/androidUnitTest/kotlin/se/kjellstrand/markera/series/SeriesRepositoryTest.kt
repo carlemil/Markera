@@ -402,4 +402,140 @@ class SeriesRepositoryTest {
         assertEquals(listOf(1L), repo.series.value.map { it.id })
         assertEquals(2, recorded.size)
     }
+
+    private val postedSeries get() = recorded.filter { it.method == HttpMethod.Post && it.url.encodedPath == "/series" }
+
+    /** Signed in with one full load done, so the next refresh asks for a delta. */
+    private suspend fun syncedRepo(
+        db: MarkeraDb,
+        respondWith: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
+    ): SeriesRepository {
+        repo(db = db) { json("""[${dto(1, "2026-09-01T10:00:00Z", "2026-09-01 10:00:00.000")}]""") }.refresh()
+        recorded.clear()
+        return repo(db = db, respondWith = respondWith)
+    }
+
+    private val queued = SeriesRequest("2026-09-05T10:00:00Z", "9mm", listOf(HoleDto(null, null, 9, false, null)))
+
+    private fun HttpRequestData.isCaliber(caliber: String) = "\"$caliber\"" in (body as TextContent).text
+
+    // #17: a row the server keeps failing (5xx) must not hold back the rows queued after it,
+    // nor the delta that brings server and admin edits down.
+    @Test
+    fun aServerErrorOnOneQueuedRowStillSendsTheRestAndAppliesTheDelta() = runBlocking {
+        val db = testSeriesDb()
+        val repo = syncedRepo(db) { request ->
+            when {
+                request.method == HttpMethod.Get ->
+                    json("""[${dto(9, "2026-09-09T10:00:00Z", "2026-09-09 10:00:00.000")}]""")
+                request.isCaliber("9mm") -> json("""{"error":"boom"}""", HttpStatusCode.InternalServerError)
+                else -> json("""{"id":6}""", HttpStatusCode.Created)
+            }
+        }
+        repo.enqueue(queued, null)
+        repo.enqueue(queued.copy(caliber = "22lr"), null)
+
+        val outcome = repo.refresh()
+
+        assertEquals(2, postedSeries.size)
+        // The delta went through, so the list is not offline: the stuck row says so on its own.
+        assertNull(outcome)
+        assertTrue(recorded.any { it.method == HttpMethod.Get && it.url.parameters["since"] != null })
+        assertEquals(listOf(9L, 6L, 1L), repo.series.value.filter { it.id > 0 }.map { it.id })
+        val left = db.seriesQueries.selectLocal().executeAsOne()
+        assertEquals("queued", left.state)
+        assertTrue("\"9mm\"" in left.request)
+    }
+
+    @Test
+    fun aServerErrorOnEveryRowStillAppliesTheDelta() = runBlocking {
+        val db = testSeriesDb()
+        val repo = syncedRepo(db) { request ->
+            if (request.method == HttpMethod.Get) json("""[${dto(9, "2026-09-09T10:00:00Z", "2026-09-09 10:00:00.000")}]""")
+            else json("""{"error":"boom"}""", HttpStatusCode.InternalServerError)
+        }
+        repo.enqueue(queued, null)
+        repo.enqueue(queued.copy(caliber = "22lr"), null)
+
+        assertNull(repo.refresh())
+
+        assertEquals(2, postedSeries.size)
+        assertEquals(listOf(9L, 1L), repo.series.value.filter { it.id > 0 }.map { it.id })
+        assertEquals(listOf("queued", "queued"), db.seriesQueries.selectLocal().executeAsList().map { it.state })
+    }
+
+    // Offline: the queue stops at the first row instead of trying every one, the delta is
+    // still tried and its failure is what the caller sees.
+    @Test
+    fun offlineTheQueueStopsAtTheFirstRowAndTheRefreshFails() = runBlocking {
+        val db = testSeriesDb()
+        val repo = syncedRepo(db) { throw kotlinx.io.IOException("no network") }
+        repo.enqueue(queued, null)
+        repo.enqueue(queued.copy(caliber = "22lr"), null)
+        repo.enqueue(queued.copy(caliber = "308"), null)
+
+        assertNotNull(repo.refresh())
+
+        assertEquals(1, postedSeries.size)
+        assertEquals(1, recorded.count { it.method == HttpMethod.Get })
+        assertEquals(3, db.seriesQueries.selectLocal().executeAsList().size)
+        assertEquals(listOf(1L), repo.series.value.filter { it.id > 0 }.map { it.id })
+    }
+
+    // A photo upload that times out on a slow link must not hold back the rows after it.
+    @Test
+    fun aPhotoThatTimesOutDoesNotHoldBackTheRowsAfterIt() = runBlocking {
+        val db = testSeriesDb()
+        val repo = syncedRepo(db) { request ->
+            when {
+                request.method == HttpMethod.Get -> json("[]")
+                request.url.encodedPath == "/series/5/image" -> throw kotlinx.io.IOException("timeout")
+                request.isCaliber("9mm") -> json("""{"id":5}""", HttpStatusCode.Created)
+                else -> json("""{"id":6}""", HttpStatusCode.Created)
+            }
+        }
+        repo.enqueue(queued, EncodedImage(byteArrayOf(1), 10, 10))
+        repo.enqueue(queued.copy(caliber = "22lr"), null)
+
+        assertNull(repo.refresh())
+
+        assertEquals(2, postedSeries.size)
+        assertEquals(1, recorded.count { it.method == HttpMethod.Get })
+        val left = db.seriesQueries.selectLocal().executeAsOne()
+        assertEquals(5L, left.server_id)
+        assertEquals("queued", left.state)
+
+        // Next refresh: the head row's POST is long acknowledged and its photo still times out,
+        // so the very first request fails. The row queued after it must still go.
+        recorded.clear()
+        repo.enqueue(queued.copy(caliber = "308"), null)
+
+        assertNull(repo.refresh())
+
+        assertEquals(listOf("/series/5/image"), recorded.filter { it.method == HttpMethod.Post }.take(1).map { it.url.encodedPath })
+        assertEquals(1, postedSeries.size)
+        assertTrue(postedSeries.single().isCaliber("308"))
+        assertEquals(5L, db.seriesQueries.selectLocal().executeAsOne().server_id)
+    }
+
+    // A 401 on any row still signs out at once, with no further sends and no delta.
+    @Test
+    fun aRejectedTokenWhileDrainingSignsOutWithoutTheDelta() = runBlocking {
+        val db = testSeriesDb()
+        val repo = syncedRepo(db) { request ->
+            when {
+                request.method == HttpMethod.Get -> json("[]")
+                request.url.encodedPath == "/series" -> json("""{"error":"auth"}""", HttpStatusCode.Unauthorized)
+                else -> respond("", HttpStatusCode.NoContent)
+            }
+        }
+        repo.enqueue(queued, null)
+        repo.enqueue(queued.copy(caliber = "22lr"), null)
+
+        assertNotNull(repo.refresh())
+
+        assertEquals(1, postedSeries.size)
+        assertEquals(0, recorded.count { it.method == HttpMethod.Get })
+        assertEquals(2, db.seriesQueries.selectLocal().executeAsList().size)
+    }
 }
