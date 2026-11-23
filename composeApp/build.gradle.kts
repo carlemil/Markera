@@ -103,15 +103,18 @@ val backendUrl = (project.findProperty("markera.backend.url") as String?)
     ?: "https://markera.duckdns.org"
 
 // Google OAuth *Web* client id, used as `serverClientId` for Credential Manager.
-// Not in version control: put `markera.google.client.id=...` in local.properties.
-// Empty means "not configured" — sign-in then fails loudly.
+// Not in version control: put `markera.google.client.id=...` in local.properties
+// (a -Pmarkera.google.client.id=... overrides it). Empty means "not configured" — sign-in
+// then fails loudly, and a release build refuses to package (checkReleaseInputs below).
 val localProps: Properties? = rootProject.file("local.properties").takeIf { it.exists() }
     ?.let { f -> Properties().apply { f.inputStream().use { load(it) } } }
-val googleClientId: String = localProps?.getProperty("markera.google.client.id") ?: ""
+fun localSetting(key: String): String =
+    (project.findProperty(key) as String?) ?: localProps?.getProperty(key) ?: ""
+val googleClientId: String = localSetting("markera.google.client.id").trim()
 
-// Sentry error reporting (see `diag/ErrorLog.kt`). `markera.sentry.dsn=...` in local.properties;
-// empty means "not configured" and the SDK is never started.
-val sentryDsn: String = localProps?.getProperty("markera.sentry.dsn") ?: ""
+// Sentry error reporting (see `diag/ErrorLog.kt`). `markera.sentry.dsn=...` in local.properties
+// (or -P); empty means "not configured" and the SDK is never started (release refuses to package).
+val sentryDsn: String = localSetting("markera.sentry.dsn").trim()
 
 // Release (upload) signing: `keystore.properties` + `keystore` at the repo root, both
 // gitignored (see PLAN.md, Release signing). Absent → the release build stays unsigned.
@@ -196,6 +199,38 @@ sentry {
     autoInstallation.enabled.set(false)
     telemetry.set(false)
 }
+
+// Release guard (issue #16): a release must not ship without the hole model, the Google client
+// id or the Sentry DSN — every scan, Google sign-in and error reporting would silently be off.
+// Every Android release variant task (assembleRelease, bundleRelease, publishRelease*, …) goes
+// through preReleaseBuild, which depends on this check; debug builds and testDebugUnitTest don't,
+// so CI can run them without the secrets. Only plain values are captured (configuration cache).
+val checkReleaseInputs = tasks.register("checkReleaseInputs") {
+    group = "verification"
+    description = "Fails unless best.onnx, markera.google.client.id and markera.sentry.dsn are set."
+    val model = file("src/androidMain/assets/best.onnx")
+    val minBytes = 1_000_000L // the real model is ~40 MB; an LFS pointer or stub is not
+    val clientIdSet = googleClientId.isNotEmpty()
+    val dsnSet = sentryDsn.isNotEmpty()
+    doLast {
+        val problems = buildList {
+            when {
+                !model.isFile -> add("$model is missing (the hole-detection model; see CLAUDE.md, Model asset)")
+                model.length() < minBytes ->
+                    add("$model is only ${model.length()} bytes (expected ~40 MB; a stub or LFS pointer?)")
+            }
+            if (!clientIdSet) add("markera.google.client.id is empty (set it in local.properties or with -P)")
+            if (!dsnSet) add("markera.sentry.dsn is empty (set it in local.properties or with -P)")
+        }
+        if (problems.isNotEmpty()) {
+            throw GradleException(
+                "Release build refused, it would ship broken:\n" +
+                    problems.joinToString("\n") { "  - $it" }
+            )
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(checkReleaseInputs) }
 
 play {
     serviceAccountCredentials.set(rootProject.file("play-account.json"))
