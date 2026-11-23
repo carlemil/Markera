@@ -302,7 +302,11 @@ Google are separate users. Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple in
 `iosMain/series/SignIn.kt` with a dev-auth fallback when Info.plist `MarkeraDevAuth`
 is set (Debug), backend URL from `MarkeraBackendUrl` (Debug `http://127.0.0.1:8091`,
-Release production), token in NSUserDefaults, share via `UIActivityViewController`.
+Release production), the session token in the Keychain (`KeychainTokenVault`, generic password,
+`AfterFirstUnlockThisDeviceOnly`, so not in backups; user id, provider and preferences stay in
+NSUserDefaults; an older build's defaults token moves over on first read and is removed only after the
+Keychain write succeeds; a `keychainInstalled` flag in defaults, wiped on uninstall, makes a fresh
+install delete a leftover Keychain token), share via `UIActivityViewController`.
 
 ### Error reporting (`diag/`)
 
