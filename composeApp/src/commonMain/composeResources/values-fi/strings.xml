@@ -329,7 +329,15 @@
     <string name="import_auto_body">Tallentaa pysähtymättä jokaisen kuvan, joka saa pisteet; muut näytetään jälkeenpäin.</string>
     <string name="import_progress">Tuonti %1$d / %2$d</string>
     <string name="import_skip">Ohita</string>
-    <string name="import_summary">%1$d tallennettu, %2$d ohitettu</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d tallennettu</item>
+        <item quantity="other">%1$d tallennettu</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d ohitettu</item>
+        <item quantity="other">%1$d ohitettu</item>
+    </plurals>
     <string name="help_home_import">Tuo kuvia</string>
     <string name="help_home_import_body">Valikossa: pisteytä puhelimessa jo olevia kuvia galleriasta tai tiedostoista. Jokainen kuva skannataan ja tulos näytetään tallennettavaksi tai ohitettavaksi. Kun Automaattinen tuonti on päällä, jokainen pisteet saava kuva tallennetaan itsestään kuvan ottopäivämäärällä; loput näytetään yksi kerrallaan jälkeenpäin.</string>
     <string name="series_status_phone">Tallennettu tähän laitteeseen</string>

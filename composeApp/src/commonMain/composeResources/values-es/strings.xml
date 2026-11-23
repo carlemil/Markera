@@ -329,7 +329,15 @@
     <string name="import_auto_body">Guarda sin detenerse cada imagen que se puede puntuar; las que no, se muestran después.</string>
     <string name="import_progress">Importando %1$d / %2$d</string>
     <string name="import_skip">Omitir</string>
-    <string name="import_summary">%1$d guardadas, %2$d omitidas</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d guardada</item>
+        <item quantity="other">%1$d guardadas</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d omitida</item>
+        <item quantity="other">%1$d omitidas</item>
+    </plurals>
     <string name="help_home_import">Importar imágenes</string>
     <string name="help_home_import_body">En el menú: puntúa fotos que ya están en el teléfono, desde la galería o desde archivos. Cada imagen se escanea y se muestran sus resultados, para guardarla u omitirla. Con Importación automática activada, cada imagen que se puede puntuar se guarda sola con la fecha en que se tomó la foto; el resto se muestra una a una después.</string>
     <string name="series_status_phone">Guardada en este dispositivo</string>

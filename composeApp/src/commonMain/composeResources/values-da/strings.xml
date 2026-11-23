@@ -329,7 +329,15 @@
     <string name="import_auto_body">Gemmer hvert billede, der får point, uden at stoppe; dem, der ikke gør, vises bagefter.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Spring over</string>
-    <string name="import_summary">%1$d gemt, %2$d sprunget over</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d gemt</item>
+        <item quantity="other">%1$d gemt</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d sprunget over</item>
+        <item quantity="other">%1$d sprunget over</item>
+    </plurals>
     <string name="help_home_import">Importér billeder</string>
     <string name="help_home_import_body">I menuen: giv point til billeder, der allerede ligger på telefonen, fra galleriet eller fra filer. Hvert billede scannes, og resultatet vises, så du kan gemme eller springe over. Med Automatisk import slået til gemmes hvert billede, der får point, af sig selv med datoen, billedet blev taget; resten vises ét ad gangen bagefter.</string>
     <string name="series_status_phone">Gemt på denne enhed</string>

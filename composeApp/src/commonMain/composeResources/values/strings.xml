@@ -355,7 +355,15 @@
     <string name="import_auto_body">Saves every image that scores without stopping; the ones that don’t are shown afterwards.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Skip</string>
-    <string name="import_summary">%1$d saved, %2$d skipped</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d saved</item>
+        <item quantity="other">%1$d saved</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d skipped</item>
+        <item quantity="other">%1$d skipped</item>
+    </plurals>
     <string name="help_home_import">Import images</string>
     <string name="help_home_import_body">In the menu: score photos already on the phone, from the gallery or from files. Each image is scanned and its results shown, to save or skip. With Auto import on, every image that scores is saved on its own with the date the photo was taken; the rest are shown one by one afterwards.</string>
     <string name="series_status_phone">Saved on this device</string>

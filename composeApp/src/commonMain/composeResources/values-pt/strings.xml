@@ -329,7 +329,15 @@
     <string name="import_auto_body">Salva sem parar cada imagem que recebe pontuação; as que não recebem são mostradas depois.</string>
     <string name="import_progress">Importação %1$d / %2$d</string>
     <string name="import_skip">Pular</string>
-    <string name="import_summary">%1$d salvas, %2$d puladas</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d salva</item>
+        <item quantity="other">%1$d salvas</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d pulada</item>
+        <item quantity="other">%1$d puladas</item>
+    </plurals>
     <string name="help_home_import">Importar imagens</string>
     <string name="help_home_import_body">No menu: pontue fotos que já estão no celular, da galeria ou dos arquivos. Cada imagem é escaneada e os resultados são mostrados, para salvar ou pular. Com a Importação automática ligada, cada imagem que recebe pontuação é salva sozinha com a data em que a foto foi tirada; as demais são mostradas uma a uma depois.</string>
     <string name="series_status_phone">Salva neste aparelho</string>

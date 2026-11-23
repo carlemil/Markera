@@ -349,7 +349,19 @@
     <string name="import_auto_body">Захоўвае без прыпынку кожную выяву, якая падлічваецца; астатнія паказваюцца потым.</string>
     <string name="import_progress">Імпарт %1$d / %2$d</string>
     <string name="import_skip">Прапусціць</string>
-    <string name="import_summary">Захавана: %1$d, прапушчана: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Захавана: %1$d</item>
+        <item quantity="few">Захавана: %1$d</item>
+        <item quantity="many">Захавана: %1$d</item>
+        <item quantity="other">Захавана: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">прапушчана: %1$d</item>
+        <item quantity="few">прапушчана: %1$d</item>
+        <item quantity="many">прапушчана: %1$d</item>
+        <item quantity="other">прапушчана: %1$d</item>
+    </plurals>
     <string name="help_home_import">Імпарт выяў</string>
     <string name="help_home_import_body">У меню: падлічыце фота, якія ўжо ёсць у тэлефоне, з галерэі або з файлаў. Кожная выява скануецца і паказваюцца вынікі, каб захаваць або прапусціць. Калі «Аўтаімпарт» уключаны, кожная выява, якая падлічваецца, захоўваецца сама з датай здымкі; астатнія паказваюцца потым па адной.</string>
     <string name="series_status_phone">Захавана на гэтай прыладзе</string>

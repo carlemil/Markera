@@ -339,7 +339,17 @@
     <string name="import_auto_body">Bez apstāšanās saglabā katru attēlu, kuram izdodas aprēķināt punktus; pārējie tiek parādīti pēc tam.</string>
     <string name="import_progress">Imports %1$d / %2$d</string>
     <string name="import_skip">Izlaist</string>
-    <string name="import_summary">Saglabāti: %1$d, izlaisti: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="zero">Saglabāti: %1$d</item>
+        <item quantity="one">Saglabāti: %1$d</item>
+        <item quantity="other">Saglabāti: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="zero">izlaisti: %1$d</item>
+        <item quantity="one">izlaisti: %1$d</item>
+        <item quantity="other">izlaisti: %1$d</item>
+    </plurals>
     <string name="help_home_import">Importēt attēlus</string>
     <string name="help_home_import_body">Izvēlnē: novērtējiet fotoattēlus, kas jau ir tālrunī, no galerijas vai failiem. Katrs attēls tiek noskenēts, un rezultāts tiek parādīts, lai to saglabātu vai izlaistu. Ja Automātiskais imports ir ieslēgts, katrs attēls, kuram izdodas aprēķināt punktus, tiek saglabāts pats ar fotografēšanas datumu; pārējie pēc tam tiek parādīti pa vienam.</string>
     <string name="series_status_phone">Saglabāts šajā ierīcē</string>

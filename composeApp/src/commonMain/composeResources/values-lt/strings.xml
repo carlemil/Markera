@@ -339,7 +339,17 @@
     <string name="import_auto_body">Nesustodamas išsaugo kiekvieną vaizdą, kurį pavyksta įvertinti; kiti parodomi vėliau.</string>
     <string name="import_progress">Importas %1$d / %2$d</string>
     <string name="import_skip">Praleisti</string>
-    <string name="import_summary">Išsaugota: %1$d, praleista: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Išsaugota: %1$d</item>
+        <item quantity="few">Išsaugota: %1$d</item>
+        <item quantity="other">Išsaugota: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">praleista: %1$d</item>
+        <item quantity="few">praleista: %1$d</item>
+        <item quantity="other">praleista: %1$d</item>
+    </plurals>
     <string name="help_home_import">Importuoti vaizdus</string>
     <string name="help_home_import_body">Meniu: įvertinkite telefone jau esančias nuotraukas iš galerijos arba failų. Kiekvienas vaizdas nuskaitomas ir parodomas rezultatas, kad galėtumėte jį išsaugoti arba praleisti. Kai įjungtas Automatinis importas, kiekvienas vaizdas, kurį pavyksta įvertinti, išsaugomas savaime su nuotraukos darymo data; kiti vėliau parodomi po vieną.</string>
     <string name="series_status_phone">Išsaugota šiame įrenginyje</string>

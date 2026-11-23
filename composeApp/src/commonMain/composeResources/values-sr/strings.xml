@@ -339,7 +339,17 @@
     <string name="import_auto_body">Чува сваку слику која се бодује без заустављања; оне које се не бодују приказују се после.</string>
     <string name="import_progress">Увоз %1$d / %2$d</string>
     <string name="import_skip">Прескочи</string>
-    <string name="import_summary">Сачувано: %1$d, прескочено: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Сачувано: %1$d</item>
+        <item quantity="few">Сачувано: %1$d</item>
+        <item quantity="other">Сачувано: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">прескочено: %1$d</item>
+        <item quantity="few">прескочено: %1$d</item>
+        <item quantity="other">прескочено: %1$d</item>
+    </plurals>
     <string name="help_home_import">Увези слике</string>
     <string name="help_home_import_body">У менију: бодујте фотографије које су већ на телефону, из галерије или из датотека. Свака слика се скенира и приказују се њени резултати, да је сачувате или прескочите. Када је Аутоматски увоз укључен, свака слика која се бодује чува се сама, са датумом када је фотографија снимљена; остале се после приказују једна по једна.</string>
     <string name="series_status_phone">Сачувано на овом уређају</string>

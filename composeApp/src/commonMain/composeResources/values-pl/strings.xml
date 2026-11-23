@@ -349,7 +349,19 @@
     <string name="import_auto_body">Zapisuje bez zatrzymywania każdy obraz, który da się policzyć; pozostałe zostaną pokazane potem.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Pomiń</string>
-    <string name="import_summary">Zapisano: %1$d, pominięto: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Zapisano: %1$d</item>
+        <item quantity="few">Zapisano: %1$d</item>
+        <item quantity="many">Zapisano: %1$d</item>
+        <item quantity="other">Zapisano: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">pominięto: %1$d</item>
+        <item quantity="few">pominięto: %1$d</item>
+        <item quantity="many">pominięto: %1$d</item>
+        <item quantity="other">pominięto: %1$d</item>
+    </plurals>
     <string name="help_home_import">Importuj obrazy</string>
     <string name="help_home_import_body">W menu: policz wyniki ze zdjęć, które już są w telefonie, z galerii lub z plików. Każdy obraz zostaje zeskanowany, a wynik pokazany do zapisania lub pominięcia. Przy włączonym imporcie automatycznym każdy obraz, który da się policzyć, zapisuje się sam z datą wykonania zdjęcia; pozostałe są potem pokazywane po kolei.</string>
     <string name="series_status_phone">Zapisano na tym urządzeniu</string>

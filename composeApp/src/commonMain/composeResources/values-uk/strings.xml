@@ -349,7 +349,19 @@
     <string name="import_auto_body">Зберігає без зупинок кожне зображення, яке вдалося порахувати; решту буде показано потім.</string>
     <string name="import_progress">Імпорт %1$d / %2$d</string>
     <string name="import_skip">Пропустити</string>
-    <string name="import_summary">Збережено: %1$d, пропущено: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Збережено: %1$d</item>
+        <item quantity="few">Збережено: %1$d</item>
+        <item quantity="many">Збережено: %1$d</item>
+        <item quantity="other">Збережено: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">пропущено: %1$d</item>
+        <item quantity="few">пропущено: %1$d</item>
+        <item quantity="many">пропущено: %1$d</item>
+        <item quantity="other">пропущено: %1$d</item>
+    </plurals>
     <string name="help_home_import">Імпорт зображень</string>
     <string name="help_home_import_body">У меню: порахуйте фото, які вже є на телефоні, з галереї або з файлів. Кожне зображення сканується, а результати показуються, щоб зберегти або пропустити. З увімкненим автоімпортом кожне пораховане зображення зберігається саме з датою зйомки фото; решту буде показано по одному потім.</string>
     <string name="series_status_phone">Збережено на цьому пристрої</string>

@@ -329,7 +329,15 @@
     <string name="import_auto_body">Puanlanan her görseli durmadan kaydeder; puanlanamayanlar sonradan gösterilir.</string>
     <string name="import_progress">İçe aktarılıyor %1$d / %2$d</string>
     <string name="import_skip">Atla</string>
-    <string name="import_summary">%1$d kaydedildi, %2$d atlandı</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d kaydedildi</item>
+        <item quantity="other">%1$d kaydedildi</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d atlandı</item>
+        <item quantity="other">%1$d atlandı</item>
+    </plurals>
     <string name="help_home_import">Görselleri içe aktar</string>
     <string name="help_home_import_body">Menüde: telefonda zaten bulunan fotoğrafları galeriden veya dosyalardan puanlayın. Her görsel taranır ve sonuçları kaydetmeniz veya atlamanız için gösterilir. Otomatik içe aktar açıkken puanlanan her görsel, fotoğrafın çekildiği tarihle kendiliğinden kaydedilir; geri kalanlar sonradan tek tek gösterilir.</string>
     <string name="series_status_phone">Bu cihaza kaydedildi</string>

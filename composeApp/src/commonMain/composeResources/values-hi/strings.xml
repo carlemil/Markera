@@ -329,7 +329,15 @@
     <string name="import_auto_body">स्कोर होने वाली हर इमेज को बिना रुके सहेजता है; बाकी बाद में दिखाई जाती हैं।</string>
     <string name="import_progress">इंपोर्ट %1$d / %2$d</string>
     <string name="import_skip">छोड़ें</string>
-    <string name="import_summary">सहेजी गईं: %1$d, छोड़ी गईं: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">सहेजी गईं: %1$d</item>
+        <item quantity="other">सहेजी गईं: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">छोड़ी गईं: %1$d</item>
+        <item quantity="other">छोड़ी गईं: %1$d</item>
+    </plurals>
     <string name="help_home_import">इमेज इंपोर्ट करें</string>
     <string name="help_home_import_body">मेनू में: फ़ोन पर पहले से मौजूद फ़ोटो का स्कोर गिनें, गैलरी से या फ़ाइलों से। हर इमेज स्कैन होती है और उसके नतीजे दिखाए जाते हैं, सहेजने या छोड़ने के लिए। ऑटो इंपोर्ट चालू होने पर, स्कोर होने वाली हर इमेज फ़ोटो लेने की तारीख़ के साथ अपने आप सहेजी जाती है; बाकी बाद में एक-एक करके दिखाई जाती हैं।</string>
     <string name="series_status_phone">इस डिवाइस पर सहेजा गया</string>

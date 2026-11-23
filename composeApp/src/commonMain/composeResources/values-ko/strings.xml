@@ -319,7 +319,13 @@
     <string name="import_auto_body">채점되는 이미지는 멈추지 않고 모두 저장하고, 채점되지 않는 이미지는 나중에 보여 줍니다.</string>
     <string name="import_progress">가져오기 %1$d / %2$d</string>
     <string name="import_skip">건너뛰기</string>
-    <string name="import_summary">%1$d개 저장, %2$d개 건너뜀</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="other">%1$d개 저장</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="other">%1$d개 건너뜀</item>
+    </plurals>
     <string name="help_home_import">이미지 가져오기</string>
     <string name="help_home_import_body">메뉴에서: 휴대폰에 이미 있는 사진을 갤러리나 파일에서 골라 채점합니다. 각 이미지를 스캔해 결과를 보여 주며, 저장하거나 건너뛸 수 있습니다. 자동 가져오기를 켜면 채점되는 이미지는 사진을 찍은 날짜로 자동 저장되고, 나머지는 나중에 하나씩 보여 줍니다.</string>
     <string name="series_status_phone">이 기기에 저장됨</string>

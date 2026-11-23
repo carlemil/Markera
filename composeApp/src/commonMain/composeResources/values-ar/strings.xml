@@ -369,7 +369,23 @@
     <string name="import_auto_body">يحفظ كل صورة تُحتسب نقاطها دون توقف؛ والصور التي لا تُحتسب تُعرض بعد ذلك.</string>
     <string name="import_progress">استيراد %1$d / %2$d</string>
     <string name="import_skip">تخطٍّ</string>
-    <string name="import_summary">المحفوظة: %1$d، المتخطاة: %2$d</string>
+    <string name="import_summary">%1$s، %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="zero">المحفوظة: %1$d</item>
+        <item quantity="one">المحفوظة: %1$d</item>
+        <item quantity="two">المحفوظة: %1$d</item>
+        <item quantity="few">المحفوظة: %1$d</item>
+        <item quantity="many">المحفوظة: %1$d</item>
+        <item quantity="other">المحفوظة: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="zero">المتخطاة: %1$d</item>
+        <item quantity="one">المتخطاة: %1$d</item>
+        <item quantity="two">المتخطاة: %1$d</item>
+        <item quantity="few">المتخطاة: %1$d</item>
+        <item quantity="many">المتخطاة: %1$d</item>
+        <item quantity="other">المتخطاة: %1$d</item>
+    </plurals>
     <string name="help_home_import">استيراد الصور</string>
     <string name="help_home_import_body">في القائمة: احتسب نقاط صور موجودة على الهاتف، من المعرض أو من الملفات. تُمسح كل صورة وتُعرض نتائجها لتحفظها أو تتخطاها. مع تشغيل «استيراد تلقائي» تُحفظ كل صورة تُحتسب نقاطها تلقائيًا بتاريخ التقاطها؛ ويُعرض الباقي واحدة تلو الأخرى بعد ذلك.</string>
     <string name="series_status_phone">حُفظت على هذا الجهاز</string>

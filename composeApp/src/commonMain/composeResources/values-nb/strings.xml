@@ -329,7 +329,15 @@
     <string name="import_auto_body">Lagrer hvert bilde som får poeng uten å stoppe; de som ikke gjør det, vises etterpå.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Hopp over</string>
-    <string name="import_summary">%1$d lagret, %2$d hoppet over</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d lagret</item>
+        <item quantity="other">%1$d lagret</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d hoppet over</item>
+        <item quantity="other">%1$d hoppet over</item>
+    </plurals>
     <string name="help_home_import">Importer bilder</string>
     <string name="help_home_import_body">I menyen: gi poeng til bilder som allerede ligger på telefonen, fra galleriet eller fra filer. Hvert bilde skannes og resultatet vises, så du kan lagre eller hoppe over. Med Automatisk import på lagres hvert bilde som får poeng av seg selv, med datoen bildet ble tatt; resten vises ett og ett etterpå.</string>
     <string name="series_status_phone">Lagret på denne enheten</string>

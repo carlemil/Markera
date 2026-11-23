@@ -329,7 +329,15 @@
     <string name="import_auto_body">Salva senza fermarsi ogni immagine che ottiene un punteggio; quelle che non lo ottengono vengono mostrate dopo.</string>
     <string name="import_progress">Importazione %1$d / %2$d</string>
     <string name="import_skip">Salta</string>
-    <string name="import_summary">%1$d salvate, %2$d saltate</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d salvata</item>
+        <item quantity="other">%1$d salvate</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d saltata</item>
+        <item quantity="other">%1$d saltate</item>
+    </plurals>
     <string name="help_home_import">Importa immagini</string>
     <string name="help_home_import_body">Nel menu: calcola il punteggio di foto già presenti sul telefono, dalla galleria o dai file. Ogni immagine viene scansionata e i risultati mostrati, da salvare o saltare. Con Importazione automatica attiva, ogni immagine che ottiene un punteggio viene salvata da sola con la data di scatto della foto; le altre vengono mostrate una alla volta dopo.</string>
     <string name="series_status_phone">Salvata su questo dispositivo</string>

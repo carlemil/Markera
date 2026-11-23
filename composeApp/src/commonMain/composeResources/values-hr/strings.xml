@@ -339,7 +339,17 @@
     <string name="import_auto_body">Bez zaustavljanja sprema svaku sliku koja se može bodovati; one koje ne mogu prikazuju se poslije.</string>
     <string name="import_progress">Uvoz %1$d / %2$d</string>
     <string name="import_skip">Preskoči</string>
-    <string name="import_summary">Spremljeno: %1$d, preskočeno: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Spremljeno: %1$d</item>
+        <item quantity="few">Spremljeno: %1$d</item>
+        <item quantity="other">Spremljeno: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">preskočeno: %1$d</item>
+        <item quantity="few">preskočeno: %1$d</item>
+        <item quantity="other">preskočeno: %1$d</item>
+    </plurals>
     <string name="help_home_import">Uvoz slika</string>
     <string name="help_home_import_body">U izborniku: bodujte fotografije koje su već na telefonu, iz galerije ili iz datoteka. Svaka se slika skenira i prikazuju se rezultati, da ih spremite ili preskočite. Uz uključen Automatski uvoz svaka slika koja se može bodovati sprema se sama s datumom snimanja fotografije; ostale se poslije prikazuju jedna po jedna.</string>
     <string name="series_status_phone">Spremljeno na ovom uređaju</string>

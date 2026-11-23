@@ -349,7 +349,19 @@
     <string name="import_auto_body">Brez ustavljanja shrani vsako sliko, ki jo je mogoče točkovati; ostale se prikažejo potem.</string>
     <string name="import_progress">Uvoz %1$d / %2$d</string>
     <string name="import_skip">Preskoči</string>
-    <string name="import_summary">Shranjeno: %1$d, preskočeno: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Shranjeno: %1$d</item>
+        <item quantity="two">Shranjeno: %1$d</item>
+        <item quantity="few">Shranjeno: %1$d</item>
+        <item quantity="other">Shranjeno: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">preskočeno: %1$d</item>
+        <item quantity="two">preskočeno: %1$d</item>
+        <item quantity="few">preskočeno: %1$d</item>
+        <item quantity="other">preskočeno: %1$d</item>
+    </plurals>
     <string name="help_home_import">Uvozi slike</string>
     <string name="help_home_import_body">V meniju: točkujte fotografije, ki so že v telefonu, iz galerije ali iz datotek. Vsaka slika se skenira in prikažejo se rezultati, ki jih shranite ali preskočite. Pri vklopljenem Samodejnem uvozu se vsaka slika, ki jo je mogoče točkovati, shrani sama, z datumom, ko je bila fotografija posneta; ostale se potem prikažejo ena za drugo.</string>
     <string name="series_status_phone">Shranjeno v tej napravi</string>

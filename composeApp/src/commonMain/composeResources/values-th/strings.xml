@@ -319,7 +319,13 @@
     <string name="import_auto_body">บันทึกทุกรูปที่นับคะแนนได้โดยไม่หยุด รูปที่นับไม่ได้จะแสดงภายหลัง</string>
     <string name="import_progress">นำเข้า %1$d / %2$d</string>
     <string name="import_skip">ข้าม</string>
-    <string name="import_summary">บันทึก %1$d ข้าม %2$d</string>
+    <string name="import_summary">%1$s %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="other">บันทึก %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="other">ข้าม %1$d</item>
+    </plurals>
     <string name="help_home_import">นำเข้ารูปภาพ</string>
     <string name="help_home_import_body">ในเมนู: นับคะแนนรูปที่มีอยู่ในโทรศัพท์แล้ว จากแกลเลอรีหรือไฟล์ แต่ละรูปจะถูกสแกนและแสดงผล เพื่อให้บันทึกหรือข้าม เมื่อเปิดนำเข้าอัตโนมัติ ทุกรูปที่นับคะแนนได้จะบันทึกเองพร้อมวันที่ถ่ายรูป ส่วนที่เหลือจะแสดงทีละรูปภายหลัง</string>
     <string name="series_status_phone">บันทึกไว้ในอุปกรณ์นี้</string>

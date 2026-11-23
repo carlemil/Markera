@@ -319,7 +319,13 @@
     <string name="import_auto_body">Lưu mọi ảnh chấm được điểm mà không dừng lại; những ảnh không chấm được sẽ hiện sau đó.</string>
     <string name="import_progress">Nhập %1$d / %2$d</string>
     <string name="import_skip">Bỏ qua</string>
-    <string name="import_summary">Đã lưu %1$d, bỏ qua %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="other">Đã lưu %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="other">bỏ qua %1$d</item>
+    </plurals>
     <string name="help_home_import">Nhập ảnh</string>
     <string name="help_home_import_body">Trong menu: chấm điểm các ảnh đã có trên điện thoại, từ thư viện hoặc từ tệp. Mỗi ảnh được quét và hiện kết quả để lưu hoặc bỏ qua. Khi bật Tự động nhập, mọi ảnh chấm được điểm sẽ tự lưu với ngày chụp ảnh; những ảnh còn lại sẽ hiện lần lượt sau đó.</string>
     <string name="series_status_phone">Đã lưu trên thiết bị này</string>

@@ -329,7 +329,15 @@
     <string name="import_auto_body">هر تصویری را که امتیاز بگیرد بدون توقف ذخیره می‌کند؛ بقیه بعداً نمایش داده می‌شوند.</string>
     <string name="import_progress">وارد کردن %1$d / %2$d</string>
     <string name="import_skip">رد کردن</string>
-    <string name="import_summary">ذخیره‌شده: %1$d، ردشده: %2$d</string>
+    <string name="import_summary">%1$s، %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">ذخیره‌شده: %1$d</item>
+        <item quantity="other">ذخیره‌شده: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">ردشده: %1$d</item>
+        <item quantity="other">ردشده: %1$d</item>
+    </plurals>
     <string name="help_home_import">وارد کردن تصاویر</string>
     <string name="help_home_import_body">در منو: به عکس‌هایی که از قبل روی گوشی هستند، از گالری یا از فایل‌ها، امتیاز بدهید. هر تصویر اسکن و نتیجه‌اش نمایش داده می‌شود تا ذخیره یا رد کنید. با روشن بودن «وارد کردن خودکار»، هر تصویری که امتیاز بگیرد خودبه‌خود با تاریخ گرفتن عکس ذخیره می‌شود؛ بقیه بعداً یکی‌یکی نمایش داده می‌شوند.</string>
     <string name="series_status_phone">روی این دستگاه ذخیره شد</string>

@@ -319,7 +319,13 @@
     <string name="import_auto_body">不停顿地保存每张能计分的图片；不能计分的会在之后显示。</string>
     <string name="import_progress">导入 %1$d / %2$d</string>
     <string name="import_skip">跳过</string>
-    <string name="import_summary">已保存 %1$d，已跳过 %2$d</string>
+    <string name="import_summary">%1$s，%2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="other">已保存 %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="other">已跳过 %1$d</item>
+    </plurals>
     <string name="help_home_import">导入图片</string>
     <string name="help_home_import_body">在菜单中：为手机上已有的照片计分，可从相册或文件中选择。每张图片都会被扫描并显示结果，可选择保存或跳过。开启“自动导入”后，每张能计分的图片都会以拍摄日期自动保存；其余的会在之后逐张显示。</string>
     <string name="series_status_phone">已保存在本设备上</string>

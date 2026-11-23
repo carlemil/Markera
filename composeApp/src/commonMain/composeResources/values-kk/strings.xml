@@ -329,7 +329,15 @@
     <string name="import_auto_body">Есептелетін әр суретті тоқтамай сақтайды; есептелмегендері кейін көрсетіледі.</string>
     <string name="import_progress">Импорт %1$d / %2$d</string>
     <string name="import_skip">Өткізу</string>
-    <string name="import_summary">Сақталды: %1$d, өткізілді: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Сақталды: %1$d</item>
+        <item quantity="other">Сақталды: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">өткізілді: %1$d</item>
+        <item quantity="other">өткізілді: %1$d</item>
+    </plurals>
     <string name="help_home_import">Суреттерді импорттау</string>
     <string name="help_home_import_body">Мәзірде: телефондағы бар фотоларды галереядан немесе файлдардан есептеу. Әр сурет сканерленіп, нәтижесі көрсетіледі, оны сақтауға немесе өткізуге болады. Авто импорт қосулы болса, есептелетін әр сурет фото түсірілген күнімен өздігінен сақталады; қалғандары кейін бір-бірлеп көрсетіледі.</string>
     <string name="series_status_phone">Осы құрылғыда сақталды</string>

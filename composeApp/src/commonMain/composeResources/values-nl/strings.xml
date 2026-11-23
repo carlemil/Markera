@@ -329,7 +329,15 @@
     <string name="import_auto_body">Slaat elke afbeelding die een score oplevert op zonder te stoppen; de rest wordt daarna getoond.</string>
     <string name="import_progress">Importeren %1$d / %2$d</string>
     <string name="import_skip">Overslaan</string>
-    <string name="import_summary">%1$d opgeslagen, %2$d overgeslagen</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d opgeslagen</item>
+        <item quantity="other">%1$d opgeslagen</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d overgeslagen</item>
+        <item quantity="other">%1$d overgeslagen</item>
+    </plurals>
     <string name="help_home_import">Afbeeldingen importeren</string>
     <string name="help_home_import_body">In het menu: scoor foto’s die al op de telefoon staan, uit de galerij of uit bestanden. Elke afbeelding wordt gescand en het resultaat getoond, om op te slaan of over te slaan. Met Automatisch importeren aan wordt elke afbeelding die een score oplevert vanzelf opgeslagen met de datum waarop de foto is gemaakt; de rest wordt daarna een voor een getoond.</string>
     <string name="series_status_phone">Opgeslagen op dit apparaat</string>

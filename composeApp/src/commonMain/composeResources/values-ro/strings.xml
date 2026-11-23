@@ -339,7 +339,17 @@
     <string name="import_auto_body">Salvează fără oprire fiecare imagine care primește punctaj; cele care nu primesc sunt afișate la final.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Sari peste</string>
-    <string name="import_summary">%1$d salvate, %2$d sărite</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d salvată</item>
+        <item quantity="few">%1$d salvate</item>
+        <item quantity="other">%1$d de salvate</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d sărită</item>
+        <item quantity="few">%1$d sărite</item>
+        <item quantity="other">%1$d de sărite</item>
+    </plurals>
     <string name="help_home_import">Importă imagini</string>
     <string name="help_home_import_body">Din meniu: punctează fotografii aflate deja pe telefon, din galerie sau din fișiere. Fiecare imagine este scanată și rezultatele ei sunt afișate, pentru a o salva sau a o sări. Cu Import automat activ, fiecare imagine care primește punctaj se salvează singură, cu data la care a fost făcută fotografia; restul sunt afișate pe rând la final.</string>
     <string name="series_status_phone">Salvat pe acest dispozitiv</string>

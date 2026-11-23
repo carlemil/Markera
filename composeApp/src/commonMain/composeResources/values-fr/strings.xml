@@ -329,7 +329,15 @@
     <string name="import_auto_body">Enregistre sans s’arrêter chaque image comptée ; celles qui ne le sont pas sont présentées ensuite.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Passer</string>
-    <string name="import_summary">%1$d enregistrées, %2$d passées</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d enregistrée</item>
+        <item quantity="other">%1$d enregistrées</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d passée</item>
+        <item quantity="other">%1$d passées</item>
+    </plurals>
     <string name="help_home_import">Importer des images</string>
     <string name="help_home_import_body">Dans le menu : comptez des photos déjà présentes sur le téléphone, depuis la galerie ou les fichiers. Chaque image est scannée et ses résultats affichés, pour l’enregistrer ou la passer. Avec Import automatique activé, chaque image comptée est enregistrée d’elle-même avec la date de prise de vue ; les autres sont présentées une par une ensuite.</string>
     <string name="series_status_phone">Enregistrée sur cet appareil</string>

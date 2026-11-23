@@ -329,7 +329,15 @@
     <string name="import_auto_body">Запазва всяко изображение, което получи резултат, без да спира; останалите се показват след това.</string>
     <string name="import_progress">Импорт %1$d / %2$d</string>
     <string name="import_skip">Пропусни</string>
-    <string name="import_summary">Запазени: %1$d, пропуснати: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Запазени: %1$d</item>
+        <item quantity="other">Запазени: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">пропуснати: %1$d</item>
+        <item quantity="other">пропуснати: %1$d</item>
+    </plurals>
     <string name="help_home_import">Импорт на изображения</string>
     <string name="help_home_import_body">В менюто: оценете снимки, които вече са в телефона, от галерията или от файловете. Всяко изображение се сканира и резултатите му се показват, за да го запазите или пропуснете. С включен „Автоматичен импорт“ всяко изображение, което получи резултат, се запазва само с датата на заснемане на снимката; останалите се показват едно по едно след това.</string>
     <string name="series_status_phone">Запазено на това устройство</string>

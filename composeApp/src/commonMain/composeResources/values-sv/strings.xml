@@ -355,7 +355,15 @@
     <string name="import_auto_body">Sparar varje bild som ger poäng utan att stanna; de som inte gör det visas efteråt.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Hoppa över</string>
-    <string name="import_summary">%1$d sparade, %2$d överhoppade</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d sparad</item>
+        <item quantity="other">%1$d sparade</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d överhoppad</item>
+        <item quantity="other">%1$d överhoppade</item>
+    </plurals>
     <string name="help_home_import">Importera bilder</string>
     <string name="help_home_import_body">I menyn: räkna poäng på foton som redan finns i telefonen, från galleriet eller från filer. Varje bild skannas och resultatet visas, för att spara eller hoppa över. Med Autoimport på sparas varje bild som ger poäng av sig själv, med datumet då fotot togs; resten visas en i taget efteråt.</string>
     <string name="series_status_phone">Sparad på den här enheten</string>

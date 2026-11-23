@@ -329,7 +329,15 @@
     <string name="import_auto_body">Speichert jedes Bild, das gewertet werden kann, ohne anzuhalten; die übrigen werden danach gezeigt.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Überspringen</string>
-    <string name="import_summary">%1$d gespeichert, %2$d übersprungen</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d gespeichert</item>
+        <item quantity="other">%1$d gespeichert</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d übersprungen</item>
+        <item quantity="other">%1$d übersprungen</item>
+    </plurals>
     <string name="help_home_import">Bilder importieren</string>
     <string name="help_home_import_body">Im Menü: Werte Fotos aus, die schon auf dem Telefon sind, aus der Galerie oder aus Dateien. Jedes Bild wird gescannt und das Ergebnis gezeigt, zum Speichern oder Überspringen. Mit Auto-Import wird jedes Bild, das gewertet werden kann, von selbst mit dem Aufnahmedatum des Fotos gespeichert; die übrigen werden danach einzeln gezeigt.</string>
     <string name="series_status_phone">Auf diesem Gerät gespeichert</string>

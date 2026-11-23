@@ -339,7 +339,17 @@
     <string name="import_auto_body">Bez zastavenia uloží každý obrázok, ktorý sa dá vyhodnotiť; ostatné sa zobrazia potom.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Preskočiť</string>
-    <string name="import_summary">Uložené: %1$d, preskočené: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Uložené: %1$d</item>
+        <item quantity="few">Uložené: %1$d</item>
+        <item quantity="other">Uložené: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">preskočené: %1$d</item>
+        <item quantity="few">preskočené: %1$d</item>
+        <item quantity="other">preskočené: %1$d</item>
+    </plurals>
     <string name="help_home_import">Importovať obrázky</string>
     <string name="help_home_import_body">V ponuke: vyhodnoť fotky, ktoré už máš v telefóne, z galérie alebo zo súborov. Každý obrázok sa naskenuje a zobrazí sa výsledok, ktorý uložíš alebo preskočíš. So zapnutým automatickým importom sa každý obrázok, ktorý sa dá vyhodnotiť, uloží sám s dátumom vytvorenia fotky; ostatné sa potom zobrazia jeden po druhom.</string>
     <string name="series_status_phone">Uložené v tomto zariadení</string>

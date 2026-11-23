@@ -329,7 +329,15 @@
     <string name="import_auto_body">Αποθηκεύει χωρίς διακοπή κάθε εικόνα που βαθμολογείται· όσες δεν βαθμολογούνται εμφανίζονται στο τέλος.</string>
     <string name="import_progress">Εισαγωγή %1$d / %2$d</string>
     <string name="import_skip">Παράλειψη</string>
-    <string name="import_summary">%1$d αποθηκεύτηκαν, %2$d παραλείφθηκαν</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d αποθηκεύτηκε</item>
+        <item quantity="other">%1$d αποθηκεύτηκαν</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d παραλείφθηκε</item>
+        <item quantity="other">%1$d παραλείφθηκαν</item>
+    </plurals>
     <string name="help_home_import">Εισαγωγή εικόνων</string>
     <string name="help_home_import_body">Στο μενού: βαθμολογήστε φωτογραφίες που υπάρχουν ήδη στο τηλέφωνο, από τη συλλογή ή από αρχεία. Κάθε εικόνα σαρώνεται και εμφανίζονται τα αποτελέσματά της, για αποθήκευση ή παράλειψη. Με την Αυτόματη εισαγωγή ενεργή, κάθε εικόνα που βαθμολογείται αποθηκεύεται μόνη της με την ημερομηνία λήψης της φωτογραφίας· οι υπόλοιπες εμφανίζονται μία μία στο τέλος.</string>
     <string name="series_status_phone">Αποθηκεύτηκε σε αυτή τη συσκευή</string>

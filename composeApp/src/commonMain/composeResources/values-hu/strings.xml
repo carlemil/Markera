@@ -329,7 +329,15 @@
     <string name="import_auto_body">Megállás nélkül elment minden értékelhető képet; a többit utána mutatja.</string>
     <string name="import_progress">Importálás %1$d / %2$d</string>
     <string name="import_skip">Kihagyás</string>
-    <string name="import_summary">%1$d mentve, %2$d kihagyva</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d mentve</item>
+        <item quantity="other">%1$d mentve</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d kihagyva</item>
+        <item quantity="other">%1$d kihagyva</item>
+    </plurals>
     <string name="help_home_import">Képek importálása</string>
     <string name="help_home_import_body">A menüben: értékeld a telefonon már meglévő fotókat a galériából vagy a fájlok közül. Minden kép beszkennelődik, és megjelenik az eredménye, amelyet menthetsz vagy kihagyhatsz. Bekapcsolt automatikus importálásnál minden értékelhető kép magától mentődik a fotó készítésének dátumával; a többi utána egyenként jelenik meg.</string>
     <string name="series_status_phone">Ezen az eszközön mentve</string>

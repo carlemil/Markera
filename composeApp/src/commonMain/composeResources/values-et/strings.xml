@@ -329,7 +329,15 @@
     <string name="import_auto_body">Salvestab peatumata iga pildi, millele saab punktid arvutada; ülejäänud näidatakse hiljem.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Jäta vahele</string>
-    <string name="import_summary">%1$d salvestatud, %2$d vahele jäetud</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d salvestatud</item>
+        <item quantity="other">%1$d salvestatud</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d vahele jäetud</item>
+        <item quantity="other">%1$d vahele jäetud</item>
+    </plurals>
     <string name="help_home_import">Impordi pilte</string>
     <string name="help_home_import_body">Menüüs: arvuta punktid telefonis juba olevatele fotodele galeriist või failidest. Iga pilt skannitakse ja tulemus kuvatakse, et saaksid selle salvestada või vahele jätta. Kui Automaatne import on sees, salvestatakse iga pilt, millele saab punktid arvutada, ise koos pildistamise kuupäevaga; ülejäänud näidatakse hiljem ükshaaval.</string>
     <string name="series_status_phone">Salvestatud sellesse seadmesse</string>
