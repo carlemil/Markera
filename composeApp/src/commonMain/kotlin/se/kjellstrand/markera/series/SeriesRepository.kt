@@ -55,6 +55,21 @@ class SeriesRepository(
             withContext(Dispatchers.Default) { keepLocalLocked(request, image, owner).also { reload() } }
         }
 
+    /**
+     * [keepLocal] for the signed-in user: the owner is read under [dbLock], which a sign-in's
+     * [needsDecision] holds from its count through publishing the token, so the sign-in either
+     * counts this row or owns it (#25). Returns the row's id and its stored owner.
+     */
+    suspend fun keepLocalForSignedIn(request: SeriesRequest, image: EncodedImage?): Pair<Long, Long?> =
+        dbLock.withLock {
+            withContext(Dispatchers.Default) {
+                val id = keepLocalLocked(request, image, session.auth.value?.userId)
+                reload()
+                // A repeated save of the same clientId keeps the row's first owner.
+                id to q.localById(id).executeAsOne().owner_user_id?.toLongOrNull()
+            }
+        }
+
     private fun keepLocalLocked(request: SeriesRequest, image: EncodedImage?, owner: Long?): Long {
         val req = if (request.clientId == null) request.copy(clientId = newClientId()) else request
         var id = 0L
@@ -99,10 +114,14 @@ class SeriesRepository(
     private fun offeredLocked(userId: Long) = q.selectLocal().executeAsList()
         .filter { it.owner_user_id != userId.toString() && (it.server_id == null || it.owner_user_id == null) }
 
-    suspend fun claimLocal(userId: Long) = locked {
+    /** With [ids], only those of the offer: the rows the dialog counted (#26). */
+    suspend fun claimLocal(userId: Long, ids: Collection<Long>? = null) = locked {
         adoptLegacyLocked()
-        val offered = offeredLocked(userId)
-        q.transaction { q.claimOffered(userId.toString(), userId.toString()) }
+        val offered = offeredLocked(userId).filter { ids == null || it.local_id in ids }
+        q.transaction {
+            if (ids == null) q.claimOffered(userId.toString(), userId.toString())
+            else offered.forEach { q.claimOfferedId(userId.toString(), it.local_id, userId.toString()) }
+        }
         // Add is an explicit fresh upload to the new account. A refusal already
         // retried for the previous owner must not suppress that choice.
         refusedRetried.removeAll(offered.map { it.local_id }.toSet())
@@ -112,18 +131,26 @@ class SeriesRepository(
         adoptLegacyLocked()
         offeredLocked(userId).size
     }
-    suspend fun deleteOfferedLocal(userId: Long) = locked {
+    /** The ids of [localCount]'s rows, so a decision acts on exactly what it counted (#26). */
+    suspend fun offeredLocal(userId: Long): List<Long> = locked {
         adoptLegacyLocked()
-        offeredLocked(userId).forEach { deleteLocalLocked(it.local_id) }
+        offeredLocked(userId).map { it.local_id }
+    }
+    /** With [ids], only those of the offer: a row saved after the dialog counted is never deleted unseen (#26). */
+    suspend fun deleteOfferedLocal(userId: Long, ids: Collection<Long>? = null) = locked {
+        adoptLegacyLocked()
+        offeredLocked(userId).filter { ids == null || it.local_id in ids }.forEach { deleteLocalLocked(it.local_id) }
         reload()
     }
     suspend fun adoptLegacyOutbox() = locked { adoptLegacyLocked(); reload() }
-    override suspend fun needsDecision(auth: BackendAuth): Int = locked {
+    override suspend fun needsDecision(auth: BackendAuth, publish: suspend () -> Unit): Int = locked {
         adoptLegacyLocked()
         val count = offeredLocked(auth.userId).size
         // A held login is signed out. Do not expose the previous account's read cache
         // behind the dialog or after Stay/dismiss, even if sign-in began while signed in.
-        if (count > 0) wipe()
+        // With nothing to decide, publish before letting go of the store: no local save can
+        // land unowned between this count and the token becoming visible (#25).
+        if (count > 0) wipe() else publish()
         reload()
         count
     }
