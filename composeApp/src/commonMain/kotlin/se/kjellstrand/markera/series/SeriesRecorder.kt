@@ -286,13 +286,14 @@ class SeriesRecorder(
         _status.value = SaveStatus.Saving
         scope.launch(saves) {
             try {
-                val owner = session.auth.value?.userId
                 val encoded = image?.let {
                     try { encodeJpeg(it) }
                     catch (e: CancellationException) { throw e }
                     catch (e: Exception) { ErrorLog.report("image-encode", e); null }
                 }
-                val localId = repository.keepLocal(request, encoded, owner)
+                // The owner is whoever is signed in when the row is stored, not when the save began:
+                // a sign-in publishing meanwhile either counts this row or owns it (#25).
+                val (localId, owner) = repository.keepLocalForSignedIn(request, encoded)
                 // Once durable, a later scan or process loss cannot discard this save.
                 if (pending === p) pending = null
                 local.complete(true)

@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import se.kjellstrand.markera.vision.HitScore
@@ -74,12 +75,17 @@ class SeriesRecorderTest {
         firstStatus: HttpStatusCode? = null,
         storedCustom: List<Caliber> = emptyList(),
         localImages: ImageCache = FakeImageCache(),
+        // Wraps the token store, so a test can hold a sign-in's publication.
+        wrapStore: (BackendTokenStore) -> BackendTokenStore = { it },
     ): SeriesRecorder {
         var posts = 0
         val engine = MockEngine { request ->
             recorded += request
             if (request.url.encodedPath.endsWith("/image")) {
                 respond("", imageStatus)
+            } else if (request.url.encodedPath.startsWith("/auth/")) {
+                respond("""{"token":"tok","userId":1}""", HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
             } else if (request.method == HttpMethod.Get) {
                 // A refresh (the outbox is drained by one): an empty account.
                 respond("[]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
@@ -97,13 +103,14 @@ class SeriesRecorderTest {
         val api = SeriesApi(createSeriesHttpClient(engine), "http://host:8090") { "tok" }
         session = BackendSessionRepository(
             api,
-            InMemoryBackendTokenStore(
+            wrapStore(InMemoryBackendTokenStore(
                 if (signedIn) BackendAuth("tok", 1, "dev") else null,
-            ),
+            )),
         )
         // The recorder saves through the cache now; a real in-memory one, so
         // the request counts below are still exactly what goes over the wire.
         repository = SeriesRepository(api, testSeriesDb(), FakeImageCache(), session, localImages)
+        session.claimGate = repository
         return runBlocking {
             session.restore()
             SeriesRecorder(
@@ -742,5 +749,56 @@ class SeriesRecorderTest {
         val second = recorder.commit(noPicks)
         assertTrue(withTimeout(5_000) { second.await() })
         assertEquals(2, repository.series.first { it.size == 2 }.size)
+    }
+
+    /** #25: a sign-in that lands while a signed-out save is encoding owns that save and sends it. */
+    @Test
+    fun aSaveStartedSignedOutIsOwnedBySignInThatLandsBeforeItIsStored() = runBlocking<Unit> {
+        val recorder = recorder(signedIn = false, stored = Caliber.LR22, encodeJpeg = {
+            session.signInDev("subject") // no local rows yet: published at once, no dialog
+            encoded
+        })
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals(1L, session.auth.value?.userId)
+        assertNull(session.pendingAuth.value)
+        awaitRequests(3) // auth, series POST, photo
+        assertEquals(1, recorded.count { it.url.encodedPath == "/series" && it.method == HttpMethod.Post })
+        assertTrue(repository.series.value.single().id > 0)
+    }
+
+    /**
+     * #25, the publication window: a save stored while the sign-in is still writing its token
+     * (after it counted no local rows) waits for the publication and is owned by it.
+     */
+    @Test
+    fun aSaveStoredWhileSignInPublishesIsOwnedByIt() = runBlocking<Unit> {
+        val writeEntered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val recorder = recorder(
+            signedIn = false, stored = Caliber.LR22,
+            wrapStore = { inner ->
+                object : BackendTokenStore by inner {
+                    override suspend fun write(auth: BackendAuth) {
+                        writeEntered.complete(Unit)
+                        release.await()
+                        inner.write(auth)
+                    }
+                }
+            },
+            encodeJpeg = {
+                scope.launch { session.signInDev("subject") }
+                withTimeout(5_000) { writeEntered.await() }
+                // The store is reached first; the publication finishes a moment later.
+                scope.launch { delay(200); release.complete(Unit) }
+                encoded
+            },
+        )
+        recorder.onSeriesDetected(scores, image, null)
+        recorder.commit(noPicks)
+        assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
+        assertEquals(1L, session.auth.value?.userId)
+        assertTrue(repository.series.value.single().id > 0)
     }
 }

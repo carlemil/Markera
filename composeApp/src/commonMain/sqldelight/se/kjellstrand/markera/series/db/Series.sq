@@ -107,5 +107,10 @@ claimOffered:
 UPDATE local_series SET owner_user_id = ?, state = 'queued', last_status = NULL
 WHERE (owner_user_id IS NULL OR owner_user_id != ?) AND server_id IS NULL;
 
+-- One row of the offer, for a claim limited to the rows the dialog counted.
+claimOfferedId:
+UPDATE local_series SET owner_user_id = ?, state = 'queued', last_status = NULL
+WHERE local_id = ? AND (owner_user_id IS NULL OR owner_user_id != ?) AND server_id IS NULL;
+
 allOutbox:
 SELECT * FROM outbox ORDER BY id;

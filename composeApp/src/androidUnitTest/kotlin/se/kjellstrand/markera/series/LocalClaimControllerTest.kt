@@ -183,6 +183,11 @@ class LocalClaimControllerTest {
             }
             test.runCurrent()
         }
+        suspend fun awaitState(expected: ClaimState) {
+            test.runCurrent()
+            withContext(Dispatchers.Default) { withTimeout(5_000) { controller.state.first { it == expected } } }
+            test.runCurrent()
+        }
         fun assertHeld(count: Int) {
             assertNull(session.auth.value); assertNull(session.currentToken); assertNull(store.saved)
             assertTrue(store.writes.isEmpty()); assertEquals(user, session.pendingAuth.value?.userId)
@@ -348,5 +353,33 @@ class LocalClaimControllerTest {
         assertNull(f.synced.read(900)); assertEquals(listOf(3L), f.snapshot().map { it.local_id })
         assertContentEquals(byteArrayOf(3, 2, 3), f.local.read(3))
         assertTrue(f.posts.all { it.clientId == "claim-3" })
+    }
+
+    /** #26: a series saved after the dialog counted is not deleted with the counted ones; it is asked about next. */
+    @Test fun confirmedDeleteRemovesExactlyTheCountedRowsAndAsksAboutOneSavedLater() = scenario { f ->
+        f.seed(1); f.seed(2); f.seed(3); f.signIn(); f.assertHeld(3)
+        f.seed(4) // a background save lands while the dialog is open
+        f.controller.askDelete(); runCurrent()
+        assertEquals(ClaimState.ConfirmDelete(3), f.controller.state.value)
+        f.controller.confirmDelete(); f.awaitState(ClaimState.Ask(1))
+        assertEquals(listOf(4L), f.snapshot().map { it.local_id })
+        assertEquals(setOf(4L), f.local.files.keys)
+        // Never published over a row nobody decided on.
+        f.assertHeld(1); assertTrue(f.posts.isEmpty())
+        f.controller.staySignedOut(); f.awaitChoiceFinished()
+        assertEquals(listOf(4L), f.snapshot().map { it.local_id }); assertNull(f.store.saved)
+    }
+
+    /** #26, Add: only the counted rows are claimed; a later one gets its own question before auth is published. */
+    @Test fun addClaimsExactlyTheCountedRowsAndAsksAboutOneSavedLater() = scenario { f ->
+        f.seed(1); f.seed(2); f.signIn(); f.assertHeld(2)
+        f.seed(3)
+        f.controller.add(); f.awaitState(ClaimState.Ask(1))
+        assertEquals(listOf("42", "42", null), f.snapshot().map { it.owner_user_id })
+        f.assertHeld(1); assertTrue(f.posts.isEmpty())
+        f.controller.add(); f.awaitChoiceFinished()
+        assertEquals(listOf("claim-1", "claim-2", "claim-3"), f.posts.map { it.clientId })
+        assertTrue(f.snapshot().isEmpty()); assertEquals(42L, f.session.auth.value?.userId)
+        assertNull(f.session.pendingAuth.value); assertEquals(ClaimState.Hidden, f.controller.state.value)
     }
 }

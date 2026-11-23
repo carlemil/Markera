@@ -90,13 +90,22 @@ class BackendSessionRepository(
 ) {
     private val _pendingAuth = MutableStateFlow<BackendAuth?>(null)
     val pendingAuth: StateFlow<BackendAuth?> = _pendingAuth.asStateFlow()
+    /**
+     * Publishes the held login once the decision is carried out. Through the [claimGate], so a row
+     * saved after the dialog counted keeps it held (null is returned) for its own decision (#26).
+     */
     suspend fun confirmPending(): BackendAuth? {
         val pending = _pendingAuth.value ?: return null
-        // Persistence precedes public state: observers may start refresh immediately.
-        store.write(pending)
-        _auth.value = pending
-        _pendingAuth.value = null
-        return pending
+        val publish: suspend () -> Unit = {
+            if (_pendingAuth.value == pending) {
+                // Persistence precedes public state: observers may start refresh immediately.
+                store.write(pending)
+                _auth.value = pending
+                _pendingAuth.value = null
+            }
+        }
+        claimGate?.needsDecision(pending, publish) ?: publish()
+        return pending.takeIf { _pendingAuth.value == null && _auth.value == it }
     }
     suspend fun discardPending() {
         val pending = _pendingAuth.value ?: return
@@ -146,17 +155,17 @@ class BackendSessionRepository(
 
     private suspend fun publish(provider: String, response: BackendAuthResponse): BackendAuth {
         val auth = BackendAuth(response.token, response.userId, provider)
-        if ((claimGate?.needsDecision(auth) ?: 0) > 0) {
+        // With no rows to decide on, the gate publishes while it still holds the local store (#25).
+        val publish: suspend () -> Unit = { store.write(auth); _auth.value = auth }
+        val held = claimGate?.needsDecision(auth, publish) ?: publish().let { 0 }
+        if (held > 0) {
             discardPending()
             // Switching providers/accounts cannot leave the previous login active
             // behind a dialog promising to stay signed out.
             _auth.value = null
             store.clear()
             _pendingAuth.value = auth
-            return auth
         }
-        store.write(auth)
-        _auth.value = auth
         return auth
     }
 }
