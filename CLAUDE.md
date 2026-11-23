@@ -207,7 +207,10 @@ Platform edges stay in `composeApp` as `expect`/`actual`:
   switch them off, and with them an inference at 1536 px left the app at 1.3 GB and the next
   peaked at 2.5 GB (iOS kills the app). Lean, it peaks at about 1.3 GB and settles near 0.6 GB.
   `MemTest.swift` (DEBUG, `SIMCTL_CHILD_MARKERA_MEMTEST=1 xcrun simctl launch --console-pty …`,
-  `=arena` for ORT's defaults) prints the footprint per inference.
+  `=arena` for ORT's defaults) prints the footprint per inference, then after a close and a reopen.
+  Kotlin passes the tensor as a pinned pointer (`HoleModel.run(input: CPointer<FloatVar>, …)`, no
+  NSData copy). `OrtHoleModel` serialises open, run and close on one queue: `HoleDetector.close()`
+  → `markera_ort_close` runs only after an in-flight inference returns, and a later run reopens.
 - The native `OrtSession.run` **can't be aborted**. `uiState.phase` is bridged from a
   StateFlow via `collectAsState` and lags a frame, so detection is guarded by a
   synchronous `AtomicBoolean` (set on the main thread before launch) to prevent

@@ -1,8 +1,7 @@
-@file:OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+@file:OptIn(ExperimentalForeignApi::class)
 
 package se.kjellstrand.markera.vision
 
-import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.FloatVar
 import kotlinx.cinterop.addressOf
@@ -11,8 +10,6 @@ import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.usePinned
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import platform.Foundation.NSData
-import platform.Foundation.create
 import kotlin.time.TimeSource
 
 /**
@@ -30,13 +27,14 @@ actual class HoleDetector actual constructor(
     actual suspend fun detect(inputChw: FloatArray): List<RawDetection> {
         // Throw rather than return nothing, so the scan shows its inference error.
         val model = holeModel ?: error("no HoleModel bound")
+        require(inputChw.size == 3 * inputSize * inputSize) {
+            "input is ${inputChw.size} floats, want 3x${inputSize}x$inputSize"
+        }
         return withContext(Dispatchers.Default) {
-            // NSData.create(bytes:length:) copies, so the pin can end here.
-            val input = inputChw.usePinned {
-                NSData.create(bytes = it.addressOf(0), length = (inputChw.size * 4).toULong())
-            }
             val started = TimeSource.Monotonic.markNow()
-            val out = model.run(input, inputSize)
+            // ORT reads the pinned array in place (no ~28 MB copy), so the pin
+            // must outlive the whole native run.
+            val out = inputChw.usePinned { model.run(it.addressOf(0), inputChw.size, inputSize) }
             println("HoleDetector: inference took ${started.elapsedNow()}")
             // The Swift side returns an empty Data() on any failure.
             if (out.length == 0uL) error("hole model failed")
@@ -46,5 +44,13 @@ actual class HoleDetector actual constructor(
         }
     }
 
-    actual fun close() {}
+    /**
+     * Releases the host's ORT session. The model is shared by the process, so a
+     * later detector (the controller is rebuilt when the tree is re-keyed) reopens
+     * it on its first run. [TargetScanController] only closes once no scan is in
+     * flight, and the host also queues the release behind any running inference.
+     */
+    actual fun close() {
+        holeModel?.close()
+    }
 }
