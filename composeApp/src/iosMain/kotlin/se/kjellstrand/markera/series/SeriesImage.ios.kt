@@ -42,7 +42,7 @@ actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage = withCo
     } else {
         image
     }
-    // Throws rather than uploading an empty body; the recorder logs it and the series stays saved.
+    // Throws rather than storing an empty body; the recorder fails the save and keeps the scan pending.
     val data = UIImageJPEGRepresentation(target, 0.9) ?: error("JPEG encoding failed")
     // The size reported is the *source* one the hole coordinates are in.
     EncodedImage(data.toByteArray(), w, h)

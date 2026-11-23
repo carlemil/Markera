@@ -287,10 +287,12 @@ class SeriesRecorder(
         scope.launch(saves) {
             try {
                 val owner = session.auth.value?.userId
+                // A failed encode fails the save (#4): a series without its photo is shown nowhere
+                // (visibleSeries), so it must not be reported as saved. The scan stays pending.
                 val encoded = image?.let {
                     try { encodeJpeg(it) }
                     catch (e: CancellationException) { throw e }
-                    catch (e: Exception) { ErrorLog.report("image-encode", e); null }
+                    catch (e: Exception) { ErrorLog.breadcrumb("image-encode", "failed: $e"); throw e }
                 }
                 val localId = repository.keepLocal(request, encoded, owner)
                 // Once durable, a later scan or process loss cannot discard this save.

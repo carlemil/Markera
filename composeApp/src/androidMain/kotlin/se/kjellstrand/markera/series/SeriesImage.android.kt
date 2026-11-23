@@ -20,8 +20,10 @@ actual suspend fun encodeSeriesJpeg(image: PlatformImage): EncodedImage =
             image
         }
         ByteArrayOutputStream().use { out ->
-            scaled.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            val ok = scaled.compress(Bitmap.CompressFormat.JPEG, 90, out)
             if (scaled !== image) scaled.recycle()
+            // No photo means no visible series: the recorder fails the save rather than keep it.
+            check(ok && out.size() > 0) { "JPEG encoding failed" }
             // The size reported is the *source* one the hole coordinates are in.
             EncodedImage(out.toByteArray(), image.width, image.height)
         }
