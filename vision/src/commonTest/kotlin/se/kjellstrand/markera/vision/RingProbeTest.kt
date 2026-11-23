@@ -105,6 +105,36 @@ class RingProbeTest {
         assertTrue(abs(e.semiMinor - b) / b <= 0.02, "semiMinor ${e.semiMinor}")
     }
 
+    /** [gray] cut down to its top-left [cw] x [ch]. */
+    private fun crop(cw: Int, ch: Int) = ByteArray(cw * ch) { gray[(it / cw) * w + it % cw] }
+
+    @Test
+    fun `fit67Ring keeps the ring when one probe is cut by the frame edge`() {
+        // The right-hand rim (~1180) sits inside the cut's probe disk, so that disk is only partly on the image:
+        // it is mirrored from its partner, and it reports off-image rather than the share it can half see.
+        val cut = 1190
+        val cropped = crop(cut, h)
+        val digits = digitsOff(listOf(-30.0, 30.0, 30.0, -30.0))
+        val probes = assertNotNull(fit67RingByProbes(cropped, cut, h, digits, centre))
+        assertTrue(probes.probes[1].darkFraction.isNaN(), "cut probe read ${probes.probes[1].darkFraction}")
+        val fit = assertNotNull(fit67Ring(cropped, cut, h, digits, centre))
+        assertTrue(abs(fit.semiMajor - a) / a <= 0.02, "semiMajor ${fit.semiMajor}")
+        assertTrue(abs(fit.semiMinor - b) / b <= 0.02, "semiMinor ${fit.semiMinor}")
+    }
+
+    @Test
+    fun `fit67Ring gives no ring when two probes are cut by the frame edge`() {
+        // Right (~1180) and bottom (~1120) rims both within a probe radius of the cut: at most one may be off-image.
+        val cutX = 1190
+        val cutY = 1130
+        val cropped = crop(cutX, cutY)
+        val digits = digitsOff(listOf(-30.0, 30.0, 30.0, -30.0))
+        val probes = assertNotNull(fit67RingByProbes(cropped, cutX, cutY, digits, centre))
+        assertTrue(probes.probes[1].darkFraction.isNaN(), "right probe read ${probes.probes[1].darkFraction}")
+        assertTrue(probes.probes[3].darkFraction.isNaN(), "bottom probe read ${probes.probes[3].darkFraction}")
+        assertNull(fit67Ring(cropped, cutX, cutY, digits, centre))
+    }
+
     @Test
     fun `fit67Ring takes the probe ellipse when it sits on the rim`() {
         val fit = assertNotNull(fit67Ring(gray, w, h, digitsOff(listOf(-30.0, 30.0, 30.0, -30.0)), centre))

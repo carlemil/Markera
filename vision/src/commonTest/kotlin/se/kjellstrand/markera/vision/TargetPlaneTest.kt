@@ -6,6 +6,7 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -84,5 +85,55 @@ class TargetPlaneTest {
     fun aCentreOutsideTheRingHasNoPlane() {
         val e = FittedEllipse(500f, 400f, 300f, 200f, 0f)
         assertNull(TargetPlane.of(CentreEstimate(900f, 400f, CentreMethod.LINE_INTERSECTION), e))
+    }
+
+    // A hand-placed centre dragged next to the ring: a 200 px circle about (500, 500) with
+    // the centre at (690, 500) puts the vanishing line (the centre's polar) at x ~ 710.5.
+    private val nearRing = FittedEllipse(500f, 500f, 200f, 200f, 0f)
+    private val nearCentre = CentreEstimate(690f, 500f, CentreMethod.MANUAL)
+
+    @Test
+    fun aPointPastTheVanishingLineIsOffTheTarget() {
+        val plane = assertNotNull(TargetPlane.of(nearCentre, nearRing))
+        val (x, y) = plane.toMm(790.0, 500.0)
+        assertTrue(x.isNaN() && y.isNaN(), "past the vanishing line mapped to ($x, $y)")
+        // Between the centre and the line the map still holds.
+        val (ix, iy) = plane.toMm(700.0, 500.0)
+        assertTrue(ix.isFinite() && iy.isFinite(), "inside mapped to ($ix, $iy)")
+    }
+
+    @Test
+    fun aHolePastTheVanishingLineScoresAMiss() {
+        val hole = Detection(785f, 495f, 795f, 505f, 0.9f)
+        val score = scoreHits(listOf(hole), nearCentre, nearRing).single()
+        assertEquals(0, score.ring)
+        assertTrue(!score.isInnerTen)
+    }
+
+    @Test
+    fun aCrossMapGuardsTheVanishingLineOnTheCentresSide() {
+        // The same map rebuilt from its four probe points (fromCross fixes h33, not the centre's sign).
+        val exact = assertNotNull(TargetPlane.of(nearCentre, nearRing))
+        val pts = listOf(-100.0 to 0.0, 100.0 to 0.0, 0.0 to -100.0, 0.0 to 100.0).map { exact.toImage(it.first, it.second) }
+        val plane = assertNotNull(
+            TargetPlane.fromCross(pts.map { it.first }.toDoubleArray(), pts.map { it.second }.toDoubleArray(), 100.0),
+        )
+        val (x, y) = plane.toMm(790.0, 500.0)
+        assertTrue(x.isNaN() && y.isNaN(), "past the vanishing line mapped to ($x, $y)")
+        val (ex, ey) = exact.toMm(600.0, 520.0)
+        val (cx, cy) = plane.toMm(600.0, 520.0)
+        assertEquals(ex, cx, 1e-6)
+        assertEquals(ey, cy, 1e-6)
+    }
+
+    @Test
+    fun handPlacedGeometryIsCheckedLikeAFoundRing() {
+        assertTrue(plausibleGeometry(CentreEstimate(505f, 495f, CentreMethod.MANUAL), nearRing))
+        // The centre dragged up to the ring: the vanishing line runs through the target.
+        assertFalse(plausibleGeometry(nearCentre, nearRing))
+        // A sliver, and a centre outside the ring.
+        assertFalse(plausibleGeometry(CentreEstimate(500f, 500f, CentreMethod.MANUAL), nearRing.copy(semiMinor = 50f)))
+        assertFalse(plausibleGeometry(CentreEstimate(900f, 500f, CentreMethod.MANUAL), nearRing))
+        assertFalse(plausibleGeometry(CentreEstimate(500f, 500f, CentreMethod.MANUAL), nearRing.copy(semiMajor = 0f)))
     }
 }

@@ -272,11 +272,11 @@ fun MarkeraScreen(
                     importing = importQueue != null,
                     placing = placing != null,
                     onManualMark = { placing = initialGeometryDraft(uiState) },
-                    canFinishPlacing = placing?.ring != null,
+                    canFinishPlacing = placing?.usable == true,
                     onPlaceDone = {
                         val d = placing
                         val ring = d?.ring
-                        if (d != null && ring != null) {
+                        if (d != null && ring != null && d.usable) {
                             edited = true
                             scanController.applyManualGeometry(viewModel, snapshotVm.snapshot, d.centre, ring)
                             placing = null

@@ -2,9 +2,16 @@ package se.kjellstrand.markera.ui.markera
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import se.kjellstrand.markera.series.Caliber
+import se.kjellstrand.markera.series.GeometryDto
+import se.kjellstrand.markera.series.HoleDto
+import se.kjellstrand.markera.series.restoreHole
+import se.kjellstrand.markera.series.scoreHoleAt
+import se.kjellstrand.markera.series.seriesJson
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
@@ -76,6 +83,33 @@ class ManualGeometryTest {
     fun threePointsInALineMakeNoRing() {
         val draft = GeometryDraft.circle(500f, 500f, 300f, centreFixed = false).withPoint(2, 500f, 500f)
         assertNull(draft.ring)
+    }
+
+    @Test
+    fun aCentreDraggedUpToTheRingCannotBeFinished() {
+        val draft = GeometryDraft.circle(500f, 500f, 200f, centreFixed = false)
+        assertTrue(draft.usable)
+        assertTrue(draft.withCentre(510f, 490f).usable)
+        // Next to the rim the vanishing line (x ~ 710) runs through the target face.
+        val dragged = draft.withCentre(690f, 500f)
+        assertNotNull(dragged.ring)
+        assertFalse(dragged.usable)
+        assertFalse(GeometryDraft.circle(500f, 500f, 300f, centreFixed = false).withPoint(2, 500f, 500f).usable)
+    }
+
+    @Test
+    fun aHolePastTheVanishingLineIsAMissWithNoDistanceAndStillSaves() {
+        // A stored series whose centre sits next to the ring: a hole beyond the line used to map
+        // mirrored onto the face and score a 5.
+        val geometry = GeometryDto(690.0, 500.0, 500.0, 500.0, 200.0, 200.0, 0.0)
+        val hole = geometry.scoreHoleAt(790.0, 500.0, Caliber.NONE)
+        assertEquals(0, hole.ring)
+        assertFalse(hole.innerTen)
+        assertNull(hole.distanceMm)
+        assertTrue(seriesJson.encodeToString(HoleDto.serializer(), hole).isNotEmpty())
+        val restored = listOf(hole.copy(detectedRing = 0, detectedInnerTen = false, detectedX = 790.0, detectedY = 500.0))
+            .restoreHole(0, geometry)
+        assertNull(restored.single().distanceMm)
     }
 
     @Test

@@ -19,7 +19,10 @@ data class RingProbe(
     val startY: Float,
     val x: Float,
     val y: Float,
-    /** Fraction of the disk's pixels at or below the Otsu threshold at the final position (NaN when off-image). */
+    /**
+     * Fraction of the disk's pixels at or below the Otsu threshold at the final position; NaN when
+     * off-image, i.e. the disk is not wholly on the frame (it is then mirrored from its partner).
+     */
     val darkFraction: Float,
     val iterations: Int,
 )
@@ -58,9 +61,25 @@ internal fun plausible67(
     seed: FittedEllipse?,
 ): Boolean = fractions.count { it.isNaN() } <= 1 &&
     fractions.all { it.isNaN() || abs(it - 0.5f) <= 0.15f } &&
-    hypot(e.cx - centre.x, e.cy - centre.y) <= 0.25f * e.semiMajor &&
-    e.semiMinor / e.semiMajor >= 0.3f &&
+    centredAndRound(e, centre) &&
     (seed == null || e.semiMajor in 0.5f * seed.semiMajor..1.7f * seed.semiMajor)
+
+/** The ellipse centre within 0.25 x semiMajor of the digit [centre], and not a sliver (minor/major >= 0.3). */
+private fun centredAndRound(e: FittedEllipse, centre: CentreEstimate): Boolean =
+    e.semiMajor > 0f &&
+        hypot(e.cx - centre.x, e.cy - centre.y) <= 0.25f * e.semiMajor &&
+        e.semiMinor / e.semiMajor >= 0.3f
+
+/**
+ * A hand-placed 6/7 [ring] and [centre] the scoring can trust: [fit67Ring]'s shape gates (ellipse
+ * centre near the centre, not a sliver), plus a [TargetPlane] whose vanishing line stays outside the
+ * whole target (the 1 ring's circle still maps to an ellipse). A centre dragged up to the ring pulls
+ * that line onto the target, and a hole beyond it would map mirrored back onto the face.
+ */
+fun plausibleGeometry(centre: CentreEstimate, ring: FittedEllipse): Boolean =
+    ring.semiMinor > 0f &&
+        centredAndRound(ring, centre) &&
+        TargetPlane.of(centre, ring)?.circleOutline(RING_RADII_MM.last()) != null
 
 /**
  * A 6/7 circle from the recognised ring digits, at the digit [centre] (never
@@ -171,19 +190,22 @@ fun fit67RingByProbes(
         }
         finalX[i] = cx + s * ux
         finalY[i] = cy + s * uy
-        val frac = darkFraction(gray, width, height, finalX[i], finalY[i], rho, threshold)
+        // Off-image means not wholly on the frame: a cut disk reads a share of the pixels it can see,
+        // not the rim, so it reports NaN like a disk wholly off, and [plausible67] counts both alike.
+        val frac = if (diskInFrame(finalX[i], finalY[i], rho, width, height)) {
+            darkFraction(gray, width, height, finalX[i], finalY[i], rho, threshold)
+        } else {
+            null
+        }
         RingProbe(
             (cx + start * ux).toFloat(), (cy + start * uy).toFloat(),
             finalX[i].toFloat(), finalY[i].toFloat(),
             frac?.toFloat() ?: Float.NaN, iterations,
         )
     }
-    // A disk even partly off the frame reads a share of the pixels it can see, not the rim. Its partner
-    // across the centre measures the same semi-diameter, so it is mirrored through the digit centre;
-    // with both of a pair off there is no ring.
-    val inFrame = BooleanArray(4) {
-        finalX[it] - rho >= 0 && finalX[it] + rho <= width - 1 && finalY[it] - rho >= 0 && finalY[it] + rho <= height - 1
-    }
+    // An off-image probe's partner across the centre measures the same semi-diameter, so it is
+    // mirrored through the digit centre; with both of a pair off there is no ring.
+    val inFrame = BooleanArray(4) { diskInFrame(finalX[it], finalY[it], rho, width, height) }
     for (i in 0 until 4) {
         val partner = i xor 1
         if (inFrame[i]) continue
@@ -237,6 +259,10 @@ private fun sideDistance(
     val dist = values.indices.map { dists[it] / (1.0 - (values[it] - 6.5) * q) }.average()
     return doubleArrayOf(dist, q * dist)
 }
+
+/** The probe disk at ([x],[y]) of radius [rho] lies wholly on the [width] x [height] frame. */
+private fun diskInFrame(x: Double, y: Double, rho: Double, width: Int, height: Int): Boolean =
+    x - rho >= 0 && x + rho <= width - 1 && y - rho >= 0 && y + rho <= height - 1
 
 /** Share of pixels (centre inside the disk) at or below [threshold] (Otsu foreground); null when the disk is off-image. */
 private fun darkFraction(
