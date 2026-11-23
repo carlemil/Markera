@@ -1,5 +1,6 @@
 package markera.server
 
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.OutputStream
 import java.util.Locale
@@ -37,6 +38,8 @@ data class SeriesTraining(
     val labels: List<PositiveLabel>,
     val negatives: List<NegativeBox>,
     val nudges: List<NudgedBox>,
+    /** One line per hole whose stored box or confidence could not be one and was set aside (see [classifySeries]). */
+    val rejected: List<String> = emptyList(),
 )
 
 /** Nominal bullet diameters in mm, the app's `Caliber` table: the server only needs them for the fallback box. */
@@ -58,6 +61,11 @@ private const val BLACK_RING_RADIUS_MM = 100.0
  * - A detection removed by the user ([Hole.deleted]), dragged more than one hole diameter, or scored 0 by hand
  *   is a false positive at the detector's position. A dragged one is also a label where it now sits.
  * - A detection dragged less than a diameter is a [NudgedBox].
+ *
+ * A stored box with a side that is not positive or is larger than the frame, or a confidence outside 0..1, is
+ * treated as never stored (the caliber-sized box, no confidence) and listed in [SeriesTraining.rejected],
+ * rather than being clipped to the whole frame or silently dropped. Series saved since issue #41 cannot hold
+ * one; older rows can.
  */
 fun classifySeries(series: Series): SeriesTraining? {
     val width = series.imageWidth?.takeIf { it > 0 } ?: return null
@@ -82,7 +90,13 @@ fun classifySeries(series: Series): SeriesTraining? {
     val labels = mutableListOf<PositiveLabel>()
     val negatives = mutableListOf<NegativeBox>()
     val nudges = mutableListOf<NudgedBox>()
-    for (h in series.holes) {
+    val rejected = mutableListOf<String>()
+    for ((index, stored) in series.holes.withIndex()) {
+        val h = plausibleBox(stored, width, height)
+        if (h != stored) {
+            rejected += "hole $index: box ${stored.detectedW} x ${stored.detectedH} conf ${stored.detectedConf} " +
+                "in a $width x $height frame set aside"
+        }
         val dx = h.detectedX
         val dy = h.detectedY
         val detectedBox = if (dx != null && dy != null) box(dx, dy, h.detectedW, h.detectedH) else null
@@ -111,7 +125,20 @@ fun classifySeries(series: Series): SeriesTraining? {
             }
         }
     }
-    return SeriesTraining(series.id, labels, negatives, nudges)
+    return SeriesTraining(series.id, labels, negatives, nudges, rejected)
+}
+
+/** [hole] without a stored box that cannot fit a [width] x [height] frame, and without a confidence outside 0..1. */
+private fun plausibleBox(hole: Hole, width: Int, height: Int): Hole {
+    fun bad(side: Double?, limit: Int) = side != null && !(side > 0.0 && side <= limit)
+    val badBox = bad(hole.detectedW, width) || bad(hole.detectedH, height)
+    val badConf = hole.detectedConf?.let { !(it in 0.0..1.0) } == true
+    if (!badBox && !badConf) return hole
+    return hole.copy(
+        detectedW = if (badBox) null else hole.detectedW,
+        detectedH = if (badBox) null else hole.detectedH,
+        detectedConf = if (badConf) null else hole.detectedConf,
+    )
 }
 
 /** A caliber-sized hole box side in source px: the caliber's diameter at the scan's scale, else 3% of the frame. */
@@ -160,6 +187,8 @@ fun dataYaml(): String = buildString {
  * Streams the zip: `images/<id>.jpg`, `labels/<id>.txt`, `negatives.csv`, `nudges.csv` and `data.yaml`. A series
  * is in it when it is classifiable and [image] finds its photo.
  */
+private val log = LoggerFactory.getLogger("markera.server.TrainingExport")
+
 fun writeTrainingZip(out: OutputStream, series: Sequence<Series>, image: (Long) -> File?) {
     val written = mutableListOf<SeriesTraining>()
     ZipOutputStream(out).use { zip ->
@@ -171,6 +200,7 @@ fun writeTrainingZip(out: OutputStream, series: Sequence<Series>, image: (Long) 
         for (s in series) {
             val training = classifySeries(s) ?: continue
             val file = image(s.id)?.takeIf { it.isFile } ?: continue
+            for (line in training.rejected) log.warn("training export, series {}: {}", s.id, line)
             zip.putNextEntry(ZipEntry("images/${s.id}.jpg"))
             file.inputStream().use { it.copyTo(zip) }
             zip.closeEntry()

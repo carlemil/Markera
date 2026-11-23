@@ -1093,6 +1093,49 @@ class ApiTest {
         assertEquals(HttpStatusCode.Created, ok.status, ok.bodyAsText())
     }
 
+    /**
+     * Issue #41: a detector box that cannot be one (size not positive or past [MAX_DETECTED_BOX_PX], confidence
+     * outside 0..1) is dropped, not stored: the series still saves, and the export then uses the caliber box.
+     */
+    @Test
+    fun implausibleDetectorBoxesAreNulledNotStored() = apiTest { client ->
+        val me = client.devAuth("me")
+        val base = Hole(100.0, 200.0, 9, false, 31.2, 9, false, 100.0, 200.0)
+        val good = base.copy(detectedW = 24.0, detectedH = 22.0, detectedConf = 0.75)
+        val holes = listOf(
+            good,
+            base.copy(detectedW = -5.0, detectedH = 20.0, detectedConf = 0.5),               // negative width
+            base.copy(detectedW = 20.0, detectedH = 0.0, detectedConf = 0.5),                // zero height
+            base.copy(detectedW = 1e9, detectedH = 20.0, detectedConf = 0.5),                // absurdly large
+            base.copy(detectedW = 20.0, detectedH = 20.0, detectedConf = 1.5),               // conf above 1
+            base.copy(detectedW = 20.0, detectedH = 20.0, detectedConf = -0.1),              // conf below 0
+            base.copy(detectedW = MAX_DETECTED_BOX_PX, detectedH = 1.0, detectedConf = 1.0), // the limits are fine
+        )
+        val expected = listOf(
+            good,
+            base.copy(detectedConf = 0.5),
+            base.copy(detectedConf = 0.5),
+            base.copy(detectedConf = 0.5),
+            base.copy(detectedW = 20.0, detectedH = 20.0),
+            base.copy(detectedW = 20.0, detectedH = 20.0),
+            holes.last(),
+        )
+        val response = client.post("/series") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series().copy(holes = holes))
+        }
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val id = response.body<IdResponse>().id
+        assertEquals(expected, client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes)
+
+        // An edit goes through the same gate.
+        val edited = client.put("/series/$id") {
+            bearerAuth(me.token); contentType(ContentType.Application.Json)
+            setBody(series().copy(holes = listOf(good.copy(detectedW = 0.0, detectedConf = 2.0))))
+        }
+        assertEquals(HttpStatusCode.NoContent, edited.status, edited.bodyAsText())
+        assertEquals(listOf(base), client.get("/series") { bearerAuth(me.token) }.body<List<Series>>().single().holes)
+    }
+
     /** No vocabulary on the server: every label the app has, and one it has not yet, are all just labels. */
     @Test
     fun calibersAreCheckedByShape() = apiTest { client ->
