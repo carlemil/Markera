@@ -112,8 +112,8 @@ const val MAX_DELETED_HOLES = 200
 
 /**
  * The largest detector box side (source px) a request may store. The frame size only arrives later, with the
- * photo, so this is the largest frame the app makes (an iOS import is at most 4096 px); the export then checks
- * each box against the series' actual frame.
+ * photo, so this is a generous fixed cap (no hole box comes near a whole frame; an iOS import is at most
+ * 4096 px); the export then checks each box against the series' actual frame.
  */
 const val MAX_DETECTED_BOX_PX = 4096.0
 
