@@ -188,7 +188,7 @@ fun StatsScreen(
     }
 
     val filter = remember(selection) {
-        // The picker's custom range is whole UTC days; the Serie page's days are the phone's own,
+        // Both windows are the phone's own days; the Serie page's day keeps its own window
         // for as long as the dates are the ones it opened with, whatever else is picked.
         val (from, to) = if (
             insightsDay != null && selection.preset == DatePreset.CUSTOM &&

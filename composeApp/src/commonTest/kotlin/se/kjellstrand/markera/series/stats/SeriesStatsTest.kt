@@ -266,6 +266,18 @@ class SeriesStatsTest {
     }
 
     @Test
+    fun `a custom range covers the phone local days not UTC days`() {
+        // The picker means 2026-11-19 .. 2026-11-20 and hands over UTC-midnight millis.
+        val zone = TimeZone.of("America/New_York") // UTC-5 in November.
+        val start = Instant.parse("2026-11-19T00:00:00Z").toEpochMilliseconds()
+        val end = Instant.parse("2026-11-20T00:00:00Z").toEpochMilliseconds()
+        val now = Instant.parse("2026-11-23T12:00:00Z")
+        val (from, to) = DatePreset.CUSTOM.window(start to end, now, zone)
+        assertEquals(Instant.parse("2026-11-19T05:00:00Z"), from) // Nov 19, 00:00 local.
+        assertEquals(Instant.parse("2026-11-21T04:59:59.999Z"), to) // Nov 20, 23:59:59.999 local.
+    }
+
+    @Test
     fun withinDropsHitsOutsideTheRingButKeepsTheSeries() {
         val plotted = listOf(
             series(1, holes = listOf(hole(510.0, 500.0, 10), hole(560.0, 500.0, 8))),

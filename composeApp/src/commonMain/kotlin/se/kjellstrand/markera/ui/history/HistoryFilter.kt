@@ -23,8 +23,12 @@ data class HistoryFilter(
 
 /** Keeps [SeriesDto.timestamp] order (newest first); caliber, tag and date combine with AND. */
 @OptIn(ExperimentalTime::class)
-fun List<SeriesDto>.filteredBy(filter: HistoryFilter, now: Instant): List<SeriesDto> {
-    val (from, to) = filter.preset.window(filter.customRange, now)
+fun List<SeriesDto>.filteredBy(
+    filter: HistoryFilter,
+    now: Instant,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+): List<SeriesDto> {
+    val (from, to) = filter.preset.window(filter.customRange, now, zone)
     return this.filter { series ->
         if (filter.calibers.isNotEmpty() && Caliber.fromLabel(series.caliber) !in filter.calibers) {
             return@filter false

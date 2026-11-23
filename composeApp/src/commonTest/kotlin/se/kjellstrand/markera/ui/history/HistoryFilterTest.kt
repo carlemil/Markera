@@ -59,7 +59,19 @@ class HistoryFilterTest {
         val lateOnEndDay = series(1, timestamp = "2026-09-06T23:59:59Z")
         val nextDay = series(2, timestamp = "2026-09-07T00:00:01Z")
         val filter = HistoryFilter(preset = DatePreset.CUSTOM, customRange = start to end)
-        val kept = listOf(lateOnEndDay, nextDay).filteredBy(filter, now)
+        val kept = listOf(lateOnEndDay, nextDay).filteredBy(filter, now, TimeZone.UTC)
+        assertEquals(listOf(1L), kept.map { it.id })
+    }
+
+    @Test
+    fun `a custom range keeps the evening of the picked local day`() {
+        // 2026-11-20 picked in New York (UTC-5): 20:00 local that day is 01:00Z the next day.
+        val day = Instant.parse("2026-11-20T00:00:00Z").toEpochMilliseconds()
+        val zone = TimeZone.of("America/New_York")
+        val eveningOfDay = series(1, timestamp = "2026-11-21T01:00:00Z")
+        val eveningBefore = series(2, timestamp = "2026-11-20T01:00:00Z")
+        val filter = HistoryFilter(preset = DatePreset.CUSTOM, customRange = day to day)
+        val kept = listOf(eveningOfDay, eveningBefore).filteredBy(filter, now, zone)
         assertEquals(listOf(1L), kept.map { it.id })
     }
 
