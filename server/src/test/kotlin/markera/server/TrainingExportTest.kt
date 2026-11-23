@@ -99,6 +99,38 @@ class TrainingExportTest {
         assertTrue(s.negatives.isEmpty(), s.negatives.toString())
     }
 
+    /** Issue #41: rows stored before validation may still hold such boxes; they are reported, never clipped. */
+    @Test
+    fun aStoredBoxThatCannotBeOneFallsBackToTheCaliberBoxAndIsReported() {
+        val s = classifySeries(
+            series(
+                detected(100.0, 50.0, w = 5000.0, h = 20.0),               // wider than the 1000 px frame
+                detected(300.0, 50.0, w = -20.0, h = 20.0, conf = 3.0, deleted = true), // negative, conf past 1
+                detected(500.0, 50.0, w = 20.0, h = 600.0),                 // taller than the 500 px frame
+                detected(700.0, 50.0, conf = -0.5),                        // only the confidence is bad
+            ),
+        )!!
+        // 9 mm at 2 px/mm = 18.04 px: the caliber box, not the full frame.
+        assertEquals(3, s.labels.size)
+        assertEquals(0.01804, s.labels[0].box.w, 1e-9)
+        assertEquals(0.03608, s.labels[1].box.h, 1e-9)
+        assertEquals(ExportBox(0.7, 0.1, 0.02, 0.04), s.labels[2].box)
+        val negative = s.negatives.single()
+        assertEquals("deleted", negative.reason)
+        assertEquals(0.01804, negative.box.w, 1e-9)
+        assertNull(negative.conf)
+        assertEquals(4, s.rejected.size, s.rejected.toString())
+        assertTrue(s.rejected.all { it.startsWith("hole ") }, s.rejected.toString())
+    }
+
+    @Test
+    fun aRejectedBoxDoesNotDecideWhetherADragWasFar() {
+        // Dragged 100 px with a stored 5000 px box: the bad size must not swallow the drag into a nudge.
+        val s = classifySeries(series(detected(300.0, 50.0, atX = 200.0, atY = 50.0, w = 5000.0, h = 5000.0)))!!
+        assertEquals(listOf("moved"), s.negatives.map { it.reason })
+        assertTrue(s.nudges.isEmpty())
+    }
+
     @Test
     fun aSeriesWithoutAFrameSizeCannotBePlaced() {
         assertNull(classifySeries(series(detected(1.0, 1.0)).copy(imageWidth = null)))

@@ -111,6 +111,13 @@ const val MAX_HOLES = 50
 const val MAX_DELETED_HOLES = 200
 
 /**
+ * The largest detector box side (source px) a request may store. The frame size only arrives later, with the
+ * photo, so this is the largest frame the app makes (an iOS import is at most 4096 px); the export then checks
+ * each box against the series' actual frame.
+ */
+const val MAX_DETECTED_BOX_PX = 4096.0
+
+/**
  * Series one user may create per 24 h; each can carry a [MAX_IMAGE_BYTES] image, so this also caps the disk
  * one account can fill in a day (~3 GB). A busy range day is a few dozen.
  */
@@ -489,7 +496,32 @@ internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
     return true
 }
 
-internal suspend fun RoutingContext.receiveSeries(): SeriesRequest? = receiveCapped(MAX_SERIES_BYTES)
+internal suspend fun RoutingContext.receiveSeries(): SeriesRequest? =
+    receiveCapped<SeriesRequest>(MAX_SERIES_BYTES)?.withPlausibleDetectorBoxes()
+
+/**
+ * Drops detector box fields that cannot describe a box: a side not in (0, [MAX_DETECTED_BOX_PX]] nulls both
+ * sides (half a box would mix the detector's size with the export's caliber fallback), a confidence outside
+ * 0..1 nulls just the confidence. Nulled rather than refused: the box only feeds the training export, so a bad
+ * one must not cost the user an otherwise good series, and an app build that sends one keeps saving. A null box
+ * is exactly what an old app build sends, so every reader already handles it. Non-finite values are left for
+ * [invalid] to refuse, as before.
+ */
+internal fun SeriesRequest.withPlausibleDetectorBoxes(): SeriesRequest =
+    copy(holes = holes.map { it.withPlausibleDetectorBox() })
+
+private fun Double.implausibleSide() = isFinite() && (this <= 0.0 || this > MAX_DETECTED_BOX_PX)
+
+internal fun Hole.withPlausibleDetectorBox(): Hole {
+    val badBox = detectedW?.implausibleSide() == true || detectedH?.implausibleSide() == true
+    val badConf = detectedConf?.let { it.isFinite() && it !in 0.0..1.0 } == true
+    if (!badBox && !badConf) return this
+    return copy(
+        detectedW = if (badBox) null else detectedW,
+        detectedH = if (badBox) null else detectedH,
+        detectedConf = if (badConf) null else detectedConf,
+    )
+}
 
 /**
  * A JSON body capped at [max] bytes by its declared length (411 without one, 413 over it; null then).
