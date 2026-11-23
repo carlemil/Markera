@@ -7,12 +7,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -153,13 +155,15 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
         val topOffsetPx = with(density) { MenuTopOffset.toPx() }
         // The rows open towards the middle: a button on the left gets its labels to
         // the right (as in FieldShootingTimer), one on the right gets them to the left.
-        val fromStart = anchor.center.x < constraints.maxWidth / 2f
-        val align = if (fromStart) Alignment.TopStart else Alignment.TopEnd
+        // The anchor is in absolute root coordinates, so the alignment, padding and the
+        // row's order are absolute too: start/end would mirror them in right-to-left languages.
+        val onLeft = anchor.center.x < constraints.maxWidth / 2f
+        val align = if (onLeft) AbsoluteAlignment.TopLeft else AbsoluteAlignment.TopRight
         val edgePadding = with(density) {
-            if (fromStart) {
-                PaddingValues(start = anchor.left.coerceAtLeast(0f).toDp())
+            if (onLeft) {
+                Modifier.absolutePadding(left = anchor.left.coerceAtLeast(0f).toDp())
             } else {
-                PaddingValues(end = (constraints.maxWidth - anchor.right).coerceAtLeast(0f).toDp())
+                Modifier.absolutePadding(right = (constraints.maxWidth - anchor.right).coerceAtLeast(0f).toDp())
             }
         }
         host.items.forEachIndexed { index, item ->
@@ -171,10 +175,11 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
                 }
             }
             Row(
+                horizontalArrangement = Arrangement.Absolute.Left,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .align(align)
-                    .padding(edgePadding)
+                    .then(edgePadding)
                     .offset { IntOffset(0, (anchor.top + targetY * progress).roundToInt()) }
                     // Saturate at half the travel: the underdamped spring overshoots
                     // around 1.0, and an alpha oscillating across 1.0 flickers.
@@ -182,7 +187,7 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
                     .alpha(if (item.enabled) 1f else 0.38f)
                     .clickable(interactionSource = null, indication = null, onClick = rowClick),
             ) {
-                if (fromStart) {
+                if (onLeft) {
                     MenuButton(icon = item.icon, label = item.label, onClick = rowClick)
                     Spacer(Modifier.width(MenuItemSpacing))
                 }
@@ -196,7 +201,7 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
                         .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 )
-                if (!fromStart) {
+                if (!onLeft) {
                     Spacer(Modifier.width(MenuItemSpacing))
                     MenuButton(icon = item.icon, label = item.label, onClick = rowClick)
                 }
@@ -208,7 +213,7 @@ fun BoxScope.MenuOverlay(host: MenuHost) {
             label = stringResource(Res.string.menu),
             modifier = Modifier
                 .align(align)
-                .padding(edgePadding)
+                .then(edgePadding)
                 .offset { IntOffset(0, anchor.top.roundToInt()) },
         ) { host.close() }
     }

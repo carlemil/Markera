@@ -1777,6 +1777,43 @@ class AppUiTest {
         assertMenu("Settings")
     }
 
+    /**
+     * In a right-to-left language (Arabic, picked in-app) the open menu's close button and
+     * row buttons sit on the menu button's own side of the screen, with each label towards the
+     * middle (issue #19: they were mirrored to the opposite edge).
+     */
+    @Test fun rtlMenuOpensOnTheMenuButtonsSide() {
+        // The Arabic strings from values-ar: the menu button and the last two rows.
+        val menu = "القائمة"
+        val rowLabels = listOf("اقتراح", "الإعدادات")
+        launch(signedIn = true, store = MemoryStore(null, language = "ar"))
+        val overlay = hasAnyAncestor(hasTestTag(MENU_OVERLAY_TAG))
+        val barButton = hasContentDescription(menu) and !overlay
+        waitFor(barButton, "the Arabic menu button")
+        rule.onAllNodes(barButton, useUnmergedTree = true)[0].performClick()
+        rowLabels.forEach { waitFor(hasText(it) and overlay, "the menu's \"$it\"") }
+        rule.waitForIdle()
+
+        fun bounds(matcher: SemanticsMatcher) =
+            rule.onAllNodes(matcher, useUnmergedTree = true)[0].fetchSemanticsNode().boundsInRoot
+        val width = bounds(hasTestTag(MENU_OVERLAY_TAG)).width
+        val anchor = bounds(barButton)
+        val onLeft = anchor.center.x < width / 2f
+        val slack = 4f
+        val close = bounds(hasContentDescription(menu) and overlay)
+        assertEquals("The close button must cover the menu button", anchor.center.x, close.center.x, slack)
+        rowLabels.forEach { label ->
+            val button = bounds(hasContentDescription(label) and overlay)
+            val text = bounds(hasText(label) and overlay)
+            assertEquals("\"$label\"'s button must sit under the menu button", anchor.center.x, button.center.x, slack)
+            if (onLeft) {
+                assertTrue("\"$label\"'s text must be right of its button", text.left >= button.right)
+            } else {
+                assertTrue("\"$label\"'s text must be left of its button", text.right <= button.left)
+            }
+        }
+    }
+
     /** Each menu item goes where it says. */
     @Test fun menuItemsGoWhereTheySay() {
         launch(signedIn = true)
