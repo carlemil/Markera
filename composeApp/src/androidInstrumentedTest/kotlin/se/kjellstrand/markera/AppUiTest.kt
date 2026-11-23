@@ -1269,7 +1269,8 @@ class AppUiTest {
         assertEquals(0, posted.size)
         // Storage works again: the same scan saves.
         blocker.delete()
-        save()
+        // Through semantics: the failure toast may still cover the button row.
+        rule.onAllNodes(button("Save"))[0].performSemanticsAction(SemanticsActions.OnClick)
         waitForExact("Saved")
         assertEquals(1, waitForPosts(1).size)
         waitForButton(button("Detect"), "Detect, back on the live view")

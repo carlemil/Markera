@@ -337,15 +337,17 @@ class SeriesRecorder(
             } catch (e: Exception) {
                 // Encoding or durable storage failed: retain the scan for Save again. Marked, and
                 // no longer in flight, before the waiter wakes, so it sees why and can retry at once.
+                // The status goes first, too, so it cannot overwrite a retry's Saving.
+                _status.value = SaveStatus.Failed(e)
                 if (!local.isCompleted) {
                     p.failed = true
                     if (inFlight === p) inFlight = null
                 }
                 local.complete(false)
-                _status.value = SaveStatus.Failed(e)
             } finally {
                 local.complete(false) // a cancelled save is not kept; never leave a waiter hanging or throwing
-                if (inFlight === p) inFlight = null
+                // Only this attempt's own: a retry already under way keeps its in-flight mark.
+                if (inFlight === p && p.local === local) inFlight = null
             }
         }
     }
