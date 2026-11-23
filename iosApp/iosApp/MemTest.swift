@@ -47,15 +47,30 @@ enum MemTest {
         }
         timer.resume()
 
-        for pass in 1...4 {
-            let input = Data(count: 3 * inputSize * inputSize * 4)
+        let floats = 3 * inputSize * inputSize
+        func pass(_ label: String) {
+            let input = UnsafeMutablePointer<Float>.allocate(capacity: floats)
+            input.initialize(repeating: 0, count: floats)
+            defer { input.deallocate() }
             let started = Date()
-            let out = model.run(input: input, inputSize: Int32(inputSize))
+            let out = model.run(input: UnsafeMutableRawPointer(input), inputFloats: Int32(floats),
+                                inputSize: Int32(inputSize))
             // Per-pass peak: a footprint that keeps climbing from pass to pass is a leak.
             lock.lock(); let soFar = peak; peak = 0; overall = max(overall, soFar); lock.unlock()
-            print(String(format: "MEMTEST inference %d: %.1f s, %d output bytes, peak %.0f MB, after %.0f MB",
-                         pass, Date().timeIntervalSince(started), out.count, soFar, footprintMB()))
+            print(String(format: "MEMTEST inference %@: %.1f s, %d output bytes, peak %.0f MB, after %.0f MB",
+                         label, Date().timeIntervalSince(started), out.count, soFar, footprintMB()))
         }
+        for n in 1...4 { pass("\(n)") }
+        // close() releases the session (queued behind any run); the next run reopens it.
+        model.close()
+        model.drain()
+        print(String(format: "MEMTEST closed: %.0f MB", footprintMB()))
+        _ = model.session()
+        print(String(format: "MEMTEST reopened: %.0f MB", footprintMB()))
+        pass("after reopen")
+        model.close()
+        model.drain()
+        print(String(format: "MEMTEST closed again: %.0f MB", footprintMB()))
         timer.cancel()
         print(String(format: "MEMTEST done: peak %.0f MB, settled %.0f MB", overall, footprintMB()))
     }
