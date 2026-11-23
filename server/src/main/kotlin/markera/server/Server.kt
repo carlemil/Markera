@@ -295,6 +295,8 @@ fun Application.markeraModule(
     mailer: Mailer? = config.smtp?.let(::SmtpMailer),
     /** Counts wrong admin passwords; tests substitute one with their own clock. */
     adminThrottle: AdminLoginThrottle = AdminLoginThrottle(),
+    /** Writes an uploaded photo's temp file ([Db.storePhoto]'s seam); tests substitute a slow one. */
+    writeUpload: (java.nio.file.Path, ByteArray) -> Unit = { path, data -> java.nio.file.Files.write(path, data) },
 ) {
     install(SecurityHeaders)
     install(ContentNegotiation) { json() }
@@ -562,7 +564,7 @@ fun Application.markeraModule(
             val height = call.request.queryParameters["height"]?.toIntOrNull()?.takeIf { it > 0 }
             val actor = AuditActor.app(authenticate(db) ?: return@post)
             // File I/O (up to 10 MB, a backup copy, hashing): off the request thread and outside the DB lock.
-            withContext(Dispatchers.IO) { db.storePhoto(images, seriesId, bytes, width, height, actor) }
+            withContext(Dispatchers.IO) { db.storePhoto(images, seriesId, bytes, width, height, actor, writeUpload) }
             call.respond(HttpStatusCode.NoContent)
         }
 
