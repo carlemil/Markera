@@ -390,15 +390,15 @@ class SeriesRepository(
      * a Serie page opened on the local series still holds `-localId`. Guarded by [dbLock]; never
      * reused, since `local_id` is AUTOINCREMENT.
      */
-    private val acknowledged = mutableMapOf<Long, Long>()
+    private val serverIds = mutableMapOf<Long, Long>()
     private val _acknowledgedIds = MutableStateFlow<Map<Long, Long>>(emptyMap())
 
     /** `localId -> serverId` for local series the server has taken: the Serie page follows it. */
     val acknowledgedIds: StateFlow<Map<Long, Long>> = _acknowledgedIds.asStateFlow()
 
     private fun rememberAcknowledged(localId: Long, serverId: Long) {
-        acknowledged[localId] = serverId
-        _acknowledgedIds.value = acknowledged.toMap()
+        serverIds[localId] = serverId
+        _acknowledgedIds.value = serverIds.toMap()
     }
 
     /** The id an edit or delete of [id] acts on: a negative id the server acknowledged becomes its
@@ -406,7 +406,7 @@ class SeriesRepository(
     private fun resolveLocked(id: Long): Long {
         if (id >= 0) return id
         val row = q.localById(-id).executeAsOneOrNull()
-            ?: return acknowledged[-id] ?: error("Local series no longer exists")
+            ?: return serverIds[-id] ?: error("Local series no longer exists")
         return row.server_id ?: id
     }
 
@@ -577,7 +577,7 @@ class SeriesRepository(
         q.clearSync()
         images.clear()
         // A page left open from the previous account must not reach the next one's server.
-        acknowledged.clear()
+        serverIds.clear()
         _acknowledgedIds.value = emptyMap()
     }
 }
