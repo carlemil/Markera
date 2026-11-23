@@ -30,10 +30,12 @@ review=iosApp/fastlane/metadata/review_information
 # Prints the git tree id of the Mac working tree, without touching its index.
 snapshot='snapshot() {
     idx=$(git rev-parse --git-path mac-sync-index)
-    cp "$(git rev-parse --git-path index)" "$idx"
-    GIT_INDEX_FILE=$idx git add -A -- . ":(exclude).sync-keep"
-    GIT_INDEX_FILE=$idx git write-tree
+    cp "$(git rev-parse --git-path index)" "$idx" &&
+        GIT_INDEX_FILE=$idx git add -A -- . ":(exclude).sync-keep" &&
+        GIT_INDEX_FILE=$idx git write-tree
+    rc=$?
     rm -f "$idx"
+    return $rc
 }'
 ssh "$host" "cd $dir && sh -s -- '${FORCE:-0}' '$review'" <<EOF
 set -e
