@@ -457,12 +457,16 @@ class Db(dbPath: String) : AutoCloseable {
         }
     }
 
-    /** Ids of every series that is not soft-deleted, any user's: the training export's input. */
+    /**
+     * Ids of every series that is not soft-deleted and not rejected in /admin/curate, any user's, oldest first: the
+     * default training export's input (approved and not yet reviewed series both count).
+     */
     @Synchronized
-    fun liveSeriesIds(): List<Long> = conn.createStatement().use { st ->
-        st.executeQuery("SELECT id FROM series WHERE deleted_at IS NULL ORDER BY id").use { rs ->
-            buildList { while (rs.next()) add(rs.getLong(1)) }
-        }
+    fun trainingSeriesIds(): List<Long> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT id FROM series WHERE deleted_at IS NULL " +
+                "AND id NOT IN (SELECT series_id FROM series_curation WHERE status = 'rejected') ORDER BY id"
+        ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
     }
 
     /** Live series nobody has approved or rejected yet, oldest first: what /admin/curate picks from. */

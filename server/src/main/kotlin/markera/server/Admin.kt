@@ -58,7 +58,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
             page(
                 "Users",
                 counts + """<div><a href="/admin/suggestions">suggestions ($suggestions)</a></div>""" +
-                    """<div><a href="/admin/training-export.zip">training export (zip)</a> &middot; """ +
+                    """<div><a href="/admin/training-export.zip">training export, all but rejected (zip)</a> &middot; """ +
                     """<a href="/admin/training-export.zip?approved=1">approved only (zip)</a></div>""" +
                     """<div><a href="/admin/curate">approve series for training</a></div>""" +
                     """<div><a href="/admin/review">review changed series</a></div>""" +
@@ -93,7 +93,7 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
             "?${query}&amp;offset=${offset.toLong() + 50}".takeIf { matches.size > 50 }, "next",
         )
         respondHtml(page("Review changed series", """<div><a href="/admin">&larr; users</a></div>""" +
-            """<div><a href="/admin/training-export.zip">training export (zip)</a></div>""" +
+            """<div><a href="/admin/training-export.zip">training export, all but rejected (zip)</a></div>""" +
             """<div><a href="?deleted=${if (deleted) 0 else 1}">${if (deleted) "Live only" else "Include deleted series"}</a></div>""" +
             "<p>Tracking starts with this server version. Initial saves and first photo attachments are baselines, not edits. " +
             "Existing hole signals are inferred; historical metadata/photo edits and their authors cannot be reconstructed. " +
@@ -322,8 +322,8 @@ fun Route.adminRoutes(db: Db, images: File, password: String, localNoAuth: Boole
         if (unauthorized(password, localNoAuth)) return@get
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"markera-training.zip\"")
         call.respondOutputStream(ContentType.Application.Zip) {
-            // ?approved=1: only what /admin/curate approved.
-            val ids = if (call.request.queryParameters["approved"] == "1") db.approvedSeriesIds() else db.liveSeriesIds()
+            // ?approved=1: only what /admin/curate approved; otherwise every live series it has not rejected.
+            val ids = if (call.request.queryParameters["approved"] == "1") db.approvedSeriesIds() else db.trainingSeriesIds()
             // The admin's training copy where there is one, else the user's own version.
             val series = ids.asSequence().mapNotNull { db.trainingSeries(it) }
             writeTrainingZip(this, series) { imageFile(images, it) }
