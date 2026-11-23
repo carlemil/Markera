@@ -10,6 +10,18 @@ import java.sql.ResultSet
 import java.sql.Statement
 import kotlinx.serialization.json.Json
 
+private val photoLog = org.slf4j.LoggerFactory.getLogger("markera.server.Photos")
+
+/** The files this server keeps per series in the images directory. */
+private val PHOTO_FILE = Regex("([0-9]+)\\.(jpg|previous|journal)")
+
+/** Deletes [file] if it is there. A failed delete is logged, never thrown: the startup sweep retries it. */
+private fun deletePhotoFile(file: File, why: String) {
+    runCatching { java.nio.file.Files.deleteIfExists(file.toPath()) }
+        .onSuccess { if (it) photoLog.info("deleted {} {}", why, file.name) }
+        .onFailure { photoLog.error("could not delete {} {}", why, file.name, it) }
+}
+
 private fun Hole.spot() = detectedX?.let { x -> detectedY?.let { y -> x to y } }
 
 /** The stored training copy: every field written out, unknown ones tolerated so an older row still reads. */
@@ -738,64 +750,163 @@ class Db(dbPath: String) : AutoCloseable {
             getUser(seriesOwner(id, includeDeleted = true)!!)!!, auditEvents(id).filterNot { it.baseline }) }
     }
 
-    /** Recover an interrupted file replacement before serving requests. The committed hash decides which file wins. */
+    /*
+     * Photo files. The JPEG of series N is `N.jpg`. Replacing it writes `upload-*.tmp`, copies the old file to
+     * `N.previous`, writes `N.journal` ("present"/"absent": was there an old file), and only then moves the
+     * upload over `N.jpg` inside the DB transaction that records its fingerprint. A crash anywhere leaves a state
+     * [recoverPhoto] resolves: the committed fingerprint decides which file wins.
+     *
+     * Locks: the file work runs under a per-series lock ([photoLock]) and outside the Db monitor, which every other
+     * request shares (#24). The order is always photo lock first, then the monitor, never the reverse.
+     */
+
+    private val photoLocks = Array(64) { Any() }
+
+    private inline fun <T> photoLock(id: Long, block: () -> T): T =
+        synchronized(photoLocks[Math.floorMod(id, photoLocks.size)]) { block() }
+
     @Synchronized
+    private fun committedFingerprint(id: Long): String? = fingerprint(id)
+
+    /** Every series id, soft-deleted ones too: their photos stay until the account goes. */
+    @Synchronized
+    private fun allSeriesIds(): Set<Long> = conn.createStatement().use { st ->
+        st.executeQuery("SELECT id FROM series").use { rs -> buildSet { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
+    /**
+     * Startup only, before requests are served: finish every interrupted replacement, then sweep files no series
+     * owns any more (an account erasure whose delete failed, #23) and leftovers no journal needs. Only names this
+     * server writes are touched: `<id>.jpg`, `<id>.previous`, `<id>.journal` and `upload-*.tmp`.
+     */
     fun recoverPhotos(images: File) {
-        images.listFiles()?.filter { it.name.matches(Regex("[0-9]+\\.journal")) }?.forEach { journal ->
-            val id = journal.name.substringBefore('.').toLong()
-            val target = imageFile(images, id)
-            val backup = File(images, "$id.previous")
-            if (seriesOwner(id, includeDeleted = true) == null) {
-                target.delete(); backup.delete()
-            } else if (!target.isFile || fingerprint(id) != photoHash(target.readBytes())) {
-                if (journal.readText() == "present") {
-                    check(backup.isFile) { "Missing photo recovery file for $id" }
-                    java.nio.file.Files.move(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-                } else java.nio.file.Files.deleteIfExists(target.toPath())
+        images.listFiles()?.forEach { file ->
+            val match = PHOTO_FILE.matchEntire(file.name)?.takeIf { it.groupValues[2] == "journal" } ?: return@forEach
+            val id = match.groupValues[1].toLongOrNull() ?: return@forEach
+            runCatching { recoverPhoto(images, id) }
+                .onFailure { photoLog.error("photo recovery failed for series {}", id, it) }
+        }
+        sweepPhotos(images)
+    }
+
+    private fun sweepPhotos(images: File) {
+        val ids = allSeriesIds()
+        images.listFiles()?.forEach { file ->
+            if (!file.isFile) return@forEach
+            if (file.name.startsWith("upload-") && file.name.endsWith(".tmp")) {
+                deletePhotoFile(file, "abandoned upload")
+                return@forEach
             }
-            java.nio.file.Files.deleteIfExists(backup.toPath())
-            java.nio.file.Files.deleteIfExists(journal.toPath())
+            val match = PHOTO_FILE.matchEntire(file.name) ?: return@forEach
+            val id = match.groupValues[1].toLongOrNull() ?: return@forEach
+            when {
+                // A wrong or empty database must not wipe the photo directory.
+                id !in ids && ids.isNotEmpty() -> deletePhotoFile(file, "orphaned photo")
+                match.groupValues[2] == "previous" && !File(images, "$id.journal").exists() ->
+                    deletePhotoFile(file, "stale backup")
+            }
         }
     }
 
-    /** Serialize uploads with every DB mutation. Journal + old file survive process death; rollback restores bytes. */
-    @Synchronized
-    fun storePhoto(images: File, id: Long, bytes: ByteArray, width: Int?, height: Int?, actor: AuditActor) {
+    /**
+     * Resolves one interrupted replacement, idempotently (#40): the restore comes first, then the journal goes,
+     * then the backup, so a crash between any two steps leaves a state the next run resolves the same way.
+     */
+    private fun recoverPhoto(images: File, id: Long): Unit = photoLock(id) {
+        val journal = File(images, "$id.journal")
+        if (!journal.isFile) return@photoLock
+        val target = imageFile(images, id)
+        val backup = File(images, "$id.previous")
+        if (seriesOwner(id, includeDeleted = true) == null) {
+            deletePhotoFile(target, "photo of an erased series")
+        } else {
+            val committed = committedFingerprint(id)
+            if (!target.isFile || committed == null || committed != photoHash(target.readBytes())) {
+                if (journal.readText() == "present") {
+                    if (backup.isFile) {
+                        java.nio.file.Files.move(backup.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    } else {
+                        // Only a restore already done (the move) removes the backup while the journal remains, so
+                        // the file at the target is the old photo: keep it.
+                        photoLog.warn("photo recovery for series {}: no backup, keeping the current file", id)
+                    }
+                } else java.nio.file.Files.deleteIfExists(target.toPath())
+            }
+        }
+        java.nio.file.Files.deleteIfExists(journal.toPath())
+        java.nio.file.Files.deleteIfExists(backup.toPath())
+    }
+
+    /**
+     * Stores an upload. Blocking file I/O: call it off the request thread. Only the transaction and the final
+     * rename hold the Db monitor; the write, the backup copy and the hashing hold just this series' lock, which
+     * also keeps two uploads of one series from interleaving. [writeUpload] is a test seam.
+     */
+    fun storePhoto(
+        images: File, id: Long, bytes: ByteArray, width: Int?, height: Int?, actor: AuditActor,
+        writeUpload: (java.nio.file.Path, ByteArray) -> Unit = { path, data -> java.nio.file.Files.write(path, data) },
+    ): Unit = photoLock(id) {
         val owner = seriesOwner(id) ?: error("Unknown series")
         require(actor == AuditActor.app(owner))
-        recoverPhotos(images)
         val target = imageFile(images, id)
         val backup = File(images, "$id.previous")
         val journal = File(images, "$id.journal")
+        // A recovery that failed earlier in this process; startup handles the ones from before it.
+        if (journal.exists()) recoverPhoto(images, id)
+        val newHash = photoHash(bytes)
         val tmp = java.nio.file.Files.createTempFile(images.toPath(), "upload-", ".tmp")
         try {
-            java.nio.file.Files.write(tmp, bytes)
-            if (target.isFile) java.nio.file.Files.copy(target.toPath(), backup.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-            journal.writeText(if (target.isFile) "present" else "absent")
-            transaction {
-                val previousHash = fingerprint(id)
-                // Existing JPEGs are historical baselines, never invented historical edits.
-                if (previousHash == null && target.isFile) {
-                    setFingerprint(id, photoHash(target.readBytes()))
-                    recordAudit(id, actor, "historical photo baseline", null, baseline = true)
-                }
-                val before = stateOf(id)
-                val first = previousHash == null && !target.isFile
-                java.nio.file.Files.move(tmp, target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-                imageStored(id, width, height)
-                setFingerprint(id, photoHash(bytes))
-                recordAudit(id, actor, if (first) "photo baseline" else "photo updated", before, baseline = first)
-            }
+            writeUpload(tmp, bytes)
+            val hadFile = target.isFile
+            // Existing JPEGs without a fingerprint are historical baselines, never invented historical edits.
+            val historicalHash = if (hadFile && committedFingerprint(id) == null) photoHash(target.readBytes()) else null
+            if (hadFile) java.nio.file.Files.copy(target.toPath(), backup.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            journal.writeText(if (hadFile) "present" else "absent")
+            commitPhoto(id, tmp, target, hadFile, historicalHash, newHash, width, height, actor)
         } catch (failure: Throwable) {
             // The DB transaction rolled back. Recovery either restores the old file or removes a new one.
-            runCatching { recoverPhotos(images) }.exceptionOrNull()?.let { failure.addSuppressed(it) }
+            runCatching { recoverPhoto(images, id) }.exceptionOrNull()?.let { failure.addSuppressed(it) }
             if (!journal.exists()) runCatching { java.nio.file.Files.deleteIfExists(backup.toPath()) }
             throw failure
         } finally {
             java.nio.file.Files.deleteIfExists(tmp)
         }
-        // Cleanup is recoverable after a committed upload; don't report a failed upload for cleanup alone.
-        runCatching { recoverPhotos(images) }
+        // Committed: the journal goes first, so a crash here leaves only a backup the startup sweep removes.
+        // Cleanup is recoverable; don't report a failed upload for cleanup alone.
+        runCatching {
+            java.nio.file.Files.deleteIfExists(journal.toPath())
+            java.nio.file.Files.deleteIfExists(backup.toPath())
+        }.onFailure { photoLog.warn("photo cleanup failed for series {}", id, it) }
+    }
+
+    @Synchronized
+    private fun commitPhoto(
+        id: Long, tmp: java.nio.file.Path, target: File, hadFile: Boolean, historicalHash: String?, newHash: String,
+        width: Int?, height: Int?, actor: AuditActor,
+    ) = transaction {
+        // The account may have gone while the file was written: no row, no photo (#23).
+        seriesOwner(id) ?: error("Unknown series")
+        val previousHash = fingerprint(id)
+        if (previousHash == null && hadFile) {
+            setFingerprint(id, historicalHash ?: photoHash(target.readBytes()))
+            recordAudit(id, actor, "historical photo baseline", null, baseline = true)
+        }
+        val before = stateOf(id)
+        val first = previousHash == null && !hadFile
+        java.nio.file.Files.move(tmp, target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        imageStored(id, width, height)
+        setFingerprint(id, newHash)
+        recordAudit(id, actor, if (first) "photo baseline" else "photo updated", before, baseline = first)
+    }
+
+    /**
+     * Account erasure's file half, after [deleteAccount] committed. Each series' files go under its photo lock, so
+     * an upload in flight cannot put one back; a failed delete is logged and the next start sweeps it.
+     */
+    fun erasePhotos(images: File, ids: List<Long>) = ids.forEach { id ->
+        photoLock(id) {
+            listOf("jpg", "previous", "journal").forEach { deletePhotoFile(File(images, "$id.$it"), "erased photo") }
+        }
     }
 
     private fun setFingerprint(id: Long, hash: String) {

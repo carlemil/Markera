@@ -407,7 +407,8 @@ fun Application.markeraModule(
 
         delete("/account") {
             val userId = authenticate(db) ?: return@delete
-            db.deleteAccount(userId).forEach { deleteSeriesPhotos(images, it) }
+            val ids = db.deleteAccount(userId)
+            withContext(Dispatchers.IO) { db.erasePhotos(images, ids) }
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -435,7 +436,9 @@ fun Application.markeraModule(
             // page can place markers on the (downscaled but same-aspect) JPEG. Nonsense values are ignored.
             val width = call.request.queryParameters["width"]?.toIntOrNull()?.takeIf { it > 0 }
             val height = call.request.queryParameters["height"]?.toIntOrNull()?.takeIf { it > 0 }
-            db.storePhoto(images, seriesId, bytes, width, height, AuditActor.app(authenticate(db) ?: return@post))
+            val actor = AuditActor.app(authenticate(db) ?: return@post)
+            // File I/O (up to 10 MB, a backup copy, hashing): off the request thread and outside the DB lock.
+            withContext(Dispatchers.IO) { db.storePhoto(images, seriesId, bytes, width, height, actor) }
             call.respond(HttpStatusCode.NoContent)
         }
 
@@ -455,11 +458,6 @@ fun Application.markeraModule(
 }
 
 internal fun imageFile(imagesDir: File, seriesId: Long) = File(imagesDir, "$seriesId.jpg")
-
-/** Include recovery remnants: account erasure must not retain an earlier private photo. */
-internal fun deleteSeriesPhotos(imagesDir: File, seriesId: Long) {
-    listOf("jpg", "previous", "journal").forEach { File(imagesDir, "$seriesId.$it").delete() }
-}
 
 /** Responds 400 (and returns true) for a series body that cannot be stored. */
 internal suspend fun RoutingContext.invalid(req: SeriesRequest): Boolean {
