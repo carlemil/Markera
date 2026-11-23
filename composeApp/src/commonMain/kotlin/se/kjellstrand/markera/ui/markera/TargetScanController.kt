@@ -150,7 +150,7 @@ class TargetScanController(private val engine: ScanEngine) {
         minGapPx: Float,
         caliber: Caliber,
     ) = editHoles(viewModel, snapshot) { state, centre, ring ->
-        val detection = manualDetection(x, y, state.detections, minGapPx, caliber.holeSidePx(ring))
+        val detection = manualDetection(x, y, state.detections, minGapPx, caliber.holeBoxPx(x, y, centre, ring))
             ?: return@editHoles false
         val hit = scoreHits(listOf(detection), centre, ring).firstOrNull()?.copy(manual = true)
             ?: return@editHoles false

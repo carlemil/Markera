@@ -4,10 +4,11 @@ import kotlin.math.min
 import kotlin.math.sqrt
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.holeRadiusMm
+import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.Detection
 import se.kjellstrand.markera.vision.FittedEllipse
 import se.kjellstrand.markera.vision.HitScore
-import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
+import se.kjellstrand.markera.vision.holeBoxSizePx
 import se.kjellstrand.markera.vision.nearestIndex
 
 /**
@@ -33,11 +34,14 @@ fun HitScore.movedFrom(old: HitScore): HitScore {
 }
 
 /**
- * Side in image px of a hand-placed hole of this caliber on a scan whose 6/7
- * [ring] sets the scale; null for [Caliber.NONE] (the median box then).
+ * Box (width, height) in image px of a hand-placed hole of this caliber at
+ * [x],[y] on a scan whose [centre] and 6/7 [ring] set the scale: the image of
+ * the caliber's hole there ([holeBoxSizePx]), so `scoreHits` reads exactly the
+ * caliber's radius back, tilted photo or not. Null for [Caliber.NONE] (the
+ * median box then).
  */
-fun Caliber.holeSidePx(ring: FittedEllipse): Float? =
-    holeRadiusMm()?.let { (2 * it * ring.semiMajor / TARGET_BLACK_RING_RADIUS_MM).toFloat() }
+fun Caliber.holeBoxPx(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Pair<Float, Float>? =
+    holeRadiusMm()?.let { holeBoxSizePx(x, y, it, centre, ring) }
 
 /** Side of a hand-placed hole box when the detector found nothing to size it from. */
 const val MANUAL_HOLE_FALLBACK_PX = 20f
@@ -63,19 +67,20 @@ fun viewportToImage(
 }
 
 /**
- * The box for a hole the user tapped at [x],[y] (image px): a square of
- * [holeSidePx] (the caliber's hole, see [holeSidePx]), or without one the size
- * of a typical detected hole (median side, or [MANUAL_HOLE_FALLBACK_PX] with
- * nothing to measure), so [se.kjellstrand.markera.vision.scoreHits] gauges its
- * edge like any other. Null when the tap is within [minGapPx] of an existing
- * hole in [existing] — that is a mis-tap, not a second hole.
+ * The box for a hole the user tapped at [x],[y] (image px): [holeSizePx]
+ * (width, height: the caliber's hole, see [holeBoxPx]), or without one a square
+ * the size of a typical detected hole (median side, or
+ * [MANUAL_HOLE_FALLBACK_PX] with nothing to measure), so
+ * [se.kjellstrand.markera.vision.scoreHits] gauges its edge like any other.
+ * Null when the tap is within [minGapPx] of an existing hole in [existing] —
+ * that is a mis-tap, not a second hole.
  */
 fun manualDetection(
     x: Float,
     y: Float,
     existing: List<Detection>,
     minGapPx: Float,
-    holeSidePx: Float? = null,
+    holeSizePx: Pair<Float, Float>? = null,
 ): Detection? {
     val tooClose = existing.any {
         val dx = x - (it.left + it.right) / 2f
@@ -83,8 +88,12 @@ fun manualDetection(
         sqrt(dx * dx + dy * dy) < minGapPx
     }
     if (tooClose) return null
+    if (holeSizePx != null) {
+        val (w, h) = holeSizePx
+        return Detection(x - w / 2f, y - h / 2f, x + w / 2f, y + h / 2f, conf = 1f)
+    }
     val sides = existing.map { ((it.right - it.left) + (it.bottom - it.top)) / 2f }.sorted()
-    val half = (holeSidePx ?: sides.getOrNull(sides.size / 2) ?: MANUAL_HOLE_FALLBACK_PX) / 2f
+    val half = (sides.getOrNull(sides.size / 2) ?: MANUAL_HOLE_FALLBACK_PX) / 2f
     return Detection(x - half, y - half, x + half, y + half, conf = 1f)
 }
 

@@ -212,4 +212,102 @@ class HitScoringTest {
         assertEquals(100.0 * sin(rot.toDouble()), dy, 1e-3)
         assertEquals(100.0, kotlin.math.hypot(dx, dy), 1e-3)
     }
+
+    // A tilted photo under real perspective: minor/major 0.8, rotated off the
+    // image axes, the digit centre off the ellipse centre. 5 px per mm along
+    // the major axis, so a 9 mm hole is a box of about 40-45 px.
+    private val tiltedRing = FittedEllipse(cx = 1000f, cy = 1000f, semiMajor = 500f, semiMinor = 400f, rotationRad = 0.5f)
+    private val tiltedCentre = centre(1012f, 1035f)
+    private val tiltedPlane = TargetPlane.of(tiltedCentre, tiltedRing)!!
+
+    /** A 9 mm hole (radius 4.5 mm). */
+    private val holeRadius = 4.5
+
+    /**
+     * The detector's box for a true round hole of [radiusMm] whose centre is
+     * [distMm] from the target centre at [angleDeg] (target frame): the image of
+     * the hole's rim, and its axis-aligned bounds.
+     */
+    private fun tiltedHole(distMm: Double, angleDeg: Int, radiusMm: Double = holeRadius): Detection {
+        val a = angleDeg * PI / 180.0
+        val mx = distMm * cos(a)
+        val my = distMm * sin(a)
+        var left = Double.MAX_VALUE
+        var top = Double.MAX_VALUE
+        var right = -Double.MAX_VALUE
+        var bottom = -Double.MAX_VALUE
+        for (i in 0 until 720) {
+            val t = 2.0 * PI * i / 720.0
+            val (x, y) = tiltedPlane.toImage(mx + radiusMm * cos(t), my + radiusMm * sin(t))
+            left = minOf(left, x)
+            top = minOf(top, y)
+            right = maxOf(right, x)
+            bottom = maxOf(bottom, y)
+        }
+        return Detection(left.toFloat(), top.toFloat(), right.toFloat(), bottom.toFloat(), conf = 0.9f)
+    }
+
+    private val directions = (0 until 360 step 15).toList()
+
+    @Test
+    fun tiltedHoleWhoseEdgeJustTouchesTheTenLineScoresTen() {
+        // Edge 0.15 mm inside the 10 line: the higher ring in every direction.
+        for (deg in directions) {
+            val s = scoreHits(listOf(tiltedHole(25.0 - 0.15 + holeRadius, deg)), tiltedCentre, tiltedRing).single()
+            // The centre itself is measured right; only the radius decides.
+            assertEquals(10, scoreAt(s.distanceMm, holeRadius).first, "centre at $deg°")
+            assertEquals(10, s.ring, "hole at $deg°")
+        }
+    }
+
+    @Test
+    fun tiltedHoleJustShortOfTheTenLineStaysNine() {
+        // Edge 0.15 mm outside the 10 line: the radius must not be over-sized either.
+        for (deg in directions) {
+            val s = scoreHits(listOf(tiltedHole(25.0 + 0.15 + holeRadius, deg)), tiltedCentre, tiltedRing).single()
+            assertEquals(9, s.ring, "hole at $deg°")
+        }
+    }
+
+    @Test
+    fun tiltedHoleWhoseEdgeJustTouchesTheInnerXIsAnInnerX() {
+        for (deg in directions) {
+            val inside = scoreHits(listOf(tiltedHole(12.5 - 0.15 + holeRadius, deg)), tiltedCentre, tiltedRing).single()
+            val outside = scoreHits(listOf(tiltedHole(12.5 + 0.15 + holeRadius, deg)), tiltedCentre, tiltedRing).single()
+            assertTrue(inside.isInnerTen, "inside at $deg°")
+            assertFalse(outside.isInnerTen, "outside at $deg°")
+        }
+    }
+
+    @Test
+    fun holeBoxSizePxIsReadBackAsItsRadius() {
+        // A hand-placed caliber box scores the caliber's radius, tilted or not:
+        // its edge 0.05 mm inside the 10 line is a 10, 0.05 mm outside a 9.
+        fun scoreBoxAt(edgeMm: Double, deg: Int): Int {
+            val a = deg * PI / 180.0
+            val (x, y) = tiltedPlane.toImage((edgeMm + holeRadius) * cos(a), (edgeMm + holeRadius) * sin(a))
+            val (w, h) = holeBoxSizePx(x.toFloat(), y.toFloat(), holeRadius, tiltedCentre, tiltedRing)!!
+            val box = Detection((x - w / 2).toFloat(), (y - h / 2).toFloat(), (x + w / 2).toFloat(), (y + h / 2).toFloat(), conf = 1f)
+            return scoreHits(listOf(box), tiltedCentre, tiltedRing).single().ring
+        }
+        for (deg in directions) {
+            assertEquals(10, scoreBoxAt(24.95, deg), "inside at $deg°")
+            assertEquals(9, scoreBoxAt(25.05, deg), "outside at $deg°")
+        }
+        // Frontal: the old square of 2r · semiMajor / 100 px.
+        val (w, h) = holeBoxSizePx(230f, 200f, 2.83, centre(200f, 200f), ring(200f, 200f, 500f))!!
+        assertEquals(2 * 2.83 * 5, w.toDouble(), 1e-3)
+        assertEquals(2 * 2.83 * 5, h.toDouble(), 1e-3)
+    }
+
+    @Test
+    fun tiltedHoleOnTheBlackEdgeIsGaugedInTargetMm() {
+        // Far from the centre, where perspective changes the local scale most.
+        for (deg in directions) {
+            val inside = scoreHits(listOf(tiltedHole(100.0 - 0.15 + holeRadius, deg)), tiltedCentre, tiltedRing).single()
+            val outside = scoreHits(listOf(tiltedHole(100.0 + 0.15 + holeRadius, deg)), tiltedCentre, tiltedRing).single()
+            assertEquals(7, inside.ring, "inside at $deg°")
+            assertEquals(6, outside.ring, "outside at $deg°")
+        }
+    }
 }
