@@ -76,10 +76,13 @@ class FakeFrameSource : FrameSource {
     override fun onResumeLive() = Unit
 }
 
-/** Reads [FakeTarget.digits] and finds [holes] (image px), 22lr-sized boxes, whatever the frame. */
-class FakeScanEngine(var holes: List<Pair<Float, Float>> = FakeTarget.HOLES) : ScanEngine {
+/**
+ * Reads [FakeTarget.digits] and finds [holes] (image px), 22lr-sized boxes, whatever the frame.
+ * With [readsDigits] off the OCR reads nothing: no centre, so no ring, and the scan asks to rescan or mark by hand.
+ */
+class FakeScanEngine(var holes: List<Pair<Float, Float>> = FakeTarget.HOLES, var readsDigits: Boolean = true) : ScanEngine {
     override val inputSize = 1536
-    override suspend fun digits(image: PlatformImage) = FakeTarget.digits()
+    override suspend fun digits(image: PlatformImage) = if (readsDigits) FakeTarget.digits() else emptyList()
     override suspend fun holes(inputChw: FloatArray): List<RawDetection> {
         val scale = inputSize.toFloat() / FakeTarget.SIZE
         val side = 5.66f * FakeTarget.PX_PER_MM * scale
