@@ -5,6 +5,12 @@
 set -eo pipefail
 export PATH=/opt/homebrew/bin:$PATH
 cd "$(dirname "$0")/../iosApp"
+# Release guard (issue #16): never build a release without the hole model (~40 MB, gitignored),
+# or every scan in it fails. xcodegen bundles it from the Android assets.
+MODEL=../composeApp/src/androidMain/assets/best.onnx
+if [ "${CONFIGURATION:-Debug}" = Release ] && [ "$(wc -c 2>/dev/null < "$MODEL" || echo 0)" -lt 1000000 ]; then
+    echo "Release build refused: $MODEL is missing or too small (copy best.onnx there first)" >&2; exit 1
+fi
 SIM='iPhone 17 Pro Max'
 # The simulator by UDID, on the newest general iOS runtime (not a device-specific one such as
 # iOS-27-2-iPhone19-4), created there if missing. A bare name means "OS:latest" to Xcode 27, and

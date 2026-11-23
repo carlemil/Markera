@@ -79,6 +79,11 @@ tables (`ndk.debugSymbolLevel = "SYMBOL_TABLE"`) ride along too as
 `BUNDLE-METADATA/com.android.tools.build.debugsymbols/` — that only works when
 `android.ndkVersion` names an NDK that is actually installed (AGP's default may not
 be, and then the extraction silently produces nothing).
+**Release guard:** `:composeApp:checkReleaseInputs` (a dependency of `preReleaseBuild`, so of
+every `assembleRelease`/`bundleRelease`/`publishRelease*`) fails unless `best.onnx` is in the
+assets (≥ 1 MB) and `markera.google.client.id` and `markera.sentry.dsn` are non-empty
+(`local.properties`, or `-P` overrides). Debug builds and `testDebugUnitTest` don't need them.
+On iOS, `mac-beta.sh` and `CONFIGURATION=Release mac-build.sh` refuse a missing model.
 
 Instrumented (`androidTest`) tests don't accept `--tests`; select with the runner arg,
 and pin to one device with `ANDROID_SERIAL` (the task runs on every connected device,
