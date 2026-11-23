@@ -23,8 +23,8 @@ enum class Metric {
     MEAN_DISTANCE, MEAN_PAIRWISE, GROUP_SIZE, MEAN_RADIUS, RADIAL_SD, SCORE,
 }
 
-/** The row's number. */
-fun SeriesStatistics.value(metric: Metric): Double = when (metric) {
+/** The row's number; null for a pair-based row over series with no pair (one hole each). */
+fun SeriesStatistics.value(metric: Metric): Double? = when (metric) {
     Metric.MEAN_DISTANCE -> meanDistanceMm
     Metric.MEAN_PAIRWISE -> meanPairwiseMm
     Metric.GROUP_SIZE -> meanGroupSizeMm
@@ -42,6 +42,7 @@ data class TrendPoint(val at: Instant, val value: Double, val seriesCount: Int)
 /**
  * [metric] per [bucket], oldest first. A bucket's value is the group statistic over
  * its series — the same maths as the rows under the target, just over fewer series.
+ * A bucket without a value (a pair-based row over one-hole series) has no point, rather than 0 mm.
  */
 @OptIn(ExperimentalTime::class)
 fun List<PlottedSeries>.trend(
@@ -50,7 +51,7 @@ fun List<PlottedSeries>.trend(
     zone: TimeZone = TimeZone.currentSystemDefault(),
 ): List<TrendPoint> =
     groupBy { bucketStart(it.at, bucket, zone) }
-        .map { (start, group) -> TrendPoint(start, group.statistics()!!.value(metric), group.size) }
+        .mapNotNull { (start, group) -> group.statistics()!!.value(metric)?.let { TrendPoint(start, it, group.size) } }
         .sortedBy { it.at }
 
 /** One [trend] per caliber, in [Caliber] order — the chart's fixed colour order. */

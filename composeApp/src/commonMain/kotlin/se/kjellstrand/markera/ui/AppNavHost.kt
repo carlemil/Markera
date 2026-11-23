@@ -372,7 +372,7 @@ fun AppNavHost(
                 onOpenInsights = { date ->
                     val all = seriesServices.repository.visibleSeries.value
                     val now = all.firstOrNull { it.id == screen.series.id } ?: screen.series
-                    push(Screen.StatisticsDay(insightsDayFor(now, date, all)))
+                    push(Screen.StatisticsDay(insightsDayFor(now, date, all, sights = settings.sightSetups.value)))
                 },
             )
         }

@@ -22,6 +22,7 @@ import se.kjellstrand.markera.series.stats.advice
 import se.kjellstrand.markera.series.stats.byCaliber
 import se.kjellstrand.markera.series.stats.impactWords
 import se.kjellstrand.markera.series.stats.insights
+import se.kjellstrand.markera.series.stats.kind
 import se.kjellstrand.markera.series.stats.plotSeries
 import se.kjellstrand.markera.series.stats.sector
 import se.kjellstrand.markera.ui.settings.ShootingHand
@@ -143,20 +144,6 @@ fun HomeInsight.headline(hand: ShootingHand): AdviceText {
         )
         else -> advice(f, hand).summary
     }
-}
-
-/** A stable name for the key: class names do not survive R8 from one build to the next. */
-private fun Finding.kind(): String = when (this) {
-    is Finding.OffsetGroup -> "offset"
-    is Finding.StretchedGroup -> "stretch"
-    is Finding.Fliers -> "fliers"
-    is Finding.WideRoundGroup -> "wide"
-    is Finding.LowSeries -> "low-series"
-    is Finding.LowDay -> "low-day"
-    is Finding.Trend -> "trend"
-    is Finding.SessionTrend -> "session"
-    // Not the class name: R8 renames it from one build to the next.
-    else -> "finding"
 }
 
 /** The findings the Insights tab shows for [day]: its window and caliber, through [insights]. */

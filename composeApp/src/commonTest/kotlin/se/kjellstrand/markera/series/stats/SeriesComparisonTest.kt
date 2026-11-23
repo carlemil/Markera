@@ -124,4 +124,45 @@ class SeriesComparisonTest {
         val c = series(45, day = 15, hour = 12)
         assertNull(dayFinding(b, history() + a + b + c, TimeZone.UTC))
     }
+
+    /** Five 9s in a small plus 30 mm right of centre (1 px = 1 mm), on 2026-10-15 at [hour]. */
+    private fun offsetSeries(hour: Int): SeriesDto {
+        val spots = listOf(530.0 to 500.0, 533.0 to 500.0, 527.0 to 500.0, 530.0 to 503.0, 530.0 to 497.0)
+        return series(45, day = 15, hour = hour).copy(holes = spots.map { (x, y) -> HoleDto(x, y, 9, false, null) })
+    }
+
+    private fun offsetDay(): List<SeriesDto> = listOf(10, 11, 12, 13).map { offsetSeries(it) }
+
+    private fun at(text: String): Long = kotlin.time.Instant.parse(text).toEpochMilliseconds()
+
+    @Test
+    fun `a day of offset series has the offset as its day finding`() {
+        val day = offsetDay()
+        val (_, finding) = assertNotNull(dayFinding(day.last(), day, TimeZone.UTC))
+        assertTrue(finding is Finding.OffsetGroup)
+    }
+
+    @Test
+    fun `sights adjusted mid-session judge the offset only on the later series`() {
+        val day = offsetDay()
+        // Two series (10 holes) after 11:30: under the offset finding's 15.
+        val sights = mapOf("22lr" to SightSetup(adjustedAtMs = at("2026-10-15T11:30:00Z")))
+        assertNull(dayFinding(day.last(), day, TimeZone.UTC, sights = sights))
+    }
+
+    @Test
+    fun `sights adjusted on a later day leave a past day's offset alone`() {
+        val day = offsetDay()
+        val sights = mapOf("22lr" to SightSetup(adjustedAtMs = at("2026-10-16T09:00:00Z")))
+        val (_, finding) = assertNotNull(dayFinding(day.last(), day, TimeZone.UTC, sights = sights))
+        assertTrue(finding is Finding.OffsetGroup)
+    }
+
+    @Test
+    fun `another caliber's sight adjustment changes nothing`() {
+        val day = offsetDay()
+        val sights = mapOf("9mm" to SightSetup(adjustedAtMs = at("2026-10-15T11:30:00Z")))
+        val (_, finding) = assertNotNull(dayFinding(day.last(), day, TimeZone.UTC, sights = sights))
+        assertTrue(finding is Finding.OffsetGroup)
+    }
 }

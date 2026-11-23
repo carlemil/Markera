@@ -78,6 +78,40 @@ fun Finding.mark(): InsightMark = when (this) {
 }
 
 /**
+ * A stable name for the finding's type: Home's dismissal keys and the Insights tab's pick use it.
+ * Class names do not survive R8 from one build to the next. A findings list holds at most one of
+ * each kind, so within a list it also names one finding.
+ */
+fun Finding.kind(): String = when (this) {
+    is Finding.OffsetGroup -> "offset"
+    is Finding.StretchedGroup -> "stretch"
+    is Finding.Fliers -> "fliers"
+    is Finding.WideRoundGroup -> "wide"
+    is Finding.LowSeries -> "low-series"
+    is Finding.LowDay -> "low-day"
+    is Finding.Trend -> "trend"
+    is Finding.SessionTrend -> "session"
+}
+
+/**
+ * Where the [picked] finding (by [kind]) sits in this list now, or null when it is not there. The
+ * pick follows its finding rather than a place in the list, so when an earlier finding goes (the
+ * offset, after "I adjusted the sights") the target does not highlight another one.
+ */
+fun List<Finding>.pickedIndex(picked: String?): Int? =
+    picked?.let { k -> indexOfFirst { it.kind() == k }.takeIf { it >= 0 } }
+
+/** The mark the [picked] finding highlights; [InsightMark.NONE] without one in this list. */
+fun List<Finding>.pickedMark(picked: String?): InsightMark =
+    pickedIndex(picked)?.let { this[it].mark() } ?: InsightMark.NONE
+
+/** A tap on the finding at [index]: picks its kind, or lets go when that one was picked. */
+fun List<Finding>.toggledPick(picked: String?, index: Int): String? {
+    val tapped = getOrNull(index)?.kind() ?: return null
+    return if (tapped == picked) null else tapped
+}
+
+/**
  * [sights] are the per-caliber sight setups by caliber label: a caliber whose sights were
  * adjusted judges its offset, and points its arrow, only on the series taken after that. [viewEnd]
  * is the end of the period on show, if it has one: a period whose last local day is before the
