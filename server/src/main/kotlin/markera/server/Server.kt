@@ -61,7 +61,7 @@ data class Config(
     val adminLocalNoAuth: Boolean = false,
     /**
      * The file served at `/.well-known/apple-developer-domain-association.txt` (Apple fetches it to verify the
-     * domain). It is not in git: it comes from the Apple Developer portal. Defaults next to the database, so it
+     * domain). It is not in git: it is whatever Apple issues for domain verification, if it asks for one. Defaults next to the database, so it
      * can be dropped into Docker's data volume; `APPLE_DOMAIN_ASSOCIATION_FILE` overrides it. Absent means 404.
      */
     val appleDomainAssociationFile: String = defaultAppleDomainAssociationFile(dbPath),
