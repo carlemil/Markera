@@ -72,6 +72,7 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -229,7 +230,7 @@ private fun DriftCanvas(
     // New data starts unzoomed again.
     var zoom by remember(raw) { mutableStateOf(1f) }
     var pan by remember(raw) { mutableStateOf(Offset.Zero) }
-    val description = stringResource(Res.string.stats_drift_description, points.size)
+    val description = pluralStringResource(Res.plurals.stats_drift_description, points.size, points.size)
     val latest = stringResource(Res.string.stats_drift_latest)
     // The gestures are not restarted per recomposition, so they read these.
     val current by rememberUpdatedState(points to showMean)
@@ -470,9 +471,15 @@ private fun Readout(points: List<DriftPoint>, selected: Int, perSeries: Boolean,
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             val title = if (perSeries) {
-                stringResource(Res.string.stats_drift_point_series, p.date.toString(), selected + 1, points.size, p.hitCount)
+                pluralStringResource(Res.plurals.stats_drift_point_series, p.hitCount, p.date.toString(), selected + 1, points.size, p.hitCount)
             } else {
-                stringResource(Res.string.stats_drift_point_day, p.date.toString(), p.seriesCount, p.hitCount)
+                pluralStringResource(
+                    Res.plurals.stats_drift_point_day,
+                    p.seriesCount,
+                    p.date.toString(),
+                    p.seriesCount,
+                    pluralStringResource(Res.plurals.stats_drift_point_day_hits, p.hitCount, p.hitCount),
+                )
             }
             Text(
                 if (smoothed) title + " · " + stringResource(Res.string.stats_drift_smoothed) else title,

@@ -83,11 +83,20 @@
     <string name="history_signed_out">Влезте, за да видите историята си</string>
     <string name="history_empty">Още няма запазени серии</string>
     <string name="history_filter_empty">Няма серии, отговарящи на филтъра.</string>
-    <string name="history_day_summary">Серии: %1$d · средно %2$s</string>
-    <string name="history_day_summary_one">1 серия · точки: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d серия · средно %2$s</item>
+        <item quantity="other">%1$d серии · средно %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 серия · %1$d точка</item>
+        <item quantity="other">1 серия · %1$d точки</item>
+    </plurals>
     <string name="history_card_title">%1$s · серия %2$d</string>
     <string name="history_delete_title">Да се изтрие ли серията?</string>
-    <string name="history_delete_message">%1$s · точки: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d точка</item>
+        <item quantity="other">%1$s · %2$d точки</item>
+    </plurals>
     <string name="history_delete_confirm">Изтрий</string>
     <string name="history_delete_cancel">Отказ</string>
     <string name="history_delete_failed">Не можа да се изтрие</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Дата</string>
     <string name="filter_clear">Изчисти филтрите</string>
     <string name="stats_no_geometry">Нито една от сериите ви няма кръг, спрямо който да се начертае. Сканирайте серия с намерен кръг 6/7.</string>
-    <string name="stats_target_description">Мишена с попадения: %1$d, от серии: %2$d</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Мишена с %1$d попадение от %2$s</item>
+        <item quantity="other">Мишена с %1$d попадения от %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d серия</item>
+        <item quantity="other">%1$d серии</item>
+    </plurals>
     <string name="stats_timeline">Времева линия на сериите</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Групиране</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Резултат</string>
     <string name="stats_trend_description">Графика на тенденцията, линии: %1$d, точки: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (серии: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d серия)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d серии)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Тенденция</string>
     <string name="stats_help_trend_body">Разделът „Тенденция“ показва всеки показател като крива във времето. Изберете показателя с бутоните, както и дали всяка серия да бъде точка, или сериите да се обединяват по ден, седмица или месец (тогава показателят се изчислява за всички серии в периода). „По калибър“ чертае по една крива за всеки калибър. Филтрите отгоре важат за всички раздели. Докоснете точка, за да я прочетете.</string>
     <string name="stats_tab_drift">Отклонение</string>
-    <string name="stats_drift_description">Мишена със средната и медианната точка на попадение във времето, точки: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Мишена със средната и медианната точка на попадение във времето, %1$d точка</item>
+        <item quantity="other">Мишена със средната и медианната точка на попадение във времето, %1$d точки</item>
+    </plurals>
     <string name="stats_drift_counts">Дни: %1$d · серии: %2$d · попадения: %3$d</string>
     <string name="stats_drift_oldest">Най-стара</string>
     <string name="stats_drift_newest">Най-нова</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Последна точка на попадение: %1$s (%2$d mm от центъра), с %3$d mm по-близо, отколкото на %4$s.</string>
     <string name="stats_drift_summary_further">Последна точка на попадение: %1$s (%2$d mm от центъра), с %3$d mm по-далеч, отколкото на %4$s.</string>
     <string name="stats_drift_summary_same">Последна точка на попадение: %1$s (%2$d mm от центъра), толкова далеч, колкото на %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · серии: %2$d · попадения: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · серия %2$d от %3$d · попадения: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d серия · %3$s</item>
+        <item quantity="other">%1$s · %2$d серии · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d попадение</item>
+        <item quantity="other">%1$d попадения</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · серия %2$d от %3$d · %4$d попадение</item>
+        <item quantity="other">%1$s · серия %2$d от %3$d · %4$d попадения</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Ляво / дясно и високо / ниско във времето (средно)</string>
     <string name="stats_drift_strips_median">Ляво / дясно и високо / ниско във времето (медиана)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Запазва всяко изображение, което получи резултат, без да спира; останалите се показват след това.</string>
     <string name="import_progress">Импорт %1$d / %2$d</string>
     <string name="import_skip">Пропусни</string>
-    <string name="import_summary">Запазени: %1$d, пропуснати: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Запазени: %1$d</item>
+        <item quantity="other">Запазени: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">пропуснати: %1$d</item>
+        <item quantity="other">пропуснати: %1$d</item>
+    </plurals>
     <string name="help_home_import">Импорт на изображения</string>
     <string name="help_home_import_body">В менюто: оценете снимки, които вече са в телефона, от галерията или от файловете. Всяко изображение се сканира и резултатите му се показват, за да го запазите или пропуснете. С включен „Автоматичен импорт“ всяко изображение, което получи резултат, се запазва само с датата на заснемане на снимката; останалите се показват едно по едно след това.</string>
     <string name="series_status_phone">Запазено на това устройство</string>
     <string name="series_not_uploaded">Не е качено</string>
-    <string name="stats_not_uploaded">Некачени серии: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">%1$d некачена серия</item>
+        <item quantity="other">%1$d некачени серии</item>
+    </plurals>
     <string name="local_claim_title">Серии на това устройство</string>
     <string name="local_claim_body">Серии, запазени на това устройство без вход или за друг профил: %1$d. Добавете ги към този профил, изтрийте ги от устройството или останете без вход.</string>
     <string name="local_claim_add">Добави към профила</string>
     <string name="local_claim_delete">Изтрий от устройството</string>
-    <string name="local_claim_delete_body">Да се изтрият ли серии и снимките им от това устройство (брой: %1$d)? Това не може да бъде отменено. Те не са качени в този профил.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Да се изтрие ли %1$d серия и снимката ѝ от това устройство? Това не може да бъде отменено. Тя не е качена в този профил.</item>
+        <item quantity="other">Да се изтрият ли %1$d серии и снимките им от това устройство? Това не може да бъде отменено. Те не са качени в този профил.</item>
+    </plurals>
     <string name="local_claim_stay">Остани без вход</string>
     <string name="local_claim_error">Операцията не можа да завърши. Останалите ви серии са все още на това устройство. Затворете и опитайте да влезете отново.</string>
     <string name="home_week_series">серии за 7 дни</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Тази седмица групата ви с %1$s е с около %2$d процента по-висока, отколкото широка.</string>
     <string name="home_insight_stretch_horizontal">Тази седмица групата ви с %1$s е с около %2$d процента по-широка, отколкото висока.</string>
     <string name="home_insight_stretch_diagonal">Тази седмица групата ви с %1$s е с около %2$d процента по-дълга по диагонал.</string>
-    <string name="home_insight_fliers">Тази седмица един изстрел се отдели в %2$d от вашите %3$d серии с %1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Тази седмица един изстрел се отдели в %2$d от вашата %3$d серия с %1$s.</item>
+        <item quantity="other">Тази седмица един изстрел се отдели в %2$d от вашите %3$d серии с %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">На %2$s групите ви с %1$s бяха с около %3$d процента по-широки от преди.</string>
     <string name="home_insight_low_series">Последната ви серия с %1$s даде %2$d точки при обичайни %3$d.</string>
     <string name="home_insight_low_day">На %2$s сериите ви с %1$s бяха средно %3$d точки при обичайни %4$d.</string>
-    <string name="home_insight_trend_up">Резултатите ви с %1$s растат: с около %2$d точки за %3$d седмици.</string>
-    <string name="home_insight_trend_down">Резултатите ви с %1$s падат: с около %2$d точки за %3$d седмици.</string>
-    <string name="home_insight_session_down">Тази седмица по-късните ви серии с %1$s дадоха по-малко точки в %2$d от %3$d по-дълги дни.</string>
-    <string name="home_insight_session_up">Тази седмица по-късните ви серии с %1$s дадоха повече точки в %2$d от %3$d по-дълги дни.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Резултатите ви с %1$s растат: с около %2$d точка за %3$s.</item>
+        <item quantity="other">Резултатите ви с %1$s растат: с около %2$d точки за %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d седмица</item>
+        <item quantity="other">%1$d седмици</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Резултатите ви с %1$s падат: с около %2$d точка за %3$s.</item>
+        <item quantity="other">Резултатите ви с %1$s падат: с около %2$d точки за %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Тази седмица по-късните ви серии с %1$s дадоха по-малко точки в %2$d от %3$d по-дълъг ден.</item>
+        <item quantity="other">Тази седмица по-късните ви серии с %1$s дадоха по-малко точки в %2$d от %3$d по-дълги дни.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Тази седмица по-късните ви серии с %1$s дадоха повече точки в %2$d от %3$d по-дълъг ден.</item>
+        <item quantity="other">Тази седмица по-късните ви серии с %1$s дадоха повече точки в %2$d от %3$d по-дълги дни.</item>
+    </plurals>
     <string name="home_insight_dismiss">Скрий този анализ</string>
-    <string name="home_local_title">Серии само в този телефон: %1$d</string>
-    <string name="home_local_title_one">1 серия само в този телефон</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d серия само в този телефон</item>
+        <item quantity="other">%1$d серии само в този телефон</item>
+    </plurals>
     <string name="home_signin_title">Запазете сериите си в профила си</string>
     <string name="home_signin_body">Влезте, за да ги запазите, когато смените телефона.</string>
     <string name="action_sign_in">Вход</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">надолу и наляво</string>
     <string name="advice_move_left">наляво</string>
     <string name="advice_move_up_left">нагоре и наляво</string>
-    <string name="advice_offset_stable_summary">Групата ви е изместена с %1$d mm %2$s при %3$d изстрела, в същата посока в %4$d от %5$d дни.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Групата ви е изместена с %1$d mm %2$s при %3$d изстрел, в същата посока в %4$d от %5$s.</item>
+        <item quantity="other">Групата ви е изместена с %1$d mm %2$s при %3$d изстрела, в същата посока в %4$d от %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d ден</item>
+        <item quantity="other">%1$d дни</item>
+    </plurals>
     <string name="advice_cause_sights_1">Мерникът не е пристрелян за този патрон или тази дистанция.</string>
     <string name="advice_cause_sights_2">Мерникът се е преместил, откакто е настроен, или друг патрон бие на друго място.</string>
     <string name="advice_try_sights">Преместете мерника така, че групата да се премести с около %1$d mm %2$s, после стреляйте нова група, преди да го пипате отново.</string>
-    <string name="advice_offset_varies_summary">Групата ви е изместена с %1$d mm %2$s при %3$d изстрела, но не в една и съща посока всеки ден.</string>
-    <string name="advice_offset_few_days_summary">Групата ви е изместена с %1$d mm %2$s при %3$d изстрела, в твърде малко дни, за да се каже дали винаги е така.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Групата ви е изместена с %1$d mm %2$s при %3$d изстрел, но не в една и съща посока всеки ден.</item>
+        <item quantity="other">Групата ви е изместена с %1$d mm %2$s при %3$d изстрела, но не в една и съща посока всеки ден.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Групата ви е изместена с %1$d mm %2$s при %3$d изстрел, в твърде малко дни, за да се каже дали винаги е така.</item>
+        <item quantity="other">Групата ви е изместена с %1$d mm %2$s при %3$d изстрела, в твърде малко дни, за да се каже дали винаги е така.</item>
+    </plurals>
     <string name="advice_cause_high_1">Натискане с дланта напред в момента на изстрела.</string>
     <string name="advice_cause_high_2">Китката се пречупва нагоре при изстрела.</string>
     <string name="advice_cause_high_3">Търсене на попадението и ранно вдигане на оръжието.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">Натискът на палеца върху ръкохватката избутва оръжието встрани.</string>
     <string name="advice_cause_side_3">Натискане на спусъка, което не е право назад.</string>
     <string name="advice_try_side">Проверете къде пръстът докосва спусъка и колко силно натиска палецът, после стреляйте на сухо и наблюдавайте мерните прибори.</string>
-    <string name="advice_stretch_vertical_summary">Групата ви е с около %1$d процента по-висока, отколкото широка, при %2$d изстрела.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Групата ви е с около %1$d процента по-висока, отколкото широка, при %2$d изстрел.</item>
+        <item quantity="other">Групата ви е с около %1$d процента по-висока, отколкото широка, при %2$d изстрела.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Дишане: стрелба в различен момент от дишането всеки път.</string>
     <string name="advice_cause_vertical_2">Мерната картина се променя по височина, като мушката стои по-високо или по-ниско в прореза.</string>
     <string name="advice_cause_vertical_3">Натиск на хвата, който се променя от изстрел на изстрел.</string>
     <string name="advice_try_vertical">Задържайте дишането в една и съща точка при всеки изстрел и проверявайте височината на мушката в прореза, преди да натиснете.</string>
-    <string name="advice_stretch_horizontal_summary">Групата ви е с около %1$d процента по-широка, отколкото висока, при %2$d изстрела.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Групата ви е с около %1$d процента по-широка, отколкото висока, при %2$d изстрел.</item>
+        <item quantity="other">Групата ви е с около %1$d процента по-широка, отколкото висока, при %2$d изстрела.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Натискане на спусъка, което отива встрани.</string>
     <string name="advice_cause_horizontal_2">Китката се движи при изстрела.</string>
     <string name="advice_cause_horizontal_3">Стойка, която не е правилно ориентирана спрямо мишената.</string>
     <string name="advice_try_horizontal">Стреляйте на сухо с мерните прибори към точка и вижте дали се плъзгат встрани, когато спусъкът сработи.</string>
-    <string name="advice_stretch_diagonal_summary">Групата ви е с около %1$d процента по-дълга в едната посока от другата, по диагонал, при %2$d изстрела.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Групата ви е с около %1$d процента по-дълга в едната посока от другата, по диагонал, при %2$d изстрел.</item>
+        <item quantity="other">Групата ви е с около %1$d процента по-дълга в едната посока от другата, по диагонал, при %2$d изстрела.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Натискът на хвата и натискането на спусъка си пречат.</string>
     <string name="advice_cause_diagonal_2">Стойка или положение на ръката, които накланят оръжието.</string>
     <string name="advice_try_diagonal">Проверете дали хватът е еднакъв при всеки изстрел и дали мерните прибори са хоризонтални, преди да натиснете.</string>
-    <string name="advice_fliers_summary">В %1$d от вашите %2$d серии един изстрел се отдели от останалите, средно на около %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">В %1$d от вашата %2$d серия един изстрел се отдели от останалите, средно на около %3$d mm.</item>
+        <item quantity="other">В %1$d от вашите %2$d серии един изстрел се отдели от останалите, средно на около %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Контрол на спусъка при единичен изстрел.</string>
     <string name="advice_cause_fliers_2">Липса на задържане след изстрела.</string>
     <string name="advice_cause_fliers_3">Изстрел, без да сте отчели къде е отишъл.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">Бързане с изстрелите.</string>
     <string name="advice_try_wide">Тренировка на сухо: задържайте и натискайте без стрелба и почивайте, когато задържането започне да трепери.</string>
     <string name="advice_low_series_summary">Последната ви серия даде %1$d точки при средно %2$d за последните ви %3$d.</string>
-    <string name="advice_low_day_summary">На %1$s вашите %2$d серии бяха средно %3$d точки при средно %4$d преди.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">На %1$s вашата %2$d серия беше средно %3$d точки при средно %4$d преди.</item>
+        <item quantity="other">На %1$s вашите %2$d серии бяха средно %3$d точки при средно %4$d преди.</item>
+    </plurals>
     <string name="advice_try_low_plain">Един слаб резултат казва малко: стреляйте още няколко, преди да промените нещо.</string>
     <string name="advice_try_low_explained">Започнете с бележката по-долу, вместо да променяте всичко наведнъж.</string>
     <string name="advice_low_note_offset">Групата ви е изместена от центъра, което може да е част от причината.</string>
     <string name="advice_low_note_stretched">Групата ви е разтеглена в една посока, което може да е част от причината.</string>
     <string name="advice_low_note_fliers">Отделил се изстрел в серия може да е част от причината.</string>
     <string name="advice_low_note_wide">По-широките от обичайното групи може да са част от причината.</string>
-    <string name="advice_trend_up_summary">Резултатите ви са се повишили с около %1$d точки за %3$d седмици, в %2$d серии.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Резултатите ви са се повишили с около %1$d точка за %3$s, в %2$s.</item>
+        <item quantity="other">Резултатите ви са се повишили с около %1$d точки за %3$s, в %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d серия</item>
+        <item quantity="other">%1$d серии</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d седмица</item>
+        <item quantity="other">%1$d седмици</item>
+    </plurals>
     <string name="advice_try_trend_up">Продължавайте така и отбележете какво се е променило, за да можете да го повторите.</string>
-    <string name="advice_trend_down_summary">Резултатите ви са спаднали с около %1$d точки за %3$d седмици, в %2$d серии.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Резултатите ви са спаднали с около %1$d точка за %3$s, в %2$s.</item>
+        <item quantity="other">Резултатите ви са спаднали с около %1$d точки за %3$s, в %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Умора или по-малко време за тренировка.</string>
     <string name="advice_cause_trend_2">Бързане с изстрелите.</string>
     <string name="advice_cause_trend_3">Смяна на оръжие, патрони или рутина.</string>
     <string name="advice_try_trend_down">По-кратки тренировки с почивки и няколко изстрела на сухо, за да намерите отново основите.</string>
-    <string name="advice_session_down_summary">В %1$d от вашите %2$d по-дълги дни по-късните ви серии дадоха по-малко точки от първите: средно %4$d при %3$d в тези дни.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">В %1$d от вашия %2$d по-дълъг ден по-късните ви серии дадоха по-малко точки от първите: средно %4$d при %3$d в тези дни.</item>
+        <item quantity="other">В %1$d от вашите %2$d по-дълги дни по-късните ви серии дадоха по-малко точки от първите: средно %4$d при %3$d в тези дни.</item>
+    </plurals>
     <string name="advice_cause_session_1">Умора в ръката, рамото или очите с напредването на тренировката.</string>
     <string name="advice_cause_session_2">Отслабваща концентрация, така че изстрелите се избързват или се отчитат по-зле.</string>
     <string name="advice_cause_session_3">Твърде малко почивки между сериите.</string>
     <string name="advice_try_session_down">По-кратки тренировки или истинска почивка на всеки няколко серии, за да отпочинат очите и ръката.</string>
-    <string name="advice_session_up_summary">В %1$d от вашите %2$d по-дълги дни по-късните ви серии дадоха повече точки от първите: средно %4$d при %3$d в тези дни.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">В %1$d от вашия %2$d по-дълъг ден по-късните ви серии дадоха повече точки от първите: средно %4$d при %3$d в тези дни.</item>
+        <item quantity="other">В %1$d от вашите %2$d по-дълги дни по-късните ви серии дадоха повече точки от първите: средно %4$d при %3$d в тези дни.</item>
+    </plurals>
     <string name="advice_try_session_up">Бавно загряване: започнете с няколко изстрела на сухо или пробни изстрела, преди първата серия да се брои.</string>
     <string name="stats_help_insights">Анализи</string>
     <string name="stats_help_insights_body">„Анализи“ разглежда запазените ви серии, по един калибър наведнъж, и посочва закономерности, в които е достатъчно сигурен: група, изместена встрани, разтеглена група, отделил се изстрел или резултати, които падат или растат. Нужен е добър брой изстрели, преди да каже нещо. Всяка бележка показва какво казват числата, какво често го причинява и едно нещо, което да опитате. Това е подсказка, не треньор: причините са често срещани, не присъда. Задайте стрелящата си ръка и изключете „Анализи“ в „Настройки“.</string>
     <string name="stats_tab_insights">Анализи</string>
-    <string name="stats_insights_need_more">Анализите изискват около %1$d изстрела; тук имате %2$d.</string>
-    <string name="stats_insights_nothing">Нищо не се откроява в тези изстрели (%1$d) от серии: %2$d.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Анализите изискват около %1$d изстрел; тук имате %2$d.</item>
+        <item quantity="other">Анализите изискват около %1$d изстрела; тук имате %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Нищо не се откроява в този %1$d изстрел от %2$s.</item>
+        <item quantity="other">Нищо не се откроява в тези %1$d изстрела от %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d серия</item>
+        <item quantity="other">%1$d серии</item>
+    </plurals>
     <string name="stats_insights_numbers">Средна точка на попадение %1$s, разсейване %2$d mm, средна серия %3$s.</string>
     <string name="stats_insights_legend">Жълтата елипса обхваща около 86 процента от изстрелите; стрелката води от центъра към средната точка на попадение. Докоснете бележка, за да видите към какво се отнася на мишената.</string>
-    <string name="stats_insights_target_description">Мишена на анализите с изстрели: %1$d, елипсата и стрелката към средната точка на попадение</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Мишена на анализите с %1$d изстрел, елипсата и стрелката към средната точка на попадение</item>
+        <item quantity="other">Мишена на анализите с %1$d изстрела, елипсата и стрелката към средната точка на попадение</item>
+    </plurals>
     <string name="stats_insights_no_caliber">„Анализи“ разглежда по един калибър наведнъж, а тези серии нямат калибър. Задайте им калибър в „История“, за да видите анализи.</string>
-    <string name="stats_insights_uncalibered">Серии без калибър, които не са включени: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d серия без калибър не е включена.</item>
+        <item quantity="other">%1$d серии без калибър не са включени.</item>
+    </plurals>
     <string name="detail_vs_under">С %1$d под средното ви %2$d</string>
     <string name="detail_vs_over">С %1$d над средното ви %2$d</string>
     <string name="detail_vs_on">На средното ви %1$d</string>
-    <string name="detail_vs_best">Най-добрата ви за последните %1$d дни</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Най-добрата ви за последния %1$d ден</item>
+        <item quantity="other">Най-добрата ви за последните %1$d дни</item>
+    </plurals>
     <string name="detail_day_in_insights">Виж този ден в „Анализи“</string>
     <string name="sight_title">Корекция на мерника</string>
     <string name="sight_up_mm">Нагоре %1$d mm</string>
     <string name="sight_down_mm">Надолу %1$d mm</string>
     <string name="sight_left_mm">Наляво %1$d mm</string>
     <string name="sight_right_mm">Надясно %1$d mm</string>
-    <string name="sight_clicks">%1$s: щраквания: %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d щракване</item>
+        <item quantity="other">%1$s: %2$d щраквания</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 щракване</string>
     <string name="sight_under_half_click">%1$s: под половин щракване, оставете го</string>
     <string name="sight_no_height">Височина: без промяна</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Въведи стойност на щракване</string>
     <string name="sight_change_clicks">Промени стойността на щракване</string>
     <string name="sight_adjusted_button">Коригирах мерника</string>
-    <string name="sight_adjusted_note">Мерникът е коригиран %1$s: изместването се преценява по изстрелите оттогава (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Мерникът е коригиран %1$s: изместването се преценява по %2$d изстрел оттогава.</item>
+        <item quantity="other">Мерникът е коригиран %1$s: изместването се преценява по %2$d изстрела оттогава.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Отмени</string>
     <string name="sight_dialog_title">Стойност на щракване, %1$s</string>
     <string name="sight_dialog_help">Колко далеч едно щракване премества попадението върху мишената на вашата дистанция. Ръководството на мерника обикновено го посочва, или пребройте щракванията на една корекция и измерете колко се е преместила групата.</string>

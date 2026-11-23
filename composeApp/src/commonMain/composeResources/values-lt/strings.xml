@@ -83,11 +83,23 @@
     <string name="history_signed_out">Prisijunkite, kad matytumėte savo istoriją</string>
     <string name="history_empty">Išsaugotų serijų dar nėra</string>
     <string name="history_filter_empty">Filtrą atitinkančių serijų nėra.</string>
-    <string name="history_day_summary">Serijos: %1$d · vid. %2$s</string>
-    <string name="history_day_summary_one">1 serija · taškai: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d serija · vid. %2$s</item>
+        <item quantity="few">%1$d serijos · vid. %2$s</item>
+        <item quantity="other">%1$d serijų · vid. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 serija · %1$d taškas</item>
+        <item quantity="few">1 serija · %1$d taškai</item>
+        <item quantity="other">1 serija · %1$d taškų</item>
+    </plurals>
     <string name="history_card_title">%1$s · serija %2$d</string>
     <string name="history_delete_title">Ištrinti seriją?</string>
-    <string name="history_delete_message">%1$s · taškai: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d taškas</item>
+        <item quantity="few">%1$s · %2$d taškai</item>
+        <item quantity="other">%1$s · %2$d taškų</item>
+    </plurals>
     <string name="history_delete_confirm">Ištrinti</string>
     <string name="history_delete_cancel">Atšaukti</string>
     <string name="history_delete_failed">Nepavyko ištrinti</string>
@@ -134,7 +146,16 @@
     <string name="stats_group_date">Data</string>
     <string name="filter_clear">Išvalyti filtrus</string>
     <string name="stats_no_geometry">Nė viena jūsų serija neturi apskritimo, pagal kurį būtų galima braižyti. Nuskaitykite seriją, kurioje randamas 6/7 apskritimas.</string>
-    <string name="stats_target_description">Taikinys su pataikymais (%1$d) iš serijų (%2$d)</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Taikinys su %1$d pataikymu iš %2$s</item>
+        <item quantity="few">Taikinys su %1$d pataikymais iš %2$s</item>
+        <item quantity="other">Taikinys su %1$d pataikymų iš %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d serijos</item>
+        <item quantity="few">%1$d serijų</item>
+        <item quantity="other">%1$d serijų</item>
+    </plurals>
     <string name="stats_timeline">Serijų laiko juosta</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Grupavimasis</string>
@@ -158,12 +179,20 @@
     <string name="stats_short_mean_score">Taškai</string>
     <string name="stats_trend_description">Tendencijos diagrama, linijos: %1$d, taškai: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (serijos: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d serija)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d serijos)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d serijų)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Tendencija</string>
     <string name="stats_help_trend_body">Skirtuke Tendencija bet kuris rodiklis vaizduojamas kaip kreivė laike. Mygtukais pasirinkite rodiklį ir tai, ar kiekviena serija taps atskiru tašku, ar serijos bus sujungtos pagal dieną, savaitę ar mėnesį (tada rodiklis skaičiuojamas iš visų laikotarpio serijų). Pagal kalibrą nubrėžia atskirą kreivę kiekvienam kalibrui. Aukščiau esantys filtrai taikomi visiems skirtukams. Palieskite tašką, kad pamatytumėte jo reikšmę.</string>
     <string name="stats_tab_drift">Poslinkis</string>
-    <string name="stats_drift_description">Taikinys su vidutiniu ir medianiniu pataikymo tašku laike, taškai: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Taikinys su vidutiniu ir medianiniu pataikymo tašku laike, %1$d taškas</item>
+        <item quantity="few">Taikinys su vidutiniu ir medianiniu pataikymo tašku laike, %1$d taškai</item>
+        <item quantity="other">Taikinys su vidutiniu ir medianiniu pataikymo tašku laike, %1$d taškų</item>
+    </plurals>
     <string name="stats_drift_counts">Dienos: %1$d · serijos: %2$d · pataikymai: %3$d</string>
     <string name="stats_drift_oldest">Seniausias</string>
     <string name="stats_drift_newest">Naujausias</string>
@@ -182,8 +211,21 @@
     <string name="stats_drift_summary_closer">Paskutinis pataikymo taškas: %1$s (%2$d mm nuo centro), %3$d mm arčiau nei %4$s.</string>
     <string name="stats_drift_summary_further">Paskutinis pataikymo taškas: %1$s (%2$d mm nuo centro), %3$d mm toliau nei %4$s.</string>
     <string name="stats_drift_summary_same">Paskutinis pataikymo taškas: %1$s (%2$d mm nuo centro), taip pat toli kaip %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · serijos: %2$d · pataikymai: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · serija %2$d iš %3$d · pataikymai: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d serija · %3$s</item>
+        <item quantity="few">%1$s · %2$d serijos · %3$s</item>
+        <item quantity="other">%1$s · %2$d serijų · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d pataikymas</item>
+        <item quantity="few">%1$d pataikymai</item>
+        <item quantity="other">%1$d pataikymų</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · serija %2$d iš %3$d · %4$d pataikymas</item>
+        <item quantity="few">%1$s · serija %2$d iš %3$d · %4$d pataikymai</item>
+        <item quantity="other">%1$s · serija %2$d iš %3$d · %4$d pataikymų</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Kairė/dešinė ir aukštai/žemai laike (vidurkis)</string>
     <string name="stats_drift_strips_median">Kairė/dešinė ir aukštai/žemai laike (mediana)</string>
@@ -297,17 +339,35 @@
     <string name="import_auto_body">Nesustodamas išsaugo kiekvieną vaizdą, kurį pavyksta įvertinti; kiti parodomi vėliau.</string>
     <string name="import_progress">Importas %1$d / %2$d</string>
     <string name="import_skip">Praleisti</string>
-    <string name="import_summary">Išsaugota: %1$d, praleista: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Išsaugota: %1$d</item>
+        <item quantity="few">Išsaugota: %1$d</item>
+        <item quantity="other">Išsaugota: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">praleista: %1$d</item>
+        <item quantity="few">praleista: %1$d</item>
+        <item quantity="other">praleista: %1$d</item>
+    </plurals>
     <string name="help_home_import">Importuoti vaizdus</string>
     <string name="help_home_import_body">Meniu: įvertinkite telefone jau esančias nuotraukas iš galerijos arba failų. Kiekvienas vaizdas nuskaitomas ir parodomas rezultatas, kad galėtumėte jį išsaugoti arba praleisti. Kai įjungtas Automatinis importas, kiekvienas vaizdas, kurį pavyksta įvertinti, išsaugomas savaime su nuotraukos darymo data; kiti vėliau parodomi po vieną.</string>
     <string name="series_status_phone">Išsaugota šiame įrenginyje</string>
     <string name="series_not_uploaded">Neįkelta</string>
-    <string name="stats_not_uploaded">Neįkeltos serijos: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Neįkelta %1$d serija</item>
+        <item quantity="few">Neįkeltos %1$d serijos</item>
+        <item quantity="other">Neįkelta %1$d serijų</item>
+    </plurals>
     <string name="local_claim_title">Serijos šiame įrenginyje</string>
     <string name="local_claim_body">Serijos, išsaugotos šiame įrenginyje neprisijungus arba kitai paskyrai: %1$d. Pridėkite jas prie šios paskyros, ištrinkite jas iš įrenginio arba likite neprisijungę.</string>
     <string name="local_claim_add">Pridėti prie paskyros</string>
     <string name="local_claim_delete">Ištrinti iš įrenginio</string>
-    <string name="local_claim_delete_body">Ištrinti iš šio įrenginio serijas (%1$d) ir jų nuotraukas? To negalima atšaukti. Jos neįkeltos į šią paskyrą.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Ištrinti iš šio įrenginio %1$d seriją ir jos nuotrauką? To negalima atšaukti. Ji neįkelta į šią paskyrą.</item>
+        <item quantity="few">Ištrinti iš šio įrenginio %1$d serijas ir jų nuotraukas? To negalima atšaukti. Jos neįkeltos į šią paskyrą.</item>
+        <item quantity="other">Ištrinti iš šio įrenginio %1$d serijų ir jų nuotraukas? To negalima atšaukti. Jos neįkeltos į šią paskyrą.</item>
+    </plurals>
     <string name="local_claim_stay">Likti neprisijungus</string>
     <string name="local_claim_error">Veiksmo nepavyko užbaigti. Likusios serijos vis dar yra šiame įrenginyje. Uždarykite ir bandykite prisijungti dar kartą.</string>
     <string name="home_week_series">serijos per 7 dienas</string>
@@ -317,17 +377,45 @@
     <string name="home_insight_stretch_vertical">Šią savaitę jūsų grupė (%1$s) yra maždaug %2$d proc. aukštesnė, nei yra plati.</string>
     <string name="home_insight_stretch_horizontal">Šią savaitę jūsų grupė (%1$s) yra maždaug %2$d proc. platesnė, nei yra aukšta.</string>
     <string name="home_insight_stretch_diagonal">Šią savaitę jūsų grupė (%1$s) yra maždaug %2$d proc. ilgesnė įstrižai.</string>
-    <string name="home_insight_fliers">Šią savaitę vienas šūvis atitrūko %2$d iš jūsų %3$d serijų (%1$s).</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Šią savaitę vienas šūvis atitrūko %2$d iš jūsų %3$d serijos (%1$s).</item>
+        <item quantity="few">Šią savaitę vienas šūvis atitrūko %2$d iš jūsų %3$d serijų (%1$s).</item>
+        <item quantity="other">Šią savaitę vienas šūvis atitrūko %2$d iš jūsų %3$d serijų (%1$s).</item>
+    </plurals>
     <string name="home_insight_wide">%2$s jūsų grupės (%1$s) buvo maždaug %3$d proc. platesnės nei anksčiau.</string>
     <string name="home_insight_low_series">Jūsų paskutinė serija (%1$s) surinko %2$d tšk., įprastai – %3$d.</string>
     <string name="home_insight_low_day">%2$s jūsų serijų (%1$s) vidurkis buvo %3$d, įprastai – %4$d.</string>
-    <string name="home_insight_trend_up">Jūsų taškai (%1$s) kyla: maždaug %2$d tšk. per %3$d sav.</string>
-    <string name="home_insight_trend_down">Jūsų taškai (%1$s) krinta: maždaug %2$d tšk. per %3$d sav.</string>
-    <string name="home_insight_session_down">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko mažiau taškų %2$d iš %3$d ilgesnių dienų.</string>
-    <string name="home_insight_session_up">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko daugiau taškų %2$d iš %3$d ilgesnių dienų.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Jūsų taškai (%1$s) kyla: maždaug %2$d tašku per %3$s.</item>
+        <item quantity="few">Jūsų taškai (%1$s) kyla: maždaug %2$d taškais per %3$s.</item>
+        <item quantity="other">Jūsų taškai (%1$s) kyla: maždaug %2$d taškų per %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d savaitę</item>
+        <item quantity="few">%1$d savaites</item>
+        <item quantity="other">%1$d savaičių</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Jūsų taškai (%1$s) krinta: maždaug %2$d tašku per %3$s.</item>
+        <item quantity="few">Jūsų taškai (%1$s) krinta: maždaug %2$d taškais per %3$s.</item>
+        <item quantity="other">Jūsų taškai (%1$s) krinta: maždaug %2$d taškų per %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko mažiau taškų %2$d iš %3$d ilgesnės dienos.</item>
+        <item quantity="few">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko mažiau taškų %2$d iš %3$d ilgesnių dienų.</item>
+        <item quantity="other">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko mažiau taškų %2$d iš %3$d ilgesnių dienų.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko daugiau taškų %2$d iš %3$d ilgesnės dienos.</item>
+        <item quantity="few">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko daugiau taškų %2$d iš %3$d ilgesnių dienų.</item>
+        <item quantity="other">Šią savaitę vėlesnės jūsų serijos (%1$s) surinko daugiau taškų %2$d iš %3$d ilgesnių dienų.</item>
+    </plurals>
     <string name="home_insight_dismiss">Slėpti šią įžvalgą</string>
-    <string name="home_local_title">Serijos tik šiame telefone: %1$d</string>
-    <string name="home_local_title_one">1 serija tik šiame telefone</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d serija tik šiame telefone</item>
+        <item quantity="few">%1$d serijos tik šiame telefone</item>
+        <item quantity="other">%1$d serijų tik šiame telefone</item>
+    </plurals>
     <string name="home_signin_title">Išsaugokite serijas savo paskyroje</string>
     <string name="home_signin_body">Prisijunkite, kad jos išliktų pakeitus telefoną.</string>
     <string name="action_sign_in">Prisijungti</string>
@@ -366,12 +454,29 @@
     <string name="advice_move_down_left">žemyn ir į kairę</string>
     <string name="advice_move_left">į kairę</string>
     <string name="advice_move_up_left">aukštyn ir į kairę</string>
-    <string name="advice_offset_stable_summary">Jūsų grupė yra %1$d mm %2$s (šūviai: %3$d), vienodai %4$d iš %5$d dienų.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Jūsų grupė yra %1$d mm %2$s per %3$d šūvį, vienodai %4$d iš %5$s.</item>
+        <item quantity="few">Jūsų grupė yra %1$d mm %2$s per %3$d šūvius, vienodai %4$d iš %5$s.</item>
+        <item quantity="other">Jūsų grupė yra %1$d mm %2$s per %3$d šūvių, vienodai %4$d iš %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dienos</item>
+        <item quantity="few">%1$d dienų</item>
+        <item quantity="other">%1$d dienų</item>
+    </plurals>
     <string name="advice_cause_sights_1">Taikiklis nepritaikytas šiems šoviniams ar atstumui.</string>
     <string name="advice_cause_sights_2">Taikiklis pasislinko po nustatymo, arba kiti šoviniai pataiko kitur.</string>
     <string name="advice_try_sights">Pakoreguokite taikiklį, kad grupė pasislinktų maždaug %1$d mm %2$s, tada iššaukite naują grupę, prieš vėl jį liesdami.</string>
-    <string name="advice_offset_varies_summary">Jūsų grupė yra %1$d mm %2$s (šūviai: %3$d), bet ne kiekvieną dieną vienodai.</string>
-    <string name="advice_offset_few_days_summary">Jūsų grupė yra %1$d mm %2$s (šūviai: %3$d), tačiau dienų per mažai, kad būtų galima pasakyti, ar taip yra visada.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Jūsų grupė yra %1$d mm %2$s per %3$d šūvį, bet ne kiekvieną dieną vienodai.</item>
+        <item quantity="few">Jūsų grupė yra %1$d mm %2$s per %3$d šūvius, bet ne kiekvieną dieną vienodai.</item>
+        <item quantity="other">Jūsų grupė yra %1$d mm %2$s per %3$d šūvių, bet ne kiekvieną dieną vienodai.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Jūsų grupė yra %1$d mm %2$s per %3$d šūvį, tačiau dienų per mažai, kad būtų galima pasakyti, ar taip yra visada.</item>
+        <item quantity="few">Jūsų grupė yra %1$d mm %2$s per %3$d šūvius, tačiau dienų per mažai, kad būtų galima pasakyti, ar taip yra visada.</item>
+        <item quantity="other">Jūsų grupė yra %1$d mm %2$s per %3$d šūvių, tačiau dienų per mažai, kad būtų galima pasakyti, ar taip yra visada.</item>
+    </plurals>
     <string name="advice_cause_high_1">Delno stūmimas į priekį šūvio metu.</string>
     <string name="advice_cause_high_2">Riešas šūvio metu lūžta aukštyn.</string>
     <string name="advice_cause_high_3">Pataikymo ieškojimas ir per ankstyvas ginklo pakėlimas.</string>
@@ -390,21 +495,37 @@
     <string name="advice_cause_side_2">Nykščio spaudimas į rankeną stumia ginklą į šoną.</string>
     <string name="advice_cause_side_3">Nuleidimas, kuris nėra tiesiai atgal.</string>
     <string name="advice_try_side">Patikrinkite, kur pirštas liečia nuleistuką ir kaip stipriai spaudžia nykštys, tada atlikite tuščius šūvius ir stebėkite taikiklį.</string>
-    <string name="advice_stretch_vertical_summary">Jūsų grupė yra maždaug %1$d proc. aukštesnė, nei yra plati (šūviai: %2$d).</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Jūsų grupė yra maždaug %1$d proc. aukštesnė, nei yra plati, per %2$d šūvį.</item>
+        <item quantity="few">Jūsų grupė yra maždaug %1$d proc. aukštesnė, nei yra plati, per %2$d šūvius.</item>
+        <item quantity="other">Jūsų grupė yra maždaug %1$d proc. aukštesnė, nei yra plati, per %2$d šūvių.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Kvėpavimas: kiekvieną kartą šaunama skirtingu kvėpavimo momentu.</string>
     <string name="advice_cause_vertical_2">Taikymo vaizdas kinta aukštyje – kryptukas išpjovoje yra aukščiau arba žemiau.</string>
     <string name="advice_cause_vertical_3">Suėmimo spaudimas, kuris kinta nuo šūvio iki šūvio.</string>
     <string name="advice_try_vertical">Sulaikykite kvėpavimą kiekvieno šūvio metu toje pačioje vietoje ir prieš spausdami patikrinkite kryptuko aukštį išpjovoje.</string>
-    <string name="advice_stretch_horizontal_summary">Jūsų grupė yra maždaug %1$d proc. platesnė, nei yra aukšta (šūviai: %2$d).</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Jūsų grupė yra maždaug %1$d proc. platesnė, nei yra aukšta, per %2$d šūvį.</item>
+        <item quantity="few">Jūsų grupė yra maždaug %1$d proc. platesnė, nei yra aukšta, per %2$d šūvius.</item>
+        <item quantity="other">Jūsų grupė yra maždaug %1$d proc. platesnė, nei yra aukšta, per %2$d šūvių.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Nuleidimas, kuris nukrypsta į šoną.</string>
     <string name="advice_cause_horizontal_2">Riešas juda šūvio metu.</string>
     <string name="advice_cause_horizontal_3">Stovėsena, kuri nėra tinkamai atsukta į taikinį.</string>
     <string name="advice_try_horizontal">Atlikite tuščius šūvius taikydamiesi į žymę ir žiūrėkite, ar taikiklis nuslysta į šoną, kai suveikia nuleistukas.</string>
-    <string name="advice_stretch_diagonal_summary">Jūsų grupė yra maždaug %1$d proc. ilgesnė viena kryptimi nei kita, įstrižai (šūviai: %2$d).</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Jūsų grupė yra maždaug %1$d proc. ilgesnė viena kryptimi nei kita, įstrižai, per %2$d šūvį.</item>
+        <item quantity="few">Jūsų grupė yra maždaug %1$d proc. ilgesnė viena kryptimi nei kita, įstrižai, per %2$d šūvius.</item>
+        <item quantity="other">Jūsų grupė yra maždaug %1$d proc. ilgesnė viena kryptimi nei kita, įstrižai, per %2$d šūvių.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Suėmimo spaudimas ir nuleidimas veikia vienas prieš kitą.</string>
     <string name="advice_cause_diagonal_2">Stovėsena ar rankos padėtis, kuri pakreipia ginklą.</string>
     <string name="advice_try_diagonal">Patikrinkite, ar suėmimas kiekvieno šūvio metu vienodas ir ar taikiklis lygus, prieš spausdami.</string>
-    <string name="advice_fliers_summary">%1$d iš jūsų %2$d serijų vienas šūvis atitrūko nuo kitų, vidutiniškai maždaug %3$d mm toliau.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">%1$d iš jūsų %2$d serijos vienas šūvis atitrūko nuo kitų, vidutiniškai maždaug %3$d mm toliau.</item>
+        <item quantity="few">%1$d iš jūsų %2$d serijų vienas šūvis atitrūko nuo kitų, vidutiniškai maždaug %3$d mm toliau.</item>
+        <item quantity="other">%1$d iš jūsų %2$d serijų vienas šūvis atitrūko nuo kitų, vidutiniškai maždaug %3$d mm toliau.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Nuleidimo kontrolė pavieniame šūvyje.</string>
     <string name="advice_cause_fliers_2">Šūvio užbaigimo praradimas.</string>
     <string name="advice_cause_fliers_3">Šūvio paleidimas jo neįvardijus.</string>
@@ -415,48 +536,107 @@
     <string name="advice_cause_wide_3">Skubėjimas šaudant.</string>
     <string name="advice_try_wide">Tuščių šūvių treniruotė: laikykite ir spauskite nešaudydami, o pailsėkite, kai laikymas pradeda drebėti.</string>
     <string name="advice_low_series_summary">Jūsų paskutinė serija surinko %1$d tšk., palyginti su vidutiniškai %2$d per paskutines %3$d.</string>
-    <string name="advice_low_day_summary">%1$s jūsų serijų (%2$d) vidurkis buvo %3$d, palyginti su ankstesniu vidurkiu %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s jūsų %2$d serijos vidurkis buvo %3$d, palyginti su ankstesniu vidurkiu %4$d.</item>
+        <item quantity="few">%1$s jūsų %2$d serijų vidurkis buvo %3$d, palyginti su ankstesniu vidurkiu %4$d.</item>
+        <item quantity="other">%1$s jūsų %2$d serijų vidurkis buvo %3$d, palyginti su ankstesniu vidurkiu %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">Vienas žemas rezultatas mažai ką pasako: iššaukite dar kelias, prieš ką nors keisdami.</string>
     <string name="advice_try_low_explained">Pradėkite nuo žemiau esančios pastabos, užuot keitę viską iš karto.</string>
     <string name="advice_low_note_offset">Jūsų grupė yra ne centre, ir tai gali būti dalis priežasties.</string>
     <string name="advice_low_note_stretched">Jūsų grupė ištempta viena kryptimi, ir tai gali būti dalis priežasties.</string>
     <string name="advice_low_note_fliers">Vienas atitrūkęs šūvis serijoje gali būti dalis priežasties.</string>
     <string name="advice_low_note_wide">Platesnės nei įprastai grupės gali būti dalis priežasties.</string>
-    <string name="advice_trend_up_summary">Jūsų taškai per %3$d sav. pakilo maždaug %1$d tšk. (serijos: %2$d).</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Jūsų taškai per %3$s pakilo maždaug %1$d tašku, vertinant %2$s.</item>
+        <item quantity="few">Jūsų taškai per %3$s pakilo maždaug %1$d taškais, vertinant %2$s.</item>
+        <item quantity="other">Jūsų taškai per %3$s pakilo maždaug %1$d taškų, vertinant %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d seriją</item>
+        <item quantity="few">%1$d serijas</item>
+        <item quantity="other">%1$d serijų</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d savaitę</item>
+        <item quantity="few">%1$d savaites</item>
+        <item quantity="other">%1$d savaičių</item>
+    </plurals>
     <string name="advice_try_trend_up">Tęskite taip pat ir užsirašykite, kas pasikeitė, kad galėtumėte tai pakartoti.</string>
-    <string name="advice_trend_down_summary">Jūsų taškai per %3$d sav. nukrito maždaug %1$d tšk. (serijos: %2$d).</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Jūsų taškai per %3$s nukrito maždaug %1$d tašku, vertinant %2$s.</item>
+        <item quantity="few">Jūsų taškai per %3$s nukrito maždaug %1$d taškais, vertinant %2$s.</item>
+        <item quantity="other">Jūsų taškai per %3$s nukrito maždaug %1$d taškų, vertinant %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Nuovargis arba mažiau laiko treniruotėms.</string>
     <string name="advice_cause_trend_2">Skubėjimas šaudant.</string>
     <string name="advice_cause_trend_3">Ginklo, šovinių ar įpročių pasikeitimas.</string>
     <string name="advice_try_trend_down">Trumpesnės treniruotės su pertraukomis ir keli tušti šūviai, kad vėl atrastumėte pagrindus.</string>
-    <string name="advice_session_down_summary">%1$d iš jūsų %2$d ilgesnių dienų vėlesnės serijos surinko mažiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">%1$d iš jūsų %2$d ilgesnės dienos vėlesnės serijos surinko mažiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</item>
+        <item quantity="few">%1$d iš jūsų %2$d ilgesnių dienų vėlesnės serijos surinko mažiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</item>
+        <item quantity="other">%1$d iš jūsų %2$d ilgesnių dienų vėlesnės serijos surinko mažiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</item>
+    </plurals>
     <string name="advice_cause_session_1">Rankos, peties ar akių nuovargis treniruotei įsibėgėjus.</string>
     <string name="advice_cause_session_2">Silpnėjanti koncentracija, todėl šūviai skubinami ar prasčiau įvardijami.</string>
     <string name="advice_cause_session_3">Per mažai pertraukų tarp serijų.</string>
     <string name="advice_try_session_down">Trumpesnės treniruotės arba tikra pertrauka kas kelias serijas, kad pailsėtų akys ir ranka.</string>
-    <string name="advice_session_up_summary">%1$d iš jūsų %2$d ilgesnių dienų vėlesnės serijos surinko daugiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">%1$d iš jūsų %2$d ilgesnės dienos vėlesnės serijos surinko daugiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</item>
+        <item quantity="few">%1$d iš jūsų %2$d ilgesnių dienų vėlesnės serijos surinko daugiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</item>
+        <item quantity="other">%1$d iš jūsų %2$d ilgesnių dienų vėlesnės serijos surinko daugiau taškų nei pirmosios: vidutiniškai %4$d, palyginti su %3$d tomis dienomis.</item>
+    </plurals>
     <string name="advice_try_session_up">Lėta pradžia: pradėkite nuo kelių tuščių ar bandomųjų šūvių, prieš įskaitant pirmąją seriją.</string>
     <string name="stats_help_insights">Analizė</string>
     <string name="stats_help_insights_body">Analizė peržiūri jūsų išsaugotas serijas po vieną kalibrą ir nurodo dėsningumus, dėl kurių yra gana tikra: į vieną pusę pasislinkusią grupę, ištemptą grupę, atitrūkusį šūvį arba krentančius ar kylančius taškus. Prieš ką nors pasakydama, ji turi turėti pakankamai šūvių. Kiekviena pastaba nurodo, ką rodo skaičiai, kas tai dažnai lemia, ir vieną dalyką, kurį verta išbandyti. Tai užuomina, ne treneris: priežastys yra dažnos, ne nuosprendis. Šaudymo ranką nustatykite ir Analizę išjunkite skiltyje Nustatymai.</string>
     <string name="stats_tab_insights">Analizė</string>
-    <string name="stats_insights_need_more">Analizei reikia maždaug %1$d šūvių; čia jų yra %2$d.</string>
-    <string name="stats_insights_nothing">Šiuose šūviuose (%1$d) iš serijų (%2$d) niekas neišsiskiria.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analizei reikia maždaug %1$d šūvio; čia jų yra %2$d.</item>
+        <item quantity="few">Analizei reikia maždaug %1$d šūvių; čia jų yra %2$d.</item>
+        <item quantity="other">Analizei reikia maždaug %1$d šūvių; čia jų yra %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Šiame %1$d šūvyje iš %2$s niekas neišsiskiria.</item>
+        <item quantity="few">Šiuose %1$d šūviuose iš %2$s niekas neišsiskiria.</item>
+        <item quantity="other">Šiuose %1$d šūvių iš %2$s niekas neišsiskiria.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serijos</item>
+        <item quantity="few">%1$d serijų</item>
+        <item quantity="other">%1$d serijų</item>
+    </plurals>
     <string name="stats_insights_numbers">Vidutinis pataikymo taškas %1$s, sklaida %2$d mm, vidutinė serija %3$s.</string>
     <string name="stats_insights_legend">Geltona elipsė apima maždaug 86 procentus šūvių; rodyklė eina nuo centro iki vidutinio pataikymo taško. Palieskite pastabą, kad pamatytumėte, į ką ji taikinyje nurodo.</string>
-    <string name="stats_insights_target_description">Analizės taikinys su šūviais (%1$d), elipse ir rodykle iki vidutinio pataikymo taško</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Analizės taikinys su %1$d šūviu, elipse ir rodykle iki vidutinio pataikymo taško</item>
+        <item quantity="few">Analizės taikinys su %1$d šūviais, elipse ir rodykle iki vidutinio pataikymo taško</item>
+        <item quantity="other">Analizės taikinys su %1$d šūvių, elipse ir rodykle iki vidutinio pataikymo taško</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analizė vienu metu peržiūri vieną kalibrą, o šios serijos jo neturi. Nustatykite joms kalibrą skiltyje Istorija, kad matytumėte analizę.</string>
-    <string name="stats_insights_uncalibered">Serijos be kalibro (%1$d) neįtraukiamos.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d serija be kalibro neįtraukiama.</item>
+        <item quantity="few">%1$d serijos be kalibro neįtraukiamos.</item>
+        <item quantity="other">%1$d serijų be kalibro neįtraukiama.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d mažiau už jūsų vidurkį %2$d</string>
     <string name="detail_vs_over">%1$d daugiau už jūsų vidurkį %2$d</string>
     <string name="detail_vs_on">Jūsų vidurkio lygyje %1$d</string>
-    <string name="detail_vs_best">Jūsų geriausia per paskutines %1$d d.</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Jūsų geriausia per paskutinę %1$d dieną</item>
+        <item quantity="few">Jūsų geriausia per paskutines %1$d dienas</item>
+        <item quantity="other">Jūsų geriausia per paskutines %1$d dienų</item>
+    </plurals>
     <string name="detail_day_in_insights">Žiūrėti šią dieną Analizėje</string>
     <string name="sight_title">Taikiklio korekcija</string>
     <string name="sight_up_mm">Aukštyn %1$d mm</string>
     <string name="sight_down_mm">Žemyn %1$d mm</string>
     <string name="sight_left_mm">Į kairę %1$d mm</string>
     <string name="sight_right_mm">Į dešinę %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d spragt.</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d spragtelėjimas</item>
+        <item quantity="few">%1$s: %2$d spragtelėjimai</item>
+        <item quantity="other">%1$s: %2$d spragtelėjimų</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 spragtelėjimas</string>
     <string name="sight_under_half_click">%1$s: mažiau nei pusė spragtelėjimo, palikite</string>
     <string name="sight_no_height">Aukštis: be pakeitimų</string>
@@ -467,7 +647,11 @@
     <string name="sight_set_clicks">Įvesti spragtelėjimo vertę</string>
     <string name="sight_change_clicks">Keisti spragtelėjimo vertę</string>
     <string name="sight_adjusted_button">Pakoregavau taikiklį</string>
-    <string name="sight_adjusted_note">Taikiklis pakoreguotas %1$s: nuokrypis vertinamas pagal nuo tada iššautus šūvius (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Taikiklis pakoreguotas %1$s: nuokrypis vertinamas pagal %2$d nuo tada iššautą šūvį.</item>
+        <item quantity="few">Taikiklis pakoreguotas %1$s: nuokrypis vertinamas pagal %2$d nuo tada iššautus šūvius.</item>
+        <item quantity="other">Taikiklis pakoreguotas %1$s: nuokrypis vertinamas pagal %2$d nuo tada iššautų šūvių.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Anuliuoti</string>
     <string name="sight_dialog_title">Spragtelėjimo vertė, %1$s</string>
     <string name="sight_dialog_help">Kiek vienas spragtelėjimas perkelia pataikymą taikinyje jūsų šaudymo atstumu. Paprastai tai nurodyta taikiklio instrukcijoje; kitu atveju suskaičiuokite vienos korekcijos spragtelėjimus ir išmatuokite, kiek pasislinko grupė.</string>

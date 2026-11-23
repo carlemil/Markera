@@ -121,7 +121,7 @@ class HomeInsightTest {
         val shown = rising.homeInsights(now, zone).first { it.finding is Finding.Trend }
         val trend = shown.finding as Finding.Trend
         assertTrue(trend.improving)
-        assertEquals(Res.string.home_insight_trend_up, shown.headline(ShootingHand.RIGHT).res)
+        assertEquals(Res.plurals.home_insight_trend_up, shown.headline(ShootingHand.RIGHT).res)
     }
 
     @Test
@@ -137,7 +137,7 @@ class HomeInsightTest {
         val shown = days.homeInsights(now, zone).first { it.finding is Finding.SessionTrend }
         assertEquals(InsightsDay(today, Caliber.LR22, from = LocalDate(2026, 11, 11)), shown.day)
         assertTrue(shown.key.startsWith("session|22lr|"))
-        assertEquals(Res.string.home_insight_session_down, shown.headline(ShootingHand.RIGHT).res)
+        assertEquals(Res.plurals.home_insight_session_down, shown.headline(ShootingHand.RIGHT).res)
     }
 
     @Test

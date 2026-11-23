@@ -61,6 +61,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -283,7 +284,7 @@ fun StatsScreen(
                     // Only series the server lacks: an acknowledged one waiting for its photo is uploaded.
                     val localCount = plotted.count { it.series.local != null && it.series.id < 0 }
                     if (localCount > 0) Text(
-                        stringResource(Res.string.stats_not_uploaded, localCount),
+                        pluralStringResource(Res.plurals.stats_not_uploaded, localCount, localCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

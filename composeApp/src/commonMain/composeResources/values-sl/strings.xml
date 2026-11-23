@@ -83,11 +83,26 @@
     <string name="history_signed_out">Prijavite se, da vidite svojo zgodovino</string>
     <string name="history_empty">Še ni shranjenih serij</string>
     <string name="history_filter_empty">Nobena serija ne ustreza filtru.</string>
-    <string name="history_day_summary">Serije: %1$d · povpr. %2$s</string>
-    <string name="history_day_summary_one">1 serija · točke: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d serija · povpr. %2$s</item>
+        <item quantity="two">%1$d seriji · povpr. %2$s</item>
+        <item quantity="few">%1$d serije · povpr. %2$s</item>
+        <item quantity="other">%1$d serij · povpr. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 serija · %1$d točka</item>
+        <item quantity="two">1 serija · %1$d točki</item>
+        <item quantity="few">1 serija · %1$d točke</item>
+        <item quantity="other">1 serija · %1$d točk</item>
+    </plurals>
     <string name="history_card_title">%1$s · serija %2$d</string>
     <string name="history_delete_title">Izbrišem serijo?</string>
-    <string name="history_delete_message">%1$s · točke: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d točka</item>
+        <item quantity="two">%1$s · %2$d točki</item>
+        <item quantity="few">%1$s · %2$d točke</item>
+        <item quantity="other">%1$s · %2$d točk</item>
+    </plurals>
     <string name="history_delete_confirm">Izbriši</string>
     <string name="history_delete_cancel">Prekliči</string>
     <string name="history_delete_failed">Brisanje ni uspelo</string>
@@ -134,7 +149,18 @@
     <string name="stats_group_date">Datum</string>
     <string name="filter_clear">Počisti filtre</string>
     <string name="stats_no_geometry">Nobena od vaših serij nima kroga, glede na katerega bi jo prikazali. Skenirajte serijo, pri kateri je bil najden krog 6/7.</string>
-    <string name="stats_target_description">Tarča z zadetki: %1$d, iz serij: %2$d</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Tarča: %1$d zadetek iz %2$s</item>
+        <item quantity="two">Tarča: %1$d zadetka iz %2$s</item>
+        <item quantity="few">Tarča: %1$d zadetki iz %2$s</item>
+        <item quantity="other">Tarča: %1$d zadetkov iz %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d serije</item>
+        <item quantity="two">%1$d serij</item>
+        <item quantity="few">%1$d serij</item>
+        <item quantity="other">%1$d serij</item>
+    </plurals>
     <string name="stats_timeline">Časovnica serij</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Skupina</string>
@@ -158,12 +184,22 @@
     <string name="stats_short_mean_score">Rezultat</string>
     <string name="stats_trend_description">Graf trenda, črte: %1$d, točke: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (serije: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d serija)</item>
+        <item quantity="two">%1$s %2$s: %3$s (%4$d seriji)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d serije)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d serij)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Zavihek Trend prikaže katerokoli mero kot krivuljo skozi čas. Z gumbi izberite mero in ali vsaka serija postane točka ali pa se serije združijo po dnevih, tednih ali mesecih (mera se takrat izračuna iz vseh serij v obdobju). Po kalibrih nariše eno krivuljo za vsak kaliber. Zgornji filtri veljajo za vse zavihke. Tapnite točko, da jo preberete.</string>
     <string name="stats_tab_drift">Zamik</string>
-    <string name="stats_drift_description">Tarča s srednjo točko in mediano točke zadetkov skozi čas, točke: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Tarča s srednjo točko in mediano točke zadetkov skozi čas, %1$d točka</item>
+        <item quantity="two">Tarča s srednjo točko in mediano točke zadetkov skozi čas, %1$d točki</item>
+        <item quantity="few">Tarča s srednjo točko in mediano točke zadetkov skozi čas, %1$d točke</item>
+        <item quantity="other">Tarča s srednjo točko in mediano točke zadetkov skozi čas, %1$d točk</item>
+    </plurals>
     <string name="stats_drift_counts">Dnevi: %1$d · serije: %2$d · zadetki: %3$d</string>
     <string name="stats_drift_oldest">Najstarejše</string>
     <string name="stats_drift_newest">Najnovejše</string>
@@ -182,8 +218,24 @@
     <string name="stats_drift_summary_closer">Zadnja točka zadetkov: %1$s (%2$d mm od središča), %3$d mm bližje kot %4$s.</string>
     <string name="stats_drift_summary_further">Zadnja točka zadetkov: %1$s (%2$d mm od središča), %3$d mm dlje kot %4$s.</string>
     <string name="stats_drift_summary_same">Zadnja točka zadetkov: %1$s (%2$d mm od središča), enako daleč kot %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · serije: %2$d · zadetki: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · serija %2$d od %3$d · zadetki: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d serija · %3$s</item>
+        <item quantity="two">%1$s · %2$d seriji · %3$s</item>
+        <item quantity="few">%1$s · %2$d serije · %3$s</item>
+        <item quantity="other">%1$s · %2$d serij · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d zadetek</item>
+        <item quantity="two">%1$d zadetka</item>
+        <item quantity="few">%1$d zadetki</item>
+        <item quantity="other">%1$d zadetkov</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · serija %2$d od %3$d · %4$d zadetek</item>
+        <item quantity="two">%1$s · serija %2$d od %3$d · %4$d zadetka</item>
+        <item quantity="few">%1$s · serija %2$d od %3$d · %4$d zadetki</item>
+        <item quantity="other">%1$s · serija %2$d od %3$d · %4$d zadetkov</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Levo / desno in visoko / nizko skozi čas (povprečje)</string>
     <string name="stats_drift_strips_median">Levo / desno in visoko / nizko skozi čas (mediana)</string>
@@ -297,17 +349,39 @@
     <string name="import_auto_body">Brez ustavljanja shrani vsako sliko, ki jo je mogoče točkovati; ostale se prikažejo potem.</string>
     <string name="import_progress">Uvoz %1$d / %2$d</string>
     <string name="import_skip">Preskoči</string>
-    <string name="import_summary">Shranjeno: %1$d, preskočeno: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Shranjeno: %1$d</item>
+        <item quantity="two">Shranjeno: %1$d</item>
+        <item quantity="few">Shranjeno: %1$d</item>
+        <item quantity="other">Shranjeno: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">preskočeno: %1$d</item>
+        <item quantity="two">preskočeno: %1$d</item>
+        <item quantity="few">preskočeno: %1$d</item>
+        <item quantity="other">preskočeno: %1$d</item>
+    </plurals>
     <string name="help_home_import">Uvozi slike</string>
     <string name="help_home_import_body">V meniju: točkujte fotografije, ki so že v telefonu, iz galerije ali iz datotek. Vsaka slika se skenira in prikažejo se rezultati, ki jih shranite ali preskočite. Pri vklopljenem Samodejnem uvozu se vsaka slika, ki jo je mogoče točkovati, shrani sama, z datumom, ko je bila fotografija posneta; ostale se potem prikažejo ena za drugo.</string>
     <string name="series_status_phone">Shranjeno v tej napravi</string>
     <string name="series_not_uploaded">Ni naloženo</string>
-    <string name="stats_not_uploaded">Ni naloženo, serije: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">%1$d serija ni naložena</item>
+        <item quantity="two">%1$d seriji nista naloženi</item>
+        <item quantity="few">%1$d serije niso naložene</item>
+        <item quantity="other">%1$d serij ni naloženih</item>
+    </plurals>
     <string name="local_claim_title">Serije v tej napravi</string>
     <string name="local_claim_body">Serije, shranjene v tej napravi brez prijave ali za drug račun: %1$d. Dodajte jih v ta račun, izbrišite jih iz te naprave ali ostanite odjavljeni.</string>
     <string name="local_claim_add">Dodaj v račun</string>
     <string name="local_claim_delete">Izbriši iz naprave</string>
-    <string name="local_claim_delete_body">Izbrišem serije (%1$d) in njihove fotografije iz te naprave? Tega ni mogoče razveljaviti. V ta račun niso bile naložene.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Izbrišem %1$d serijo in njeno fotografijo iz te naprave? Tega ni mogoče razveljaviti. V ta račun ni bila naložena.</item>
+        <item quantity="two">Izbrišem %1$d seriji in njuni fotografiji iz te naprave? Tega ni mogoče razveljaviti. V ta račun nista bili naloženi.</item>
+        <item quantity="few">Izbrišem %1$d serije in njihove fotografije iz te naprave? Tega ni mogoče razveljaviti. V ta račun niso bile naložene.</item>
+        <item quantity="other">Izbrišem %1$d serij in njihove fotografije iz te naprave? Tega ni mogoče razveljaviti. V ta račun niso bile naložene.</item>
+    </plurals>
     <string name="local_claim_stay">Ostani brez prijave</string>
     <string name="local_claim_error">Postopka ni bilo mogoče dokončati. Preostale serije so še vedno v tej napravi. Zaprite in se poskusite znova prijaviti.</string>
     <string name="home_week_series">serije v 7 dneh</string>
@@ -317,17 +391,52 @@
     <string name="home_insight_stretch_vertical">Ta teden je vaša skupina s kalibrom %1$s približno %2$d odstotkov višja kot širša.</string>
     <string name="home_insight_stretch_horizontal">Ta teden je vaša skupina s kalibrom %1$s približno %2$d odstotkov širša kot višja.</string>
     <string name="home_insight_stretch_diagonal">Ta teden je vaša skupina s kalibrom %1$s približno %2$d odstotkov daljša po diagonali.</string>
-    <string name="home_insight_fliers">Ta teden je en strel pobegnil v %2$d od %3$d vaših serij s kalibrom %1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Ta teden je en strel pobegnil v %2$d od %3$d vaše serije s kalibrom %1$s.</item>
+        <item quantity="two">Ta teden je en strel pobegnil v %2$d od %3$d vaših serij s kalibrom %1$s.</item>
+        <item quantity="few">Ta teden je en strel pobegnil v %2$d od %3$d vaših serij s kalibrom %1$s.</item>
+        <item quantity="other">Ta teden je en strel pobegnil v %2$d od %3$d vaših serij s kalibrom %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">Dne %2$s so bile vaše skupine s kalibrom %1$s približno %3$d odstotkov širše kot prej.</string>
     <string name="home_insight_low_series">Vaša zadnja serija s kalibrom %1$s je dosegla %2$d, običajno %3$d.</string>
     <string name="home_insight_low_day">Dne %2$s so imele vaše serije s kalibrom %1$s povprečje %3$d, običajno %4$d.</string>
-    <string name="home_insight_trend_up">Vaši rezultati s kalibrom %1$s rastejo: za približno %2$d v %3$d tednih.</string>
-    <string name="home_insight_trend_down">Vaši rezultati s kalibrom %1$s padajo: za približno %2$d v %3$d tednih.</string>
-    <string name="home_insight_session_down">Ta teden so bile vaše poznejše serije s kalibrom %1$s slabše v %2$d od %3$d daljših dni.</string>
-    <string name="home_insight_session_up">Ta teden so bile vaše poznejše serije s kalibrom %1$s boljše v %2$d od %3$d daljših dni.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Vaši rezultati s kalibrom %1$s rastejo: za približno %2$d točko v %3$s.</item>
+        <item quantity="two">Vaši rezultati s kalibrom %1$s rastejo: za približno %2$d točki v %3$s.</item>
+        <item quantity="few">Vaši rezultati s kalibrom %1$s rastejo: za približno %2$d točke v %3$s.</item>
+        <item quantity="other">Vaši rezultati s kalibrom %1$s rastejo: za približno %2$d točk v %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d tednu</item>
+        <item quantity="two">%1$d tednih</item>
+        <item quantity="few">%1$d tednih</item>
+        <item quantity="other">%1$d tednih</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Vaši rezultati s kalibrom %1$s padajo: za približno %2$d točko v %3$s.</item>
+        <item quantity="two">Vaši rezultati s kalibrom %1$s padajo: za približno %2$d točki v %3$s.</item>
+        <item quantity="few">Vaši rezultati s kalibrom %1$s padajo: za približno %2$d točke v %3$s.</item>
+        <item quantity="other">Vaši rezultati s kalibrom %1$s padajo: za približno %2$d točk v %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Ta teden so bile vaše poznejše serije s kalibrom %1$s slabše v %2$d od %3$d daljšega dneva.</item>
+        <item quantity="two">Ta teden so bile vaše poznejše serije s kalibrom %1$s slabše v %2$d od %3$d daljših dni.</item>
+        <item quantity="few">Ta teden so bile vaše poznejše serije s kalibrom %1$s slabše v %2$d od %3$d daljših dni.</item>
+        <item quantity="other">Ta teden so bile vaše poznejše serije s kalibrom %1$s slabše v %2$d od %3$d daljših dni.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Ta teden so bile vaše poznejše serije s kalibrom %1$s boljše v %2$d od %3$d daljšega dneva.</item>
+        <item quantity="two">Ta teden so bile vaše poznejše serije s kalibrom %1$s boljše v %2$d od %3$d daljših dni.</item>
+        <item quantity="few">Ta teden so bile vaše poznejše serije s kalibrom %1$s boljše v %2$d od %3$d daljših dni.</item>
+        <item quantity="other">Ta teden so bile vaše poznejše serije s kalibrom %1$s boljše v %2$d od %3$d daljših dni.</item>
+    </plurals>
     <string name="home_insight_dismiss">Skrij ta vpogled</string>
-    <string name="home_local_title">Serije samo v tem telefonu: %1$d</string>
-    <string name="home_local_title_one">1 serija samo v tem telefonu</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d serija samo v tem telefonu</item>
+        <item quantity="two">%1$d seriji samo v tem telefonu</item>
+        <item quantity="few">%1$d serije samo v tem telefonu</item>
+        <item quantity="other">%1$d serij samo v tem telefonu</item>
+    </plurals>
     <string name="home_signin_title">Shranite serije v svoj račun</string>
     <string name="home_signin_body">Prijavite se, da jih obdržite, ko zamenjate telefon.</string>
     <string name="action_sign_in">Prijava</string>
@@ -366,12 +475,33 @@
     <string name="advice_move_down_left">dol in levo</string>
     <string name="advice_move_left">levo</string>
     <string name="advice_move_up_left">gor in levo</string>
-    <string name="advice_offset_stable_summary">Vaša skupina je %1$d mm %2$s (strelov: %3$d), v isto smer v %4$d od %5$d dni.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Vaša skupina je %1$d mm %2$s pri %3$d strelu, v isto smer v %4$d od %5$s.</item>
+        <item quantity="two">Vaša skupina je %1$d mm %2$s pri %3$d strelih, v isto smer v %4$d od %5$s.</item>
+        <item quantity="few">Vaša skupina je %1$d mm %2$s pri %3$d strelih, v isto smer v %4$d od %5$s.</item>
+        <item quantity="other">Vaša skupina je %1$d mm %2$s pri %3$d strelih, v isto smer v %4$d od %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dneva</item>
+        <item quantity="two">%1$d dni</item>
+        <item quantity="few">%1$d dni</item>
+        <item quantity="other">%1$d dni</item>
+    </plurals>
     <string name="advice_cause_sights_1">Merki niso nastavljeni za to strelivo ali razdaljo.</string>
     <string name="advice_cause_sights_2">Merki so se od nastavitve premaknili ali pa drugo strelivo zadeva drugam.</string>
     <string name="advice_try_sights">Premaknite merke tako, da se skupina premakne za približno %1$d mm %2$s, nato pa ustrelite novo skupino, preden se jih spet dotaknete.</string>
-    <string name="advice_offset_varies_summary">Vaša skupina je %1$d mm %2$s (strelov: %3$d), a ne vsak dan v isto smer.</string>
-    <string name="advice_offset_few_days_summary">Vaša skupina je %1$d mm %2$s (strelov: %3$d), a v premalo dneh, da bi vedeli, ali je vedno tako.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Vaša skupina je %1$d mm %2$s pri %3$d strelu, a ne vsak dan v isto smer.</item>
+        <item quantity="two">Vaša skupina je %1$d mm %2$s pri %3$d strelih, a ne vsak dan v isto smer.</item>
+        <item quantity="few">Vaša skupina je %1$d mm %2$s pri %3$d strelih, a ne vsak dan v isto smer.</item>
+        <item quantity="other">Vaša skupina je %1$d mm %2$s pri %3$d strelih, a ne vsak dan v isto smer.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Vaša skupina je %1$d mm %2$s pri %3$d strelu, a v premalo dneh, da bi vedeli, ali je vedno tako.</item>
+        <item quantity="two">Vaša skupina je %1$d mm %2$s pri %3$d strelih, a v premalo dneh, da bi vedeli, ali je vedno tako.</item>
+        <item quantity="few">Vaša skupina je %1$d mm %2$s pri %3$d strelih, a v premalo dneh, da bi vedeli, ali je vedno tako.</item>
+        <item quantity="other">Vaša skupina je %1$d mm %2$s pri %3$d strelih, a v premalo dneh, da bi vedeli, ali je vedno tako.</item>
+    </plurals>
     <string name="advice_cause_high_1">Potiskanje dlani naprej ob sprožitvi strela.</string>
     <string name="advice_cause_high_2">Zapestje se ob strelu zlomi navzgor.</string>
     <string name="advice_cause_high_3">Iskanje zadetka in prezgodnje dvigovanje pištole.</string>
@@ -390,21 +520,41 @@
     <string name="advice_cause_side_2">Pritisk palca na ročaj potiska pištolo vstran.</string>
     <string name="advice_cause_side_3">Pritisk na sprožilec, ki ni naravnost nazaj.</string>
     <string name="advice_try_side">Preverite, kje prst sreča sprožilec in kako močno pritiska palec, nato izvedite suho prožitev in opazujte merke.</string>
-    <string name="advice_stretch_vertical_summary">Vaša skupina je približno %1$d odstotkov višja kot širša (strelov: %2$d).</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Vaša skupina je približno %1$d odstotkov višja kot širša, pri %2$d strelu.</item>
+        <item quantity="two">Vaša skupina je približno %1$d odstotkov višja kot širša, pri %2$d strelih.</item>
+        <item quantity="few">Vaša skupina je približno %1$d odstotkov višja kot širša, pri %2$d strelih.</item>
+        <item quantity="other">Vaša skupina je približno %1$d odstotkov višja kot širša, pri %2$d strelih.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Dihanje: strel vsakič v drugi točki dihalnega cikla.</string>
     <string name="advice_cause_vertical_2">Slika merkov se spreminja po višini, muha je v zarezi višje ali nižje.</string>
     <string name="advice_cause_vertical_3">Pritisk na ročaj, ki se spreminja od strela do strela.</string>
     <string name="advice_try_vertical">Pri vsakem strelu zadržite dih v isti točki in pred stiskanjem preverite višino muhe v zarezi.</string>
-    <string name="advice_stretch_horizontal_summary">Vaša skupina je približno %1$d odstotkov širša kot višja (strelov: %2$d).</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Vaša skupina je približno %1$d odstotkov širša kot višja, pri %2$d strelu.</item>
+        <item quantity="two">Vaša skupina je približno %1$d odstotkov širša kot višja, pri %2$d strelih.</item>
+        <item quantity="few">Vaša skupina je približno %1$d odstotkov širša kot višja, pri %2$d strelih.</item>
+        <item quantity="other">Vaša skupina je približno %1$d odstotkov širša kot višja, pri %2$d strelih.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Pritisk na sprožilec, ki gre vstran.</string>
     <string name="advice_cause_horizontal_2">Zapestje se ob strelu premakne.</string>
     <string name="advice_cause_horizontal_3">Stoja, ki ni pravilno postavljena glede na tarčo.</string>
     <string name="advice_try_horizontal">Izvedite suho prožitev z merki na točki in poglejte, ali zdrsnejo vstran, ko sprožilec popusti.</string>
-    <string name="advice_stretch_diagonal_summary">Vaša skupina je po diagonali približno %1$d odstotkov daljša v eno smer kot v drugo (strelov: %2$d).</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Vaša skupina je po diagonali približno %1$d odstotkov daljša v eno smer kot v drugo, pri %2$d strelu.</item>
+        <item quantity="two">Vaša skupina je po diagonali približno %1$d odstotkov daljša v eno smer kot v drugo, pri %2$d strelih.</item>
+        <item quantity="few">Vaša skupina je po diagonali približno %1$d odstotkov daljša v eno smer kot v drugo, pri %2$d strelih.</item>
+        <item quantity="other">Vaša skupina je po diagonali približno %1$d odstotkov daljša v eno smer kot v drugo, pri %2$d strelih.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Pritisk na ročaj in pritisk na sprožilec delujeta drug proti drugemu.</string>
     <string name="advice_cause_diagonal_2">Stoja ali položaj roke, ki nagne pištolo.</string>
     <string name="advice_try_diagonal">Preverite, da je prijem pri vsakem strelu enak in da so merki vodoravni, preden stisnete.</string>
-    <string name="advice_fliers_summary">V %1$d od %2$d vaših serij je en strel pobegnil od ostalih, v povprečju približno %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">V %1$d od %2$d vaše serije je en strel pobegnil od ostalih, v povprečju približno %3$d mm.</item>
+        <item quantity="two">V %1$d od %2$d vaših serij je en strel pobegnil od ostalih, v povprečju približno %3$d mm.</item>
+        <item quantity="few">V %1$d od %2$d vaših serij je en strel pobegnil od ostalih, v povprečju približno %3$d mm.</item>
+        <item quantity="other">V %1$d od %2$d vaših serij je en strel pobegnil od ostalih, v povprečju približno %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Nadzor sprožilca pri posameznem strelu.</string>
     <string name="advice_cause_fliers_2">Izguba izpeljave strela.</string>
     <string name="advice_cause_fliers_3">Sprožitev strela, ne da bi ga napovedali.</string>
@@ -415,48 +565,121 @@
     <string name="advice_cause_wide_3">Prehitevanje strelov.</string>
     <string name="advice_try_wide">Vaja s suho prožitvijo: držite in stiskajte brez streljanja ter počivajte, ko se držanje začne tresti.</string>
     <string name="advice_low_series_summary">Vaša zadnja serija je dosegla %1$d, v povprečju zadnjih serij (%3$d) pa %2$d.</string>
-    <string name="advice_low_day_summary">Dne %1$s so imele vaše serije (%2$d) povprečje %3$d, prej pa v povprečju %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Dne %1$s je imela vaša %2$d serija povprečje %3$d, prej pa v povprečju %4$d.</item>
+        <item quantity="two">Dne %1$s sta imeli vaši %2$d seriji povprečje %3$d, prej pa v povprečju %4$d.</item>
+        <item quantity="few">Dne %1$s so imele vaše %2$d serije povprečje %3$d, prej pa v povprečju %4$d.</item>
+        <item quantity="other">Dne %1$s je imelo vaših %2$d serij povprečje %3$d, prej pa v povprečju %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">En slab rezultat pove malo: ustrelite jih še nekaj, preden karkoli spremenite.</string>
     <string name="advice_try_low_explained">Začnite z opombo spodaj, namesto da bi spremenili vse naenkrat.</string>
     <string name="advice_low_note_offset">Vaša skupina ni v središču, kar je lahko del razloga.</string>
     <string name="advice_low_note_stretched">Vaša skupina je raztegnjena v eno smer, kar je lahko del razloga.</string>
     <string name="advice_low_note_fliers">Del razloga je lahko en pobegli strel v seriji.</string>
     <string name="advice_low_note_wide">Del razloga so lahko širše skupine kot običajno.</string>
-    <string name="advice_trend_up_summary">Vaši rezultati so se v %3$d tednih zvišali za približno %1$d (serije: %2$d).</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Vaši rezultati so se v %3$s zvišali za približno %1$d točko, skozi %2$s.</item>
+        <item quantity="two">Vaši rezultati so se v %3$s zvišali za približno %1$d točki, skozi %2$s.</item>
+        <item quantity="few">Vaši rezultati so se v %3$s zvišali za približno %1$d točke, skozi %2$s.</item>
+        <item quantity="other">Vaši rezultati so se v %3$s zvišali za približno %1$d točk, skozi %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d serijo</item>
+        <item quantity="two">%1$d seriji</item>
+        <item quantity="few">%1$d serije</item>
+        <item quantity="other">%1$d serij</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d tednu</item>
+        <item quantity="two">%1$d tednih</item>
+        <item quantity="few">%1$d tednih</item>
+        <item quantity="other">%1$d tednih</item>
+    </plurals>
     <string name="advice_try_trend_up">Nadaljujte tako in si zapišite, kaj se je spremenilo, da boste to lahko ponovili.</string>
-    <string name="advice_trend_down_summary">Vaši rezultati so v %3$d tednih padli za približno %1$d (serije: %2$d).</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Vaši rezultati so v %3$s padli za približno %1$d točko, skozi %2$s.</item>
+        <item quantity="two">Vaši rezultati so v %3$s padli za približno %1$d točki, skozi %2$s.</item>
+        <item quantity="few">Vaši rezultati so v %3$s padli za približno %1$d točke, skozi %2$s.</item>
+        <item quantity="other">Vaši rezultati so v %3$s padli za približno %1$d točk, skozi %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Utrujenost ali manj časa za vadbo.</string>
     <string name="advice_cause_trend_2">Prehitevanje strelov.</string>
     <string name="advice_cause_trend_3">Menjava pištole, streliva ali rutine.</string>
     <string name="advice_try_trend_down">Krajši treningi s premori in nekaj suhih prožitev, da spet najdete osnove.</string>
-    <string name="advice_session_down_summary">V %1$d od %2$d vaših daljših dni so bile poznejše serije slabše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">V %1$d od %2$d vašega daljšega dneva so bile poznejše serije slabše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+        <item quantity="two">V %1$d od %2$d vaših daljših dni so bile poznejše serije slabše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+        <item quantity="few">V %1$d od %2$d vaših daljših dni so bile poznejše serije slabše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+        <item quantity="other">V %1$d od %2$d vaših daljših dni so bile poznejše serije slabše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+    </plurals>
     <string name="advice_cause_session_1">Utrujenost roke, rame ali oči med treningom.</string>
     <string name="advice_cause_session_2">Popuščanje zbranosti, zato so streli prehitri ali slabše napovedani.</string>
     <string name="advice_cause_session_3">Premalo premorov med serijami.</string>
     <string name="advice_try_session_down">Krajši treningi ali pravi premor vsakih nekaj serij, da si spočijete oči in roko.</string>
-    <string name="advice_session_up_summary">V %1$d od %2$d vaših daljših dni so bile poznejše serije boljše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">V %1$d od %2$d vašega daljšega dneva so bile poznejše serije boljše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+        <item quantity="two">V %1$d od %2$d vaših daljših dni so bile poznejše serije boljše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+        <item quantity="few">V %1$d od %2$d vaših daljših dni so bile poznejše serije boljše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+        <item quantity="other">V %1$d od %2$d vaših daljših dni so bile poznejše serije boljše od prvih: v povprečju %4$d v primerjavi s %3$d tiste dni.</item>
+    </plurals>
     <string name="advice_try_session_up">Počasen začetek: začnite z nekaj suhimi prožitvami ali poskusnimi streli, preden šteje prva serija.</string>
     <string name="stats_help_insights">Vpogledi</string>
     <string name="stats_help_insights_body">Vpogledi pregledajo vaše shranjene serije, po en kaliber naenkrat, in opozorijo na vzorce, v katere so dokaj prepričani: skupino, ki je na eni strani, raztegnjeno skupino, strel, ki pobegne, ali rezultate, ki padajo ali rastejo. Preden kaj povejo, potrebujejo kar nekaj strelov. Vsaka opomba pove, kaj kažejo številke, kaj to pogosto povzroča, in eno stvar, ki jo lahko poskusite. To je namig, ne trener: vzroki so pogosti, ne sodba. Strelno roko nastavite in Vpoglede izklopite v Nastavitvah.</string>
     <string name="stats_tab_insights">Vpogledi</string>
-    <string name="stats_insights_need_more">Vpogledi potrebujejo približno %1$d strelov; tukaj jih imate %2$d.</string>
-    <string name="stats_insights_nothing">V teh strelih (%1$d) iz serij (%2$d) nič ne izstopa.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Vpogledi potrebujejo približno %1$d strel; tukaj jih imate %2$d.</item>
+        <item quantity="two">Vpogledi potrebujejo približno %1$d strela; tukaj jih imate %2$d.</item>
+        <item quantity="few">Vpogledi potrebujejo približno %1$d strele; tukaj jih imate %2$d.</item>
+        <item quantity="other">Vpogledi potrebujejo približno %1$d strelov; tukaj jih imate %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">V tem %1$d strelu iz %2$s nič ne izstopa.</item>
+        <item quantity="two">V teh %1$d strelih iz %2$s nič ne izstopa.</item>
+        <item quantity="few">V teh %1$d strelih iz %2$s nič ne izstopa.</item>
+        <item quantity="other">V teh %1$d strelih iz %2$s nič ne izstopa.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serije</item>
+        <item quantity="two">%1$d serij</item>
+        <item quantity="few">%1$d serij</item>
+        <item quantity="other">%1$d serij</item>
+    </plurals>
     <string name="stats_insights_numbers">Srednja točka zadetkov %1$s, raztros %2$d mm, povprečna serija %3$s.</string>
     <string name="stats_insights_legend">Rumena elipsa zajame približno 86 odstotkov strelov; puščica gre od središča do srednje točke zadetkov. Tapnite opombo, da vidite, na kaj se nanaša na tarči.</string>
-    <string name="stats_insights_target_description">Tarča vpogledov, strelov: %1$d, z elipso in puščico do srednje točke zadetkov</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Tarča vpogledov: %1$d strel, elipsa in puščica do srednje točke zadetkov</item>
+        <item quantity="two">Tarča vpogledov: %1$d strela, elipsa in puščica do srednje točke zadetkov</item>
+        <item quantity="few">Tarča vpogledov: %1$d streli, elipsa in puščica do srednje točke zadetkov</item>
+        <item quantity="other">Tarča vpogledov: %1$d strelov, elipsa in puščica do srednje točke zadetkov</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Vpogledi pregledajo po en kaliber naenkrat, te serije pa ga nimajo. V Zgodovini jim nastavite kaliber, da vidite vpoglede.</string>
-    <string name="stats_insights_uncalibered">Serije brez kalibra so izpuščene: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d serija brez kalibra je izpuščena.</item>
+        <item quantity="two">%1$d seriji brez kalibra sta izpuščeni.</item>
+        <item quantity="few">%1$d serije brez kalibra so izpuščene.</item>
+        <item quantity="other">%1$d serij brez kalibra je izpuščenih.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d pod vašim povprečjem %2$d</string>
     <string name="detail_vs_over">%1$d nad vašim povprečjem %2$d</string>
     <string name="detail_vs_on">Na vašem povprečju %1$d</string>
-    <string name="detail_vs_best">Vaša najboljša v zadnjih %1$d dneh</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Vaša najboljša v zadnjem %1$d dnevu</item>
+        <item quantity="two">Vaša najboljša v zadnjih %1$d dneh</item>
+        <item quantity="few">Vaša najboljša v zadnjih %1$d dneh</item>
+        <item quantity="other">Vaša najboljša v zadnjih %1$d dneh</item>
+    </plurals>
     <string name="detail_day_in_insights">Poglej ta dan v Vpogledih</string>
     <string name="sight_title">Popravek merkov</string>
     <string name="sight_up_mm">Gor %1$d mm</string>
     <string name="sight_down_mm">Dol %1$d mm</string>
     <string name="sight_left_mm">Levo %1$d mm</string>
     <string name="sight_right_mm">Desno %1$d mm</string>
-    <string name="sight_clicks">%1$s: klikov %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d klik</item>
+        <item quantity="two">%1$s: %2$d klika</item>
+        <item quantity="few">%1$s: %2$d kliki</item>
+        <item quantity="other">%1$s: %2$d klikov</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 klik</string>
     <string name="sight_under_half_click">%1$s: manj kot pol klika, pustite</string>
     <string name="sight_no_height">Višina: brez spremembe</string>
@@ -467,7 +690,12 @@
     <string name="sight_set_clicks">Vnesi vrednost klika</string>
     <string name="sight_change_clicks">Spremeni vrednost klika</string>
     <string name="sight_adjusted_button">Merki so nastavljeni</string>
-    <string name="sight_adjusted_note">Merki nastavljeni %1$s: odmik se presoja na strelih od takrat (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Merki nastavljeni %1$s: odmik se presoja na %2$d strelu od takrat.</item>
+        <item quantity="two">Merki nastavljeni %1$s: odmik se presoja na %2$d strelih od takrat.</item>
+        <item quantity="few">Merki nastavljeni %1$s: odmik se presoja na %2$d strelih od takrat.</item>
+        <item quantity="other">Merki nastavljeni %1$s: odmik se presoja na %2$d strelih od takrat.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Razveljavi</string>
     <string name="sight_dialog_title">Vrednost klika, %1$s</string>
     <string name="sight_dialog_help">Za koliko en klik premakne zadetek na tarči pri vaši strelni razdalji. Običajno piše v navodilih za merke, sicer preštejte klike enega popravka in izmerite, za koliko se je skupina premaknila.</string>

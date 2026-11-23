@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -66,8 +67,7 @@ internal fun SignInCard(
                 Text(
                     title ?: when (localCount) {
                         0 -> stringResource(Res.string.home_signin_title)
-                        1 -> stringResource(Res.string.home_local_title_one)
-                        else -> stringResource(Res.string.home_local_title, localCount)
+                        else -> pluralStringResource(Res.plurals.home_local_title, localCount, localCount)
                     },
                     style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleSmall,
                 )

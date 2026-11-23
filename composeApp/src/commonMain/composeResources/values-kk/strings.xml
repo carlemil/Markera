@@ -83,11 +83,20 @@
     <string name="history_signed_out">Тарихыңызды көру үшін кіріңіз</string>
     <string name="history_empty">Әзірге сақталған серия жоқ</string>
     <string name="history_filter_empty">Сүзгіге сәйкес серия жоқ.</string>
-    <string name="history_day_summary">Серия: %1$d · орташа %2$s</string>
-    <string name="history_day_summary_one">1 серия · %1$d ұпай</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d серия · орташа %2$s</item>
+        <item quantity="other">%1$d серия · орташа %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 серия · %1$d ұпай</item>
+        <item quantity="other">1 серия · %1$d ұпай</item>
+    </plurals>
     <string name="history_card_title">%1$s · серия %2$d</string>
     <string name="history_delete_title">Серия жойылсын ба?</string>
-    <string name="history_delete_message">%1$s · %2$d ұпай</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d ұпай</item>
+        <item quantity="other">%1$s · %2$d ұпай</item>
+    </plurals>
     <string name="history_delete_confirm">Жою</string>
     <string name="history_delete_cancel">Болдырмау</string>
     <string name="history_delete_failed">Жою мүмкін болмады</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Күні</string>
     <string name="filter_clear">Сүзгілерді тазалау</string>
     <string name="stats_no_geometry">Серияларыңыздың ешқайсысында салыстыратын сақина жоқ. 6/7 сақинасы табылатындай бір серияны сканерлеңіз.</string>
-    <string name="stats_target_description">Нысана: %1$d тию, %2$d сериядан</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Нысана: %1$d тию, %2$s</item>
+        <item quantity="other">Нысана: %1$d тию, %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d сериядан</item>
+        <item quantity="other">%1$d сериядан</item>
+    </plurals>
     <string name="stats_timeline">Сериялар уақыт сызығы</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Топтасу</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Ұпай</string>
     <string name="stats_trend_description">Үрдіс диаграммасы, сызықтар: %1$d, нүктелер: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (серия: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d серия)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d серия)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Үрдіс</string>
     <string name="stats_help_trend_body">Үрдіс қойындысы кез келген өлшемді уақыт бойынша қисық ретінде көрсетеді. Өлшемді түймелермен таңдаңыз, сондай-ақ әр серия жеке нүкте бола ма, әлде сериялар күн, апта немесе ай бойынша біріктіріле ме, соны таңдаңыз (сонда өлшем кезеңдегі барлық сериялар бойынша есептеледі). Калибр бойынша әр калибрге бір қисық салады. Жоғарыдағы сүзгілер барлық қойындыларға қолданылады. Нүктенің мәнін оқу үшін оны түртіңіз.</string>
     <string name="stats_tab_drift">Ығысу</string>
-    <string name="stats_drift_description">Уақыт бойынша орташа және медиандық тию нүктесі бар нысана, нүктелер: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Уақыт бойынша орташа және медиандық тию нүктесі бар нысана, %1$d нүкте</item>
+        <item quantity="other">Уақыт бойынша орташа және медиандық тию нүктесі бар нысана, %1$d нүкте</item>
+    </plurals>
     <string name="stats_drift_counts">Күн: %1$d · серия: %2$d · тию: %3$d</string>
     <string name="stats_drift_oldest">Ең ескі</string>
     <string name="stats_drift_newest">Ең жаңа</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Соңғы тию нүктесі: %1$s (ортадан %2$d mm), %4$s күнгіден %3$d mm жақын.</string>
     <string name="stats_drift_summary_further">Соңғы тию нүктесі: %1$s (ортадан %2$d mm), %4$s күнгіден %3$d mm алыс.</string>
     <string name="stats_drift_summary_same">Соңғы тию нүктесі: %1$s (ортадан %2$d mm), %3$s күнгідей қашықтықта.</string>
-    <string name="stats_drift_point_day">%1$s · серия: %2$d · тию: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · серия %2$d / %3$d · тию: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d серия · %3$s</item>
+        <item quantity="other">%1$s · %2$d серия · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d тию</item>
+        <item quantity="other">%1$d тию</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · серия %2$d / %3$d · %4$d тию</item>
+        <item quantity="other">%1$s · серия %2$d / %3$d · %4$d тию</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Уақыт бойынша сол / оң және жоғары / төмен (орташа)</string>
     <string name="stats_drift_strips_median">Уақыт бойынша сол / оң және жоғары / төмен (медиана)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Есептелетін әр суретті тоқтамай сақтайды; есептелмегендері кейін көрсетіледі.</string>
     <string name="import_progress">Импорт %1$d / %2$d</string>
     <string name="import_skip">Өткізу</string>
-    <string name="import_summary">Сақталды: %1$d, өткізілді: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Сақталды: %1$d</item>
+        <item quantity="other">Сақталды: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">өткізілді: %1$d</item>
+        <item quantity="other">өткізілді: %1$d</item>
+    </plurals>
     <string name="help_home_import">Суреттерді импорттау</string>
     <string name="help_home_import_body">Мәзірде: телефондағы бар фотоларды галереядан немесе файлдардан есептеу. Әр сурет сканерленіп, нәтижесі көрсетіледі, оны сақтауға немесе өткізуге болады. Авто импорт қосулы болса, есептелетін әр сурет фото түсірілген күнімен өздігінен сақталады; қалғандары кейін бір-бірлеп көрсетіледі.</string>
     <string name="series_status_phone">Осы құрылғыда сақталды</string>
     <string name="series_not_uploaded">Жүктелмеген</string>
-    <string name="stats_not_uploaded">Жүктелмеген серия: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">%1$d серия жүктелмеген</item>
+        <item quantity="other">%1$d серия жүктелмеген</item>
+    </plurals>
     <string name="local_claim_title">Осы құрылғыдағы сериялар</string>
     <string name="local_claim_body">Осы құрылғыда кірмей немесе басқа тіркелгі үшін сақталған сериялар: %1$d. Оларды осы тіркелгіге қосыңыз, осы құрылғыдан жойыңыз немесе кірмей қалыңыз.</string>
     <string name="local_claim_add">Тіркелгіге қосу</string>
     <string name="local_claim_delete">Құрылғыдан жою</string>
-    <string name="local_claim_delete_body">Осы құрылғыдан сериялар мен олардың фотолары жойылсын ба (серия: %1$d)? Мұны болдырмау мүмкін емес. Олар осы тіркелгіге жүктелмеген.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Осы құрылғыдан %1$d серия мен оның фотосы жойылсын ба? Мұны болдырмау мүмкін емес. Ол осы тіркелгіге жүктелмеген.</item>
+        <item quantity="other">Осы құрылғыдан %1$d серия мен олардың фотолары жойылсын ба? Мұны болдырмау мүмкін емес. Олар осы тіркелгіге жүктелмеген.</item>
+    </plurals>
     <string name="local_claim_stay">Кірмей қалу</string>
     <string name="local_claim_error">Әрекетті аяқтау мүмкін болмады. Қалған серияларыңыз әлі осы құрылғыда. Жабып, қайта кіріп көріңіз.</string>
     <string name="home_week_series">7 күндегі серия</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Осы аптада %1$s тобыңыздың биіктігі енінен шамамен %2$d пайызға артық.</string>
     <string name="home_insight_stretch_horizontal">Осы аптада %1$s тобыңыздың ені биіктігінен шамамен %2$d пайызға артық.</string>
     <string name="home_insight_stretch_diagonal">Осы аптада %1$s тобыңыз қиғаш бағытта шамамен %2$d пайызға ұзынырақ.</string>
-    <string name="home_insight_fliers">Осы аптада %1$s калибріндегі %3$d серияның %2$d сериясында бір оқ шашырап кетті.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Осы аптада %1$s калибріндегі %3$d серияның %2$d сериясында бір оқ шашырап кетті.</item>
+        <item quantity="other">Осы аптада %1$s калибріндегі %3$d серияның %2$d сериясында бір оқ шашырап кетті.</item>
+    </plurals>
     <string name="home_insight_wide">%2$s күні %1$s топтарыңыз бұрынғыдан шамамен %3$d пайызға кеңірек болды.</string>
     <string name="home_insight_low_series">Соңғы %1$s серияңыз %2$d ұпай жинады, әдетте %3$d.</string>
     <string name="home_insight_low_day">%2$s күні %1$s серияларыңыздың орташасы %3$d болды, әдетте %4$d.</string>
-    <string name="home_insight_trend_up">%1$s ұпайларыңыз өсіп келеді: %3$d аптада шамамен %2$d ұпайға.</string>
-    <string name="home_insight_trend_down">%1$s ұпайларыңыз төмендеп келеді: %3$d аптада шамамен %2$d ұпайға.</string>
-    <string name="home_insight_session_down">Осы аптада ұзақ %3$d күннің %2$d күнінде кейінгі %1$s серияларыңыз төмен ұпай жинады.</string>
-    <string name="home_insight_session_up">Осы аптада ұзақ %3$d күннің %2$d күнінде кейінгі %1$s серияларыңыз жоғары ұпай жинады.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">%1$s ұпайларыңыз өсіп келеді: %3$s шамамен %2$d ұпайға.</item>
+        <item quantity="other">%1$s ұпайларыңыз өсіп келеді: %3$s шамамен %2$d ұпайға.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d аптада</item>
+        <item quantity="other">%1$d аптада</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">%1$s ұпайларыңыз төмендеп келеді: %3$s шамамен %2$d ұпайға.</item>
+        <item quantity="other">%1$s ұпайларыңыз төмендеп келеді: %3$s шамамен %2$d ұпайға.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Осы аптада ұзақ %3$d күннің %2$d күнінде кейінгі %1$s серияларыңыз төмен ұпай жинады.</item>
+        <item quantity="other">Осы аптада ұзақ %3$d күннің %2$d күнінде кейінгі %1$s серияларыңыз төмен ұпай жинады.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Осы аптада ұзақ %3$d күннің %2$d күнінде кейінгі %1$s серияларыңыз жоғары ұпай жинады.</item>
+        <item quantity="other">Осы аптада ұзақ %3$d күннің %2$d күнінде кейінгі %1$s серияларыңыз жоғары ұпай жинады.</item>
+    </plurals>
     <string name="home_insight_dismiss">Бұл талдауды жасыру</string>
-    <string name="home_local_title">Тек осы телефондағы серия: %1$d</string>
-    <string name="home_local_title_one">1 серия тек осы телефонда</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d серия тек осы телефонда</item>
+        <item quantity="other">%1$d серия тек осы телефонда</item>
+    </plurals>
     <string name="home_signin_title">Серияларыңызды тіркелгіңізге сақтаңыз</string>
     <string name="home_signin_body">Телефонды ауыстырғанда оларды сақтап қалу үшін кіріңіз.</string>
     <string name="action_sign_in">Кіру</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">төмен және солға</string>
     <string name="advice_move_left">солға</string>
     <string name="advice_move_up_left">жоғары және солға</string>
-    <string name="advice_offset_stable_summary">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, %5$d күннің %4$d күнінде бір бағытта.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, %5$s %4$d күнінде бір бағытта.</item>
+        <item quantity="other">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, %5$s %4$d күнінде бір бағытта.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d күннің</item>
+        <item quantity="other">%1$d күннің</item>
+    </plurals>
     <string name="advice_cause_sights_1">Көздеу құрылғысы бұл оқ-дәріге немесе қашықтыққа келтірілмеген.</string>
     <string name="advice_cause_sights_2">Көздеу құрылғысы орнатылғаннан бері жылжыған немесе басқа оқ-дәрі басқа жерге тиеді.</string>
     <string name="advice_try_sights">Топ шамамен %1$d mm %2$s жылжитындай көздеу құрылғысын бұраңыз, содан кейін оны қайта қозғамас бұрын жаңа топ атыңыз.</string>
-    <string name="advice_offset_varies_summary">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, бірақ күн сайын бір бағытта емес.</string>
-    <string name="advice_offset_few_days_summary">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, бірақ әрдайым солай ма екенін айту үшін күн тым аз.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, бірақ күн сайын бір бағытта емес.</item>
+        <item quantity="other">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, бірақ күн сайын бір бағытта емес.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, бірақ әрдайым солай ма екенін айту үшін күн тым аз.</item>
+        <item quantity="other">%3$d оқ бойынша тобыңыз %1$d mm %2$s орналасқан, бірақ әрдайым солай ма екенін айту үшін күн тым аз.</item>
+    </plurals>
     <string name="advice_cause_high_1">Алақанмен итеру: оқ атылған сәтте алақанды алға итеру.</string>
     <string name="advice_cause_high_2">Ату кезінде білектің жоғары қайырылуы.</string>
     <string name="advice_cause_high_3">Тиюді іздеп, тапаншаны ерте көтеру.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">Бас бармақтың тұтқаға қысымы тапаншаны бүйірге итереді.</string>
     <string name="advice_cause_side_3">Шүріппені тура артқа баспау.</string>
     <string name="advice_try_side">Саусақ шүріппеге қай жерде тиетінін және бас бармақ қаншалықты қатты басатынын тексеріп, бос атыс жасап, көздеуді бақылаңыз.</string>
-    <string name="advice_stretch_vertical_summary">%2$d оқ бойынша тобыңыздың биіктігі енінен шамамен %1$d пайызға артық.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">%2$d оқ бойынша тобыңыздың биіктігі енінен шамамен %1$d пайызға артық.</item>
+        <item quantity="other">%2$d оқ бойынша тобыңыздың биіктігі енінен шамамен %1$d пайызға артық.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Тыныс алу: әр жолы тыныстың әр түрлі сәтінде ату.</string>
     <string name="advice_cause_vertical_2">Көздеу бейнесінің биіктігі өзгеруі: арпа ойықта жоғарырақ не төменірек тұрады.</string>
     <string name="advice_cause_vertical_3">Атыстан атысқа өзгеретін ұстау күші.</string>
     <string name="advice_try_vertical">Әр атыста тынысты бір сәтте тоқтатып, басар алдында арпаның ойықтағы биіктігін тексеріңіз.</string>
-    <string name="advice_stretch_horizontal_summary">%2$d оқ бойынша тобыңыздың ені биіктігінен шамамен %1$d пайызға артық.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">%2$d оқ бойынша тобыңыздың ені биіктігінен шамамен %1$d пайызға артық.</item>
+        <item quantity="other">%2$d оқ бойынша тобыңыздың ені биіктігінен шамамен %1$d пайызға артық.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Шүріппені бүйірге қарай басу.</string>
     <string name="advice_cause_horizontal_2">Ату кезінде білектің қозғалуы.</string>
     <string name="advice_cause_horizontal_3">Нысанаға дұрыс бұрылмаған тұрыс.</string>
     <string name="advice_try_horizontal">Көздеуді бір белгіге қойып бос атыс жасаңыз да, шүріппе басылғанда олардың бүйірге сырғитынын қараңыз.</string>
-    <string name="advice_stretch_diagonal_summary">%2$d оқ бойынша тобыңыз қиғаш бағытта бір жаққа екіншісінен шамамен %1$d пайызға ұзынырақ.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">%2$d оқ бойынша тобыңыз қиғаш бағытта бір жаққа екіншісінен шамамен %1$d пайызға ұзынырақ.</item>
+        <item quantity="other">%2$d оқ бойынша тобыңыз қиғаш бағытта бір жаққа екіншісінен шамамен %1$d пайызға ұзынырақ.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Ұстау күші мен шүріппені басудың бір-біріне қарсы әрекет етуі.</string>
     <string name="advice_cause_diagonal_2">Тапаншаны қисайтатын тұрыс немесе қол қалпы.</string>
     <string name="advice_try_diagonal">Ұстау әр атыста бірдей екенін және басар алдында көздеудің түзу тұрғанын тексеріңіз.</string>
-    <string name="advice_fliers_summary">%2$d серияңыздың %1$d сериясында бір оқ қалғандарынан шашырап кетті, орта есеппен шамамен %3$d mm шетке.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">%2$d серияңыздың %1$d сериясында бір оқ қалғандарынан шашырап кетті, орта есеппен шамамен %3$d mm шетке.</item>
+        <item quantity="other">%2$d серияңыздың %1$d сериясында бір оқ қалғандарынан шашырап кетті, орта есеппен шамамен %3$d mm шетке.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Бір атыстағы шүріппені басқару.</string>
     <string name="advice_cause_fliers_2">Атысты аяқтамау.</string>
     <string name="advice_cause_fliers_3">Атысты қайда кеткенін байқамай шығару.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">Атыстарды асығыс жасау.</string>
     <string name="advice_try_wide">Бос атыс жаттығуы: атпай-ақ ұстап, шүріппені басыңыз, ұстау дірілдей бастағанда демалыңыз.</string>
     <string name="advice_low_series_summary">Соңғы серияңыз %1$d ұпай жинады, соңғы %3$d серия бойынша орташа %2$d.</string>
-    <string name="advice_low_day_summary">%1$s күні %2$d серияңыздың орташасы %3$d болды, бұрынғы орташа %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s күні %2$d серияңыздың орташасы %3$d болды, бұрынғы орташа %4$d.</item>
+        <item quantity="other">%1$s күні %2$d серияңыздың орташасы %3$d болды, бұрынғы орташа %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">Бір төмен нәтиже аз нәрсе айтады: бірдеңені өзгертпес бұрын тағы бірнеше рет атыңыз.</string>
     <string name="advice_try_low_explained">Бәрін бірден өзгерткеннен гөрі төмендегі ескертуден бастаңыз.</string>
     <string name="advice_low_note_offset">Тобыңыз ортадан ығысқан, бұл себептің бір бөлігі болуы мүмкін.</string>
     <string name="advice_low_note_stretched">Тобыңыз бір бағытта созылған, бұл себептің бір бөлігі болуы мүмкін.</string>
     <string name="advice_low_note_fliers">Сериядағы бір оқтың шашырап кетуі себептің бір бөлігі болуы мүмкін.</string>
     <string name="advice_low_note_wide">Әдеттегіден кеңірек топтар себептің бір бөлігі болуы мүмкін.</string>
-    <string name="advice_trend_up_summary">Ұпайларыңыз %3$d аптада шамамен %1$d ұпайға өсті, барлығы %2$d серия бойынша.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Ұпайларыңыз %3$s шамамен %1$d ұпайға өсті, барлығы %2$s бойынша.</item>
+        <item quantity="other">Ұпайларыңыз %3$s шамамен %1$d ұпайға өсті, барлығы %2$s бойынша.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d серия</item>
+        <item quantity="other">%1$d серия</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d аптада</item>
+        <item quantity="other">%1$d аптада</item>
+    </plurals>
     <string name="advice_try_trend_up">Істеп жүргеніңізді жалғастырыңыз және қайталай алу үшін не өзгергенін жазып қойыңыз.</string>
-    <string name="advice_trend_down_summary">Ұпайларыңыз %3$d аптада шамамен %1$d ұпайға төмендеді, барлығы %2$d серия бойынша.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Ұпайларыңыз %3$s шамамен %1$d ұпайға төмендеді, барлығы %2$s бойынша.</item>
+        <item quantity="other">Ұпайларыңыз %3$s шамамен %1$d ұпайға төмендеді, барлығы %2$s бойынша.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Шаршау немесе жаттығуға уақыттың аздығы.</string>
     <string name="advice_cause_trend_2">Атыстарды асығыс жасау.</string>
     <string name="advice_cause_trend_3">Қаруды, оқ-дәріні немесе әдетті ауыстыру.</string>
     <string name="advice_try_trend_down">Үзілістері бар қысқарақ жаттығулар және негіздерді қайта табу үшін бірнеше бос атыс.</string>
-    <string name="advice_session_down_summary">Ұзақ %2$d күніңіздің %1$d күнінде кейінгі серияларыңыз алғашқыларынан төмен ұпай жинады: сол күндері орташа %4$d, ал алғашқыларында %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">Ұзақ %2$d күніңіздің %1$d күнінде кейінгі серияларыңыз алғашқыларынан төмен ұпай жинады: сол күндері орташа %4$d, ал алғашқыларында %3$d.</item>
+        <item quantity="other">Ұзақ %2$d күніңіздің %1$d күнінде кейінгі серияларыңыз алғашқыларынан төмен ұпай жинады: сол күндері орташа %4$d, ал алғашқыларында %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Жаттығу барысында қолдың, иықтың немесе көздің шаршауы.</string>
     <string name="advice_cause_session_2">Зейіннің әлсіреуі, сондықтан атыстар асығыс немесе нашар бағаланады.</string>
     <string name="advice_cause_session_3">Сериялар арасында үзілістің тым аздығы.</string>
     <string name="advice_try_session_down">Қысқарақ жаттығулар немесе көз бен қолды демалдыру үшін бірнеше серия сайын нақты үзіліс.</string>
-    <string name="advice_session_up_summary">Ұзақ %2$d күніңіздің %1$d күнінде кейінгі серияларыңыз алғашқыларынан жоғары ұпай жинады: сол күндері орташа %4$d, ал алғашқыларында %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">Ұзақ %2$d күніңіздің %1$d күнінде кейінгі серияларыңыз алғашқыларынан жоғары ұпай жинады: сол күндері орташа %4$d, ал алғашқыларында %3$d.</item>
+        <item quantity="other">Ұзақ %2$d күніңіздің %1$d күнінде кейінгі серияларыңыз алғашқыларынан жоғары ұпай жинады: сол күндері орташа %4$d, ал алғашқыларында %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Баяу бастау: бірінші есептік серия алдында бірнеше бос атыс немесе сынақ атысын жасаңыз.</string>
     <string name="stats_help_insights">Талдау</string>
     <string name="stats_help_insights_body">Талдау сақталған серияларыңызды бір уақытта бір калибр бойынша қарап, өзі айтарлықтай сенімді заңдылықтарды көрсетеді: бір жаққа ығысқан топ, созылған топ, шашырап кеткен оқ немесе төмендеген не өскен ұпайлар. Бірдеңе айту үшін оған едәуір оқ саны қажет. Әр ескерту сандардың не көрсететінін, оның жиі себебін және көретін бір нәрсені береді. Бұл жаттықтырушы емес, кеңес қана: себептер — үкім емес, жиі кездесетіндері. Ату қолыңызды орнатып, Талдауды Баптаулардан өшіре аласыз.</string>
     <string name="stats_tab_insights">Талдау</string>
-    <string name="stats_insights_need_more">Талдау үшін шамамен %1$d оқ керек; мұнда сізде %2$d бар.</string>
-    <string name="stats_insights_nothing">%2$d сериядағы осы %1$d оқта ерекше ештеңе жоқ.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Талдау үшін шамамен %1$d оқ керек; мұнда сізде %2$d бар.</item>
+        <item quantity="other">Талдау үшін шамамен %1$d оқ керек; мұнда сізде %2$d бар.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">%2$s осы %1$d оқта ерекше ештеңе жоқ.</item>
+        <item quantity="other">%2$s осы %1$d оқта ерекше ештеңе жоқ.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d сериядағы</item>
+        <item quantity="other">%1$d сериядағы</item>
+    </plurals>
     <string name="stats_insights_numbers">Орташа тию нүктесі %1$s, шашырау %2$d mm, орташа серия %3$s.</string>
     <string name="stats_insights_legend">Сары эллипс оқтардың шамамен 86 пайызын қамтиды; көрсеткі ортадан орташа тию нүктесіне қарай бағытталған. Ескерту нысанада неге қатысты екенін көру үшін оны түртіңіз.</string>
-    <string name="stats_insights_target_description">Талдау нысанасы: %1$d оқ, эллипс және орташа тию нүктесіне көрсеткі</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Талдау нысанасы: %1$d оқ, эллипс және орташа тию нүктесіне көрсеткі</item>
+        <item quantity="other">Талдау нысанасы: %1$d оқ, эллипс және орташа тию нүктесіне көрсеткі</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Талдау бір уақытта бір калибрді қарайды, ал бұл серияларда калибр жоқ. Талдауды көру үшін Тарихта оларға калибр орнатыңыз.</string>
-    <string name="stats_insights_uncalibered">Калибрі жоқ серия есептелмеді: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">Калибрі жоқ %1$d серия есептелмеді.</item>
+        <item quantity="other">Калибрі жоқ %1$d серия есептелмеді.</item>
+    </plurals>
     <string name="detail_vs_under">Орташаңыздан (%2$d) %1$d төмен</string>
     <string name="detail_vs_over">Орташаңыздан (%2$d) %1$d жоғары</string>
     <string name="detail_vs_on">Орташаңыз деңгейінде: %1$d</string>
-    <string name="detail_vs_best">Соңғы %1$d күндегі ең жақсы нәтижеңіз</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Соңғы %1$d күндегі ең жақсы нәтижеңіз</item>
+        <item quantity="other">Соңғы %1$d күндегі ең жақсы нәтижеңіз</item>
+    </plurals>
     <string name="detail_day_in_insights">Бұл күнді Талдаудан көру</string>
     <string name="sight_title">Көздеуді түзету</string>
     <string name="sight_up_mm">Жоғары %1$d mm</string>
     <string name="sight_down_mm">Төмен %1$d mm</string>
     <string name="sight_left_mm">Солға %1$d mm</string>
     <string name="sight_right_mm">Оңға %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d шерту</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d шерту</item>
+        <item quantity="other">%1$s: %2$d шерту</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 шерту</string>
     <string name="sight_under_half_click">%1$s: жарты шертуден аз, өзгертпеңіз</string>
     <string name="sight_no_height">Биіктік: өзгеріссіз</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Шерту мәнін енгізу</string>
     <string name="sight_change_clicks">Шерту мәнін өзгерту</string>
     <string name="sight_adjusted_button">Мен көздеуді түзеттім</string>
-    <string name="sight_adjusted_note">Көздеу түзетілді: %1$s. Ығысу содан бергі %2$d оқ бойынша бағаланады.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Көздеу түзетілді: %1$s. Ығысу содан бергі %2$d оқ бойынша бағаланады.</item>
+        <item quantity="other">Көздеу түзетілді: %1$s. Ығысу содан бергі %2$d оқ бойынша бағаланады.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Болдырмау</string>
     <string name="sight_dialog_title">Шерту мәні, %1$s</string>
     <string name="sight_dialog_help">Атыс қашықтығыңызда бір шерту нысанадағы тию нүктесін қаншалықты жылжытады. Әдетте көздеудің нұсқаулығында жазылған, болмаса бір түзетудің шертулерін санап, топтың қаншалықты жылжығанын өлшеңіз.</string>

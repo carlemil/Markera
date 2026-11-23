@@ -33,6 +33,7 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.stats_insights_target_description
@@ -75,7 +76,7 @@ internal fun InsightsTarget(section: InsightSection, calibers: List<Caliber>, hi
     var zoom by remember { mutableStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     val viewMm = remember(section) { insightViewMm(section) }
-    val description = stringResource(Res.string.stats_insights_target_description, section.hitCount)
+    val description = pluralStringResource(Res.plurals.stats_insights_target_description, section.hitCount, section.hitCount)
     Canvas(
         modifier = Modifier
             .fillMaxWidth()

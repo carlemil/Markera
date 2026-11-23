@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jetbrains.compose.resources.getPluralString
 import org.jetbrains.compose.resources.getString
 import se.kjellstrand.markera.series.SaveStatus
 import org.jetbrains.compose.resources.stringResource
@@ -658,7 +659,13 @@ private fun ImportRunner(
         if (item == null) {
             // ponytail: waits for the last save only, so an earlier one landing late can still toast after this.
             withTimeoutOrNull(10_000) { recorder.status.first { it != SaveStatus.Saving } }
-            toast(getString(Res.string.import_summary, queue.saved, queue.skipped))
+            toast(
+                getString(
+                    Res.string.import_summary,
+                    getPluralString(Res.plurals.import_summary_saved, queue.saved, queue.saved),
+                    getPluralString(Res.plurals.import_summary_skipped, queue.skipped, queue.skipped),
+                ),
+            )
             onBack?.invoke()
             return@LaunchedEffect
         }

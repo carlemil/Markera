@@ -53,6 +53,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -345,10 +346,11 @@ private fun DayHeader(group: DayGroup, expanded: Boolean, onToggle: () -> Unit) 
         val points = group.series.sumOf { it.total() }
         Text(
             text = if (group.series.size == 1) {
-                stringResource(Res.string.history_day_summary_one, points)
+                pluralStringResource(Res.plurals.history_day_summary_one, points, points)
             } else {
-                stringResource(
-                    Res.string.history_day_summary,
+                pluralStringResource(
+                    Res.plurals.history_day_summary,
+                    group.series.size,
                     group.series.size,
                     oneDecimal(group.series.averageTotal(), stringResource(Res.string.decimal_mark)),
                 )

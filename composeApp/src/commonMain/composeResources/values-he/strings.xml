@@ -83,11 +83,23 @@
     <string name="history_signed_out">יש להתחבר כדי לראות את ההיסטוריה</string>
     <string name="history_empty">אין עדיין סדרות שמורות</string>
     <string name="history_filter_empty">אין סדרות שמתאימות לסינון.</string>
-    <string name="history_day_summary">סדרות: %1$d · ממוצע %2$s</string>
-    <string name="history_day_summary_one">סדרה אחת · נקודות: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d סדרה · ממוצע %2$s</item>
+        <item quantity="two">%1$d סדרות · ממוצע %2$s</item>
+        <item quantity="other">%1$d סדרות · ממוצע %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">סדרה אחת · %1$d נקודה</item>
+        <item quantity="two">סדרה אחת · %1$d נקודות</item>
+        <item quantity="other">סדרה אחת · %1$d נקודות</item>
+    </plurals>
     <string name="history_card_title">%1$s · סדרה %2$d</string>
     <string name="history_delete_title">למחוק את הסדרה?</string>
-    <string name="history_delete_message">%1$s · נקודות: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d נקודה</item>
+        <item quantity="two">%1$s · %2$d נקודות</item>
+        <item quantity="other">%1$s · %2$d נקודות</item>
+    </plurals>
     <string name="history_delete_confirm">מחיקה</string>
     <string name="history_delete_cancel">ביטול</string>
     <string name="history_delete_failed">לא ניתן היה למחוק</string>
@@ -134,7 +146,16 @@
     <string name="stats_group_date">תאריך</string>
     <string name="filter_clear">ניקוי הסינון</string>
     <string name="stats_no_geometry">לאף אחת מהסדרות שלך אין טבעת לשרטוט מולה. יש לסרוק סדרה שבה טבעת 6/7 נמצאה.</string>
-    <string name="stats_target_description">מטרה עם %1$d פגיעות מ־%2$d סדרות</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">מטרה עם %1$d פגיעה מ־%2$s</item>
+        <item quantity="two">מטרה עם %1$d פגיעות מ־%2$s</item>
+        <item quantity="other">מטרה עם %1$d פגיעות מ־%2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d סדרה</item>
+        <item quantity="two">%1$d סדרות</item>
+        <item quantity="other">%1$d סדרות</item>
+    </plurals>
     <string name="stats_timeline">ציר הזמן של הסדרות</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">מקבץ</string>
@@ -158,12 +179,20 @@
     <string name="stats_short_mean_score">ניקוד</string>
     <string name="stats_trend_description">תרשים מגמה, קווים: %1$d, נקודות: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (סדרות: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d סדרה)</item>
+        <item quantity="two">%1$s %2$s: %3$s (%4$d סדרות)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d סדרות)</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">מגמה</string>
     <string name="stats_help_trend_body">הכרטיסייה „מגמה” משרטטת כל מדד כעקומה לאורך זמן. בוחרים את המדד בכפתורים, וגם אם כל סדרה תהיה נקודה או שהסדרות יאוחדו לפי יום, שבוע או חודש (המדד מחושב אז על כל הסדרות בתקופה). „לפי קליבר” משרטט עקומה לכל קליבר. המסננים שלמעלה חלים על כל הכרטיסיות. הקשה על נקודה מציגה את ערכה.</string>
     <string name="stats_tab_drift">סחיפה</string>
-    <string name="stats_drift_description">מטרה עם נקודת הפגיעה הממוצעת והחציונית לאורך זמן, נקודות: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">מטרה עם נקודת הפגיעה הממוצעת והחציונית לאורך זמן, %1$d נקודה</item>
+        <item quantity="two">מטרה עם נקודת הפגיעה הממוצעת והחציונית לאורך זמן, %1$d נקודות</item>
+        <item quantity="other">מטרה עם נקודת הפגיעה הממוצעת והחציונית לאורך זמן, %1$d נקודות</item>
+    </plurals>
     <string name="stats_drift_counts">ימים: %1$d · סדרות: %2$d · פגיעות: %3$d</string>
     <string name="stats_drift_oldest">הישנה ביותר</string>
     <string name="stats_drift_newest">החדשה ביותר</string>
@@ -182,8 +211,21 @@
     <string name="stats_drift_summary_closer">נקודת הפגיעה האחרונה: %1$s (%2$d mm מהמרכז), קרובה יותר ב־%3$d mm מאשר ב־%4$s.</string>
     <string name="stats_drift_summary_further">נקודת הפגיעה האחרונה: %1$s (%2$d mm מהמרכז), רחוקה יותר ב־%3$d mm מאשר ב־%4$s.</string>
     <string name="stats_drift_summary_same">נקודת הפגיעה האחרונה: %1$s (%2$d mm מהמרכז), באותו מרחק כמו ב־%3$s.</string>
-    <string name="stats_drift_point_day">%1$s · סדרות: %2$d · פגיעות: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · סדרה %2$d מתוך %3$d · פגיעות: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d סדרה · %3$s</item>
+        <item quantity="two">%1$s · %2$d סדרות · %3$s</item>
+        <item quantity="other">%1$s · %2$d סדרות · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d פגיעה</item>
+        <item quantity="two">%1$d פגיעות</item>
+        <item quantity="other">%1$d פגיעות</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · סדרה %2$d מתוך %3$d · %4$d פגיעה</item>
+        <item quantity="two">%1$s · סדרה %2$d מתוך %3$d · %4$d פגיעות</item>
+        <item quantity="other">%1$s · סדרה %2$d מתוך %3$d · %4$d פגיעות</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">שמאל / ימין וגבוה / נמוך לאורך זמן (ממוצע)</string>
     <string name="stats_drift_strips_median">שמאל / ימין וגבוה / נמוך לאורך זמן (חציון)</string>
@@ -297,17 +339,35 @@
     <string name="import_auto_body">שומר בלי לעצור כל תמונה שמקבלת ניקוד; אלה שלא מקבלות מוצגות אחר כך.</string>
     <string name="import_progress">ייבוא %1$d / %2$d</string>
     <string name="import_skip">דילוג</string>
-    <string name="import_summary">נשמרו: %1$d, דולגו: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">נשמרו: %1$d</item>
+        <item quantity="two">נשמרו: %1$d</item>
+        <item quantity="other">נשמרו: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">דולגו: %1$d</item>
+        <item quantity="two">דולגו: %1$d</item>
+        <item quantity="other">דולגו: %1$d</item>
+    </plurals>
     <string name="help_home_import">ייבוא תמונות</string>
     <string name="help_home_import_body">בתפריט: ניקוד לתמונות שכבר נמצאות בטלפון, מהגלריה או מהקבצים. כל תמונה נסרקת והתוצאות שלה מוצגות, לשמירה או לדילוג. כשהייבוא האוטומטי פועל, כל תמונה שמקבלת ניקוד נשמרת מעצמה עם התאריך שבו צולמה; השאר מוצגות אחת אחת אחר כך.</string>
     <string name="series_status_phone">נשמר במכשיר הזה</string>
     <string name="series_not_uploaded">לא הועלה</string>
-    <string name="stats_not_uploaded">לא הועלו: %1$d סדרות</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">לא הועלתה: %1$d סדרה</item>
+        <item quantity="two">לא הועלו: %1$d סדרות</item>
+        <item quantity="other">לא הועלו: %1$d סדרות</item>
+    </plurals>
     <string name="local_claim_title">סדרות במכשיר הזה</string>
     <string name="local_claim_body">סדרות שנשמרו במכשיר הזה ללא התחברות או עבור חשבון אחר: %1$d. אפשר להוסיף אותן לחשבון הזה, למחוק אותן מהמכשיר או להישאר מנותקים.</string>
     <string name="local_claim_add">הוספה לחשבון</string>
     <string name="local_claim_delete">מחיקה מהמכשיר</string>
-    <string name="local_claim_delete_body">למחוק מהמכשיר הזה את הסדרות (%1$d) ואת התמונות שלהן? אי אפשר לבטל את הפעולה. הן לא הועלו לחשבון הזה.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">למחוק מהמכשיר הזה %1$d סדרה ואת התמונה שלה? אי אפשר לבטל את הפעולה. היא לא הועלתה לחשבון הזה.</item>
+        <item quantity="two">למחוק מהמכשיר הזה %1$d סדרות ואת התמונות שלהן? אי אפשר לבטל את הפעולה. הן לא הועלו לחשבון הזה.</item>
+        <item quantity="other">למחוק מהמכשיר הזה %1$d סדרות ואת התמונות שלהן? אי אפשר לבטל את הפעולה. הן לא הועלו לחשבון הזה.</item>
+    </plurals>
     <string name="local_claim_stay">להישאר מנותקים</string>
     <string name="local_claim_error">לא ניתן היה להשלים את הפעולה. הסדרות שנותרו עדיין במכשיר הזה. יש לסגור ולנסות להתחבר שוב.</string>
     <string name="home_week_series">סדרות ב־7 ימים</string>
@@ -317,17 +377,45 @@
     <string name="home_insight_stretch_vertical">השבוע המקבץ שלך ב־%1$s גבוה בכ־%2$d אחוז ממה שהוא רחב.</string>
     <string name="home_insight_stretch_horizontal">השבוע המקבץ שלך ב־%1$s רחב בכ־%2$d אחוז ממה שהוא גבוה.</string>
     <string name="home_insight_stretch_diagonal">השבוע המקבץ שלך ב־%1$s ארוך בכ־%2$d אחוז לאורך אלכסון.</string>
-    <string name="home_insight_fliers">השבוע ירייה אחת ברחה ב־%2$d מתוך %3$d הסדרות שלך ב־%1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">השבוע ירייה אחת ברחה ב־%2$d מתוך %3$d הסדרה שלך ב־%1$s.</item>
+        <item quantity="two">השבוע ירייה אחת ברחה ב־%2$d מתוך %3$d הסדרות שלך ב־%1$s.</item>
+        <item quantity="other">השבוע ירייה אחת ברחה ב־%2$d מתוך %3$d הסדרות שלך ב־%1$s.</item>
+    </plurals>
     <string name="home_insight_wide">ב־%2$s המקבצים שלך ב־%1$s היו רחבים בכ־%3$d אחוז מאשר קודם.</string>
     <string name="home_insight_low_series">הסדרה האחרונה שלך ב־%1$s קיבלה %2$d, לעומת %3$d בדרך כלל.</string>
     <string name="home_insight_low_day">ב־%2$s הסדרות שלך ב־%1$s קיבלו בממוצע %3$d, לעומת %4$d בדרך כלל.</string>
-    <string name="home_insight_trend_up">הניקוד שלך ב־%1$s עולה: בערך %2$d נקודות במשך %3$d שבועות.</string>
-    <string name="home_insight_trend_down">הניקוד שלך ב־%1$s יורד: בערך %2$d נקודות במשך %3$d שבועות.</string>
-    <string name="home_insight_session_down">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו פחות ב־%2$d מתוך %3$d ימים ארוכים.</string>
-    <string name="home_insight_session_up">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו יותר ב־%2$d מתוך %3$d ימים ארוכים.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">הניקוד שלך ב־%1$s עולה: בערך %2$d נקודה במשך %3$s.</item>
+        <item quantity="two">הניקוד שלך ב־%1$s עולה: בערך %2$d נקודות במשך %3$s.</item>
+        <item quantity="other">הניקוד שלך ב־%1$s עולה: בערך %2$d נקודות במשך %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d שבוע</item>
+        <item quantity="two">%1$d שבועות</item>
+        <item quantity="other">%1$d שבועות</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">הניקוד שלך ב־%1$s יורד: בערך %2$d נקודה במשך %3$s.</item>
+        <item quantity="two">הניקוד שלך ב־%1$s יורד: בערך %2$d נקודות במשך %3$s.</item>
+        <item quantity="other">הניקוד שלך ב־%1$s יורד: בערך %2$d נקודות במשך %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו פחות ב־%2$d מתוך %3$d יום ארוך.</item>
+        <item quantity="two">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו פחות ב־%2$d מתוך %3$d ימים ארוכים.</item>
+        <item quantity="other">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו פחות ב־%2$d מתוך %3$d ימים ארוכים.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו יותר ב־%2$d מתוך %3$d יום ארוך.</item>
+        <item quantity="two">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו יותר ב־%2$d מתוך %3$d ימים ארוכים.</item>
+        <item quantity="other">השבוע הסדרות המאוחרות שלך ב־%1$s קיבלו יותר ב־%2$d מתוך %3$d ימים ארוכים.</item>
+    </plurals>
     <string name="home_insight_dismiss">הסתרת התובנה</string>
-    <string name="home_local_title">סדרות שנמצאות רק בטלפון הזה: %1$d</string>
-    <string name="home_local_title_one">סדרה אחת נמצאת רק בטלפון הזה</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d סדרה נמצאת רק בטלפון הזה</item>
+        <item quantity="two">%1$d סדרות נמצאות רק בטלפון הזה</item>
+        <item quantity="other">%1$d סדרות נמצאות רק בטלפון הזה</item>
+    </plurals>
     <string name="home_signin_title">שמירת הסדרות בחשבון שלך</string>
     <string name="home_signin_body">התחברות שומרת אותן גם כשמחליפים טלפון.</string>
     <string name="action_sign_in">התחברות</string>
@@ -366,12 +454,29 @@
     <string name="advice_move_down_left">למטה ושמאלה</string>
     <string name="advice_move_left">שמאלה</string>
     <string name="advice_move_up_left">למעלה ושמאלה</string>
-    <string name="advice_offset_stable_summary">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, באותו כיוון ב־%4$d מתוך %5$d ימים.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d ירייה, באותו כיוון ב־%4$d מתוך %5$s.</item>
+        <item quantity="two">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, באותו כיוון ב־%4$d מתוך %5$s.</item>
+        <item quantity="other">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, באותו כיוון ב־%4$d מתוך %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d יום</item>
+        <item quantity="two">%1$d ימים</item>
+        <item quantity="other">%1$d ימים</item>
+    </plurals>
     <string name="advice_cause_sights_1">הכוונות אינן מאופסות לתחמושת או למרחק האלה.</string>
     <string name="advice_cause_sights_2">הכוונות זזו מאז שכוונו, או שתחמושת אחרת פוגעת במקום אחר.</string>
     <string name="advice_try_sights">להזיז את הכוונות כך שהמקבץ יזוז בערך %1$d mm %2$s, ואז לירות מקבץ חדש לפני שנוגעים בהן שוב.</string>
-    <string name="advice_offset_varies_summary">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, אבל לא באותו כיוון בכל יום.</string>
-    <string name="advice_offset_few_days_summary">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, בימים מעטים מדי כדי לדעת אם זה תמיד כך.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d ירייה, אבל לא באותו כיוון בכל יום.</item>
+        <item quantity="two">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, אבל לא באותו כיוון בכל יום.</item>
+        <item quantity="other">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, אבל לא באותו כיוון בכל יום.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d ירייה, בימים מעטים מדי כדי לדעת אם זה תמיד כך.</item>
+        <item quantity="two">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, בימים מעטים מדי כדי לדעת אם זה תמיד כך.</item>
+        <item quantity="other">המקבץ שלך נמצא %1$d mm %2$s על פני %3$d יריות, בימים מעטים מדי כדי לדעת אם זה תמיד כך.</item>
+    </plurals>
     <string name="advice_cause_high_1">דחיפת האקדח בעקב כף היד: לחיצה של כף היד קדימה ברגע הירייה.</string>
     <string name="advice_cause_high_2">פרק כף היד נשבר כלפי מעלה בזמן הירייה.</string>
     <string name="advice_cause_high_3">חיפוש הפגיעה והרמת האקדח מוקדם מדי.</string>
@@ -390,21 +495,37 @@
     <string name="advice_cause_side_2">לחץ האגודל על הידית דוחף את האקדח הצידה.</string>
     <string name="advice_cause_side_3">לחיצת הדק שאינה ישר לאחור.</string>
     <string name="advice_try_side">לבדוק היכן האצבע פוגשת את ההדק וכמה חזק האגודל לוחץ, ואז לירות ירי יבש ולעקוב אחרי הכוונות.</string>
-    <string name="advice_stretch_vertical_summary">המקבץ שלך גבוה בכ־%1$d אחוז ממה שהוא רחב, על פני %2$d יריות.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">המקבץ שלך גבוה בכ־%1$d אחוז ממה שהוא רחב, על פני %2$d ירייה.</item>
+        <item quantity="two">המקבץ שלך גבוה בכ־%1$d אחוז ממה שהוא רחב, על פני %2$d יריות.</item>
+        <item quantity="other">המקבץ שלך גבוה בכ־%1$d אחוז ממה שהוא רחב, על פני %2$d יריות.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">נשימה: ירי בנקודה שונה במחזור הנשימה בכל פעם.</string>
     <string name="advice_cause_vertical_2">תמונת הכיוון משתנה בגובה, כשהכוונת הקדמית יושבת גבוה או נמוך יותר בחריץ.</string>
     <string name="advice_cause_vertical_3">לחץ אחיזה שמשתנה מירייה לירייה.</string>
     <string name="advice_try_vertical">לעצור את הנשימה באותה נקודה בכל ירייה ולבדוק את גובה הכוונת הקדמית בחריץ לפני הלחיצה.</string>
-    <string name="advice_stretch_horizontal_summary">המקבץ שלך רחב בכ־%1$d אחוז ממה שהוא גבוה, על פני %2$d יריות.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">המקבץ שלך רחב בכ־%1$d אחוז ממה שהוא גבוה, על פני %2$d ירייה.</item>
+        <item quantity="two">המקבץ שלך רחב בכ־%1$d אחוז ממה שהוא גבוה, על פני %2$d יריות.</item>
+        <item quantity="other">המקבץ שלך רחב בכ־%1$d אחוז ממה שהוא גבוה, על פני %2$d יריות.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">לחיצת הדק שסוטה הצידה.</string>
     <string name="advice_cause_horizontal_2">פרק כף היד זז בזמן הירייה.</string>
     <string name="advice_cause_horizontal_3">עמידה שאינה מיושרת למטרה.</string>
     <string name="advice_try_horizontal">לירות ירי יבש כשהכוונות על נקודה ולראות אם הן מחליקות הצידה כשההדק נשבר.</string>
-    <string name="advice_stretch_diagonal_summary">המקבץ שלך ארוך בכ־%1$d אחוז בכיוון אחד מאשר בשני, לאורך אלכסון, על פני %2$d יריות.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">המקבץ שלך ארוך בכ־%1$d אחוז בכיוון אחד מאשר בשני, לאורך אלכסון, על פני %2$d ירייה.</item>
+        <item quantity="two">המקבץ שלך ארוך בכ־%1$d אחוז בכיוון אחד מאשר בשני, לאורך אלכסון, על פני %2$d יריות.</item>
+        <item quantity="other">המקבץ שלך ארוך בכ־%1$d אחוז בכיוון אחד מאשר בשני, לאורך אלכסון, על פני %2$d יריות.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">לחץ האחיזה ולחיצת ההדק פועלים זה נגד זה.</string>
     <string name="advice_cause_diagonal_2">עמידה או תנוחת זרוע שמטה את האקדח.</string>
     <string name="advice_try_diagonal">לבדוק שהאחיזה זהה בכל ירייה ושהכוונות מפולסות לפני הלחיצה.</string>
-    <string name="advice_fliers_summary">ב־%1$d מתוך %2$d הסדרות שלך ירייה אחת ברחה משאר המקבץ, בממוצע כ־%3$d mm החוצה.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">ב־%1$d מתוך %2$d הסדרה שלך ירייה אחת ברחה משאר המקבץ, בממוצע כ־%3$d mm החוצה.</item>
+        <item quantity="two">ב־%1$d מתוך %2$d הסדרות שלך ירייה אחת ברחה משאר המקבץ, בממוצע כ־%3$d mm החוצה.</item>
+        <item quantity="other">ב־%1$d מתוך %2$d הסדרות שלך ירייה אחת ברחה משאר המקבץ, בממוצע כ־%3$d mm החוצה.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">שליטה בהדק בירייה בודדת.</string>
     <string name="advice_cause_fliers_2">איבוד ההמשכיות.</string>
     <string name="advice_cause_fliers_3">שחרור הירייה בלי לקרוא אותה.</string>
@@ -415,48 +536,107 @@
     <string name="advice_cause_wide_3">חיפזון ביריות.</string>
     <string name="advice_try_wide">אימון ירי יבש: להחזיק וללחוץ בלי לירות, ולנוח כשההחזקה מתחילה לרעוד.</string>
     <string name="advice_low_series_summary">הסדרה האחרונה שלך קיבלה %1$d, לעומת ממוצע של %2$d בסדרות האחרונות (%3$d).</string>
-    <string name="advice_low_day_summary">ב־%1$s הסדרות שלך (%2$d) קיבלו בממוצע %3$d, לעומת ממוצע של %4$d קודם לכן.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">ב־%1$s %2$d הסדרה שלך קיבלה בממוצע %3$d, לעומת ממוצע של %4$d קודם לכן.</item>
+        <item quantity="two">ב־%1$s %2$d הסדרות שלך קיבלו בממוצע %3$d, לעומת ממוצע של %4$d קודם לכן.</item>
+        <item quantity="other">ב־%1$s %2$d הסדרות שלך קיבלו בממוצע %3$d, לעומת ממוצע של %4$d קודם לכן.</item>
+    </plurals>
     <string name="advice_try_low_plain">תוצאה נמוכה אחת אומרת מעט: כדאי לירות עוד כמה לפני שמשנים משהו.</string>
     <string name="advice_try_low_explained">כדאי להתחיל מההערה שלמטה במקום לשנות הכול בבת אחת.</string>
     <string name="advice_low_note_offset">המקבץ שלך אינו במרכז, וזה עשוי להיות חלק מהסיבה.</string>
     <string name="advice_low_note_stretched">המקבץ שלך מתוח בכיוון אחד, וזה עשוי להיות חלק מהסיבה.</string>
     <string name="advice_low_note_fliers">ירייה אחת בסדרה שבורחת עשויה להיות חלק מהסיבה.</string>
     <string name="advice_low_note_wide">מקבצים רחבים מהרגיל עשויים להיות חלק מהסיבה.</string>
-    <string name="advice_trend_up_summary">הניקוד שלך עלה בכ־%1$d נקודות במשך %3$d שבועות, על פני %2$d סדרות.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">הניקוד שלך עלה בכ־%1$d נקודה במשך %3$s, על פני %2$s.</item>
+        <item quantity="two">הניקוד שלך עלה בכ־%1$d נקודות במשך %3$s, על פני %2$s.</item>
+        <item quantity="other">הניקוד שלך עלה בכ־%1$d נקודות במשך %3$s, על פני %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d סדרה</item>
+        <item quantity="two">%1$d סדרות</item>
+        <item quantity="other">%1$d סדרות</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d שבוע</item>
+        <item quantity="two">%1$d שבועות</item>
+        <item quantity="other">%1$d שבועות</item>
+    </plurals>
     <string name="advice_try_trend_up">להמשיך במה שעושים, ולרשום מה השתנה כדי שאפשר יהיה לחזור על כך.</string>
-    <string name="advice_trend_down_summary">הניקוד שלך ירד בכ־%1$d נקודות במשך %3$d שבועות, על פני %2$d סדרות.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">הניקוד שלך ירד בכ־%1$d נקודה במשך %3$s, על פני %2$s.</item>
+        <item quantity="two">הניקוד שלך ירד בכ־%1$d נקודות במשך %3$s, על פני %2$s.</item>
+        <item quantity="other">הניקוד שלך ירד בכ־%1$d נקודות במשך %3$s, על פני %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">עייפות או פחות זמן לאימון.</string>
     <string name="advice_cause_trend_2">חיפזון ביריות.</string>
     <string name="advice_cause_trend_3">החלפת אקדח, תחמושת או שגרה.</string>
     <string name="advice_try_trend_down">אימונים קצרים יותר עם הפסקות, וכמה יריות יבשות כדי למצוא שוב את היסודות.</string>
-    <string name="advice_session_down_summary">ב־%1$d מתוך %2$d הימים הארוכים שלך, הסדרות המאוחרות קיבלו פחות מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">ב־%1$d מתוך %2$d היום הארוך שלך, הסדרות המאוחרות קיבלו פחות מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</item>
+        <item quantity="two">ב־%1$d מתוך %2$d הימים הארוכים שלך, הסדרות המאוחרות קיבלו פחות מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</item>
+        <item quantity="other">ב־%1$d מתוך %2$d הימים הארוכים שלך, הסדרות המאוחרות קיבלו פחות מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</item>
+    </plurals>
     <string name="advice_cause_session_1">עייפות בזרוע, בכתף או בעיניים ככל שהאימון נמשך.</string>
     <string name="advice_cause_session_2">הריכוז דועך, ולכן יריות נחפזות או נקראות פחות טוב.</string>
     <string name="advice_cause_session_3">מעט מדי הפסקות בין סדרות.</string>
     <string name="advice_try_session_down">אימונים קצרים יותר, או הפסקה אמיתית כל כמה סדרות כדי לתת מנוחה לעיניים ולזרוע.</string>
-    <string name="advice_session_up_summary">ב־%1$d מתוך %2$d הימים הארוכים שלך, הסדרות המאוחרות קיבלו יותר מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">ב־%1$d מתוך %2$d היום הארוך שלך, הסדרות המאוחרות קיבלו יותר מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</item>
+        <item quantity="two">ב־%1$d מתוך %2$d הימים הארוכים שלך, הסדרות המאוחרות קיבלו יותר מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</item>
+        <item quantity="other">ב־%1$d מתוך %2$d הימים הארוכים שלך, הסדרות המאוחרות קיבלו יותר מהראשונות: %4$d בממוצע לעומת %3$d באותם ימים.</item>
+    </plurals>
     <string name="advice_try_session_up">התחלה איטית: כדאי להתחיל בכמה יריות יבשות או יריות ניסיון לפני שהסדרה הראשונה נספרת.</string>
     <string name="stats_help_insights">תובנות</string>
     <string name="stats_help_insights_body">„תובנות” בוחנת את הסדרות השמורות שלך, קליבר אחד בכל פעם, ומצביעה על דפוסים שהיא די בטוחה בהם: מקבץ שנמצא בצד אחד, מקבץ מתוח, ירייה שבורחת, או ניקוד שיורד או עולה. היא צריכה מספר יריות לא מבוטל לפני שהיא אומרת משהו. כל הערה מציגה מה המספרים מראים, מה גורם לזה לעיתים קרובות ודבר אחד לנסות. זה רמז, לא מאמן: הגורמים הם הנפוצים, לא פסק דין. את יד הירי ואת כיבוי התובנות קובעים בהגדרות.</string>
     <string name="stats_tab_insights">תובנות</string>
-    <string name="stats_insights_need_more">לתובנות נדרשות בערך %1$d יריות; כאן יש %2$d.</string>
-    <string name="stats_insights_nothing">שום דבר לא בולט ב־%1$d היריות האלה מ־%2$d סדרות.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">לתובנות נדרשת בערך %1$d ירייה; כאן יש %2$d.</item>
+        <item quantity="two">לתובנות נדרשות בערך %1$d יריות; כאן יש %2$d.</item>
+        <item quantity="other">לתובנות נדרשות בערך %1$d יריות; כאן יש %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">שום דבר לא בולט ב־%1$d הירייה הזאת מ־%2$s.</item>
+        <item quantity="two">שום דבר לא בולט ב־%1$d היריות האלה מ־%2$s.</item>
+        <item quantity="other">שום דבר לא בולט ב־%1$d היריות האלה מ־%2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d סדרה</item>
+        <item quantity="two">%1$d סדרות</item>
+        <item quantity="other">%1$d סדרות</item>
+    </plurals>
     <string name="stats_insights_numbers">נקודת פגיעה ממוצעת %1$s, פיזור %2$d mm, ממוצע סדרה %3$s.</string>
     <string name="stats_insights_legend">האליפסה הצהובה מכילה כ־86 אחוז מהיריות; החץ נמשך מהמרכז אל נקודת הפגיעה הממוצעת. הקשה על הערה מראה למה היא מתייחסת על המטרה.</string>
-    <string name="stats_insights_target_description">מטרת תובנות עם %1$d יריות, האליפסה והחץ אל נקודת הפגיעה הממוצעת</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">מטרת תובנות עם %1$d ירייה, האליפסה והחץ אל נקודת הפגיעה הממוצעת</item>
+        <item quantity="two">מטרת תובנות עם %1$d יריות, האליפסה והחץ אל נקודת הפגיעה הממוצעת</item>
+        <item quantity="other">מטרת תובנות עם %1$d יריות, האליפסה והחץ אל נקודת הפגיעה הממוצעת</item>
+    </plurals>
     <string name="stats_insights_no_caliber">„תובנות” בוחנת קליבר אחד בכל פעם, ולסדרות האלה אין קליבר. יש לקבוע להן קליבר בהיסטוריה כדי לראות תובנות.</string>
-    <string name="stats_insights_uncalibered">סדרות ללא קליבר לא נכללות: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d סדרה ללא קליבר לא נכללת.</item>
+        <item quantity="two">%1$d סדרות ללא קליבר לא נכללות.</item>
+        <item quantity="other">%1$d סדרות ללא קליבר לא נכללות.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d מתחת לממוצע שלך, %2$d</string>
     <string name="detail_vs_over">%1$d מעל הממוצע שלך, %2$d</string>
     <string name="detail_vs_on">בדיוק הממוצע שלך, %1$d</string>
-    <string name="detail_vs_best">הטובה ביותר שלך ב־%1$d הימים האחרונים</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">הטובה ביותר שלך ב־%1$d היום האחרון</item>
+        <item quantity="two">הטובה ביותר שלך ב־%1$d הימים האחרונים</item>
+        <item quantity="other">הטובה ביותר שלך ב־%1$d הימים האחרונים</item>
+    </plurals>
     <string name="detail_day_in_insights">הצגת היום הזה בתובנות</string>
     <string name="sight_title">תיקון כוונות</string>
     <string name="sight_up_mm">למעלה %1$d mm</string>
     <string name="sight_down_mm">למטה %1$d mm</string>
     <string name="sight_left_mm">שמאלה %1$d mm</string>
     <string name="sight_right_mm">ימינה %1$d mm</string>
-    <string name="sight_clicks">%1$s: קליקים: %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d קליק</item>
+        <item quantity="two">%1$s: %2$d קליקים</item>
+        <item quantity="other">%1$s: %2$d קליקים</item>
+    </plurals>
     <string name="sight_one_click">%1$s: קליק אחד</string>
     <string name="sight_under_half_click">%1$s: פחות מחצי קליק, להשאיר</string>
     <string name="sight_no_height">גובה: ללא שינוי</string>
@@ -467,7 +647,11 @@
     <string name="sight_set_clicks">הזנת ערך קליק</string>
     <string name="sight_change_clicks">שינוי ערך הקליק</string>
     <string name="sight_adjusted_button">כיוונתי את הכוונות</string>
-    <string name="sight_adjusted_note">הכוונות כוונו ב־%1$s: הסטייה נשפטת לפי היריות מאז (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">הכוונות כוונו ב־%1$s: הסטייה נשפטת לפי %2$d הירייה שנורתה מאז.</item>
+        <item quantity="two">הכוונות כוונו ב־%1$s: הסטייה נשפטת לפי %2$d היריות שנורו מאז.</item>
+        <item quantity="other">הכוונות כוונו ב־%1$s: הסטייה נשפטת לפי %2$d היריות שנורו מאז.</item>
+    </plurals>
     <string name="sight_adjusted_undo">ביטול</string>
     <string name="sight_dialog_title">ערך קליק, %1$s</string>
     <string name="sight_dialog_help">כמה קליק אחד מזיז את הפגיעה על המטרה במרחק הירי שלך. בדרך כלל זה כתוב במדריך של הכוונת, או שסופרים את הקליקים של תיקון אחד ומודדים כמה המקבץ זז.</string>

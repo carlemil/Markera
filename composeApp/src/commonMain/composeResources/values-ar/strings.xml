@@ -83,11 +83,32 @@
     <string name="history_signed_out">سجّل الدخول لرؤية سجلك</string>
     <string name="history_empty">لا توجد سلاسل محفوظة بعد</string>
     <string name="history_filter_empty">لا توجد سلاسل تطابق عامل التصفية.</string>
-    <string name="history_day_summary">السلاسل: %1$d · المتوسط %2$s</string>
-    <string name="history_day_summary_one">سلسلة واحدة · النقاط: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="zero">%1$d سلاسل · المتوسط %2$s</item>
+        <item quantity="one">%1$d سلسلة · المتوسط %2$s</item>
+        <item quantity="two">%1$d سلسلتان · المتوسط %2$s</item>
+        <item quantity="few">%1$d سلاسل · المتوسط %2$s</item>
+        <item quantity="many">%1$d سلسلة · المتوسط %2$s</item>
+        <item quantity="other">%1$d سلسلة · المتوسط %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="zero">سلسلة واحدة · %1$d نقاط</item>
+        <item quantity="one">سلسلة واحدة · %1$d نقطة</item>
+        <item quantity="two">سلسلة واحدة · %1$d نقطتان</item>
+        <item quantity="few">سلسلة واحدة · %1$d نقاط</item>
+        <item quantity="many">سلسلة واحدة · %1$d نقطة</item>
+        <item quantity="other">سلسلة واحدة · %1$d نقطة</item>
+    </plurals>
     <string name="history_card_title">%1$s · السلسلة %2$d</string>
     <string name="history_delete_title">حذف السلسلة؟</string>
-    <string name="history_delete_message">%1$s · النقاط: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="zero">%1$s · %2$d نقاط</item>
+        <item quantity="one">%1$s · %2$d نقطة</item>
+        <item quantity="two">%1$s · %2$d نقطتان</item>
+        <item quantity="few">%1$s · %2$d نقاط</item>
+        <item quantity="many">%1$s · %2$d نقطة</item>
+        <item quantity="other">%1$s · %2$d نقطة</item>
+    </plurals>
     <string name="history_delete_confirm">حذف</string>
     <string name="history_delete_cancel">إلغاء</string>
     <string name="history_delete_failed">تعذّر الحذف</string>
@@ -134,7 +155,22 @@
     <string name="stats_group_date">التاريخ</string>
     <string name="filter_clear">مسح عوامل التصفية</string>
     <string name="stats_no_geometry">لا تحتوي أي من سلاسلك على حلقة يمكن الرسم عليها. امسح سلسلة يُعثر فيها على الحلقة 6/7.</string>
-    <string name="stats_target_description">هدف، الإصابات: %1$d، السلاسل: %2$d</string>
+    <plurals name="stats_target_description">
+        <item quantity="zero">هدف عليه %1$d إصابات من %2$s</item>
+        <item quantity="one">هدف عليه %1$d إصابة من %2$s</item>
+        <item quantity="two">هدف عليه %1$d إصابتان من %2$s</item>
+        <item quantity="few">هدف عليه %1$d إصابات من %2$s</item>
+        <item quantity="many">هدف عليه %1$d إصابة من %2$s</item>
+        <item quantity="other">هدف عليه %1$d إصابة من %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="zero">%1$d سلاسل</item>
+        <item quantity="one">%1$d سلسلة</item>
+        <item quantity="two">%1$d سلسلتين</item>
+        <item quantity="few">%1$d سلاسل</item>
+        <item quantity="many">%1$d سلسلة</item>
+        <item quantity="other">%1$d سلسلة</item>
+    </plurals>
     <string name="stats_timeline">الخط الزمني للسلاسل</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">التجمّع</string>
@@ -158,12 +194,26 @@
     <string name="stats_short_mean_score">النقاط</string>
     <string name="stats_trend_description">مخطط الاتجاه، الخطوط: %1$d، النقاط: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (السلاسل: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="zero">%1$s %2$s: %3$s (%4$d سلاسل)</item>
+        <item quantity="one">%1$s %2$s: %3$s (%4$d سلسلة)</item>
+        <item quantity="two">%1$s %2$s: %3$s (%4$d سلسلتان)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d سلاسل)</item>
+        <item quantity="many">%1$s %2$s: %3$s (%4$d سلسلة)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d سلسلة)</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">الاتجاه</string>
     <string name="stats_help_trend_body">يرسم تبويب الاتجاه أي مقياس كمنحنى عبر الزمن. اختر المقياس بالأزرار، واختر ما إذا كانت كل سلسلة تصبح نقطة أو تُدمج السلاسل لكل يوم أو أسبوع أو شهر (يُحسب المقياس حينها على كل سلاسل الفترة). خيار «لكل عيار» يرسم منحنى لكل عيار. عوامل التصفية في الأعلى تنطبق على كل التبويبات. اضغط على نقطة لقراءتها.</string>
     <string name="stats_tab_drift">الانزياح</string>
-    <string name="stats_drift_description">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، النقاط: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="zero">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، %1$d نقاط</item>
+        <item quantity="one">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، %1$d نقطة</item>
+        <item quantity="two">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، %1$d نقطتان</item>
+        <item quantity="few">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، %1$d نقاط</item>
+        <item quantity="many">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، %1$d نقطة</item>
+        <item quantity="other">هدف عليه متوسط ووسيط نقطة الإصابة عبر الزمن، %1$d نقطة</item>
+    </plurals>
     <string name="stats_drift_counts">الأيام: %1$d · السلاسل: %2$d · الإصابات: %3$d</string>
     <string name="stats_drift_oldest">الأقدم</string>
     <string name="stats_drift_newest">الأحدث</string>
@@ -182,8 +232,30 @@
     <string name="stats_drift_summary_closer">آخر نقطة إصابة: %1$s (على بعد %2$d mm من المركز)، أقرب بمقدار %3$d mm مما كانت في %4$s.</string>
     <string name="stats_drift_summary_further">آخر نقطة إصابة: %1$s (على بعد %2$d mm من المركز)، أبعد بمقدار %3$d mm مما كانت في %4$s.</string>
     <string name="stats_drift_summary_same">آخر نقطة إصابة: %1$s (على بعد %2$d mm من المركز)، بالبعد نفسه كما في %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · السلاسل: %2$d · الإصابات: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · السلسلة %2$d من %3$d · الإصابات: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="zero">%1$s · %2$d سلاسل · %3$s</item>
+        <item quantity="one">%1$s · %2$d سلسلة · %3$s</item>
+        <item quantity="two">%1$s · %2$d سلسلتان · %3$s</item>
+        <item quantity="few">%1$s · %2$d سلاسل · %3$s</item>
+        <item quantity="many">%1$s · %2$d سلسلة · %3$s</item>
+        <item quantity="other">%1$s · %2$d سلسلة · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="zero">%1$d إصابات</item>
+        <item quantity="one">%1$d إصابة</item>
+        <item quantity="two">%1$d إصابتان</item>
+        <item quantity="few">%1$d إصابات</item>
+        <item quantity="many">%1$d إصابة</item>
+        <item quantity="other">%1$d إصابة</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="zero">%1$s · السلسلة %2$d من %3$d · %4$d إصابات</item>
+        <item quantity="one">%1$s · السلسلة %2$d من %3$d · %4$d إصابة</item>
+        <item quantity="two">%1$s · السلسلة %2$d من %3$d · %4$d إصابتان</item>
+        <item quantity="few">%1$s · السلسلة %2$d من %3$d · %4$d إصابات</item>
+        <item quantity="many">%1$s · السلسلة %2$d من %3$d · %4$d إصابة</item>
+        <item quantity="other">%1$s · السلسلة %2$d من %3$d · %4$d إصابة</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">يسار / يمين وأعلى / أسفل عبر الزمن (المتوسط)</string>
     <string name="stats_drift_strips_median">يسار / يمين وأعلى / أسفل عبر الزمن (الوسيط)</string>
@@ -297,17 +369,47 @@
     <string name="import_auto_body">يحفظ كل صورة تُحتسب نقاطها دون توقف؛ والصور التي لا تُحتسب تُعرض بعد ذلك.</string>
     <string name="import_progress">استيراد %1$d / %2$d</string>
     <string name="import_skip">تخطٍّ</string>
-    <string name="import_summary">المحفوظة: %1$d، المتخطاة: %2$d</string>
+    <string name="import_summary">%1$s، %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="zero">المحفوظة: %1$d</item>
+        <item quantity="one">المحفوظة: %1$d</item>
+        <item quantity="two">المحفوظة: %1$d</item>
+        <item quantity="few">المحفوظة: %1$d</item>
+        <item quantity="many">المحفوظة: %1$d</item>
+        <item quantity="other">المحفوظة: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="zero">المتخطاة: %1$d</item>
+        <item quantity="one">المتخطاة: %1$d</item>
+        <item quantity="two">المتخطاة: %1$d</item>
+        <item quantity="few">المتخطاة: %1$d</item>
+        <item quantity="many">المتخطاة: %1$d</item>
+        <item quantity="other">المتخطاة: %1$d</item>
+    </plurals>
     <string name="help_home_import">استيراد الصور</string>
     <string name="help_home_import_body">في القائمة: احتسب نقاط صور موجودة على الهاتف، من المعرض أو من الملفات. تُمسح كل صورة وتُعرض نتائجها لتحفظها أو تتخطاها. مع تشغيل «استيراد تلقائي» تُحفظ كل صورة تُحتسب نقاطها تلقائيًا بتاريخ التقاطها؛ ويُعرض الباقي واحدة تلو الأخرى بعد ذلك.</string>
     <string name="series_status_phone">حُفظت على هذا الجهاز</string>
     <string name="series_not_uploaded">لم تُرفع</string>
-    <string name="stats_not_uploaded">سلاسل لم تُرفع: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="zero">لم تُرفع: %1$d سلاسل</item>
+        <item quantity="one">لم تُرفع: %1$d سلسلة</item>
+        <item quantity="two">لم تُرفع: %1$d سلسلتان</item>
+        <item quantity="few">لم تُرفع: %1$d سلاسل</item>
+        <item quantity="many">لم تُرفع: %1$d سلسلة</item>
+        <item quantity="other">لم تُرفع: %1$d سلسلة</item>
+    </plurals>
     <string name="local_claim_title">سلاسل على هذا الجهاز</string>
     <string name="local_claim_body">سلاسل محفوظة على هذا الجهاز دون تسجيل دخول أو لحساب آخر: %1$d. أضفها إلى هذا الحساب، أو احذفها من هذا الجهاز، أو ابقَ دون تسجيل دخول.</string>
     <string name="local_claim_add">إضافة إلى الحساب</string>
     <string name="local_claim_delete">حذف من الجهاز</string>
-    <string name="local_claim_delete_body">حذف السلاسل (%1$d) وصورها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="zero">حذف %1$d سلاسل مع صورها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</item>
+        <item quantity="one">حذف %1$d سلسلة مع صورتها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</item>
+        <item quantity="two">حذف %1$d سلسلتين مع صورها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</item>
+        <item quantity="few">حذف %1$d سلاسل مع صورها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</item>
+        <item quantity="many">حذف %1$d سلسلة مع صورها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</item>
+        <item quantity="other">حذف %1$d سلسلة مع صورها من هذا الجهاز؟ لا يمكن التراجع عن ذلك. لم تُرفع إلى هذا الحساب.</item>
+    </plurals>
     <string name="local_claim_stay">البقاء دون تسجيل دخول</string>
     <string name="local_claim_error">تعذّر إكمال العملية. سلاسلك المتبقية ما زالت على هذا الجهاز. أغلق وحاول تسجيل الدخول مجددًا.</string>
     <string name="home_week_series">سلاسل في 7 أيام</string>
@@ -317,17 +419,66 @@
     <string name="home_insight_stretch_vertical">هذا الأسبوع تجمّعك بعيار %1$s أطول من عرضه بنحو %2$d بالمئة.</string>
     <string name="home_insight_stretch_horizontal">هذا الأسبوع تجمّعك بعيار %1$s أعرض من طوله بنحو %2$d بالمئة.</string>
     <string name="home_insight_stretch_diagonal">هذا الأسبوع تجمّعك بعيار %1$s أطول بنحو %2$d بالمئة على خط مائل.</string>
-    <string name="home_insight_fliers">هذا الأسبوع شردت طلقة واحدة في %2$d من سلاسلك بعيار %1$s البالغة %3$d.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="zero">هذا الأسبوع شردت طلقة واحدة في %2$d من أصل %3$d سلاسل لك بعيار %1$s.</item>
+        <item quantity="one">هذا الأسبوع شردت طلقة واحدة في %2$d من أصل %3$d سلسلة لك بعيار %1$s.</item>
+        <item quantity="two">هذا الأسبوع شردت طلقة واحدة في %2$d من أصل %3$d سلسلتين لك بعيار %1$s.</item>
+        <item quantity="few">هذا الأسبوع شردت طلقة واحدة في %2$d من أصل %3$d سلاسل لك بعيار %1$s.</item>
+        <item quantity="many">هذا الأسبوع شردت طلقة واحدة في %2$d من أصل %3$d سلسلة لك بعيار %1$s.</item>
+        <item quantity="other">هذا الأسبوع شردت طلقة واحدة في %2$d من أصل %3$d سلسلة لك بعيار %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">في %2$s كانت تجمّعاتك بعيار %1$s أعرض بنحو %3$d بالمئة من قبل.</string>
     <string name="home_insight_low_series">حصلت آخر سلسلة لك بعيار %1$s على %2$d نقطة، مقابل %3$d في المعتاد.</string>
     <string name="home_insight_low_day">في %2$s كان متوسط سلاسلك بعيار %1$s هو %3$d، مقابل %4$d في المعتاد.</string>
-    <string name="home_insight_trend_up">نقاطك بعيار %1$s في ارتفاع: نحو %2$d من النقاط خلال %3$d من الأسابيع.</string>
-    <string name="home_insight_trend_down">نقاطك بعيار %1$s في انخفاض: نحو %2$d من النقاط خلال %3$d من الأسابيع.</string>
-    <string name="home_insight_session_down">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من %3$d أيام طويلة.</string>
-    <string name="home_insight_session_up">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من %3$d أيام طويلة.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="zero">نقاطك بعيار %1$s في ارتفاع: نحو %2$d نقاط خلال %3$s.</item>
+        <item quantity="one">نقاطك بعيار %1$s في ارتفاع: نحو %2$d نقطة خلال %3$s.</item>
+        <item quantity="two">نقاطك بعيار %1$s في ارتفاع: نحو %2$d نقطتين خلال %3$s.</item>
+        <item quantity="few">نقاطك بعيار %1$s في ارتفاع: نحو %2$d نقاط خلال %3$s.</item>
+        <item quantity="many">نقاطك بعيار %1$s في ارتفاع: نحو %2$d نقطة خلال %3$s.</item>
+        <item quantity="other">نقاطك بعيار %1$s في ارتفاع: نحو %2$d نقطة خلال %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="zero">%1$d أسابيع</item>
+        <item quantity="one">%1$d أسبوع</item>
+        <item quantity="two">%1$d أسبوعين</item>
+        <item quantity="few">%1$d أسابيع</item>
+        <item quantity="many">%1$d أسبوعًا</item>
+        <item quantity="other">%1$d أسبوع</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="zero">نقاطك بعيار %1$s في انخفاض: نحو %2$d نقاط خلال %3$s.</item>
+        <item quantity="one">نقاطك بعيار %1$s في انخفاض: نحو %2$d نقطة خلال %3$s.</item>
+        <item quantity="two">نقاطك بعيار %1$s في انخفاض: نحو %2$d نقطتين خلال %3$s.</item>
+        <item quantity="few">نقاطك بعيار %1$s في انخفاض: نحو %2$d نقاط خلال %3$s.</item>
+        <item quantity="many">نقاطك بعيار %1$s في انخفاض: نحو %2$d نقطة خلال %3$s.</item>
+        <item quantity="other">نقاطك بعيار %1$s في انخفاض: نحو %2$d نقطة خلال %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="zero">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من أصل %3$d أيام طويلة.</item>
+        <item quantity="one">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من أصل %3$d يوم طويل.</item>
+        <item quantity="two">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من أصل %3$d يومين طويلين.</item>
+        <item quantity="few">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من أصل %3$d أيام طويلة.</item>
+        <item quantity="many">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من أصل %3$d يومًا طويلًا.</item>
+        <item quantity="other">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أقل في %2$d من أصل %3$d يوم طويل.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="zero">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من أصل %3$d أيام طويلة.</item>
+        <item quantity="one">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من أصل %3$d يوم طويل.</item>
+        <item quantity="two">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من أصل %3$d يومين طويلين.</item>
+        <item quantity="few">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من أصل %3$d أيام طويلة.</item>
+        <item quantity="many">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من أصل %3$d يومًا طويلًا.</item>
+        <item quantity="other">هذا الأسبوع سجّلت سلاسلك اللاحقة بعيار %1$s نقاطًا أعلى في %2$d من أصل %3$d يوم طويل.</item>
+    </plurals>
     <string name="home_insight_dismiss">إخفاء هذه الملاحظة</string>
-    <string name="home_local_title">سلاسل على هذا الهاتف فقط: %1$d</string>
-    <string name="home_local_title_one">سلسلة واحدة على هذا الهاتف فقط</string>
+    <plurals name="home_local_title">
+        <item quantity="zero">%1$d سلاسل على هذا الهاتف فقط</item>
+        <item quantity="one">%1$d سلسلة على هذا الهاتف فقط</item>
+        <item quantity="two">%1$d سلسلتان على هذا الهاتف فقط</item>
+        <item quantity="few">%1$d سلاسل على هذا الهاتف فقط</item>
+        <item quantity="many">%1$d سلسلة على هذا الهاتف فقط</item>
+        <item quantity="other">%1$d سلسلة على هذا الهاتف فقط</item>
+    </plurals>
     <string name="home_signin_title">احفظ سلاسلك في حسابك</string>
     <string name="home_signin_body">سجّل الدخول لتحتفظ بها عند تغيير هاتفك.</string>
     <string name="action_sign_in">تسجيل الدخول</string>
@@ -366,12 +517,41 @@
     <string name="advice_move_down_left">للأسفل ولليسار</string>
     <string name="advice_move_left">لليسار</string>
     <string name="advice_move_up_left">للأعلى ولليسار</string>
-    <string name="advice_offset_stable_summary">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، وفي الاتجاه نفسه في %4$d من %5$d أيام.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="zero">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقات، وفي الاتجاه نفسه في %4$d من أصل %5$s.</item>
+        <item quantity="one">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، وفي الاتجاه نفسه في %4$d من أصل %5$s.</item>
+        <item quantity="two">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقتين، وفي الاتجاه نفسه في %4$d من أصل %5$s.</item>
+        <item quantity="few">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقات، وفي الاتجاه نفسه في %4$d من أصل %5$s.</item>
+        <item quantity="many">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، وفي الاتجاه نفسه في %4$d من أصل %5$s.</item>
+        <item quantity="other">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، وفي الاتجاه نفسه في %4$d من أصل %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="zero">%1$d أيام</item>
+        <item quantity="one">%1$d يوم</item>
+        <item quantity="two">%1$d يومين</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
     <string name="advice_cause_sights_1">أجهزة التصويب غير مضبوطة لهذه الذخيرة أو المسافة.</string>
     <string name="advice_cause_sights_2">تحركت أجهزة التصويب منذ ضبطها، أو أن ذخيرة مختلفة تصيب في مكان آخر.</string>
     <string name="advice_try_sights">حرّك أجهزة التصويب بحيث يتحرك التجمّع نحو %1$d mm %2$s، ثم ارمِ تجمّعًا جديدًا قبل أن تلمسها مرة أخرى.</string>
-    <string name="advice_offset_varies_summary">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، لكن ليس في الاتجاه نفسه كل يوم.</string>
-    <string name="advice_offset_few_days_summary">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="zero">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقات، لكن ليس في الاتجاه نفسه كل يوم.</item>
+        <item quantity="one">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، لكن ليس في الاتجاه نفسه كل يوم.</item>
+        <item quantity="two">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقتين، لكن ليس في الاتجاه نفسه كل يوم.</item>
+        <item quantity="few">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقات، لكن ليس في الاتجاه نفسه كل يوم.</item>
+        <item quantity="many">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، لكن ليس في الاتجاه نفسه كل يوم.</item>
+        <item quantity="other">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، لكن ليس في الاتجاه نفسه كل يوم.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="zero">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقات، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</item>
+        <item quantity="one">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</item>
+        <item quantity="two">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقتين، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</item>
+        <item quantity="few">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقات، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</item>
+        <item quantity="many">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</item>
+        <item quantity="other">يقع تجمّعك على بعد %1$d mm %2$s عبر %3$d طلقة، في أيام أقل من أن تحسم ما إذا كان الأمر كذلك دائمًا.</item>
+    </plurals>
     <string name="advice_cause_high_1">دفع المسدس بكعب اليد: دفع راحة اليد للأمام لحظة انطلاق الطلقة.</string>
     <string name="advice_cause_high_2">انثناء المعصم للأعلى أثناء الطلقة.</string>
     <string name="advice_cause_high_3">البحث عن الإصابة ورفع المسدس مبكرًا.</string>
@@ -390,21 +570,49 @@
     <string name="advice_cause_side_2">ضغط الإبهام على المقبض يدفع المسدس جانبيًا.</string>
     <string name="advice_cause_side_3">سحب الزناد ليس مستقيمًا للخلف.</string>
     <string name="advice_try_side">تحقق من موضع التقاء الإصبع بالزناد ومن شدة ضغط الإبهام، ثم نفّذ رماية جافة وراقب التصويب.</string>
-    <string name="advice_stretch_vertical_summary">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقة.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="zero">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقات.</item>
+        <item quantity="one">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقة.</item>
+        <item quantity="two">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقتين.</item>
+        <item quantity="few">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقات.</item>
+        <item quantity="many">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقة.</item>
+        <item quantity="other">تجمّعك أطول من عرضه بنحو %1$d بالمئة، عبر %2$d طلقة.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">التنفس: الرماية عند نقطة مختلفة من النفَس في كل مرة.</string>
     <string name="advice_cause_vertical_2">تغيّر صورة التصويب في الارتفاع، إذ تكون الشعيرة أعلى أو أخفض في الشق.</string>
     <string name="advice_cause_vertical_3">ضغط على المقبض يتغير من طلقة إلى أخرى.</string>
     <string name="advice_try_vertical">ثبّت النفَس عند النقطة نفسها في كل طلقة وتحقق من ارتفاع الشعيرة في الشق قبل أن تضغط.</string>
-    <string name="advice_stretch_horizontal_summary">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقة.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="zero">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقات.</item>
+        <item quantity="one">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقة.</item>
+        <item quantity="two">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقتين.</item>
+        <item quantity="few">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقات.</item>
+        <item quantity="many">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقة.</item>
+        <item quantity="other">تجمّعك أعرض من طوله بنحو %1$d بالمئة، عبر %2$d طلقة.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">سحب زناد ينحرف جانبيًا.</string>
     <string name="advice_cause_horizontal_2">تحرّك المعصم أثناء الطلقة.</string>
     <string name="advice_cause_horizontal_3">وقفة غير متعامدة مع الهدف.</string>
     <string name="advice_try_horizontal">نفّذ رماية جافة والتصويب على علامة وانظر هل ينزلق جانبيًا عند انطلاق الزناد.</string>
-    <string name="advice_stretch_diagonal_summary">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقة.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="zero">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقات.</item>
+        <item quantity="one">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقة.</item>
+        <item quantity="two">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقتين.</item>
+        <item quantity="few">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقات.</item>
+        <item quantity="many">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقة.</item>
+        <item quantity="other">تجمّعك أطول في اتجاه منه في الآخر بنحو %1$d بالمئة، على خط مائل، عبر %2$d طلقة.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">ضغط المقبض وسحب الزناد يعملان أحدهما ضد الآخر.</string>
     <string name="advice_cause_diagonal_2">وقفة أو وضعية ذراع تُميل المسدس.</string>
     <string name="advice_try_diagonal">تحقق من أن القبضة نفسها في كل طلقة وأن التصويب مستوٍ قبل أن تضغط.</string>
-    <string name="advice_fliers_summary">في %1$d من سلاسلك البالغة %2$d شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="zero">في %1$d من أصل %2$d سلاسل لك شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</item>
+        <item quantity="one">في %1$d من أصل %2$d سلسلة لك شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</item>
+        <item quantity="two">في %1$d من أصل %2$d سلسلتين لك شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</item>
+        <item quantity="few">في %1$d من أصل %2$d سلاسل لك شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</item>
+        <item quantity="many">في %1$d من أصل %2$d سلسلة لك شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</item>
+        <item quantity="other">في %1$d من أصل %2$d سلسلة لك شردت طلقة واحدة عن البقية، بنحو %3$d mm في المتوسط.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">التحكم في الزناد في طلقة واحدة.</string>
     <string name="advice_cause_fliers_2">فقدان المتابعة.</string>
     <string name="advice_cause_fliers_3">إطلاق الطلقة دون تحديد موضعها (النداء).</string>
@@ -415,48 +623,149 @@
     <string name="advice_cause_wide_3">التعجّل في الطلقات.</string>
     <string name="advice_try_wide">تدرّب على الرماية الجافة: ثبّت واضغط دون إطلاق، واسترح عندما يبدأ الثبات بالاهتزاز.</string>
     <string name="advice_low_series_summary">سجّلت آخر سلسلة لك %1$d، مقابل متوسط %2$d في سلاسلك الأخيرة (%3$d).</string>
-    <string name="advice_low_day_summary">في %1$s كان متوسط سلاسلك (%2$d) هو %3$d، مقابل متوسط %4$d قبل ذلك.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="zero">في %1$s كان متوسط %2$d سلاسل لك هو %3$d، مقابل متوسط %4$d قبل ذلك.</item>
+        <item quantity="one">في %1$s كان متوسط %2$d سلسلة لك هو %3$d، مقابل متوسط %4$d قبل ذلك.</item>
+        <item quantity="two">في %1$s كان متوسط %2$d سلسلتين لك هو %3$d، مقابل متوسط %4$d قبل ذلك.</item>
+        <item quantity="few">في %1$s كان متوسط %2$d سلاسل لك هو %3$d، مقابل متوسط %4$d قبل ذلك.</item>
+        <item quantity="many">في %1$s كان متوسط %2$d سلسلة لك هو %3$d، مقابل متوسط %4$d قبل ذلك.</item>
+        <item quantity="other">في %1$s كان متوسط %2$d سلسلة لك هو %3$d، مقابل متوسط %4$d قبل ذلك.</item>
+    </plurals>
     <string name="advice_try_low_plain">نتيجة منخفضة واحدة لا تعني الكثير: ارمِ بضع سلاسل أخرى قبل أن تغيّر أي شيء.</string>
     <string name="advice_try_low_explained">ابدأ بالملاحظة أدناه بدلًا من تغيير كل شيء دفعة واحدة.</string>
     <string name="advice_low_note_offset">تجمّعك بعيد عن المركز، وقد يكون ذلك جزءًا من السبب.</string>
     <string name="advice_low_note_stretched">تجمّعك ممتد في اتجاه واحد، وقد يكون ذلك جزءًا من السبب.</string>
     <string name="advice_low_note_fliers">قد يكون شرود طلقة واحدة في السلسلة جزءًا من السبب.</string>
     <string name="advice_low_note_wide">قد تكون التجمّعات الأعرض من المعتاد جزءًا من السبب.</string>
-    <string name="advice_trend_up_summary">ارتفعت نقاطك بنحو %1$d من النقاط خلال %3$d من الأسابيع، عبر %2$d من السلاسل.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="zero">ارتفعت نقاطك بنحو %1$d نقاط خلال %3$s، عبر %2$s.</item>
+        <item quantity="one">ارتفعت نقاطك بنحو %1$d نقطة خلال %3$s، عبر %2$s.</item>
+        <item quantity="two">ارتفعت نقاطك بنحو %1$d نقطتين خلال %3$s، عبر %2$s.</item>
+        <item quantity="few">ارتفعت نقاطك بنحو %1$d نقاط خلال %3$s، عبر %2$s.</item>
+        <item quantity="many">ارتفعت نقاطك بنحو %1$d نقطة خلال %3$s، عبر %2$s.</item>
+        <item quantity="other">ارتفعت نقاطك بنحو %1$d نقطة خلال %3$s، عبر %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="zero">%1$d سلاسل</item>
+        <item quantity="one">%1$d سلسلة</item>
+        <item quantity="two">%1$d سلسلتين</item>
+        <item quantity="few">%1$d سلاسل</item>
+        <item quantity="many">%1$d سلسلة</item>
+        <item quantity="other">%1$d سلسلة</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="zero">%1$d أسابيع</item>
+        <item quantity="one">%1$d أسبوع</item>
+        <item quantity="two">%1$d أسبوعين</item>
+        <item quantity="few">%1$d أسابيع</item>
+        <item quantity="many">%1$d أسبوعًا</item>
+        <item quantity="other">%1$d أسبوع</item>
+    </plurals>
     <string name="advice_try_trend_up">واصل ما تفعله، ودوّن ما تغيّر لتتمكن من تكراره.</string>
-    <string name="advice_trend_down_summary">انخفضت نقاطك بنحو %1$d من النقاط خلال %3$d من الأسابيع، عبر %2$d من السلاسل.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="zero">انخفضت نقاطك بنحو %1$d نقاط خلال %3$s، عبر %2$s.</item>
+        <item quantity="one">انخفضت نقاطك بنحو %1$d نقطة خلال %3$s، عبر %2$s.</item>
+        <item quantity="two">انخفضت نقاطك بنحو %1$d نقطتين خلال %3$s، عبر %2$s.</item>
+        <item quantity="few">انخفضت نقاطك بنحو %1$d نقاط خلال %3$s، عبر %2$s.</item>
+        <item quantity="many">انخفضت نقاطك بنحو %1$d نقطة خلال %3$s، عبر %2$s.</item>
+        <item quantity="other">انخفضت نقاطك بنحو %1$d نقطة خلال %3$s، عبر %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">التعب أو قلة وقت التدريب.</string>
     <string name="advice_cause_trend_2">التعجّل في الطلقات.</string>
     <string name="advice_cause_trend_3">تغيير المسدس أو الذخيرة أو الروتين.</string>
     <string name="advice_try_trend_down">جلسات أقصر مع فترات راحة، وبضع طلقات جافة لاستعادة الأساسيات.</string>
-    <string name="advice_session_down_summary">في %1$d من أيامك الطويلة البالغة %2$d، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="zero">في %1$d من أصل %2$d أيام طويلة لك، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="one">في %1$d من أصل %2$d يوم طويل لك، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="two">في %1$d من أصل %2$d يومين طويلين لك، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="few">في %1$d من أصل %2$d أيام طويلة لك، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="many">في %1$d من أصل %2$d يومًا طويلًا لك، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="other">في %1$d من أصل %2$d يوم طويل لك، سجّلت سلاسلك اللاحقة نقاطًا أقل من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+    </plurals>
     <string name="advice_cause_session_1">تعب الذراع أو الكتف أو العينين مع تقدّم الجلسة.</string>
     <string name="advice_cause_session_2">تراجع التركيز، فتُستعجل الطلقات أو يقل تحديد موضعها.</string>
     <string name="advice_cause_session_3">فترات راحة قليلة جدًا بين السلاسل.</string>
     <string name="advice_try_session_down">جلسات أقصر، أو استراحة حقيقية كل بضع سلاسل لإراحة عينيك وذراعك.</string>
-    <string name="advice_session_up_summary">في %1$d من أيامك الطويلة البالغة %2$d، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="zero">في %1$d من أصل %2$d أيام طويلة لك، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="one">في %1$d من أصل %2$d يوم طويل لك، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="two">في %1$d من أصل %2$d يومين طويلين لك، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="few">في %1$d من أصل %2$d أيام طويلة لك، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="many">في %1$d من أصل %2$d يومًا طويلًا لك، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+        <item quantity="other">في %1$d من أصل %2$d يوم طويل لك، سجّلت سلاسلك اللاحقة نقاطًا أعلى من الأولى: %4$d في المتوسط مقابل %3$d في تلك الأيام.</item>
+    </plurals>
     <string name="advice_try_session_up">بداية بطيئة: ابدأ ببضع طلقات جافة أو طلقات تجريبية قبل أن تُحتسب السلسلة الأولى.</string>
     <string name="stats_help_insights">الملاحظات</string>
     <string name="stats_help_insights_body">تنظر الملاحظات في سلاسلك المحفوظة، عيارًا تلو الآخر، وتشير إلى أنماط متأكدة منها إلى حد ما: تجمّع يقع إلى جانب، أو تجمّع ممتد، أو طلقة تشرد، أو نقاط تنخفض أو ترتفع. تحتاج إلى عدد جيد من الطلقات قبل أن تقول شيئًا. تعطي كل ملاحظة ما تُظهره الأرقام، وما يسببه غالبًا، وشيئًا واحدًا لتجربته. إنها تلميح وليست مدربًا: الأسباب شائعة وليست حكمًا. اضبط يد الرماية وأوقف الملاحظات من الإعدادات.</string>
     <string name="stats_tab_insights">الملاحظات</string>
-    <string name="stats_insights_need_more">تحتاج الملاحظات إلى نحو %1$d طلقة؛ لديك هنا %2$d.</string>
-    <string name="stats_insights_nothing">لا شيء لافت في هذه الطلقات (%1$d) من السلاسل (%2$d).</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="zero">تحتاج الملاحظات إلى نحو %1$d طلقات؛ لديك هنا %2$d.</item>
+        <item quantity="one">تحتاج الملاحظات إلى نحو %1$d طلقة؛ لديك هنا %2$d.</item>
+        <item quantity="two">تحتاج الملاحظات إلى نحو %1$d طلقتين؛ لديك هنا %2$d.</item>
+        <item quantity="few">تحتاج الملاحظات إلى نحو %1$d طلقات؛ لديك هنا %2$d.</item>
+        <item quantity="many">تحتاج الملاحظات إلى نحو %1$d طلقة؛ لديك هنا %2$d.</item>
+        <item quantity="other">تحتاج الملاحظات إلى نحو %1$d طلقة؛ لديك هنا %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="zero">لا شيء لافت في %1$d طلقات من %2$s.</item>
+        <item quantity="one">لا شيء لافت في %1$d طلقة من %2$s.</item>
+        <item quantity="two">لا شيء لافت في %1$d طلقتين من %2$s.</item>
+        <item quantity="few">لا شيء لافت في %1$d طلقات من %2$s.</item>
+        <item quantity="many">لا شيء لافت في %1$d طلقة من %2$s.</item>
+        <item quantity="other">لا شيء لافت في %1$d طلقة من %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="zero">%1$d سلاسل</item>
+        <item quantity="one">%1$d سلسلة</item>
+        <item quantity="two">%1$d سلسلتين</item>
+        <item quantity="few">%1$d سلاسل</item>
+        <item quantity="many">%1$d سلسلة</item>
+        <item quantity="other">%1$d سلسلة</item>
+    </plurals>
     <string name="stats_insights_numbers">متوسط نقطة الإصابة %1$s، التشتت %2$d mm، متوسط السلسلة %3$s.</string>
     <string name="stats_insights_legend">يضم القطع الناقص الأصفر نحو 86 بالمئة من الطلقات؛ ويمتد السهم من المركز إلى متوسط نقطة الإصابة. اضغط على ملاحظة لترى ما تشير إليه على الهدف.</string>
-    <string name="stats_insights_target_description">هدف الملاحظات مع %1$d طلقة، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="zero">هدف الملاحظات مع %1$d طلقات، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</item>
+        <item quantity="one">هدف الملاحظات مع %1$d طلقة، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</item>
+        <item quantity="two">هدف الملاحظات مع %1$d طلقتين، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</item>
+        <item quantity="few">هدف الملاحظات مع %1$d طلقات، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</item>
+        <item quantity="many">هدف الملاحظات مع %1$d طلقة، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</item>
+        <item quantity="other">هدف الملاحظات مع %1$d طلقة، والقطع الناقص، والسهم إلى متوسط نقطة الإصابة</item>
+    </plurals>
     <string name="stats_insights_no_caliber">تنظر الملاحظات في عيار واحد في كل مرة، وهذه السلاسل بلا عيار. حدّد لها عيارًا في السجل لرؤية الملاحظات.</string>
-    <string name="stats_insights_uncalibered">سلاسل بلا عيار مستبعدة: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="zero">استُبعدت %1$d سلاسل بلا عيار.</item>
+        <item quantity="one">استُبعدت %1$d سلسلة بلا عيار.</item>
+        <item quantity="two">استُبعدت %1$d سلسلتان بلا عيار.</item>
+        <item quantity="few">استُبعدت %1$d سلاسل بلا عيار.</item>
+        <item quantity="many">استُبعدت %1$d سلسلة بلا عيار.</item>
+        <item quantity="other">استُبعدت %1$d سلسلة بلا عيار.</item>
+    </plurals>
     <string name="detail_vs_under">أقل بـ %1$d من متوسطك البالغ %2$d</string>
     <string name="detail_vs_over">أعلى بـ %1$d من متوسطك البالغ %2$d</string>
     <string name="detail_vs_on">عند متوسطك البالغ %1$d</string>
-    <string name="detail_vs_best">أفضل نتيجة لك في آخر %1$d يومًا</string>
+    <plurals name="detail_vs_best">
+        <item quantity="zero">أفضل نتيجة لك في آخر %1$d أيام</item>
+        <item quantity="one">أفضل نتيجة لك في آخر %1$d يوم</item>
+        <item quantity="two">أفضل نتيجة لك في آخر %1$d يومين</item>
+        <item quantity="few">أفضل نتيجة لك في آخر %1$d أيام</item>
+        <item quantity="many">أفضل نتيجة لك في آخر %1$d يومًا</item>
+        <item quantity="other">أفضل نتيجة لك في آخر %1$d يوم</item>
+    </plurals>
     <string name="detail_day_in_insights">عرض هذا اليوم في الملاحظات</string>
     <string name="sight_title">تصحيح التصويب</string>
     <string name="sight_up_mm">للأعلى %1$d mm</string>
     <string name="sight_down_mm">للأسفل %1$d mm</string>
     <string name="sight_left_mm">لليسار %1$d mm</string>
     <string name="sight_right_mm">لليمين %1$d mm</string>
-    <string name="sight_clicks">%1$s: نقرات: %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="zero">%1$s: %2$d نقرات</item>
+        <item quantity="one">%1$s: %2$d نقرة</item>
+        <item quantity="two">%1$s: %2$d نقرتان</item>
+        <item quantity="few">%1$s: %2$d نقرات</item>
+        <item quantity="many">%1$s: %2$d نقرة</item>
+        <item quantity="other">%1$s: %2$d نقرة</item>
+    </plurals>
     <string name="sight_one_click">%1$s: نقرة واحدة</string>
     <string name="sight_under_half_click">%1$s: أقل من نصف نقرة، اتركه</string>
     <string name="sight_no_height">الارتفاع: بلا تغيير</string>
@@ -467,7 +776,14 @@
     <string name="sight_set_clicks">إدخال قيمة النقرة</string>
     <string name="sight_change_clicks">تغيير قيمة النقرة</string>
     <string name="sight_adjusted_button">ضبطتُ أجهزة التصويب</string>
-    <string name="sight_adjusted_note">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على الطلقات (%2$d) منذ ذلك الحين.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="zero">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على %2$d طلقات منذ ذلك الحين.</item>
+        <item quantity="one">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على %2$d طلقة منذ ذلك الحين.</item>
+        <item quantity="two">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على %2$d طلقتين منذ ذلك الحين.</item>
+        <item quantity="few">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على %2$d طلقات منذ ذلك الحين.</item>
+        <item quantity="many">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على %2$d طلقة منذ ذلك الحين.</item>
+        <item quantity="other">ضُبطت أجهزة التصويب في %1$s: يُقيَّم الانحراف على %2$d طلقة منذ ذلك الحين.</item>
+    </plurals>
     <string name="sight_adjusted_undo">تراجع</string>
     <string name="sight_dialog_title">قيمة النقرة، %1$s</string>
     <string name="sight_dialog_help">المسافة التي تحرّك بها نقرة واحدة الإصابة على الهدف عند مسافة رمايتك. يذكرها عادةً دليل جهاز التصويب، أو عدّ نقرات تصحيح واحد وقِس كم تحرّك التجمّع.</string>

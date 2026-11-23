@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -104,7 +105,7 @@ internal fun TrendTab(
         val stamp = localStamp(point.at.toString()).let { if (bucket == Bucket.SERIES) it else it.take(10) }
         val value = format(point.value)
         if (point.seriesCount > 1) {
-            stringResource(Res.string.stats_trend_point_many, line.label, stamp, value, point.seriesCount)
+            pluralStringResource(Res.plurals.stats_trend_point_many, point.seriesCount, line.label, stamp, value, point.seriesCount)
         } else {
             stringResource(Res.string.stats_trend_point, line.label, stamp, value)
         }.trim()

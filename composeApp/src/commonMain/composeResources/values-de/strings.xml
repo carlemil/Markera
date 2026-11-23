@@ -83,11 +83,20 @@
     <string name="history_signed_out">Melde dich an, um deinen Verlauf zu sehen</string>
     <string name="history_empty">Noch keine gespeicherten Serien</string>
     <string name="history_filter_empty">Keine Serie passt zum Filter.</string>
-    <string name="history_day_summary">%1$d Serien · Ø %2$s</string>
-    <string name="history_day_summary_one">1 Serie · %1$d Ringe</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d Serie · Ø %2$s</item>
+        <item quantity="other">%1$d Serien · Ø %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 Serie · %1$d Ring</item>
+        <item quantity="other">1 Serie · %1$d Ringe</item>
+    </plurals>
     <string name="history_card_title">%1$s · Serie %2$d</string>
     <string name="history_delete_title">Serie löschen?</string>
-    <string name="history_delete_message">%1$s · %2$d Ringe</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d Ring</item>
+        <item quantity="other">%1$s · %2$d Ringe</item>
+    </plurals>
     <string name="history_delete_confirm">Löschen</string>
     <string name="history_delete_cancel">Abbrechen</string>
     <string name="history_delete_failed">Löschen fehlgeschlagen</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Datum</string>
     <string name="filter_clear">Filter löschen</string>
     <string name="stats_no_geometry">Keine deiner Serien hat einen Ring, auf den sich zeichnen lässt. Scanne eine, bei der der 6/7-Ring gefunden wird.</string>
-    <string name="stats_target_description">Scheibe mit %1$d Treffern aus %2$d Serien</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Scheibe mit %1$d Treffer aus %2$s</item>
+        <item quantity="other">Scheibe mit %1$d Treffern aus %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d Serie</item>
+        <item quantity="other">%1$d Serien</item>
+    </plurals>
     <string name="stats_timeline">Zeitleiste der Serien</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Trefferbild</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Ringe</string>
     <string name="stats_trend_description">Trenddiagramm, Linien: %1$d, Punkte: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d Serien)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d Serie)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d Serien)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Der Tab Trend zeigt einen beliebigen Messwert als Kurve über die Zeit. Wähle den Messwert mit den Schaltflächen und ob jede Serie ein Punkt wird oder die Serien pro Tag, Woche oder Monat zusammengefasst werden (der Messwert wird dann über alle Serien des Zeitraums berechnet). Pro Kaliber zeichnet eine Kurve je Kaliber. Die Filter oben gelten für alle Tabs. Tippe auf einen Punkt, um ihn abzulesen.</string>
     <string name="stats_tab_drift">Drift</string>
-    <string name="stats_drift_description">Scheibe mit mittlerer und Median-Trefferlage über die Zeit, %1$d Punkte</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Scheibe mit mittlerer und Median-Trefferlage über die Zeit, %1$d Punkt</item>
+        <item quantity="other">Scheibe mit mittlerer und Median-Trefferlage über die Zeit, %1$d Punkte</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d Tage · %2$d Serien · %3$d Treffer</string>
     <string name="stats_drift_oldest">Älteste</string>
     <string name="stats_drift_newest">Neueste</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Neueste Trefferlage: %1$s (%2$d mm von der Mitte), %3$d mm näher als am %4$s.</string>
     <string name="stats_drift_summary_further">Neueste Trefferlage: %1$s (%2$d mm von der Mitte), %3$d mm weiter außen als am %4$s.</string>
     <string name="stats_drift_summary_same">Neueste Trefferlage: %1$s (%2$d mm von der Mitte), so weit außen wie am %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d Serien · %3$d Treffer</string>
-    <string name="stats_drift_point_series">%1$s · Serie %2$d von %3$d · %4$d Treffer</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d Serie · %3$s</item>
+        <item quantity="other">%1$s · %2$d Serien · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d Treffer</item>
+        <item quantity="other">%1$d Treffer</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · Serie %2$d von %3$d · %4$d Treffer</item>
+        <item quantity="other">%1$s · Serie %2$d von %3$d · %4$d Treffer</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Links / rechts und hoch / tief über die Zeit (Mittelwert)</string>
     <string name="stats_drift_strips_median">Links / rechts und hoch / tief über die Zeit (Median)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Speichert jedes Bild, das gewertet werden kann, ohne anzuhalten; die übrigen werden danach gezeigt.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Überspringen</string>
-    <string name="import_summary">%1$d gespeichert, %2$d übersprungen</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d gespeichert</item>
+        <item quantity="other">%1$d gespeichert</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d übersprungen</item>
+        <item quantity="other">%1$d übersprungen</item>
+    </plurals>
     <string name="help_home_import">Bilder importieren</string>
     <string name="help_home_import_body">Im Menü: Werte Fotos aus, die schon auf dem Telefon sind, aus der Galerie oder aus Dateien. Jedes Bild wird gescannt und das Ergebnis gezeigt, zum Speichern oder Überspringen. Mit Auto-Import wird jedes Bild, das gewertet werden kann, von selbst mit dem Aufnahmedatum des Fotos gespeichert; die übrigen werden danach einzeln gezeigt.</string>
     <string name="series_status_phone">Auf diesem Gerät gespeichert</string>
     <string name="series_not_uploaded">Nicht hochgeladen</string>
-    <string name="stats_not_uploaded">Nicht hochgeladen: %1$d Serien</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Nicht hochgeladen: %1$d Serie</item>
+        <item quantity="other">Nicht hochgeladen: %1$d Serien</item>
+    </plurals>
     <string name="local_claim_title">Serien auf diesem Gerät</string>
     <string name="local_claim_body">Serien, die auf diesem Gerät abgemeldet oder für ein anderes Konto gespeichert wurden: %1$d. Füge sie diesem Konto hinzu, lösche sie von diesem Gerät oder bleib abgemeldet.</string>
     <string name="local_claim_add">Zum Konto hinzufügen</string>
     <string name="local_claim_delete">Vom Gerät löschen</string>
-    <string name="local_claim_delete_body">%1$d Serien und ihre Fotos von diesem Gerät löschen? Das lässt sich nicht rückgängig machen. Sie wurden nicht in dieses Konto hochgeladen.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">%1$d Serie und ihr Foto von diesem Gerät löschen? Das lässt sich nicht rückgängig machen. Sie wurde nicht in dieses Konto hochgeladen.</item>
+        <item quantity="other">%1$d Serien und ihre Fotos von diesem Gerät löschen? Das lässt sich nicht rückgängig machen. Sie wurden nicht in dieses Konto hochgeladen.</item>
+    </plurals>
     <string name="local_claim_stay">Abgemeldet bleiben</string>
     <string name="local_claim_error">Der Vorgang konnte nicht abgeschlossen werden. Deine übrigen Serien sind noch auf diesem Gerät. Schließe den Dialog und versuche erneut, dich anzumelden.</string>
     <string name="home_week_series">Serien in 7 Tagen</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Diese Woche ist dein Trefferbild mit %1$s etwa %2$d Prozent höher als breit.</string>
     <string name="home_insight_stretch_horizontal">Diese Woche ist dein Trefferbild mit %1$s etwa %2$d Prozent breiter als hoch.</string>
     <string name="home_insight_stretch_diagonal">Diese Woche ist dein Trefferbild mit %1$s schräg etwa %2$d Prozent länger.</string>
-    <string name="home_insight_fliers">Diese Woche ist in %2$d deiner %3$d Serien mit %1$s ein Schuss ausgerissen.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Diese Woche ist in %2$d deiner %3$d Serie mit %1$s ein Schuss ausgerissen.</item>
+        <item quantity="other">Diese Woche ist in %2$d deiner %3$d Serien mit %1$s ein Schuss ausgerissen.</item>
+    </plurals>
     <string name="home_insight_wide">Am %2$s waren deine Trefferbilder mit %1$s etwa %3$d Prozent breiter als zuvor.</string>
     <string name="home_insight_low_series">Deine letzte Serie mit %1$s brachte %2$d, sonst üblich sind %3$d.</string>
     <string name="home_insight_low_day">Am %2$s brachten deine Serien mit %1$s im Schnitt %3$d, sonst üblich sind %4$d.</string>
-    <string name="home_insight_trend_up">Deine Ergebnisse mit %1$s steigen: etwa %2$d Ringe in %3$d Wochen.</string>
-    <string name="home_insight_trend_down">Deine Ergebnisse mit %1$s sinken: etwa %2$d Ringe in %3$d Wochen.</string>
-    <string name="home_insight_session_down">Diese Woche waren deine späteren Serien mit %1$s an %2$d von %3$d längeren Tagen schlechter.</string>
-    <string name="home_insight_session_up">Diese Woche waren deine späteren Serien mit %1$s an %2$d von %3$d längeren Tagen besser.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Deine Ergebnisse mit %1$s steigen: etwa %2$d Ring in %3$s.</item>
+        <item quantity="other">Deine Ergebnisse mit %1$s steigen: etwa %2$d Ringe in %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d Woche</item>
+        <item quantity="other">%1$d Wochen</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Deine Ergebnisse mit %1$s sinken: etwa %2$d Ring in %3$s.</item>
+        <item quantity="other">Deine Ergebnisse mit %1$s sinken: etwa %2$d Ringe in %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Diese Woche waren deine späteren Serien mit %1$s an %2$d von %3$d längerem Tag schlechter.</item>
+        <item quantity="other">Diese Woche waren deine späteren Serien mit %1$s an %2$d von %3$d längeren Tagen schlechter.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Diese Woche waren deine späteren Serien mit %1$s an %2$d von %3$d längerem Tag besser.</item>
+        <item quantity="other">Diese Woche waren deine späteren Serien mit %1$s an %2$d von %3$d längeren Tagen besser.</item>
+    </plurals>
     <string name="home_insight_dismiss">Diesen Hinweis ausblenden</string>
-    <string name="home_local_title">%1$d Serien nur auf diesem Telefon</string>
-    <string name="home_local_title_one">1 Serie nur auf diesem Telefon</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d Serie nur auf diesem Telefon</item>
+        <item quantity="other">%1$d Serien nur auf diesem Telefon</item>
+    </plurals>
     <string name="home_signin_title">Speichere deine Serien in deinem Konto</string>
     <string name="home_signin_body">Melde dich an, damit du sie beim Telefonwechsel behältst.</string>
     <string name="action_sign_in">Anmelden</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">nach unten links</string>
     <string name="advice_move_left">nach links</string>
     <string name="advice_move_up_left">nach oben links</string>
-    <string name="advice_offset_stable_summary">Dein Trefferbild liegt über %3$d Schüsse %1$d mm %2$s, gleich an %4$d von %5$d Tagen.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Dein Trefferbild liegt über %3$d Schuss %1$d mm %2$s, gleich an %4$d von %5$s.</item>
+        <item quantity="other">Dein Trefferbild liegt über %3$d Schüsse %1$d mm %2$s, gleich an %4$d von %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tagen</item>
+    </plurals>
     <string name="advice_cause_sights_1">Das Visier ist für diese Munition oder Entfernung nicht eingeschossen.</string>
     <string name="advice_cause_sights_2">Das Visier hat sich seit dem Einstellen verstellt, oder eine andere Munition schießt anders.</string>
     <string name="advice_try_sights">Verstelle das Visier so, dass das Trefferbild etwa %1$d mm %2$s wandert, und schieß dann ein neues Trefferbild, bevor du es wieder anfasst.</string>
-    <string name="advice_offset_varies_summary">Dein Trefferbild liegt über %3$d Schüsse %1$d mm %2$s, aber nicht jeden Tag gleich.</string>
-    <string name="advice_offset_few_days_summary">Dein Trefferbild liegt über %3$d Schüsse %1$d mm %2$s, an zu wenigen Tagen, um zu sagen, ob es immer so ist.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Dein Trefferbild liegt über %3$d Schuss %1$d mm %2$s, aber nicht jeden Tag gleich.</item>
+        <item quantity="other">Dein Trefferbild liegt über %3$d Schüsse %1$d mm %2$s, aber nicht jeden Tag gleich.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Dein Trefferbild liegt über %3$d Schuss %1$d mm %2$s, an zu wenigen Tagen, um zu sagen, ob es immer so ist.</item>
+        <item quantity="other">Dein Trefferbild liegt über %3$d Schüsse %1$d mm %2$s, an zu wenigen Tagen, um zu sagen, ob es immer so ist.</item>
+    </plurals>
     <string name="advice_cause_high_1">Den Handballen beim Schuss nach vorn drücken.</string>
     <string name="advice_cause_high_2">Das Handgelenk knickt beim Schuss nach oben ab.</string>
     <string name="advice_cause_high_3">Nach dem Treffer schauen und die Waffe zu früh anheben.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">Daumendruck auf den Griff drückt die Waffe zur Seite.</string>
     <string name="advice_cause_side_3">Ein Abzug, der nicht gerade nach hinten geht.</string>
     <string name="advice_try_side">Prüfe, wo der Finger den Abzug berührt und wie fest der Daumen drückt, dann mach Trockenschüsse und beobachte das Visier.</string>
-    <string name="advice_stretch_vertical_summary">Dein Trefferbild ist über %2$d Schüsse etwa %1$d Prozent höher als breit.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Dein Trefferbild ist über %2$d Schuss etwa %1$d Prozent höher als breit.</item>
+        <item quantity="other">Dein Trefferbild ist über %2$d Schüsse etwa %1$d Prozent höher als breit.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Die Atmung: jedes Mal an einem anderen Punkt des Atemzugs schießen.</string>
     <string name="advice_cause_vertical_2">Das Visierbild ändert sich in der Höhe, das Korn steht höher oder tiefer in der Kimme.</string>
     <string name="advice_cause_vertical_3">Ein Griffdruck, der von Schuss zu Schuss schwankt.</string>
     <string name="advice_try_vertical">Halte die Atmung bei jedem Schuss am selben Punkt an und prüfe die Höhe des Korns in der Kimme, bevor du abziehst.</string>
-    <string name="advice_stretch_horizontal_summary">Dein Trefferbild ist über %2$d Schüsse etwa %1$d Prozent breiter als hoch.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Dein Trefferbild ist über %2$d Schuss etwa %1$d Prozent breiter als hoch.</item>
+        <item quantity="other">Dein Trefferbild ist über %2$d Schüsse etwa %1$d Prozent breiter als hoch.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Ein Abzug, der zur Seite geht.</string>
     <string name="advice_cause_horizontal_2">Das Handgelenk bewegt sich beim Schuss.</string>
     <string name="advice_cause_horizontal_3">Ein Stand, der nicht richtig zur Scheibe ausgerichtet ist.</string>
     <string name="advice_try_horizontal">Mach Trockenschüsse mit dem Visier auf einer Markierung und sieh, ob es seitlich wegrutscht, wenn der Schuss bricht.</string>
-    <string name="advice_stretch_diagonal_summary">Dein Trefferbild ist über %2$d Schüsse schräg in eine Richtung etwa %1$d Prozent länger als in die andere.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Dein Trefferbild ist über %2$d Schuss schräg in eine Richtung etwa %1$d Prozent länger als in die andere.</item>
+        <item quantity="other">Dein Trefferbild ist über %2$d Schüsse schräg in eine Richtung etwa %1$d Prozent länger als in die andere.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Griffdruck und Abzug arbeiten gegeneinander.</string>
     <string name="advice_cause_diagonal_2">Ein Stand oder eine Armhaltung, die die Waffe verkantet.</string>
     <string name="advice_try_diagonal">Prüfe, dass der Griff bei jedem Schuss gleich ist und das Visier gerade steht, bevor du abziehst.</string>
-    <string name="advice_fliers_summary">In %1$d deiner %2$d Serien ist ein Schuss vom Rest ausgerissen, im Schnitt etwa %3$d mm weit.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">In %1$d deiner %2$d Serie ist ein Schuss vom Rest ausgerissen, im Schnitt etwa %3$d mm weit.</item>
+        <item quantity="other">In %1$d deiner %2$d Serien ist ein Schuss vom Rest ausgerissen, im Schnitt etwa %3$d mm weit.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Abzugskontrolle bei einem einzelnen Schuss.</string>
     <string name="advice_cause_fliers_2">Das Nachhalten geht verloren.</string>
     <string name="advice_cause_fliers_3">Den Schuss lösen, ohne ihn angesagt zu haben.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">Die Schüsse überhastet.</string>
     <string name="advice_try_wide">Trockentraining: Halten und abziehen, ohne zu schießen, und pausieren, wenn der Anschlag zu zittern beginnt.</string>
     <string name="advice_low_series_summary">Deine letzte Serie brachte %1$d, gegenüber %2$d im Schnitt deiner letzten %3$d.</string>
-    <string name="advice_low_day_summary">Am %1$s brachten deine %2$d Serien im Schnitt %3$d, gegenüber %4$d im Schnitt davor.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Am %1$s brachte deine %2$d Serie im Schnitt %3$d, gegenüber %4$d im Schnitt davor.</item>
+        <item quantity="other">Am %1$s brachten deine %2$d Serien im Schnitt %3$d, gegenüber %4$d im Schnitt davor.</item>
+    </plurals>
     <string name="advice_try_low_plain">Ein schwaches Ergebnis sagt wenig: Schieß noch ein paar, bevor du etwas änderst.</string>
     <string name="advice_try_low_explained">Fang mit dem Hinweis unten an, statt alles auf einmal zu ändern.</string>
     <string name="advice_low_note_offset">Dein Trefferbild liegt neben der Mitte, das kann ein Teil des Grundes sein.</string>
     <string name="advice_low_note_stretched">Dein Trefferbild ist in eine Richtung gestreckt, das kann ein Teil des Grundes sein.</string>
     <string name="advice_low_note_fliers">Ein ausgerissener Schuss pro Serie kann ein Teil des Grundes sein.</string>
     <string name="advice_low_note_wide">Breitere Trefferbilder als sonst können ein Teil des Grundes sein.</string>
-    <string name="advice_trend_up_summary">Deine Ergebnisse sind in %3$d Wochen um etwa %1$d Ringe gestiegen, über %2$d Serien.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Deine Ergebnisse sind in %3$s um etwa %1$d Ring gestiegen, über %2$s.</item>
+        <item quantity="other">Deine Ergebnisse sind in %3$s um etwa %1$d Ringe gestiegen, über %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d Serie</item>
+        <item quantity="other">%1$d Serien</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d Woche</item>
+        <item quantity="other">%1$d Wochen</item>
+    </plurals>
     <string name="advice_try_trend_up">Mach weiter so und notiere, was sich geändert hat, damit du es wiederholen kannst.</string>
-    <string name="advice_trend_down_summary">Deine Ergebnisse sind in %3$d Wochen um etwa %1$d Ringe gesunken, über %2$d Serien.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Deine Ergebnisse sind in %3$s um etwa %1$d Ring gesunken, über %2$s.</item>
+        <item quantity="other">Deine Ergebnisse sind in %3$s um etwa %1$d Ringe gesunken, über %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Müdigkeit oder weniger Zeit zum Trainieren.</string>
     <string name="advice_cause_trend_2">Die Schüsse überhastet.</string>
     <string name="advice_cause_trend_3">Ein Wechsel von Waffe, Munition oder Ablauf.</string>
     <string name="advice_try_trend_down">Kürzere Einheiten mit Pausen und ein paar Trockenschüsse, um die Grundlagen wiederzufinden.</string>
-    <string name="advice_session_down_summary">An %1$d deiner %2$d längeren Tage waren deine späteren Serien schlechter als die ersten: an diesen Tagen im Schnitt %4$d gegenüber %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">An %1$d deines %2$d längeren Tages waren deine späteren Serien schlechter als die ersten: an diesen Tagen im Schnitt %4$d gegenüber %3$d.</item>
+        <item quantity="other">An %1$d deiner %2$d längeren Tage waren deine späteren Serien schlechter als die ersten: an diesen Tagen im Schnitt %4$d gegenüber %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Ermüdung in Arm, Schulter oder Augen im Lauf der Einheit.</string>
     <string name="advice_cause_session_2">Nachlassende Konzentration, sodass Schüsse überhastet oder schlechter angesagt werden.</string>
     <string name="advice_cause_session_3">Zu wenige Pausen zwischen den Serien.</string>
     <string name="advice_try_session_down">Kürzere Einheiten oder alle paar Serien eine echte Pause, damit sich Augen und Arm erholen.</string>
-    <string name="advice_session_up_summary">An %1$d deiner %2$d längeren Tage waren deine späteren Serien besser als die ersten: an diesen Tagen im Schnitt %4$d gegenüber %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">An %1$d deines %2$d längeren Tages waren deine späteren Serien besser als die ersten: an diesen Tagen im Schnitt %4$d gegenüber %3$d.</item>
+        <item quantity="other">An %1$d deiner %2$d längeren Tage waren deine späteren Serien besser als die ersten: an diesen Tagen im Schnitt %4$d gegenüber %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Ein langsamer Start: Beginne mit ein paar Trockenschüssen oder Probeschüssen, bevor die erste Serie zählt.</string>
     <string name="stats_help_insights">Analyse</string>
     <string name="stats_help_insights_body">Die Analyse betrachtet deine gespeicherten Serien, ein Kaliber nach dem anderen, und zeigt Muster, bei denen sie sich ziemlich sicher ist: ein Trefferbild, das zu einer Seite liegt, ein gestrecktes Trefferbild, ein ausgerissener Schuss oder Ergebnisse, die sinken oder steigen. Sie braucht eine gute Anzahl Schüsse, bevor sie etwas sagt. Jeder Hinweis nennt, was die Zahlen zeigen, was es oft verursacht und eine Sache zum Ausprobieren. Es ist ein Hinweis, kein Trainer: Die Ursachen sind häufige, kein Urteil. Schießhand einstellen und Analyse ausschalten kannst du unter Einstellungen.</string>
     <string name="stats_tab_insights">Analyse</string>
-    <string name="stats_insights_need_more">Die Analyse braucht etwa %1$d Schüsse; hier sind es %2$d.</string>
-    <string name="stats_insights_nothing">In diesen %1$d Schüssen aus %2$d Serien fällt nichts auf.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Die Analyse braucht etwa %1$d Schuss; hier sind es %2$d.</item>
+        <item quantity="other">Die Analyse braucht etwa %1$d Schüsse; hier sind es %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">In diesem %1$d Schuss aus %2$s fällt nichts auf.</item>
+        <item quantity="other">In diesen %1$d Schüssen aus %2$s fällt nichts auf.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d Serie</item>
+        <item quantity="other">%1$d Serien</item>
+    </plurals>
     <string name="stats_insights_numbers">Mittlere Trefferlage %1$s, Streuung %2$d mm, mittlere Serie %3$s.</string>
     <string name="stats_insights_legend">Die gelbe Ellipse enthält etwa 86 Prozent der Schüsse; der Pfeil führt von der Mitte zur mittleren Trefferlage. Tippe auf einen Hinweis, um zu sehen, worauf er sich auf der Scheibe bezieht.</string>
-    <string name="stats_insights_target_description">Analysescheibe mit %1$d Schüssen, der Ellipse und dem Pfeil zur mittleren Trefferlage</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Analysescheibe mit %1$d Schuss, der Ellipse und dem Pfeil zur mittleren Trefferlage</item>
+        <item quantity="other">Analysescheibe mit %1$d Schüssen, der Ellipse und dem Pfeil zur mittleren Trefferlage</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Die Analyse betrachtet ein Kaliber nach dem anderen, und diese Serien haben keins. Weise ihnen im Verlauf ein Kaliber zu, um eine Analyse zu sehen.</string>
-    <string name="stats_insights_uncalibered">%1$d Serien ohne Kaliber werden nicht berücksichtigt.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d Serie ohne Kaliber wird nicht berücksichtigt.</item>
+        <item quantity="other">%1$d Serien ohne Kaliber werden nicht berücksichtigt.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d unter deinem Schnitt von %2$d</string>
     <string name="detail_vs_over">%1$d über deinem Schnitt von %2$d</string>
     <string name="detail_vs_on">Genau dein Schnitt von %1$d</string>
-    <string name="detail_vs_best">Dein Bestwert der letzten %1$d Tage</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Dein Bestwert des letzten %1$d Tages</item>
+        <item quantity="other">Dein Bestwert der letzten %1$d Tage</item>
+    </plurals>
     <string name="detail_day_in_insights">Diesen Tag in der Analyse ansehen</string>
     <string name="sight_title">Visierkorrektur</string>
     <string name="sight_up_mm">Hoch %1$d mm</string>
     <string name="sight_down_mm">Tief %1$d mm</string>
     <string name="sight_left_mm">Links %1$d mm</string>
     <string name="sight_right_mm">Rechts %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d Klicks</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d Klick</item>
+        <item quantity="other">%1$s: %2$d Klicks</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 Klick</string>
     <string name="sight_under_half_click">%1$s: unter einem halben Klick, so lassen</string>
     <string name="sight_no_height">Höhe: keine Änderung</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Klickwert eingeben</string>
     <string name="sight_change_clicks">Klickwert ändern</string>
     <string name="sight_adjusted_button">Ich habe das Visier verstellt</string>
-    <string name="sight_adjusted_note">Visier verstellt am %1$s: Die Abweichung wird nach den %2$d Schüssen seitdem beurteilt.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Visier verstellt am %1$s: Die Abweichung wird nach dem %2$d Schuss seitdem beurteilt.</item>
+        <item quantity="other">Visier verstellt am %1$s: Die Abweichung wird nach den %2$d Schüssen seitdem beurteilt.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Rückgängig</string>
     <string name="sight_dialog_title">Klickwert, %1$s</string>
     <string name="sight_dialog_help">Wie weit ein Klick den Treffpunkt auf der Scheibe bei deiner Schussentfernung verschiebt. Meist steht es in der Anleitung des Visiers, oder zähle die Klicks einer Korrektur und miss, wie weit sich das Trefferbild verschoben hat.</string>

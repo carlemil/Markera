@@ -83,11 +83,20 @@
     <string name="history_signed_out">Log in om je geschiedenis te zien</string>
     <string name="history_empty">Nog geen opgeslagen series</string>
     <string name="history_filter_empty">Geen series die aan het filter voldoen.</string>
-    <string name="history_day_summary">%1$d series · gem. %2$s</string>
-    <string name="history_day_summary_one">1 serie · %1$d punten</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d serie · gem. %2$s</item>
+        <item quantity="other">%1$d series · gem. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 serie · %1$d punt</item>
+        <item quantity="other">1 serie · %1$d punten</item>
+    </plurals>
     <string name="history_card_title">%1$s · serie %2$d</string>
     <string name="history_delete_title">Serie verwijderen?</string>
-    <string name="history_delete_message">%1$s · %2$d punten</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d punt</item>
+        <item quantity="other">%1$s · %2$d punten</item>
+    </plurals>
     <string name="history_delete_confirm">Verwijderen</string>
     <string name="history_delete_cancel">Annuleren</string>
     <string name="history_delete_failed">Verwijderen mislukt</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Datum</string>
     <string name="filter_clear">Filters wissen</string>
     <string name="stats_no_geometry">Geen van je series heeft een ring om tegen af te zetten. Scan er een waarbij de 6/7-ring wordt gevonden.</string>
-    <string name="stats_target_description">Kaart met %1$d treffers uit %2$d series</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Kaart met %1$d treffer uit %2$s</item>
+        <item quantity="other">Kaart met %1$d treffers uit %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
     <string name="stats_timeline">Tijdlijn van de series</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Groepering</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Score</string>
     <string name="stats_trend_description">Trendgrafiek, lijnen: %1$d, punten: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d series)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d serie)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d series)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Het tabblad Trend toont elke maat als een lijn door de tijd. Kies de maat met de knoppen, en of elke serie een punt wordt of de series per dag, week of maand worden samengevoegd (de maat wordt dan over alle series in die periode berekend). Per kaliber tekent één lijn per kaliber. De filters bovenaan gelden voor alle tabbladen. Tik op een punt om het af te lezen.</string>
     <string name="stats_tab_drift">Verloop</string>
-    <string name="stats_drift_description">Kaart met het gemiddelde en mediane trefpunt door de tijd, %1$d punten</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Kaart met het gemiddelde en mediane trefpunt door de tijd, %1$d punt</item>
+        <item quantity="other">Kaart met het gemiddelde en mediane trefpunt door de tijd, %1$d punten</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d dagen · %2$d series · %3$d treffers</string>
     <string name="stats_drift_oldest">Oudste</string>
     <string name="stats_drift_newest">Nieuwste</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Laatste trefpunt: %1$s (%2$d mm van het midden), %3$d mm dichterbij dan op %4$s.</string>
     <string name="stats_drift_summary_further">Laatste trefpunt: %1$s (%2$d mm van het midden), %3$d mm verder weg dan op %4$s.</string>
     <string name="stats_drift_summary_same">Laatste trefpunt: %1$s (%2$d mm van het midden), even ver als op %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d series · %3$d treffers</string>
-    <string name="stats_drift_point_series">%1$s · serie %2$d van %3$d · %4$d treffers</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d serie · %3$s</item>
+        <item quantity="other">%1$s · %2$d series · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d treffer</item>
+        <item quantity="other">%1$d treffers</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · serie %2$d van %3$d · %4$d treffer</item>
+        <item quantity="other">%1$s · serie %2$d van %3$d · %4$d treffers</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Links / rechts en hoog / laag door de tijd (gemiddelde)</string>
     <string name="stats_drift_strips_median">Links / rechts en hoog / laag door de tijd (mediaan)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Slaat elke afbeelding die een score oplevert op zonder te stoppen; de rest wordt daarna getoond.</string>
     <string name="import_progress">Importeren %1$d / %2$d</string>
     <string name="import_skip">Overslaan</string>
-    <string name="import_summary">%1$d opgeslagen, %2$d overgeslagen</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d opgeslagen</item>
+        <item quantity="other">%1$d opgeslagen</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d overgeslagen</item>
+        <item quantity="other">%1$d overgeslagen</item>
+    </plurals>
     <string name="help_home_import">Afbeeldingen importeren</string>
     <string name="help_home_import_body">In het menu: scoor foto’s die al op de telefoon staan, uit de galerij of uit bestanden. Elke afbeelding wordt gescand en het resultaat getoond, om op te slaan of over te slaan. Met Automatisch importeren aan wordt elke afbeelding die een score oplevert vanzelf opgeslagen met de datum waarop de foto is gemaakt; de rest wordt daarna een voor een getoond.</string>
     <string name="series_status_phone">Opgeslagen op dit apparaat</string>
     <string name="series_not_uploaded">Niet geüpload</string>
-    <string name="stats_not_uploaded">Niet geüpload: %1$d series</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Niet geüpload: %1$d serie</item>
+        <item quantity="other">Niet geüpload: %1$d series</item>
+    </plurals>
     <string name="local_claim_title">Series op dit apparaat</string>
     <string name="local_claim_body">Series die op dit apparaat zijn opgeslagen terwijl je was uitgelogd of voor een ander account: %1$d. Voeg ze toe aan dit account, verwijder ze van dit apparaat of blijf uitgelogd.</string>
     <string name="local_claim_add">Aan account toevoegen</string>
     <string name="local_claim_delete">Van apparaat verwijderen</string>
-    <string name="local_claim_delete_body">%1$d series en hun foto’s van dit apparaat verwijderen? Dit kan niet ongedaan worden gemaakt. Ze zijn niet naar dit account geüpload.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">%1$d serie en de foto ervan van dit apparaat verwijderen? Dit kan niet ongedaan worden gemaakt. Deze is niet naar dit account geüpload.</item>
+        <item quantity="other">%1$d series en hun foto’s van dit apparaat verwijderen? Dit kan niet ongedaan worden gemaakt. Ze zijn niet naar dit account geüpload.</item>
+    </plurals>
     <string name="local_claim_stay">Uitgelogd blijven</string>
     <string name="local_claim_error">De bewerking kon niet worden voltooid. Je overige series staan nog op dit apparaat. Sluit en probeer opnieuw in te loggen.</string>
     <string name="home_week_series">series in 7 dagen</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Deze week is je groep met %1$s ongeveer %2$d procent hoger dan breed.</string>
     <string name="home_insight_stretch_horizontal">Deze week is je groep met %1$s ongeveer %2$d procent breder dan hoog.</string>
     <string name="home_insight_stretch_diagonal">Deze week is je groep met %1$s schuin ongeveer %2$d procent langer.</string>
-    <string name="home_insight_fliers">Deze week schoot in %2$d van je %3$d series met %1$s één schot weg.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Deze week schoot in %2$d van je %3$d serie met %1$s één schot weg.</item>
+        <item quantity="other">Deze week schoot in %2$d van je %3$d series met %1$s één schot weg.</item>
+    </plurals>
     <string name="home_insight_wide">Op %2$s waren je groepen met %1$s ongeveer %3$d procent breder dan eerder.</string>
     <string name="home_insight_low_series">Je laatste serie met %1$s scoorde %2$d, tegen gewoonlijk %3$d.</string>
     <string name="home_insight_low_day">Op %2$s scoorden je series met %1$s gemiddeld %3$d, tegen gewoonlijk %4$d.</string>
-    <string name="home_insight_trend_up">Je scores met %1$s stijgen: ongeveer %2$d punten in %3$d weken.</string>
-    <string name="home_insight_trend_down">Je scores met %1$s dalen: ongeveer %2$d punten in %3$d weken.</string>
-    <string name="home_insight_session_down">Deze week scoorden je latere series met %1$s lager op %2$d van %3$d langere dagen.</string>
-    <string name="home_insight_session_up">Deze week scoorden je latere series met %1$s hoger op %2$d van %3$d langere dagen.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Je scores met %1$s stijgen: ongeveer %2$d punt in %3$s.</item>
+        <item quantity="other">Je scores met %1$s stijgen: ongeveer %2$d punten in %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weken</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Je scores met %1$s dalen: ongeveer %2$d punt in %3$s.</item>
+        <item quantity="other">Je scores met %1$s dalen: ongeveer %2$d punten in %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Deze week scoorden je latere series met %1$s lager op %2$d van %3$d langere dag.</item>
+        <item quantity="other">Deze week scoorden je latere series met %1$s lager op %2$d van %3$d langere dagen.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Deze week scoorden je latere series met %1$s hoger op %2$d van %3$d langere dag.</item>
+        <item quantity="other">Deze week scoorden je latere series met %1$s hoger op %2$d van %3$d langere dagen.</item>
+    </plurals>
     <string name="home_insight_dismiss">Deze tip verbergen</string>
-    <string name="home_local_title">%1$d series alleen op deze telefoon</string>
-    <string name="home_local_title_one">1 serie alleen op deze telefoon</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d serie alleen op deze telefoon</item>
+        <item quantity="other">%1$d series alleen op deze telefoon</item>
+    </plurals>
     <string name="home_signin_title">Bewaar je series in je account</string>
     <string name="home_signin_body">Log in om ze te houden als je van telefoon wisselt.</string>
     <string name="action_sign_in">Inloggen</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">omlaag en naar links</string>
     <string name="advice_move_left">naar links</string>
     <string name="advice_move_up_left">omhoog en naar links</string>
-    <string name="advice_offset_stable_summary">Je groep zit over %3$d schoten %1$d mm %2$s, op dezelfde manier op %4$d van %5$d dagen.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Je groep zit over %3$d schot %1$d mm %2$s, op dezelfde manier op %4$d van %5$s.</item>
+        <item quantity="other">Je groep zit over %3$d schoten %1$d mm %2$s, op dezelfde manier op %4$d van %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dag</item>
+        <item quantity="other">%1$d dagen</item>
+    </plurals>
     <string name="advice_cause_sights_1">Het vizier is niet ingeschoten voor deze munitie of afstand.</string>
     <string name="advice_cause_sights_2">Het vizier is verschoven sinds het werd ingesteld, of andere munitie schiet ergens anders.</string>
     <string name="advice_try_sights">Verstel het vizier zodat de groep ongeveer %1$d mm %2$s verschuift, en schiet dan een nieuwe groep voordat je het weer aanraakt.</string>
-    <string name="advice_offset_varies_summary">Je groep zit over %3$d schoten %1$d mm %2$s, maar niet elke dag op dezelfde manier.</string>
-    <string name="advice_offset_few_days_summary">Je groep zit over %3$d schoten %1$d mm %2$s, op te weinig dagen om te zeggen of dat altijd zo is.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Je groep zit over %3$d schot %1$d mm %2$s, maar niet elke dag op dezelfde manier.</item>
+        <item quantity="other">Je groep zit over %3$d schoten %1$d mm %2$s, maar niet elke dag op dezelfde manier.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Je groep zit over %3$d schot %1$d mm %2$s, op te weinig dagen om te zeggen of dat altijd zo is.</item>
+        <item quantity="other">Je groep zit over %3$d schoten %1$d mm %2$s, op te weinig dagen om te zeggen of dat altijd zo is.</item>
+    </plurals>
     <string name="advice_cause_high_1">De handpalm naar voren duwen op het moment dat het schot breekt.</string>
     <string name="advice_cause_high_2">De pols die in het schot omhoog knikt.</string>
     <string name="advice_cause_high_3">Naar de treffer kijken en het wapen te vroeg optillen.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">Duimdruk op de greep die het wapen opzij duwt.</string>
     <string name="advice_cause_side_3">Een trekkerbeweging die niet recht naar achteren gaat.</string>
     <string name="advice_try_side">Controleer waar de vinger de trekker raakt en hoe hard de duim drukt, doe dan droogschoten en let op het vizier.</string>
-    <string name="advice_stretch_vertical_summary">Je groep is over %2$d schoten ongeveer %1$d procent hoger dan breed.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Je groep is over %2$d schot ongeveer %1$d procent hoger dan breed.</item>
+        <item quantity="other">Je groep is over %2$d schoten ongeveer %1$d procent hoger dan breed.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">De ademhaling: elke keer op een ander punt in de ademhaling schieten.</string>
     <string name="advice_cause_vertical_2">Het vizierbeeld dat in hoogte verandert, met de korrel hoger of lager in de keep.</string>
     <string name="advice_cause_vertical_3">Gripdruk die van schot tot schot verschilt.</string>
     <string name="advice_try_vertical">Houd de adem bij elk schot op hetzelfde punt in en controleer de hoogte van de korrel in de keep voordat je afdrukt.</string>
-    <string name="advice_stretch_horizontal_summary">Je groep is over %2$d schoten ongeveer %1$d procent breder dan hoog.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Je groep is over %2$d schot ongeveer %1$d procent breder dan hoog.</item>
+        <item quantity="other">Je groep is over %2$d schoten ongeveer %1$d procent breder dan hoog.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Een trekkerbeweging die opzij gaat.</string>
     <string name="advice_cause_horizontal_2">De pols die in het schot beweegt.</string>
     <string name="advice_cause_horizontal_3">Een houding die niet recht op het doel staat.</string>
     <string name="advice_try_horizontal">Doe droogschoten met het vizier op een punt en kijk of het opzij glijdt als de trekker breekt.</string>
-    <string name="advice_stretch_diagonal_summary">Je groep is over %2$d schoten schuin in de ene richting ongeveer %1$d procent langer dan in de andere.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Je groep is over %2$d schot schuin in de ene richting ongeveer %1$d procent langer dan in de andere.</item>
+        <item quantity="other">Je groep is over %2$d schoten schuin in de ene richting ongeveer %1$d procent langer dan in de andere.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Gripdruk en trekkerbeweging die elkaar tegenwerken.</string>
     <string name="advice_cause_diagonal_2">Een houding of armpositie die het wapen kantelt.</string>
     <string name="advice_try_diagonal">Controleer dat de greep bij elk schot hetzelfde is en dat het vizier recht staat voordat je afdrukt.</string>
-    <string name="advice_fliers_summary">In %1$d van je %2$d series schoot één schot weg van de rest, gemiddeld ongeveer %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">In %1$d van je %2$d serie schoot één schot weg van de rest, gemiddeld ongeveer %3$d mm.</item>
+        <item quantity="other">In %1$d van je %2$d series schoot één schot weg van de rest, gemiddeld ongeveer %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Trekkerbeheersing bij één schot.</string>
     <string name="advice_cause_fliers_2">Het nahouden kwijtraken.</string>
     <string name="advice_cause_fliers_3">Het schot lossen zonder het te hebben benoemd.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">De schoten afraffelen.</string>
     <string name="advice_try_wide">Droogtraining: richten en afdrukken zonder te schieten, en rusten als de houding begint te trillen.</string>
     <string name="advice_low_series_summary">Je laatste serie scoorde %1$d, tegen gemiddeld %2$d over je laatste %3$d.</string>
-    <string name="advice_low_day_summary">Op %1$s scoorden je %2$d series gemiddeld %3$d, tegen gemiddeld %4$d daarvoor.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Op %1$s scoorde je %2$d serie gemiddeld %3$d, tegen gemiddeld %4$d daarvoor.</item>
+        <item quantity="other">Op %1$s scoorden je %2$d series gemiddeld %3$d, tegen gemiddeld %4$d daarvoor.</item>
+    </plurals>
     <string name="advice_try_low_plain">Eén laag resultaat zegt weinig: schiet er nog een paar voordat je iets verandert.</string>
     <string name="advice_try_low_explained">Begin met de opmerking hieronder in plaats van alles tegelijk te veranderen.</string>
     <string name="advice_low_note_offset">Je groep zit naast het midden, wat een deel van de reden kan zijn.</string>
     <string name="advice_low_note_stretched">Je groep is in één richting uitgerekt, wat een deel van de reden kan zijn.</string>
     <string name="advice_low_note_fliers">Eén weggeschoten schot in een serie kan een deel van de reden zijn.</string>
     <string name="advice_low_note_wide">Bredere groepen dan gewoonlijk kunnen een deel van de reden zijn.</string>
-    <string name="advice_trend_up_summary">Je scores zijn in %3$d weken ongeveer %1$d punten gestegen, over %2$d series.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Je scores zijn in %3$s ongeveer %1$d punt gestegen, over %2$s.</item>
+        <item quantity="other">Je scores zijn in %3$s ongeveer %1$d punten gestegen, over %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weken</item>
+    </plurals>
     <string name="advice_try_trend_up">Ga zo door, en noteer wat er veranderd is zodat je het kunt herhalen.</string>
-    <string name="advice_trend_down_summary">Je scores zijn in %3$d weken ongeveer %1$d punten gedaald, over %2$d series.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Je scores zijn in %3$s ongeveer %1$d punt gedaald, over %2$s.</item>
+        <item quantity="other">Je scores zijn in %3$s ongeveer %1$d punten gedaald, over %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Vermoeidheid of minder tijd om te trainen.</string>
     <string name="advice_cause_trend_2">De schoten afraffelen.</string>
     <string name="advice_cause_trend_3">Een ander wapen, andere munitie of een andere routine.</string>
     <string name="advice_try_trend_down">Kortere sessies met pauzes, en een paar droogschoten om de basis terug te vinden.</string>
-    <string name="advice_session_down_summary">Op %1$d van je %2$d langere dagen scoorden je latere series lager dan de eerste: op die dagen gemiddeld %4$d tegen %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">Op %1$d van je %2$d langere dag scoorden je latere series lager dan de eerste: op die dagen gemiddeld %4$d tegen %3$d.</item>
+        <item quantity="other">Op %1$d van je %2$d langere dagen scoorden je latere series lager dan de eerste: op die dagen gemiddeld %4$d tegen %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Vermoeidheid in arm, schouder of ogen naarmate de sessie vordert.</string>
     <string name="advice_cause_session_2">Afnemende concentratie, zodat schoten worden afgeraffeld of minder goed benoemd.</string>
     <string name="advice_cause_session_3">Te weinig pauzes tussen de series.</string>
     <string name="advice_try_session_down">Kortere sessies, of om de paar series een echte pauze om je ogen en arm rust te geven.</string>
-    <string name="advice_session_up_summary">Op %1$d van je %2$d langere dagen scoorden je latere series hoger dan de eerste: op die dagen gemiddeld %4$d tegen %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">Op %1$d van je %2$d langere dag scoorden je latere series hoger dan de eerste: op die dagen gemiddeld %4$d tegen %3$d.</item>
+        <item quantity="other">Op %1$d van je %2$d langere dagen scoorden je latere series hoger dan de eerste: op die dagen gemiddeld %4$d tegen %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Een trage start: begin met een paar droogschoten of proefschoten voordat de eerste serie telt.</string>
     <string name="stats_help_insights">Analyse</string>
     <string name="stats_help_insights_body">Analyse bekijkt je opgeslagen series, één kaliber tegelijk, en wijst patronen aan waar het vrij zeker van is: een groep die naar één kant zit, een uitgerekte groep, een schot dat wegschiet, of scores die dalen of stijgen. Er zijn flink wat schoten nodig voordat het iets zegt. Elke opmerking geeft wat de cijfers laten zien, wat het vaak veroorzaakt en één ding om te proberen. Het is een hint, geen coach: de oorzaken zijn veelvoorkomende, geen oordeel. Stel je schiethand in en zet Analyse uit onder Instellingen.</string>
     <string name="stats_tab_insights">Analyse</string>
-    <string name="stats_insights_need_more">Analyse heeft ongeveer %1$d schoten nodig; hier zijn er %2$d.</string>
-    <string name="stats_insights_nothing">Niets valt op in deze %1$d schoten uit %2$d series.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analyse heeft ongeveer %1$d schot nodig; hier zijn er %2$d.</item>
+        <item quantity="other">Analyse heeft ongeveer %1$d schoten nodig; hier zijn er %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Niets valt op in dit %1$d schot uit %2$s.</item>
+        <item quantity="other">Niets valt op in deze %1$d schoten uit %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
     <string name="stats_insights_numbers">Gemiddeld trefpunt %1$s, spreiding %2$d mm, gemiddelde serie %3$s.</string>
     <string name="stats_insights_legend">De gele ellips bevat ongeveer 86 procent van de schoten; de pijl loopt van het midden naar het gemiddelde trefpunt. Tik op een opmerking om te zien waar die op de kaart over gaat.</string>
-    <string name="stats_insights_target_description">Analysekaart met %1$d schoten, de ellips en de pijl naar het gemiddelde trefpunt</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Analysekaart met %1$d schot, de ellips en de pijl naar het gemiddelde trefpunt</item>
+        <item quantity="other">Analysekaart met %1$d schoten, de ellips en de pijl naar het gemiddelde trefpunt</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analyse bekijkt één kaliber tegelijk, en deze series hebben er geen. Geef ze in Geschiedenis een kaliber om een analyse te zien.</string>
-    <string name="stats_insights_uncalibered">%1$d series zonder kaliber zijn weggelaten.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d serie zonder kaliber is weggelaten.</item>
+        <item quantity="other">%1$d series zonder kaliber zijn weggelaten.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d onder je gemiddelde van %2$d</string>
     <string name="detail_vs_over">%1$d boven je gemiddelde van %2$d</string>
     <string name="detail_vs_on">Op je gemiddelde van %1$d</string>
-    <string name="detail_vs_best">Je beste van de laatste %1$d dagen</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Je beste van de laatste %1$d dag</item>
+        <item quantity="other">Je beste van de laatste %1$d dagen</item>
+    </plurals>
     <string name="detail_day_in_insights">Deze dag bekijken in Analyse</string>
     <string name="sight_title">Viziercorrectie</string>
     <string name="sight_up_mm">Omhoog %1$d mm</string>
     <string name="sight_down_mm">Omlaag %1$d mm</string>
     <string name="sight_left_mm">Links %1$d mm</string>
     <string name="sight_right_mm">Rechts %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d klikken</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d klik</item>
+        <item quantity="other">%1$s: %2$d klikken</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 klik</string>
     <string name="sight_under_half_click">%1$s: minder dan een halve klik, laat staan</string>
     <string name="sight_no_height">Hoogte: geen wijziging</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Klikwaarde invullen</string>
     <string name="sight_change_clicks">Klikwaarde wijzigen</string>
     <string name="sight_adjusted_button">Ik heb het vizier versteld</string>
-    <string name="sight_adjusted_note">Vizier versteld op %1$s: de afwijking wordt beoordeeld op de %2$d schoten sindsdien.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Vizier versteld op %1$s: de afwijking wordt beoordeeld op het %2$d schot sindsdien.</item>
+        <item quantity="other">Vizier versteld op %1$s: de afwijking wordt beoordeeld op de %2$d schoten sindsdien.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Ongedaan maken</string>
     <string name="sight_dialog_title">Klikwaarde, %1$s</string>
     <string name="sight_dialog_help">Hoe ver één klik het trefpunt op de kaart verplaatst op jouw schietafstand. De handleiding van het vizier vermeldt het meestal, of tel de klikken van één correctie en meet hoe ver de groep is verschoven.</string>

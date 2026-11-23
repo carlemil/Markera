@@ -83,11 +83,23 @@
     <string name="history_signed_out">Пријавите се да видите своју историју</string>
     <string name="history_empty">Још нема сачуваних серија</string>
     <string name="history_filter_empty">Ниједна серија не одговара филтеру.</string>
-    <string name="history_day_summary">Серије: %1$d · просек %2$s</string>
-    <string name="history_day_summary_one">1 серија · бодова: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d серија · просек %2$s</item>
+        <item quantity="few">%1$d серије · просек %2$s</item>
+        <item quantity="other">%1$d серија · просек %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 серија · %1$d бод</item>
+        <item quantity="few">1 серија · %1$d бода</item>
+        <item quantity="other">1 серија · %1$d бодова</item>
+    </plurals>
     <string name="history_card_title">%1$s · серија %2$d</string>
     <string name="history_delete_title">Обрисати серију?</string>
-    <string name="history_delete_message">%1$s · бодова: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d бод</item>
+        <item quantity="few">%1$s · %2$d бода</item>
+        <item quantity="other">%1$s · %2$d бодова</item>
+    </plurals>
     <string name="history_delete_confirm">Обриши</string>
     <string name="history_delete_cancel">Откажи</string>
     <string name="history_delete_failed">Брисање није успело</string>
@@ -134,7 +146,16 @@
     <string name="stats_group_date">Датум</string>
     <string name="filter_clear">Обриши филтере</string>
     <string name="stats_no_geometry">Ниједна ваша серија нема круг према коме би се цртала. Скенирајте неку тако да круг 6/7 буде пронађен.</string>
-    <string name="stats_target_description">Мета са погоцима: %1$d, из серија: %2$d</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Мета са %1$d поготком из %2$s</item>
+        <item quantity="few">Мета са %1$d поготка из %2$s</item>
+        <item quantity="other">Мета са %1$d погодака из %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d серије</item>
+        <item quantity="few">%1$d серије</item>
+        <item quantity="other">%1$d серија</item>
+    </plurals>
     <string name="stats_timeline">Временска линија серија</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Груписање</string>
@@ -158,12 +179,20 @@
     <string name="stats_short_mean_score">Резултат</string>
     <string name="stats_trend_description">Графикон тренда, линије: %1$d, тачке: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (серије: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d серија)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d серије)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d серија)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Тренд</string>
     <string name="stats_help_trend_body">Картица Тренд приказује било коју меру као криву кроз време. Дугмадима изаберите меру и да ли свака серија постаје тачка или се серије спајају по дану, недељи или месецу (мера се тада рачуна преко свих серија у том периоду). По калибру црта по једну криву за сваки калибар. Филтери изнад важе за све картице. Додирните тачку да је очитате.</string>
     <string name="stats_tab_drift">Помак</string>
-    <string name="stats_drift_description">Мета са средњом и медијанском тачком погодака кроз време, тачке: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Мета са средњом и медијанском тачком погодака кроз време, %1$d тачка</item>
+        <item quantity="few">Мета са средњом и медијанском тачком погодака кроз време, %1$d тачке</item>
+        <item quantity="other">Мета са средњом и медијанском тачком погодака кроз време, %1$d тачака</item>
+    </plurals>
     <string name="stats_drift_counts">Дани: %1$d · серије: %2$d · погоци: %3$d</string>
     <string name="stats_drift_oldest">Најстарије</string>
     <string name="stats_drift_newest">Најновије</string>
@@ -182,8 +211,21 @@
     <string name="stats_drift_summary_closer">Последња тачка погодака: %1$s (%2$d mm од центра), %3$d mm ближе него %4$s.</string>
     <string name="stats_drift_summary_further">Последња тачка погодака: %1$s (%2$d mm од центра), %3$d mm даље него %4$s.</string>
     <string name="stats_drift_summary_same">Последња тачка погодака: %1$s (%2$d mm од центра), једнако далеко као %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · серије: %2$d · погоци: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · серија %2$d од %3$d · погоци: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d серија · %3$s</item>
+        <item quantity="few">%1$s · %2$d серије · %3$s</item>
+        <item quantity="other">%1$s · %2$d серија · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d погодак</item>
+        <item quantity="few">%1$d поготка</item>
+        <item quantity="other">%1$d погодака</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · серија %2$d од %3$d · %4$d погодак</item>
+        <item quantity="few">%1$s · серија %2$d од %3$d · %4$d поготка</item>
+        <item quantity="other">%1$s · серија %2$d од %3$d · %4$d погодака</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Лево / десно и високо / ниско кроз време (средња вредност)</string>
     <string name="stats_drift_strips_median">Лево / десно и високо / ниско кроз време (медијана)</string>
@@ -297,17 +339,35 @@
     <string name="import_auto_body">Чува сваку слику која се бодује без заустављања; оне које се не бодују приказују се после.</string>
     <string name="import_progress">Увоз %1$d / %2$d</string>
     <string name="import_skip">Прескочи</string>
-    <string name="import_summary">Сачувано: %1$d, прескочено: %2$d</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">Сачувано: %1$d</item>
+        <item quantity="few">Сачувано: %1$d</item>
+        <item quantity="other">Сачувано: %1$d</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">прескочено: %1$d</item>
+        <item quantity="few">прескочено: %1$d</item>
+        <item quantity="other">прескочено: %1$d</item>
+    </plurals>
     <string name="help_home_import">Увези слике</string>
     <string name="help_home_import_body">У менију: бодујте фотографије које су већ на телефону, из галерије или из датотека. Свака слика се скенира и приказују се њени резултати, да је сачувате или прескочите. Када је Аутоматски увоз укључен, свака слика која се бодује чува се сама, са датумом када је фотографија снимљена; остале се после приказују једна по једна.</string>
     <string name="series_status_phone">Сачувано на овом уређају</string>
     <string name="series_not_uploaded">Није отпремљено</string>
-    <string name="stats_not_uploaded">Није отпремљено, серије: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Није отпремљена: %1$d серија</item>
+        <item quantity="few">Нису отпремљене: %1$d серије</item>
+        <item quantity="other">Није отпремљено: %1$d серија</item>
+    </plurals>
     <string name="local_claim_title">Серије на овом уређају</string>
     <string name="local_claim_body">Серије сачуване на овом уређају без пријаве или за други налог: %1$d. Додајте их на овај налог, обришите их са овог уређаја или останите одјављени.</string>
     <string name="local_claim_add">Додај на налог</string>
     <string name="local_claim_delete">Обриши са уређаја</string>
-    <string name="local_claim_delete_body">Обрисати серије (%1$d) и њихове фотографије са овог уређаја? Ово се не може опозвати. Нису отпремљене на овај налог.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Обрисати %1$d серију и њену фотографију са овог уређаја? Ово се не може опозвати. Није отпремљена на овај налог.</item>
+        <item quantity="few">Обрисати %1$d серије и њихове фотографије са овог уређаја? Ово се не може опозвати. Нису отпремљене на овај налог.</item>
+        <item quantity="other">Обрисати %1$d серија и њихове фотографије са овог уређаја? Ово се не може опозвати. Нису отпремљене на овај налог.</item>
+    </plurals>
     <string name="local_claim_stay">Остани без пријаве</string>
     <string name="local_claim_error">Радња није могла да се заврши. Преостале серије су и даље на овом уређају. Затворите и покушајте поново да се пријавите.</string>
     <string name="home_week_series">серије за 7 дана</string>
@@ -317,17 +377,45 @@
     <string name="home_insight_stretch_vertical">Ове недеље ваша група за %1$s је око %2$d посто виша него што је широка.</string>
     <string name="home_insight_stretch_horizontal">Ове недеље ваша група за %1$s је око %2$d посто шира него што је висока.</string>
     <string name="home_insight_stretch_diagonal">Ове недеље ваша група за %1$s је око %2$d посто дужа по косини.</string>
-    <string name="home_insight_fliers">Ове недеље један метак је залутао у %2$d од ваших %3$d серија за %1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Ове недеље један метак је залутао у %2$d од ваше %3$d серије за %1$s.</item>
+        <item quantity="few">Ове недеље један метак је залутао у %2$d од ваше %3$d серије за %1$s.</item>
+        <item quantity="other">Ове недеље један метак је залутао у %2$d од ваших %3$d серија за %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">Дана %2$s ваше групе за %1$s биле су око %3$d посто шире него раније.</string>
     <string name="home_insight_low_series">Ваша последња серија за %1$s донела је %2$d, наспрам уобичајених %3$d.</string>
     <string name="home_insight_low_day">Дана %2$s ваше серије за %1$s имале су просек %3$d, наспрам уобичајених %4$d.</string>
-    <string name="home_insight_trend_up">Ваши резултати за %1$s расту: за око %2$d током %3$d нед.</string>
-    <string name="home_insight_trend_down">Ваши резултати за %1$s опадају: за око %2$d током %3$d нед.</string>
-    <string name="home_insight_session_down">Ове недеље ваше касније серије за %1$s биле су слабије у %2$d од %3$d дужих дана.</string>
-    <string name="home_insight_session_up">Ове недеље ваше касније серије за %1$s биле су боље у %2$d од %3$d дужих дана.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Ваши резултати за %1$s расту: за око %2$d бод током %3$s.</item>
+        <item quantity="few">Ваши резултати за %1$s расту: за око %2$d бода током %3$s.</item>
+        <item quantity="other">Ваши резултати за %1$s расту: за око %2$d бодова током %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d недеље</item>
+        <item quantity="few">%1$d недеље</item>
+        <item quantity="other">%1$d недеља</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Ваши резултати за %1$s опадају: за око %2$d бод током %3$s.</item>
+        <item quantity="few">Ваши резултати за %1$s опадају: за око %2$d бода током %3$s.</item>
+        <item quantity="other">Ваши резултати за %1$s опадају: за око %2$d бодова током %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Ове недеље ваше касније серије за %1$s биле су слабије у %2$d од %3$d дужег дана.</item>
+        <item quantity="few">Ове недеље ваше касније серије за %1$s биле су слабије у %2$d од %3$d дужа дана.</item>
+        <item quantity="other">Ове недеље ваше касније серије за %1$s биле су слабије у %2$d од %3$d дужих дана.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Ове недеље ваше касније серије за %1$s биле су боље у %2$d од %3$d дужег дана.</item>
+        <item quantity="few">Ове недеље ваше касније серије за %1$s биле су боље у %2$d од %3$d дужа дана.</item>
+        <item quantity="other">Ове недеље ваше касније серије за %1$s биле су боље у %2$d од %3$d дужих дана.</item>
+    </plurals>
     <string name="home_insight_dismiss">Сакриј овај увид</string>
-    <string name="home_local_title">Серије само на овом телефону: %1$d</string>
-    <string name="home_local_title_one">1 серија само на овом телефону</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d серија само на овом телефону</item>
+        <item quantity="few">%1$d серије само на овом телефону</item>
+        <item quantity="other">%1$d серија само на овом телефону</item>
+    </plurals>
     <string name="home_signin_title">Сачувајте серије на свој налог</string>
     <string name="home_signin_body">Пријавите се да их задржите када промените телефон.</string>
     <string name="action_sign_in">Пријави се</string>
@@ -366,12 +454,29 @@
     <string name="advice_move_down_left">доле и лево</string>
     <string name="advice_move_left">лево</string>
     <string name="advice_move_up_left">горе и лево</string>
-    <string name="advice_offset_stable_summary">Ваша група је %1$d mm %2$s (хици: %3$d), на исту страну у %4$d од %5$d дана.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Ваша група је %1$d mm %2$s кроз %3$d хитац, на исту страну у %4$d од %5$s.</item>
+        <item quantity="few">Ваша група је %1$d mm %2$s кроз %3$d хица, на исту страну у %4$d од %5$s.</item>
+        <item quantity="other">Ваша група је %1$d mm %2$s кроз %3$d хитаца, на исту страну у %4$d од %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d дана</item>
+        <item quantity="few">%1$d дана</item>
+        <item quantity="other">%1$d дана</item>
+    </plurals>
     <string name="advice_cause_sights_1">Нишани нису подешени за ову муницију или даљину.</string>
     <string name="advice_cause_sights_2">Нишани су се померили од подешавања, или друга муниција гађа на друго место.</string>
     <string name="advice_try_sights">Померите нишане тако да се група помери за око %1$d mm %2$s, па испаљујте нову групу пре него што их поново дирате.</string>
-    <string name="advice_offset_varies_summary">Ваша група је %1$d mm %2$s (хици: %3$d), али не на исту страну сваког дана.</string>
-    <string name="advice_offset_few_days_summary">Ваша група је %1$d mm %2$s (хици: %3$d), али у премало дана да би се знало да ли је увек тако.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Ваша група је %1$d mm %2$s кроз %3$d хитац, али не на исту страну сваког дана.</item>
+        <item quantity="few">Ваша група је %1$d mm %2$s кроз %3$d хица, али не на исту страну сваког дана.</item>
+        <item quantity="other">Ваша група је %1$d mm %2$s кроз %3$d хитаца, али не на исту страну сваког дана.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Ваша група је %1$d mm %2$s кроз %3$d хитац, али у премало дана да би се знало да ли је увек тако.</item>
+        <item quantity="few">Ваша група је %1$d mm %2$s кроз %3$d хица, али у премало дана да би се знало да ли је увек тако.</item>
+        <item quantity="other">Ваша група је %1$d mm %2$s кроз %3$d хитаца, али у премало дана да би се знало да ли је увек тако.</item>
+    </plurals>
     <string name="advice_cause_high_1">Гурање длана напред у тренутку опаљења.</string>
     <string name="advice_cause_high_2">Зглоб шаке се подиже при опаљењу.</string>
     <string name="advice_cause_high_3">Тражење погодка и прерано подизање пиштоља.</string>
@@ -390,21 +495,37 @@
     <string name="advice_cause_side_2">Притисак палца на рукохват гура пиштољ у страну.</string>
     <string name="advice_cause_side_3">Повлачење обарача које није право уназад.</string>
     <string name="advice_try_side">Проверите где прст додирује обарач и колико јако палац притиска, па окидајте празно и пратите нишане.</string>
-    <string name="advice_stretch_vertical_summary">Ваша група је око %1$d посто виша него што је широка (хици: %2$d).</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Ваша група је око %1$d посто виша него што је широка, кроз %2$d хитац.</item>
+        <item quantity="few">Ваша група је око %1$d посто виша него што је широка, кроз %2$d хица.</item>
+        <item quantity="other">Ваша група је око %1$d посто виша него што је широка, кроз %2$d хитаца.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Дисање: опаљење у различитој фази даха сваки пут.</string>
     <string name="advice_cause_vertical_2">Слика нишањења се мења по висини, са мушицом час више час ниже у прорезу.</string>
     <string name="advice_cause_vertical_3">Стисак рукохвата који се мења од хица до хица.</string>
     <string name="advice_try_vertical">Зауставите дах у истој тачки при сваком хицу и проверите висину мушице у прорезу пре него што повучете обарач.</string>
-    <string name="advice_stretch_horizontal_summary">Ваша група је око %1$d посто шира него што је висока (хици: %2$d).</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Ваша група је око %1$d посто шира него што је висока, кроз %2$d хитац.</item>
+        <item quantity="few">Ваша група је око %1$d посто шира него што је висока, кроз %2$d хица.</item>
+        <item quantity="other">Ваша група је око %1$d посто шира него што је висока, кроз %2$d хитаца.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Повлачење обарача које скреће у страну.</string>
     <string name="advice_cause_horizontal_2">Зглоб шаке се помера при опаљењу.</string>
     <string name="advice_cause_horizontal_3">Став који није правилно постављен према мети.</string>
     <string name="advice_try_horizontal">Окидајте празно са нишанима на тачки и погледајте да ли клизну у страну кад обарач попусти.</string>
-    <string name="advice_stretch_diagonal_summary">Ваша група је око %1$d посто дужа у једном правцу него у другом, по косини (хици: %2$d).</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Ваша група је око %1$d посто дужа у једном правцу него у другом, по косини, кроз %2$d хитац.</item>
+        <item quantity="few">Ваша група је око %1$d посто дужа у једном правцу него у другом, по косини, кроз %2$d хица.</item>
+        <item quantity="other">Ваша група је око %1$d посто дужа у једном правцу него у другом, по косини, кроз %2$d хитаца.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Стисак рукохвата и повлачење обарача делују један против другог.</string>
     <string name="advice_cause_diagonal_2">Став или положај руке који нагиње пиштољ.</string>
     <string name="advice_try_diagonal">Проверите да је стисак исти при сваком хицу и да су нишани водоравни пре него што повучете обарач.</string>
-    <string name="advice_fliers_summary">У %1$d од ваших %2$d серија један хитац је одлутао од осталих, у просеку око %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">У %1$d од ваше %2$d серије један хитац је одлутао од осталих, у просеку око %3$d mm.</item>
+        <item quantity="few">У %1$d од ваше %2$d серије један хитац је одлутао од осталих, у просеку око %3$d mm.</item>
+        <item quantity="other">У %1$d од ваших %2$d серија један хитац је одлутао од осталих, у просеку око %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Контрола обарача при појединачном хицу.</string>
     <string name="advice_cause_fliers_2">Губљење праћења хица.</string>
     <string name="advice_cause_fliers_3">Опаљење без најављивања хица.</string>
@@ -415,48 +536,107 @@
     <string name="advice_cause_wide_3">Журба са хицима.</string>
     <string name="advice_try_wide">Вежба празног окидања: држите и повлачите обарач без пуцања, и одморите се кад држање почне да подрхтава.</string>
     <string name="advice_low_series_summary">Ваша последња серија донела је %1$d, наспрам просечних %2$d у последњих %3$d.</string>
-    <string name="advice_low_day_summary">Дана %1$s ваше серије (%2$d) имале су просек %3$d, наспрам просечних %4$d раније.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Дана %1$s ваша %2$d серија имала је просек %3$d, наспрам просечних %4$d раније.</item>
+        <item quantity="few">Дана %1$s ваше %2$d серије имале су просек %3$d, наспрам просечних %4$d раније.</item>
+        <item quantity="other">Дана %1$s ваших %2$d серија имало је просек %3$d, наспрам просечних %4$d раније.</item>
+    </plurals>
     <string name="advice_try_low_plain">Један слаб резултат мало говори: испаљујте још неколико пре него што било шта мењате.</string>
     <string name="advice_try_low_explained">Почните од напомене испод уместо да мењате све одједном.</string>
     <string name="advice_low_note_offset">Ваша група је ван центра, што може бити део разлога.</string>
     <string name="advice_low_note_stretched">Ваша група је издужена у једном правцу, што може бити део разлога.</string>
     <string name="advice_low_note_fliers">Један залутали хитац у серији може бити део разлога.</string>
     <string name="advice_low_note_wide">Шире групе него обично могу бити део разлога.</string>
-    <string name="advice_trend_up_summary">Ваши резултати су порасли за око %1$d током %3$d нед., кроз серије: %2$d.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Ваши резултати су порасли за око %1$d бод током %3$s, кроз %2$s.</item>
+        <item quantity="few">Ваши резултати су порасли за око %1$d бода током %3$s, кроз %2$s.</item>
+        <item quantity="other">Ваши резултати су порасли за око %1$d бодова током %3$s, кроз %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d серију</item>
+        <item quantity="few">%1$d серије</item>
+        <item quantity="other">%1$d серија</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d недеље</item>
+        <item quantity="few">%1$d недеље</item>
+        <item quantity="other">%1$d недеља</item>
+    </plurals>
     <string name="advice_try_trend_up">Наставите како радите и забележите шта се променило да бисте могли да поновите.</string>
-    <string name="advice_trend_down_summary">Ваши резултати су опали за око %1$d током %3$d нед., кроз серије: %2$d.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Ваши резултати су опали за око %1$d бод током %3$s, кроз %2$s.</item>
+        <item quantity="few">Ваши резултати су опали за око %1$d бода током %3$s, кроз %2$s.</item>
+        <item quantity="other">Ваши резултати су опали за око %1$d бодова током %3$s, кроз %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Умор или мање времена за тренинг.</string>
     <string name="advice_cause_trend_2">Журба са хицима.</string>
     <string name="advice_cause_trend_3">Промена пиштоља, муниције или рутине.</string>
     <string name="advice_try_trend_down">Краћи тренинзи са паузама и неколико празних окидања да се поново пронађу основе.</string>
-    <string name="advice_session_down_summary">У %1$d од ваших %2$d дужих дана касније серије биле су слабије од првих: у просеку %4$d наспрам %3$d тих дана.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">У %1$d од вашег %2$d дужег дана касније серије биле су слабије од првих: у просеку %4$d наспрам %3$d тих дана.</item>
+        <item quantity="few">У %1$d од ваша %2$d дужа дана касније серије биле су слабије од првих: у просеку %4$d наспрам %3$d тих дана.</item>
+        <item quantity="other">У %1$d од ваших %2$d дужих дана касније серије биле су слабије од првих: у просеку %4$d наспрам %3$d тих дана.</item>
+    </plurals>
     <string name="advice_cause_session_1">Умор у руци, рамену или очима како тренинг одмиче.</string>
     <string name="advice_cause_session_2">Концентрација опада, па се хици пожурују или слабије најављују.</string>
     <string name="advice_cause_session_3">Премало пауза између серија.</string>
     <string name="advice_try_session_down">Краћи тренинзи или права пауза на сваких неколико серија да одморите очи и руку.</string>
-    <string name="advice_session_up_summary">У %1$d од ваших %2$d дужих дана касније серије биле су боље од првих: у просеку %4$d наспрам %3$d тих дана.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">У %1$d од вашег %2$d дужег дана касније серије биле су боље од првих: у просеку %4$d наспрам %3$d тих дана.</item>
+        <item quantity="few">У %1$d од ваша %2$d дужа дана касније серије биле су боље од првих: у просеку %4$d наспрам %3$d тих дана.</item>
+        <item quantity="other">У %1$d од ваших %2$d дужих дана касније серије биле су боље од првих: у просеку %4$d наспрам %3$d тих дана.</item>
+    </plurals>
     <string name="advice_try_session_up">Спор почетак: почните са неколико празних окидања или пробних хитаца пре него што се прва серија рачуна.</string>
     <string name="stats_help_insights">Увиди</string>
     <string name="stats_help_insights_body">Увиди прегледају ваше сачуване серије, један по један калибар, и указују на обрасце у које су прилично сигурни: група која стоји на једној страни, издужена група, хитац који одлута, или резултати који опадају или расту. Потребан је приличан број хитаца пре него што било шта кажу. Свака напомена наводи шта бројеви показују, шта то често узрокује и једну ствар коју можете пробати. То је савет, а не тренер: узроци су уобичајени, а не пресуда. Руку за гађање подесите и Увиде искључите у Подешавањима.</string>
     <string name="stats_tab_insights">Увиди</string>
-    <string name="stats_insights_need_more">Увидима је потребно око %1$d хитаца; овде их имате %2$d.</string>
-    <string name="stats_insights_nothing">Ништа се не истиче у овим хицима (%1$d) из серија (%2$d).</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Увидима је потребно око %1$d хитац; овде их имате %2$d.</item>
+        <item quantity="few">Увидима је потребно око %1$d хица; овде их имате %2$d.</item>
+        <item quantity="other">Увидима је потребно око %1$d хитаца; овде их имате %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Ништа се не истиче у овом %1$d хицу из %2$s.</item>
+        <item quantity="few">Ништа се не истиче у ова %1$d хица из %2$s.</item>
+        <item quantity="other">Ништа се не истиче у ових %1$d хитаца из %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d серије</item>
+        <item quantity="few">%1$d серије</item>
+        <item quantity="other">%1$d серија</item>
+    </plurals>
     <string name="stats_insights_numbers">Средња тачка погодака %1$s, расипање %2$d mm, просечна серија %3$s.</string>
     <string name="stats_insights_legend">Жута елипса обухвата око 86 посто хитаца; стрелица иде од центра до средње тачке погодака. Додирните напомену да видите на шта се односи на мети.</string>
-    <string name="stats_insights_target_description">Мета увида са хицима (%1$d), елипсом и стрелицом до средње тачке погодака</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Мета увида са %1$d хицем, елипсом и стрелицом до средње тачке погодака</item>
+        <item quantity="few">Мета увида са %1$d хица, елипсом и стрелицом до средње тачке погодака</item>
+        <item quantity="other">Мета увида са %1$d хитаца, елипсом и стрелицом до средње тачке погодака</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Увиди прегледају један по један калибар, а ове серије га немају. Поставите им калибар у Историји да бисте видели увиде.</string>
-    <string name="stats_insights_uncalibered">Серије без калибра су изостављене: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d серија без калибра је изостављена.</item>
+        <item quantity="few">%1$d серије без калибра су изостављене.</item>
+        <item quantity="other">%1$d серија без калибра је изостављено.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d испод вашег просека од %2$d</string>
     <string name="detail_vs_over">%1$d изнад вашег просека од %2$d</string>
     <string name="detail_vs_on">На вашем просеку од %1$d</string>
-    <string name="detail_vs_best">Ваша најбоља у последњих %1$d дана</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Ваша најбоља у последњем %1$d дану</item>
+        <item quantity="few">Ваша најбоља у последња %1$d дана</item>
+        <item quantity="other">Ваша најбоља у последњих %1$d дана</item>
+    </plurals>
     <string name="detail_day_in_insights">Погледај овај дан у Увидима</string>
     <string name="sight_title">Корекција нишана</string>
     <string name="sight_up_mm">Горе %1$d mm</string>
     <string name="sight_down_mm">Доле %1$d mm</string>
     <string name="sight_left_mm">Лево %1$d mm</string>
     <string name="sight_right_mm">Десно %1$d mm</string>
-    <string name="sight_clicks">%1$s: кликова: %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d клик</item>
+        <item quantity="few">%1$s: %2$d клика</item>
+        <item quantity="other">%1$s: %2$d кликова</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 клик</string>
     <string name="sight_under_half_click">%1$s: мање од пола клика, оставите</string>
     <string name="sight_no_height">Висина: без промене</string>
@@ -467,7 +647,11 @@
     <string name="sight_set_clicks">Унеси вредност клика</string>
     <string name="sight_change_clicks">Промени вредност клика</string>
     <string name="sight_adjusted_button">Нишани су подешени</string>
-    <string name="sight_adjusted_note">Нишани подешени %1$s: одступање се процењује на хицима од тада (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Нишани подешени %1$s: одступање се процењује на %2$d хицу од тада.</item>
+        <item quantity="few">Нишани подешени %1$s: одступање се процењује на %2$d хица од тада.</item>
+        <item quantity="other">Нишани подешени %1$s: одступање се процењује на %2$d хитаца од тада.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Опозови</string>
     <string name="sight_dialog_title">Вредност клика, %1$s</string>
     <string name="sight_dialog_help">Колико један клик помера погодак на мети на вашој даљини гађања. Обично пише у упутству за нишан, или избројте кликове једне корекције и измерите колико се група померила.</string>

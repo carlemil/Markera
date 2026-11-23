@@ -1504,7 +1504,7 @@ class AppUiTest {
     @Test fun claimDeleteAsksThenDeletesFromThePhone() {
         val (services, store) = signInWithALocalSeries()
         click(inDialog(button("Delete from device")))
-        waitForText("Delete 1 series and their photos")
+        waitForText("Delete 1 series and its photo")
         click(inDialog(button("Delete from device")))
         rule.waitUntil(TIMEOUT_MS) { store.auth?.token == TOKEN && localSeries(services).isEmpty() }
         assertEquals(0, posted.size)

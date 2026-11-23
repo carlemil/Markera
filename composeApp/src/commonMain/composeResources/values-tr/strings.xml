@@ -83,11 +83,20 @@
     <string name="history_signed_out">Geçmişinizi görmek için oturum açın</string>
     <string name="history_empty">Henüz kaydedilmiş seri yok</string>
     <string name="history_filter_empty">Filtreye uyan seri yok.</string>
-    <string name="history_day_summary">%1$d seri · ort. %2$s</string>
-    <string name="history_day_summary_one">1 seri · %1$d puan</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d seri · ort. %2$s</item>
+        <item quantity="other">%1$d seri · ort. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 seri · %1$d puan</item>
+        <item quantity="other">1 seri · %1$d puan</item>
+    </plurals>
     <string name="history_card_title">%1$s · seri %2$d</string>
     <string name="history_delete_title">Seri silinsin mi?</string>
-    <string name="history_delete_message">%1$s · %2$d puan</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d puan</item>
+        <item quantity="other">%1$s · %2$d puan</item>
+    </plurals>
     <string name="history_delete_confirm">Sil</string>
     <string name="history_delete_cancel">İptal</string>
     <string name="history_delete_failed">Silinemedi</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Tarih</string>
     <string name="filter_clear">Filtreleri temizle</string>
     <string name="stats_no_geometry">Serilerinizin hiçbirinde çizim için halka yok. 6/7 halkası bulunacak şekilde bir seri tarayın.</string>
-    <string name="stats_target_description">%2$d seriden %1$d isabetli hedef</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">%2$s %1$d isabetli hedef</item>
+        <item quantity="other">%2$s %1$d isabetli hedef</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d seriden</item>
+        <item quantity="other">%1$d seriden</item>
+    </plurals>
     <string name="stats_timeline">Seri zaman çizelgesi</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Gruplama</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Puan</string>
     <string name="stats_trend_description">Eğilim grafiği, çizgi: %1$d, nokta: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d seri)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d seri)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d seri)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Eğilim</string>
     <string name="stats_help_trend_body">Eğilim sekmesi, herhangi bir ölçüyü zaman içinde bir eğri olarak çizer. Ölçüyü düğmelerle seçin; ayrıca her serinin bir nokta mı olacağını yoksa serilerin gün, hafta veya ay bazında mı birleştirileceğini seçin (bu durumda ölçü dönemdeki tüm seriler üzerinden hesaplanır). Kalibreye göre, her kalibre için ayrı bir eğri çizer. Yukarıdaki filtreler tüm sekmelere uygulanır. Değerini okumak için bir noktaya dokunun.</string>
     <string name="stats_tab_drift">Kayma</string>
-    <string name="stats_drift_description">Zaman içindeki ortalama ve medyan isabet noktasını gösteren hedef, %1$d nokta</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Zaman içindeki ortalama ve medyan isabet noktasını gösteren hedef, %1$d nokta</item>
+        <item quantity="other">Zaman içindeki ortalama ve medyan isabet noktasını gösteren hedef, %1$d nokta</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d gün · %2$d seri · %3$d isabet</string>
     <string name="stats_drift_oldest">En eski</string>
     <string name="stats_drift_newest">En yeni</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Son isabet noktası: %1$s (merkezden %2$d mm); %4$s tarihindekinden %3$d mm daha yakın.</string>
     <string name="stats_drift_summary_further">Son isabet noktası: %1$s (merkezden %2$d mm); %4$s tarihindekinden %3$d mm daha uzak.</string>
     <string name="stats_drift_summary_same">Son isabet noktası: %1$s (merkezden %2$d mm); %3$s tarihindekiyle aynı uzaklıkta.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d seri · %3$d isabet</string>
-    <string name="stats_drift_point_series">%1$s · seri %2$d / %3$d · %4$d isabet</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d seri · %3$s</item>
+        <item quantity="other">%1$s · %2$d seri · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d isabet</item>
+        <item quantity="other">%1$d isabet</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · seri %2$d / %3$d · %4$d isabet</item>
+        <item quantity="other">%1$s · seri %2$d / %3$d · %4$d isabet</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Zaman içinde sol / sağ ve yukarı / aşağı (ortalama)</string>
     <string name="stats_drift_strips_median">Zaman içinde sol / sağ ve yukarı / aşağı (medyan)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Puanlanan her görseli durmadan kaydeder; puanlanamayanlar sonradan gösterilir.</string>
     <string name="import_progress">İçe aktarılıyor %1$d / %2$d</string>
     <string name="import_skip">Atla</string>
-    <string name="import_summary">%1$d kaydedildi, %2$d atlandı</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d kaydedildi</item>
+        <item quantity="other">%1$d kaydedildi</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d atlandı</item>
+        <item quantity="other">%1$d atlandı</item>
+    </plurals>
     <string name="help_home_import">Görselleri içe aktar</string>
     <string name="help_home_import_body">Menüde: telefonda zaten bulunan fotoğrafları galeriden veya dosyalardan puanlayın. Her görsel taranır ve sonuçları kaydetmeniz veya atlamanız için gösterilir. Otomatik içe aktar açıkken puanlanan her görsel, fotoğrafın çekildiği tarihle kendiliğinden kaydedilir; geri kalanlar sonradan tek tek gösterilir.</string>
     <string name="series_status_phone">Bu cihaza kaydedildi</string>
     <string name="series_not_uploaded">Yüklenmedi</string>
-    <string name="stats_not_uploaded">Yüklenmedi: %1$d seri</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Yüklenmedi: %1$d seri</item>
+        <item quantity="other">Yüklenmedi: %1$d seri</item>
+    </plurals>
     <string name="local_claim_title">Bu cihazdaki seriler</string>
     <string name="local_claim_body">Bu cihazda oturum kapalıyken veya başka bir hesap için kaydedilen seriler: %1$d. Bunları bu hesaba ekleyin, bu cihazdan silin veya oturumu kapalı tutun.</string>
     <string name="local_claim_add">Hesaba ekle</string>
     <string name="local_claim_delete">Cihazdan sil</string>
-    <string name="local_claim_delete_body">%1$d seri ve fotoğrafları bu cihazdan silinsin mi? Bu işlem geri alınamaz. Bunlar bu hesaba yüklenmedi.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">%1$d seri ve fotoğrafları bu cihazdan silinsin mi? Bu işlem geri alınamaz. Bunlar bu hesaba yüklenmedi.</item>
+        <item quantity="other">%1$d seri ve fotoğrafları bu cihazdan silinsin mi? Bu işlem geri alınamaz. Bunlar bu hesaba yüklenmedi.</item>
+    </plurals>
     <string name="local_claim_stay">Oturumu kapalı tut</string>
     <string name="local_claim_error">İşlem tamamlanamadı. Kalan serileriniz hâlâ bu cihazda. Kapatıp yeniden oturum açmayı deneyin.</string>
     <string name="home_week_series">7 gündeki seri</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Bu hafta %1$s grubunuz genişliğinden yaklaşık yüzde %2$d daha uzun.</string>
     <string name="home_insight_stretch_horizontal">Bu hafta %1$s grubunuz yüksekliğinden yaklaşık yüzde %2$d daha geniş.</string>
     <string name="home_insight_stretch_diagonal">Bu hafta %1$s grubunuz çapraz yönde yaklaşık yüzde %2$d daha uzun.</string>
-    <string name="home_insight_fliers">Bu hafta %1$s serilerinizin %3$d tanesinden %2$d tanesinde bir atış kaçtı.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Bu hafta %1$s serilerinizin %3$d tanesinden %2$d tanesinde bir atış kaçtı.</item>
+        <item quantity="other">Bu hafta %1$s serilerinizin %3$d tanesinden %2$d tanesinde bir atış kaçtı.</item>
+    </plurals>
     <string name="home_insight_wide">%2$s tarihinde %1$s gruplarınız öncekinden yaklaşık yüzde %3$d daha genişti.</string>
     <string name="home_insight_low_series">Son %1$s seriniz %2$d puan aldı; olağan sonucunuz %3$d.</string>
     <string name="home_insight_low_day">%2$s tarihinde %1$s serilerinizin ortalaması %3$d oldu; olağan sonucunuz %4$d.</string>
-    <string name="home_insight_trend_up">%1$s puanlarınız yükseliyor: %3$d haftada yaklaşık %2$d puan.</string>
-    <string name="home_insight_trend_down">%1$s puanlarınız düşüyor: %3$d haftada yaklaşık %2$d puan.</string>
-    <string name="home_insight_session_down">Bu hafta, uzun geçen %3$d günün %2$d tanesinde sonraki %1$s serileriniz daha düşük puan aldı.</string>
-    <string name="home_insight_session_up">Bu hafta, uzun geçen %3$d günün %2$d tanesinde sonraki %1$s serileriniz daha yüksek puan aldı.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">%1$s puanlarınız yükseliyor: %3$s yaklaşık %2$d puan.</item>
+        <item quantity="other">%1$s puanlarınız yükseliyor: %3$s yaklaşık %2$d puan.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d haftada</item>
+        <item quantity="other">%1$d haftada</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">%1$s puanlarınız düşüyor: %3$s yaklaşık %2$d puan.</item>
+        <item quantity="other">%1$s puanlarınız düşüyor: %3$s yaklaşık %2$d puan.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Bu hafta, uzun geçen %3$d günün %2$d tanesinde sonraki %1$s serileriniz daha düşük puan aldı.</item>
+        <item quantity="other">Bu hafta, uzun geçen %3$d günün %2$d tanesinde sonraki %1$s serileriniz daha düşük puan aldı.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Bu hafta, uzun geçen %3$d günün %2$d tanesinde sonraki %1$s serileriniz daha yüksek puan aldı.</item>
+        <item quantity="other">Bu hafta, uzun geçen %3$d günün %2$d tanesinde sonraki %1$s serileriniz daha yüksek puan aldı.</item>
+    </plurals>
     <string name="home_insight_dismiss">Bu analizi gizle</string>
-    <string name="home_local_title">Yalnızca bu telefonda %1$d seri</string>
-    <string name="home_local_title_one">Yalnızca bu telefonda 1 seri</string>
+    <plurals name="home_local_title">
+        <item quantity="one">Yalnızca bu telefonda %1$d seri</item>
+        <item quantity="other">Yalnızca bu telefonda %1$d seri</item>
+    </plurals>
     <string name="home_signin_title">Serilerinizi hesabınıza kaydedin</string>
     <string name="home_signin_body">Telefon değiştirdiğinizde de saklamak için oturum açın.</string>
     <string name="action_sign_in">Oturum aç</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">aşağı ve sola</string>
     <string name="advice_move_left">sola</string>
     <string name="advice_move_up_left">yukarı ve sola</string>
-    <string name="advice_offset_stable_summary">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor; %5$d günün %4$d gününde aynı yönde.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor; %5$s %4$d gününde aynı yönde.</item>
+        <item quantity="other">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor; %5$s %4$d gününde aynı yönde.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d günün</item>
+        <item quantity="other">%1$d günün</item>
+    </plurals>
     <string name="advice_cause_sights_1">Nişangâh bu mühimmat veya mesafe için sıfırlanmamış.</string>
     <string name="advice_cause_sights_2">Nişangâh ayarlandıktan sonra kaymış ya da farklı bir mühimmat başka yere vuruyor.</string>
     <string name="advice_try_sights">Nişangâhı, grup yaklaşık %1$d mm %2$s kayacak şekilde ayarlayın; sonra tekrar dokunmadan önce yeni bir grup atın.</string>
-    <string name="advice_offset_varies_summary">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor, ama her gün aynı yönde değil.</string>
-    <string name="advice_offset_few_days_summary">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor; bunun hep böyle olup olmadığını söylemek için gün sayısı az.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor, ama her gün aynı yönde değil.</item>
+        <item quantity="other">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor, ama her gün aynı yönde değil.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor; bunun hep böyle olup olmadığını söylemek için gün sayısı az.</item>
+        <item quantity="other">Grubunuz %3$d atış boyunca %1$d mm %2$s duruyor; bunun hep böyle olup olmadığını söylemek için gün sayısı az.</item>
+    </plurals>
     <string name="advice_cause_high_1">Avuçla itme: atış çıkarken avuç içini öne bastırmak.</string>
     <string name="advice_cause_high_2">Atışta bileğin yukarı kırılması.</string>
     <string name="advice_cause_high_3">İsabete bakmak için tabancayı erken kaldırmak.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">Başparmağın kabzaya baskısının tabancayı yana itmesi.</string>
     <string name="advice_cause_side_3">Dümdüz geriye olmayan bir tetik çekişi.</string>
     <string name="advice_try_side">Parmağın tetiğe nereden değdiğini ve başparmağın ne kadar bastırdığını kontrol edin, sonra kuru tetik çalışıp nişangâhı izleyin.</string>
-    <string name="advice_stretch_vertical_summary">Grubunuz %2$d atış boyunca genişliğinden yaklaşık yüzde %1$d daha uzun.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Grubunuz %2$d atış boyunca genişliğinden yaklaşık yüzde %1$d daha uzun.</item>
+        <item quantity="other">Grubunuz %2$d atış boyunca genişliğinden yaklaşık yüzde %1$d daha uzun.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Nefes: her seferinde nefesin farklı bir anında atış yapmak.</string>
     <string name="advice_cause_vertical_2">Nişan resminin yükseklikte değişmesi; arpacığın gezde daha yukarıda veya aşağıda durması.</string>
     <string name="advice_cause_vertical_3">Atıştan atışa değişen kavrama basıncı.</string>
     <string name="advice_try_vertical">Her atışta nefesi aynı noktada tutun ve tetiği sıkmadan önce arpacığın gezdeki yüksekliğini kontrol edin.</string>
-    <string name="advice_stretch_horizontal_summary">Grubunuz %2$d atış boyunca yüksekliğinden yaklaşık yüzde %1$d daha geniş.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Grubunuz %2$d atış boyunca yüksekliğinden yaklaşık yüzde %1$d daha geniş.</item>
+        <item quantity="other">Grubunuz %2$d atış boyunca yüksekliğinden yaklaşık yüzde %1$d daha geniş.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Yana kayan bir tetik çekişi.</string>
     <string name="advice_cause_horizontal_2">Atışta bileğin oynaması.</string>
     <string name="advice_cause_horizontal_3">Hedefe tam doğru durmayan bir duruş.</string>
     <string name="advice_try_horizontal">Nişangâh bir işarete doğrultulmuş hâlde kuru tetik çalışın ve tetik düştüğünde yana kayıp kaymadığına bakın.</string>
-    <string name="advice_stretch_diagonal_summary">Grubunuz %2$d atış boyunca çapraz yönde, bir yönde diğerine göre yaklaşık yüzde %1$d daha uzun.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Grubunuz %2$d atış boyunca çapraz yönde, bir yönde diğerine göre yaklaşık yüzde %1$d daha uzun.</item>
+        <item quantity="other">Grubunuz %2$d atış boyunca çapraz yönde, bir yönde diğerine göre yaklaşık yüzde %1$d daha uzun.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Kavrama basıncı ile tetik çekişinin birbirine karşı çalışması.</string>
     <string name="advice_cause_diagonal_2">Tabancayı yatıran bir duruş veya kol pozisyonu.</string>
     <string name="advice_try_diagonal">Tetiği sıkmadan önce kavramanın her atışta aynı olduğunu ve nişangâhın düz durduğunu kontrol edin.</string>
-    <string name="advice_fliers_summary">%2$d serinizin %1$d tanesinde bir atış diğerlerinden kaçtı; ortalama yaklaşık %3$d mm dışarıda.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">%2$d serinizin %1$d tanesinde bir atış diğerlerinden kaçtı; ortalama yaklaşık %3$d mm dışarıda.</item>
+        <item quantity="other">%2$d serinizin %1$d tanesinde bir atış diğerlerinden kaçtı; ortalama yaklaşık %3$d mm dışarıda.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Tek bir atışta tetik kontrolü.</string>
     <string name="advice_cause_fliers_2">Atış takibini kaybetmek.</string>
     <string name="advice_cause_fliers_3">Atışı nereye gittiğini söyleyemeden bırakmak.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">Atışları aceleye getirmek.</string>
     <string name="advice_try_wide">Kuru tetik çalışması: atış yapmadan tutun ve tetiği sıkın; tutuş titremeye başlayınca dinlenin.</string>
     <string name="advice_low_series_summary">Son seriniz %1$d puan aldı; son %3$d serinizin ortalaması %2$d.</string>
-    <string name="advice_low_day_summary">%1$s tarihinde %2$d serinizin ortalaması %3$d oldu; öncesinde ortalama %4$d idi.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s tarihinde %2$d serinizin ortalaması %3$d oldu; öncesinde ortalama %4$d idi.</item>
+        <item quantity="other">%1$s tarihinde %2$d serinizin ortalaması %3$d oldu; öncesinde ortalama %4$d idi.</item>
+    </plurals>
     <string name="advice_try_low_plain">Tek bir düşük sonuç pek bir şey söylemez: bir şeyi değiştirmeden önce birkaç seri daha atın.</string>
     <string name="advice_try_low_explained">Her şeyi bir anda değiştirmek yerine aşağıdaki notla başlayın.</string>
     <string name="advice_low_note_offset">Grubunuz merkezden kaymış; bu, nedenin bir parçası olabilir.</string>
     <string name="advice_low_note_stretched">Grubunuz bir yönde uzamış; bu, nedenin bir parçası olabilir.</string>
     <string name="advice_low_note_fliers">Bir seride bir atışın kaçması nedenin bir parçası olabilir.</string>
     <string name="advice_low_note_wide">Her zamankinden geniş gruplar nedenin bir parçası olabilir.</string>
-    <string name="advice_trend_up_summary">Puanlarınız %3$d haftada, %2$d seri boyunca yaklaşık %1$d puan yükseldi.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Puanlarınız %3$s, %2$s boyunca yaklaşık %1$d puan yükseldi.</item>
+        <item quantity="other">Puanlarınız %3$s, %2$s boyunca yaklaşık %1$d puan yükseldi.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d seri</item>
+        <item quantity="other">%1$d seri</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d haftada</item>
+        <item quantity="other">%1$d haftada</item>
+    </plurals>
     <string name="advice_try_trend_up">Yaptığınız şeye devam edin ve tekrarlayabilmek için neyin değiştiğini not edin.</string>
-    <string name="advice_trend_down_summary">Puanlarınız %3$d haftada, %2$d seri boyunca yaklaşık %1$d puan düştü.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Puanlarınız %3$s, %2$s boyunca yaklaşık %1$d puan düştü.</item>
+        <item quantity="other">Puanlarınız %3$s, %2$s boyunca yaklaşık %1$d puan düştü.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Yorgunluk ya da antrenmana daha az zaman ayırmak.</string>
     <string name="advice_cause_trend_2">Atışları aceleye getirmek.</string>
     <string name="advice_cause_trend_3">Tabanca, mühimmat veya rutin değişikliği.</string>
     <string name="advice_try_trend_down">Molalı, daha kısa antrenmanlar ve temelleri yeniden bulmak için birkaç kuru tetik atışı.</string>
-    <string name="advice_session_down_summary">Uzun geçen %2$d günün %1$d gününde sonraki serileriniz ilklerden daha düşük puan aldı: o günlerde ortalama %4$d, ilklerde %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">Uzun geçen %2$d günün %1$d gününde sonraki serileriniz ilklerden daha düşük puan aldı: o günlerde ortalama %4$d, ilklerde %3$d.</item>
+        <item quantity="other">Uzun geçen %2$d günün %1$d gününde sonraki serileriniz ilklerden daha düşük puan aldı: o günlerde ortalama %4$d, ilklerde %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Antrenman ilerledikçe kolda, omuzda veya gözlerde yorgunluk.</string>
     <string name="advice_cause_session_2">Azalan konsantrasyon; atışlar aceleye gelir veya daha az iyi söylenir.</string>
     <string name="advice_cause_session_3">Seriler arasında çok az mola.</string>
     <string name="advice_try_session_down">Daha kısa antrenmanlar ya da gözlerinizi ve kolunuzu dinlendirmek için birkaç seride bir gerçek bir mola.</string>
-    <string name="advice_session_up_summary">Uzun geçen %2$d günün %1$d gününde sonraki serileriniz ilklerden daha yüksek puan aldı: o günlerde ortalama %4$d, ilklerde %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">Uzun geçen %2$d günün %1$d gününde sonraki serileriniz ilklerden daha yüksek puan aldı: o günlerde ortalama %4$d, ilklerde %3$d.</item>
+        <item quantity="other">Uzun geçen %2$d günün %1$d gününde sonraki serileriniz ilklerden daha yüksek puan aldı: o günlerde ortalama %4$d, ilklerde %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Yavaş bir başlangıç: ilk seri sayılmadan önce birkaç kuru tetik veya deneme atışıyla başlayın.</string>
     <string name="stats_help_insights">Analizler</string>
     <string name="stats_help_insights_body">Analizler, kaydedilen serilerinize her seferinde bir kalibre olmak üzere bakar ve oldukça emin olduğu örüntüleri gösterir: bir yana kaymış bir grup, uzamış bir grup, kaçan bir atış ya da düşen veya yükselen puanlar. Bir şey söylemeden önce yeterli sayıda atışa ihtiyaç duyar. Her not, sayıların ne gösterdiğini, buna sık neyin yol açtığını ve denenecek bir şeyi verir. Bu bir ipucudur, antrenör değil: nedenler yaygın olanlardır, kesin bir hüküm değil. Atış elinizi ayarlayabilir ve Analizler'i Ayarlar altında kapatabilirsiniz.</string>
     <string name="stats_tab_insights">Analizler</string>
-    <string name="stats_insights_need_more">Analizler için yaklaşık %1$d atış gerekiyor; burada %2$d atışınız var.</string>
-    <string name="stats_insights_nothing">%2$d serideki bu %1$d atışta öne çıkan bir şey yok.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analizler için yaklaşık %1$d atış gerekiyor; burada %2$d atışınız var.</item>
+        <item quantity="other">Analizler için yaklaşık %1$d atış gerekiyor; burada %2$d atışınız var.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">%2$s bu %1$d atışta öne çıkan bir şey yok.</item>
+        <item quantity="other">%2$s bu %1$d atışta öne çıkan bir şey yok.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serideki</item>
+        <item quantity="other">%1$d serideki</item>
+    </plurals>
     <string name="stats_insights_numbers">Ortalama isabet noktası %1$s, dağılım %2$d mm, ortalama seri %3$s.</string>
     <string name="stats_insights_legend">Sarı elips atışların yaklaşık yüzde 86'sını kapsar; ok merkezden ortalama isabet noktasına uzanır. Hedefte neyi kastettiğini görmek için bir nota dokunun.</string>
-    <string name="stats_insights_target_description">%1$d atışlı analiz hedefi, elips ve ortalama isabet noktasına giden ok</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">%1$d atışlı analiz hedefi, elips ve ortalama isabet noktasına giden ok</item>
+        <item quantity="other">%1$d atışlı analiz hedefi, elips ve ortalama isabet noktasına giden ok</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analizler her seferinde bir kalibreye bakar ve bu serilerin kalibresi yok. Analizleri görmek için Geçmiş'te bunlara bir kalibre atayın.</string>
-    <string name="stats_insights_uncalibered">Kalibresiz %1$d seri hesaba katılmadı.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">Kalibresiz %1$d seri hesaba katılmadı.</item>
+        <item quantity="other">Kalibresiz %1$d seri hesaba katılmadı.</item>
+    </plurals>
     <string name="detail_vs_under">Ortalamanız olan %2$d puanın %1$d altında</string>
     <string name="detail_vs_over">Ortalamanız olan %2$d puanın %1$d üstünde</string>
     <string name="detail_vs_on">Ortalamanızda: %1$d</string>
-    <string name="detail_vs_best">Son %1$d günün en iyisi</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Son %1$d günün en iyisi</item>
+        <item quantity="other">Son %1$d günün en iyisi</item>
+    </plurals>
     <string name="detail_day_in_insights">Bu günü Analizler'de gör</string>
     <string name="sight_title">Nişangâh düzeltmesi</string>
     <string name="sight_up_mm">Yukarı %1$d mm</string>
     <string name="sight_down_mm">Aşağı %1$d mm</string>
     <string name="sight_left_mm">Sola %1$d mm</string>
     <string name="sight_right_mm">Sağa %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d klik</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d klik</item>
+        <item quantity="other">%1$s: %2$d klik</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 klik</string>
     <string name="sight_under_half_click">%1$s: yarım klikten az, dokunmayın</string>
     <string name="sight_no_height">Yükseklik: değişiklik yok</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Klik değerini girin</string>
     <string name="sight_change_clicks">Klik değerini değiştir</string>
     <string name="sight_adjusted_button">Nişangâhı ayarladım</string>
-    <string name="sight_adjusted_note">Nişangâh %1$s tarihinde ayarlandı: sapma o zamandan beri atılan %2$d atışa göre değerlendiriliyor.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Nişangâh %1$s tarihinde ayarlandı: sapma o zamandan beri atılan %2$d atışa göre değerlendiriliyor.</item>
+        <item quantity="other">Nişangâh %1$s tarihinde ayarlandı: sapma o zamandan beri atılan %2$d atışa göre değerlendiriliyor.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Geri al</string>
     <string name="sight_dialog_title">Klik değeri, %1$s</string>
     <string name="sight_dialog_help">Atış mesafenizde bir klikin hedefteki isabeti ne kadar kaydırdığı. Genellikle nişangâhın kılavuzunda yazar; ya da bir düzeltmedeki klikleri sayıp grubun ne kadar kaydığını ölçün.</string>

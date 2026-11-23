@@ -83,11 +83,20 @@
     <string name="history_signed_out">Jelentkezz be az előzmények megtekintéséhez</string>
     <string name="history_empty">Még nincs mentett sorozat</string>
     <string name="history_filter_empty">Egy sorozat sem felel meg a szűrőnek.</string>
-    <string name="history_day_summary">%1$d sorozat · átl. %2$s</string>
-    <string name="history_day_summary_one">1 sorozat · %1$d pont</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d sorozat · átl. %2$s</item>
+        <item quantity="other">%1$d sorozat · átl. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 sorozat · %1$d pont</item>
+        <item quantity="other">1 sorozat · %1$d pont</item>
+    </plurals>
     <string name="history_card_title">%1$s · %2$d. sorozat</string>
     <string name="history_delete_title">Törlöd a sorozatot?</string>
-    <string name="history_delete_message">%1$s · %2$d pont</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d pont</item>
+        <item quantity="other">%1$s · %2$d pont</item>
+    </plurals>
     <string name="history_delete_confirm">Törlés</string>
     <string name="history_delete_cancel">Mégse</string>
     <string name="history_delete_failed">Nem sikerült törölni</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Dátum</string>
     <string name="filter_clear">Szűrők törlése</string>
     <string name="stats_no_geometry">Egyik sorozatodnak sincs köre, amelyhez rajzolni lehetne. Szkennelj be egyet, amelyen megtalálható a 6/7-es kör.</string>
-    <string name="stats_target_description">Céltábla %1$d találattal %2$d sorozatból</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Céltábla %1$d találattal %2$s</item>
+        <item quantity="other">Céltábla %1$d találattal %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d sorozatból</item>
+        <item quantity="other">%1$d sorozatból</item>
+    </plurals>
     <string name="stats_timeline">Sorozatok idővonala</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Csoport</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Eredmény</string>
     <string name="stats_trend_description">Trenddiagram, vonalak: %1$d, pontok: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d sorozat)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d sorozat)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d sorozat)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">A Trend lap bármelyik mérőszámot görbeként mutatja az idő függvényében. A gombokkal válaszd ki a mérőszámot, és hogy minden sorozat külön pont legyen, vagy a sorozatok naponta, hetente vagy havonta összevonódjanak (ilyenkor a mérőszám az időszak összes sorozatából számolódik). A Kaliberenként kaliberenként egy görbét rajzol. A fenti szűrők minden lapra érvényesek. Koppints egy pontra az értéke leolvasásához.</string>
     <string name="stats_tab_drift">Vándorlás</string>
-    <string name="stats_drift_description">Céltábla az átlagos és a medián találati ponttal az idő függvényében, %1$d pont</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Céltábla az átlagos és a medián találati ponttal az idő függvényében, %1$d pont</item>
+        <item quantity="other">Céltábla az átlagos és a medián találati ponttal az idő függvényében, %1$d pont</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d nap · %2$d sorozat · %3$d találat</string>
     <string name="stats_drift_oldest">Legrégebbi</string>
     <string name="stats_drift_newest">Legújabb</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Legutóbbi találati pont: %1$s (%2$d mm a középtől), %3$d mm-rel közelebb, mint ekkor: %4$s.</string>
     <string name="stats_drift_summary_further">Legutóbbi találati pont: %1$s (%2$d mm a középtől), %3$d mm-rel távolabb, mint ekkor: %4$s.</string>
     <string name="stats_drift_summary_same">Legutóbbi találati pont: %1$s (%2$d mm a középtől), ugyanolyan messze, mint ekkor: %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d sorozat · %3$d találat</string>
-    <string name="stats_drift_point_series">%1$s · %2$d. sorozat / %3$d · %4$d találat</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d sorozat · %3$s</item>
+        <item quantity="other">%1$s · %2$d sorozat · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d találat</item>
+        <item quantity="other">%1$d találat</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · %2$d. sorozat / %3$d · %4$d találat</item>
+        <item quantity="other">%1$s · %2$d. sorozat / %3$d · %4$d találat</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Bal / jobb és fent / lent az idő függvényében (átlag)</string>
     <string name="stats_drift_strips_median">Bal / jobb és fent / lent az idő függvényében (medián)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Megállás nélkül elment minden értékelhető képet; a többit utána mutatja.</string>
     <string name="import_progress">Importálás %1$d / %2$d</string>
     <string name="import_skip">Kihagyás</string>
-    <string name="import_summary">%1$d mentve, %2$d kihagyva</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d mentve</item>
+        <item quantity="other">%1$d mentve</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d kihagyva</item>
+        <item quantity="other">%1$d kihagyva</item>
+    </plurals>
     <string name="help_home_import">Képek importálása</string>
     <string name="help_home_import_body">A menüben: értékeld a telefonon már meglévő fotókat a galériából vagy a fájlok közül. Minden kép beszkennelődik, és megjelenik az eredménye, amelyet menthetsz vagy kihagyhatsz. Bekapcsolt automatikus importálásnál minden értékelhető kép magától mentődik a fotó készítésének dátumával; a többi utána egyenként jelenik meg.</string>
     <string name="series_status_phone">Ezen az eszközön mentve</string>
     <string name="series_not_uploaded">Nincs feltöltve</string>
-    <string name="stats_not_uploaded">Nincs feltöltve: %1$d sorozat</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Nincs feltöltve: %1$d sorozat</item>
+        <item quantity="other">Nincs feltöltve: %1$d sorozat</item>
+    </plurals>
     <string name="local_claim_title">Sorozatok ezen az eszközön</string>
     <string name="local_claim_body">Ezen az eszközön kijelentkezve vagy egy másik fiókhoz mentett sorozatok: %1$d. Add hozzá őket ehhez a fiókhoz, töröld őket erről az eszközről, vagy maradj kijelentkezve.</string>
     <string name="local_claim_add">Hozzáadás a fiókhoz</string>
     <string name="local_claim_delete">Törlés az eszközről</string>
-    <string name="local_claim_delete_body">Törlöd a(z) %1$d sorozatot és a fotóikat erről az eszközről? Ez nem vonható vissza. Nem lettek feltöltve ebbe a fiókba.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Törlöd a(z) %1$d sorozatot és a fotóját erről az eszközről? Ez nem vonható vissza. Nem lett feltöltve ebbe a fiókba.</item>
+        <item quantity="other">Törlöd a(z) %1$d sorozatot és a fotóikat erről az eszközről? Ez nem vonható vissza. Nem lettek feltöltve ebbe a fiókba.</item>
+    </plurals>
     <string name="local_claim_stay">Kijelentkezve maradok</string>
     <string name="local_claim_error">A műveletet nem sikerült befejezni. A többi sorozatod még mindig ezen az eszközön van. Zárd be, és próbálj újra bejelentkezni.</string>
     <string name="home_week_series">sorozat 7 nap alatt</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Ezen a héten a(z) %1$s csoportod körülbelül %2$d százalékkal magasabb, mint amilyen széles.</string>
     <string name="home_insight_stretch_horizontal">Ezen a héten a(z) %1$s csoportod körülbelül %2$d százalékkal szélesebb, mint amilyen magas.</string>
     <string name="home_insight_stretch_diagonal">Ezen a héten a(z) %1$s csoportod ferdén körülbelül %2$d százalékkal hosszabb.</string>
-    <string name="home_insight_fliers">Ezen a héten egy lövés kilógott – sorozatok: %2$d / %3$d (%1$s).</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Ezen a héten %3$d %1$s sorozatodból %2$d sorozatban kilógott egy lövés.</item>
+        <item quantity="other">Ezen a héten %3$d %1$s sorozatodból %2$d sorozatban kilógott egy lövés.</item>
+    </plurals>
     <string name="home_insight_wide">Ekkor: %2$s a(z) %1$s csoportjaid körülbelül %3$d százalékkal szélesebbek voltak, mint korábban.</string>
     <string name="home_insight_low_series">A legutóbbi %1$s sorozatod %2$d lett, a szokásos %3$d helyett.</string>
     <string name="home_insight_low_day">Ekkor: %2$s a(z) %1$s sorozataid átlaga %3$d volt, a szokásos %4$d helyett.</string>
-    <string name="home_insight_trend_up">A(z) %1$s eredményeid javulnak: körülbelül %2$d pontot %3$d hét alatt.</string>
-    <string name="home_insight_trend_down">A(z) %1$s eredményeid romlanak: körülbelül %2$d pontot %3$d hét alatt.</string>
-    <string name="home_insight_session_down">Ezen a héten a későbbi %1$s sorozataid gyengébbek voltak %3$d hosszabb napból %2$d napon.</string>
-    <string name="home_insight_session_up">Ezen a héten a későbbi %1$s sorozataid jobbak voltak %3$d hosszabb napból %2$d napon.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">A(z) %1$s eredményeid javulnak: körülbelül %2$d pontot %3$s alatt.</item>
+        <item quantity="other">A(z) %1$s eredményeid javulnak: körülbelül %2$d pontot %3$s alatt.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d hét</item>
+        <item quantity="other">%1$d hét</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">A(z) %1$s eredményeid romlanak: körülbelül %2$d pontot %3$s alatt.</item>
+        <item quantity="other">A(z) %1$s eredményeid romlanak: körülbelül %2$d pontot %3$s alatt.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Ezen a héten a későbbi %1$s sorozataid gyengébbek voltak %3$d hosszabb napból %2$d napon.</item>
+        <item quantity="other">Ezen a héten a későbbi %1$s sorozataid gyengébbek voltak %3$d hosszabb napból %2$d napon.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Ezen a héten a későbbi %1$s sorozataid jobbak voltak %3$d hosszabb napból %2$d napon.</item>
+        <item quantity="other">Ezen a héten a későbbi %1$s sorozataid jobbak voltak %3$d hosszabb napból %2$d napon.</item>
+    </plurals>
     <string name="home_insight_dismiss">Tipp elrejtése</string>
-    <string name="home_local_title">%1$d sorozat csak ezen a telefonon</string>
-    <string name="home_local_title_one">1 sorozat csak ezen a telefonon</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d sorozat csak ezen a telefonon</item>
+        <item quantity="other">%1$d sorozat csak ezen a telefonon</item>
+    </plurals>
     <string name="home_signin_title">Mentsd a sorozataidat a fiókodba</string>
     <string name="home_signin_body">Jelentkezz be, hogy telefoncsere után is megmaradjanak.</string>
     <string name="action_sign_in">Bejelentkezés</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">lefelé és balra</string>
     <string name="advice_move_left">balra</string>
     <string name="advice_move_up_left">felfelé és balra</string>
-    <string name="advice_offset_stable_summary">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, %5$d napból %4$d napon ugyanígy.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, %5$s %4$d napon ugyanígy.</item>
+        <item quantity="other">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, %5$s %4$d napon ugyanígy.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d napból</item>
+        <item quantity="other">%1$d napból</item>
+    </plurals>
     <string name="advice_cause_sights_1">Az irányzék nincs belőve erre a lőszerre vagy távolságra.</string>
     <string name="advice_cause_sights_2">Az irányzék elállítódott a beállítás óta, vagy egy másik lőszer máshová visz.</string>
     <string name="advice_try_sights">Állítsd az irányzékot úgy, hogy a csoport körülbelül %1$d mm-rel %2$s mozduljon, majd lőj egy új csoportot, mielőtt újra hozzányúlnál.</string>
-    <string name="advice_offset_varies_summary">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, de nem minden nap ugyanígy.</string>
-    <string name="advice_offset_few_days_summary">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, de túl kevés nap alapján ahhoz, hogy kiderüljön, mindig így van-e.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, de nem minden nap ugyanígy.</item>
+        <item quantity="other">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, de nem minden nap ugyanígy.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, de túl kevés nap alapján ahhoz, hogy kiderüljön, mindig így van-e.</item>
+        <item quantity="other">A csoportod %3$d lövés alapján %1$d mm-rel %2$s van, de túl kevés nap alapján ahhoz, hogy kiderüljön, mindig így van-e.</item>
+    </plurals>
     <string name="advice_cause_high_1">A tenyér előretolása a lövés pillanatában.</string>
     <string name="advice_cause_high_2">A csukló felfelé megtörik a lövésben.</string>
     <string name="advice_cause_high_3">A találat keresése és a fegyver túl korai felemelése.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">A hüvelykujj nyomása a markolaton oldalra tolja a fegyvert.</string>
     <string name="advice_cause_side_3">Az elsütés nem egyenesen hátrafelé történik.</string>
     <string name="advice_try_side">Ellenőrizd, hol éri az ujjad az elsütőbillentyűt, és milyen erősen nyom a hüvelykujjad, aztán lőj szárazon, és figyeld az irányzékot.</string>
-    <string name="advice_stretch_vertical_summary">A csoportod %2$d lövés alapján körülbelül %1$d százalékkal magasabb, mint amilyen széles.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">A csoportod %2$d lövés alapján körülbelül %1$d százalékkal magasabb, mint amilyen széles.</item>
+        <item quantity="other">A csoportod %2$d lövés alapján körülbelül %1$d százalékkal magasabb, mint amilyen széles.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">A légzés: minden alkalommal a légzés más pontján lősz.</string>
     <string name="advice_cause_vertical_2">A célzókép magassága változik, a célgömb feljebb vagy lejjebb áll a nézőke bevágásában.</string>
     <string name="advice_cause_vertical_3">Lövésről lövésre változó markolatnyomás.</string>
     <string name="advice_try_vertical">Minden lövésnél ugyanazon a ponton tartsd vissza a lélegzeted, és elsütés előtt ellenőrizd a célgömb magasságát a bevágásban.</string>
-    <string name="advice_stretch_horizontal_summary">A csoportod %2$d lövés alapján körülbelül %1$d százalékkal szélesebb, mint amilyen magas.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">A csoportod %2$d lövés alapján körülbelül %1$d százalékkal szélesebb, mint amilyen magas.</item>
+        <item quantity="other">A csoportod %2$d lövés alapján körülbelül %1$d százalékkal szélesebb, mint amilyen magas.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Oldalra húzott elsütés.</string>
     <string name="advice_cause_horizontal_2">A csukló elmozdul a lövésben.</string>
     <string name="advice_cause_horizontal_3">A testtartás nem megfelelően áll a céltáblához.</string>
     <string name="advice_try_horizontal">Lőj szárazon egy jelre célozva, és figyeld, elcsúszik-e oldalra az irányzék, amikor elsül a fegyver.</string>
-    <string name="advice_stretch_diagonal_summary">A csoportod %2$d lövés alapján ferdén az egyik irányban körülbelül %1$d százalékkal hosszabb, mint a másikban.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">A csoportod %2$d lövés alapján ferdén az egyik irányban körülbelül %1$d százalékkal hosszabb, mint a másikban.</item>
+        <item quantity="other">A csoportod %2$d lövés alapján ferdén az egyik irányban körülbelül %1$d százalékkal hosszabb, mint a másikban.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">A markolatnyomás és az elsütés egymás ellen dolgozik.</string>
     <string name="advice_cause_diagonal_2">A testtartás vagy a kar helyzete megdönti a fegyvert.</string>
     <string name="advice_try_diagonal">Ellenőrizd, hogy a fogás minden lövésnél ugyanolyan, és az irányzék egyenesen áll, mielőtt elsütöd.</string>
-    <string name="advice_fliers_summary">Egy lövés kilógott a többi közül – sorozatok: %1$d / %2$d, átlagosan kb. %3$d mm-re.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">%2$d sorozatodból %1$d sorozatban egy lövés kilógott a többi közül, átlagosan kb. %3$d mm-re.</item>
+        <item quantity="other">%2$d sorozatodból %1$d sorozatban egy lövés kilógott a többi közül, átlagosan kb. %3$d mm-re.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Az elsütés kontrollja egyetlen lövésnél.</string>
     <string name="advice_cause_fliers_2">Elmarad a lövés végigkövetése.</string>
     <string name="advice_cause_fliers_3">A lövés leadása bemondás nélkül.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">A lövések elsietése.</string>
     <string name="advice_try_wide">Szárazgyakorlat: tarts és süss el lövés nélkül, és pihenj, amikor a tartás remegni kezd.</string>
     <string name="advice_low_series_summary">A legutóbbi sorozatod: %1$d. Az előző sorozatok (%3$d) átlaga: %2$d.</string>
-    <string name="advice_low_day_summary">Ekkor: %1$s. Sorozatok: %2$d, átlag: %3$d. Korábbi átlag: %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s: %2$d sorozatod átlaga %3$d volt, a korábbi átlag %4$d.</item>
+        <item quantity="other">%1$s: %2$d sorozatod átlaga %3$d volt, a korábbi átlag %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">Egy gyengébb eredmény keveset mond: lőj még néhányat, mielőtt bármin változtatnál.</string>
     <string name="advice_try_low_explained">Kezdd az alábbi megjegyzéssel, ahelyett hogy egyszerre mindent megváltoztatnál.</string>
     <string name="advice_low_note_offset">A csoportod a középtől eltolva van, ez is része lehet az oknak.</string>
     <string name="advice_low_note_stretched">A csoportod az egyik irányban megnyúlt, ez is része lehet az oknak.</string>
     <string name="advice_low_note_fliers">Egy-egy kilógó lövés a sorozatban is része lehet az oknak.</string>
     <string name="advice_low_note_wide">A szokásosnál szélesebb csoportok is részei lehetnek az oknak.</string>
-    <string name="advice_trend_up_summary">Az eredményeid körülbelül %1$d ponttal javultak %3$d hét alatt, %2$d sorozat alapján.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Az eredményeid körülbelül %1$d ponttal javultak %3$s alatt, %2$s alapján.</item>
+        <item quantity="other">Az eredményeid körülbelül %1$d ponttal javultak %3$s alatt, %2$s alapján.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d sorozat</item>
+        <item quantity="other">%1$d sorozat</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d hét</item>
+        <item quantity="other">%1$d hét</item>
+    </plurals>
     <string name="advice_try_trend_up">Csináld tovább így, és jegyezd fel, mi változott, hogy megismételhesd.</string>
-    <string name="advice_trend_down_summary">Az eredményeid körülbelül %1$d ponttal romlottak %3$d hét alatt, %2$d sorozat alapján.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Az eredményeid körülbelül %1$d ponttal romlottak %3$s alatt, %2$s alapján.</item>
+        <item quantity="other">Az eredményeid körülbelül %1$d ponttal romlottak %3$s alatt, %2$s alapján.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Fáradtság vagy kevesebb idő az edzésre.</string>
     <string name="advice_cause_trend_2">A lövések elsietése.</string>
     <string name="advice_cause_trend_3">Fegyver-, lőszer- vagy rutinváltás.</string>
     <string name="advice_try_trend_down">Rövidebb edzések szünetekkel, és néhány szárazlövés, hogy újra megtaláld az alapokat.</string>
-    <string name="advice_session_down_summary">%2$d hosszabb napodból %1$d napon a későbbi sorozataid gyengébbek lettek az elsőknél: azokon a napokon a későbbiek átlaga %4$d, az elsőké %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">%2$d hosszabb napodból %1$d napon a későbbi sorozataid gyengébbek lettek az elsőknél: azokon a napokon a későbbiek átlaga %4$d, az elsőké %3$d.</item>
+        <item quantity="other">%2$d hosszabb napodból %1$d napon a későbbi sorozataid gyengébbek lettek az elsőknél: azokon a napokon a későbbiek átlaga %4$d, az elsőké %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">A kar, a váll vagy a szem fáradása az edzés során.</string>
     <string name="advice_cause_session_2">Csökkenő koncentráció, így a lövések elsietettek vagy kevésbé pontosan bemondottak.</string>
     <string name="advice_cause_session_3">Túl kevés szünet a sorozatok között.</string>
     <string name="advice_try_session_down">Rövidebb edzések, vagy néhány sorozatonként egy valódi szünet, hogy a szemed és a karod pihenjen.</string>
-    <string name="advice_session_up_summary">%2$d hosszabb napodból %1$d napon a későbbi sorozataid jobbak lettek az elsőknél: azokon a napokon a későbbiek átlaga %4$d, az elsőké %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">%2$d hosszabb napodból %1$d napon a későbbi sorozataid jobbak lettek az elsőknél: azokon a napokon a későbbiek átlaga %4$d, az elsőké %3$d.</item>
+        <item quantity="other">%2$d hosszabb napodból %1$d napon a későbbi sorozataid jobbak lettek az elsőknél: azokon a napokon a későbbiek átlaga %4$d, az elsőké %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Lassú kezdés: kezdj néhány szárazlövéssel vagy próbalövéssel, mielőtt az első sorozat beszámít.</string>
     <string name="stats_help_insights">Elemzés</string>
     <string name="stats_help_insights_body">Az Elemzés kaliberenként végignézi a mentett sorozataidat, és rámutat azokra a mintákra, amelyekben eléggé biztos: egy oldalra tolódott csoport, egy megnyúlt csoport, egy kilógó lövés, vagy csökkenő, illetve javuló eredmények. Mielőtt bármit mondana, elég sok lövésre van szüksége. Minden megjegyzés megadja, mit mutatnak a számok, mi okozza ezt gyakran, és egy dolgot, amit kipróbálhatsz. Ez tipp, nem edző: az okok gyakoriak, nem ítélet. A lövő kezet a Beállításokban állíthatod be, és ott kapcsolhatod ki az Elemzést.</string>
     <string name="stats_tab_insights">Elemzés</string>
-    <string name="stats_insights_need_more">Az Elemzéshez körülbelül %1$d lövés kell; itt %2$d van.</string>
-    <string name="stats_insights_nothing">Ebben a(z) %1$d lövésben %2$d sorozatból semmi sem tűnik ki.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Az Elemzéshez körülbelül %1$d lövés kell; itt %2$d van.</item>
+        <item quantity="other">Az Elemzéshez körülbelül %1$d lövés kell; itt %2$d van.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Ebben a(z) %1$d lövésben %2$s semmi sem tűnik ki.</item>
+        <item quantity="other">Ebben a(z) %1$d lövésben %2$s semmi sem tűnik ki.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d sorozatból</item>
+        <item quantity="other">%1$d sorozatból</item>
+    </plurals>
     <string name="stats_insights_numbers">Átlagos találati pont %1$s, szórás %2$d mm, átlagos sorozat %3$s.</string>
     <string name="stats_insights_legend">A sárga ellipszis a lövések körülbelül 86 százalékát foglalja magában; a nyíl a középponttól az átlagos találati pontig mutat. Koppints egy megjegyzésre, hogy lásd, mire vonatkozik a céltáblán.</string>
-    <string name="stats_insights_target_description">Elemzési céltábla %1$d lövéssel, az ellipszissel és az átlagos találati pontra mutató nyíllal</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Elemzési céltábla %1$d lövéssel, az ellipszissel és az átlagos találati pontra mutató nyíllal</item>
+        <item quantity="other">Elemzési céltábla %1$d lövéssel, az ellipszissel és az átlagos találati pontra mutató nyíllal</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Az Elemzés egyszerre egy kalibert vizsgál, és ezeknek a sorozatoknak nincs kalibere. Adj meg nekik kalibert az Előzményekben, hogy elemzést láss.</string>
-    <string name="stats_insights_uncalibered">%1$d kaliber nélküli sorozat kimaradt.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d kaliber nélküli sorozat kimaradt.</item>
+        <item quantity="other">%1$d kaliber nélküli sorozat kimaradt.</item>
+    </plurals>
     <string name="detail_vs_under">Az átlagod (%2$d) alatt: −%1$d</string>
     <string name="detail_vs_over">Az átlagod (%2$d) felett: +%1$d</string>
     <string name="detail_vs_on">Pontosan az átlagod: %1$d</string>
-    <string name="detail_vs_best">A legjobbad az elmúlt %1$d napban</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">A legjobbad az elmúlt %1$d napban</item>
+        <item quantity="other">A legjobbad az elmúlt %1$d napban</item>
+    </plurals>
     <string name="detail_day_in_insights">Ez a nap az Elemzésben</string>
     <string name="sight_title">Irányzékkorrekció</string>
     <string name="sight_up_mm">Fel %1$d mm</string>
     <string name="sight_down_mm">Le %1$d mm</string>
     <string name="sight_left_mm">Balra %1$d mm</string>
     <string name="sight_right_mm">Jobbra %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d kattintás</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d kattintás</item>
+        <item quantity="other">%1$s: %2$d kattintás</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 kattintás</string>
     <string name="sight_under_half_click">%1$s: kevesebb mint fél kattintás, hagyd így</string>
     <string name="sight_no_height">Magasság: nincs változás</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Kattintásérték megadása</string>
     <string name="sight_change_clicks">Kattintásérték módosítása</string>
     <string name="sight_adjusted_button">Beállítottam az irányzékot</string>
-    <string name="sight_adjusted_note">Irányzék beállítva: %1$s; az eltolódást az azóta leadott %2$d lövés alapján ítéli meg.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Irányzék beállítva: %1$s; az eltolódást az azóta leadott %2$d lövés alapján ítéli meg.</item>
+        <item quantity="other">Irányzék beállítva: %1$s; az eltolódást az azóta leadott %2$d lövés alapján ítéli meg.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Visszavonás</string>
     <string name="sight_dialog_title">Kattintásérték, %1$s</string>
     <string name="sight_dialog_help">Mennyit mozdít el egy kattintás a találaton a céltáblán a lőtávolságodon. Általában benne van az irányzék leírásában, vagy számold meg egy korrekció kattintásait, és mérd meg, mennyit mozdult a csoport.</string>

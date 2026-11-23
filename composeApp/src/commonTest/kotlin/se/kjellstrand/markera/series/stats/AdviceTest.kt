@@ -46,8 +46,9 @@ class AdviceTest {
         // Low and left (225 degrees): the impact has to move up and right.
         for (hand in listOf(right, left)) {
             val a = advice(offset(225.0, stable = true), hand)
-            assertEquals(Res.string.advice_offset_stable_summary, a.summary.res)
-            assertEquals(listOf(28, Res.string.advice_dir_low_left, 45, 4, 5), a.summary.args)
+            assertEquals(Res.plurals.advice_offset_stable_summary, a.summary.res)
+            assertEquals(listOf(28, Res.string.advice_dir_low_left, 45, 4, counted(Res.plurals.advice_offset_stable_days, 5)), a.summary.args)
+            assertEquals(45, a.summary.count)
             assertEquals(Res.string.advice_try_sights, a.tryThis.res)
             assertEquals(listOf(28, Res.string.advice_move_up_right), a.tryThis.args)
             assertEquals(listOf(Res.string.advice_cause_sights_1, Res.string.advice_cause_sights_2), a.causes.map { it.res })
@@ -61,7 +62,7 @@ class AdviceTest {
         // Right-hander: low-left (225). Left-hander: low-right (135). The numbers say what they are.
         val r = advice(offset(225.0), right)
         val l = advice(offset(135.0), left)
-        assertEquals(Res.string.advice_offset_varies_summary, r.summary.res)
+        assertEquals(Res.plurals.advice_offset_varies_summary, r.summary.res)
         assertEquals(Res.string.advice_dir_low_left, r.summary.args[1])
         assertEquals(Res.string.advice_dir_low_right, l.summary.args[1])
         for (a in listOf(r, l)) {
@@ -115,11 +116,11 @@ class AdviceTest {
     @Test
     fun stretchedGroupsGetTheirOrientationText() {
         val v = advice(stretched(Finding.Orientation.VERTICAL), right)
-        assertEquals(Res.string.advice_stretch_vertical_summary, v.summary.res)
+        assertEquals(Res.plurals.advice_stretch_vertical_summary, v.summary.res)
         assertEquals(listOf(80, 40), v.summary.args)
         assertEquals(Res.string.advice_cause_vertical_1, v.causes.first().res)
-        assertEquals(Res.string.advice_stretch_horizontal_summary, advice(stretched(Finding.Orientation.HORIZONTAL), right).summary.res)
-        assertEquals(Res.string.advice_stretch_diagonal_summary, advice(stretched(Finding.Orientation.DIAGONAL), right).summary.res)
+        assertEquals(Res.plurals.advice_stretch_horizontal_summary, advice(stretched(Finding.Orientation.HORIZONTAL), right).summary.res)
+        assertEquals(Res.plurals.advice_stretch_diagonal_summary, advice(stretched(Finding.Orientation.DIAGONAL), right).summary.res)
         for (o in Finding.Orientation.entries) {
             assertEquals(advice(stretched(o), right), advice(stretched(o), left))
         }
@@ -128,7 +129,7 @@ class AdviceTest {
     @Test
     fun fliersAndWideGroupsKeepTheirNumbers() {
         val f = advice(fliers, right)
-        assertEquals(Res.string.advice_fliers_summary, f.summary.res)
+        assertEquals(Res.plurals.advice_fliers_summary, f.summary.res)
         assertEquals(listOf(4, 10, 61), f.summary.args)
         assertEquals(f, advice(fliers, left))
         val w = advice(wide, right)
@@ -151,7 +152,7 @@ class AdviceTest {
         assertEquals(Res.string.advice_try_low_explained, withOffset.tryThis.res)
 
         val day = advice(lowDay, right, listOf(fliers))
-        assertEquals(Res.string.advice_low_day_summary, day.summary.res)
+        assertEquals(Res.plurals.advice_low_day_summary, day.summary.res)
         assertEquals(listOf(LocalDate(2026, 11, 3), 4, 41, 46), day.summary.args)
         assertEquals(Res.string.advice_low_note_fliers, day.note?.res)
         assertEquals(Res.string.advice_low_note_wide, advice(lowDay, left, listOf(wide)).note?.res)
@@ -164,11 +165,12 @@ class AdviceTest {
     fun trendsGetALineBothWays() {
         for (hand in listOf(right, left)) {
             val up = advice(trend(true), hand)
-            assertEquals(Res.string.advice_trend_up_summary, up.summary.res)
-            assertEquals(listOf(5, 20, 8), up.summary.args)
+            assertEquals(Res.plurals.advice_trend_up_summary, up.summary.res)
+            assertEquals(listOf(5, counted(Res.plurals.advice_trend_series, 20), counted(Res.plurals.advice_trend_weeks, 8)), up.summary.args)
+            assertEquals(5, up.summary.count)
             assertTrue(up.causes.isEmpty())
             val down = advice(trend(false), hand)
-            assertEquals(Res.string.advice_trend_down_summary, down.summary.res)
+            assertEquals(Res.plurals.advice_trend_down_summary, down.summary.res)
             assertEquals(3, down.causes.size)
             assertEquals(Res.string.advice_try_trend_down, down.tryThis.res)
         }
@@ -178,12 +180,12 @@ class AdviceTest {
     fun sessionTrendsGetFatigueAndWarmUpAdvice() {
         for (hand in listOf(right, left)) {
             val down = advice(Finding.SessionTrend(true, 3, 4, 46.6, 43.2, 0.5), hand)
-            assertEquals(Res.string.advice_session_down_summary, down.summary.res)
+            assertEquals(Res.plurals.advice_session_down_summary, down.summary.res)
             assertEquals(listOf(3, 4, 47, 43), down.summary.args)
             assertEquals(3, down.causes.size)
             assertEquals(Res.string.advice_try_session_down, down.tryThis.res)
             val up = advice(Finding.SessionTrend(false, 3, 3, 41.0, 45.0, 0.5), hand)
-            assertEquals(Res.string.advice_session_up_summary, up.summary.res)
+            assertEquals(Res.plurals.advice_session_up_summary, up.summary.res)
             assertTrue(up.causes.isEmpty())
             assertEquals(Res.string.advice_try_session_up, up.tryThis.res)
         }
@@ -214,8 +216,8 @@ class AdviceTest {
     @Test
     fun fewDaysDoNotClaimADayToDayVariation() {
         val a = advice(offset(225.0, days = 2), right)
-        assertEquals(Res.string.advice_offset_few_days_summary, a.summary.res)
+        assertEquals(Res.plurals.advice_offset_few_days_summary, a.summary.res)
         assertEquals(Res.string.advice_try_jerk, a.tryThis.res)
-        assertEquals(Res.string.advice_offset_varies_summary, advice(offset(225.0, days = 3), right).summary.res)
+        assertEquals(Res.plurals.advice_offset_varies_summary, advice(offset(225.0, days = 3), right).summary.res)
     }
 }

@@ -83,11 +83,20 @@
     <string name="history_signed_out">Logg inn for å se historikken din</string>
     <string name="history_empty">Ingen lagrede serier ennå</string>
     <string name="history_filter_empty">Ingen serier passer filteret.</string>
-    <string name="history_day_summary">%1$d serier · snitt %2$s</string>
-    <string name="history_day_summary_one">1 serie · %1$d poeng</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d serie · snitt %2$s</item>
+        <item quantity="other">%1$d serier · snitt %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 serie · %1$d poeng</item>
+        <item quantity="other">1 serie · %1$d poeng</item>
+    </plurals>
     <string name="history_card_title">%1$s · serie %2$d</string>
     <string name="history_delete_title">Slette serien?</string>
-    <string name="history_delete_message">%1$s · %2$d poeng</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d poeng</item>
+        <item quantity="other">%1$s · %2$d poeng</item>
+    </plurals>
     <string name="history_delete_confirm">Slett</string>
     <string name="history_delete_cancel">Avbryt</string>
     <string name="history_delete_failed">Kunne ikke slette</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Dato</string>
     <string name="filter_clear">Nullstill filtre</string>
     <string name="stats_no_geometry">Ingen av seriene dine har en ring å tegne mot. Skann en der 6/7-ringen blir funnet.</string>
-    <string name="stats_target_description">Skive med %1$d treff fra %2$d serier</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Skive med %1$d treff fra %2$s</item>
+        <item quantity="other">Skive med %1$d treff fra %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d serier</item>
+    </plurals>
     <string name="stats_timeline">Serienes tidslinje</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Gruppering</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Poeng</string>
     <string name="stats_trend_description">Trenddiagram, linjer: %1$d, punkter: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d serier)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d serie)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d serier)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Trend-fanen viser et valgfritt mål som en kurve over tid. Velg mål med knappene, og om hver serie blir et punkt eller om seriene slås sammen per dag, uke eller måned (målet regnes da over alle seriene i perioden). Per kaliber tegner én kurve per kaliber. Filtrene over gjelder alle faner. Trykk på et punkt for å lese av det.</string>
     <string name="stats_tab_drift">Drift</string>
-    <string name="stats_drift_description">Skive med middel- og mediantreffpunktet over tid, %1$d punkter</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Skive med middel- og mediantreffpunktet over tid, %1$d punkt</item>
+        <item quantity="other">Skive med middel- og mediantreffpunktet over tid, %1$d punkter</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d dager · %2$d serier · %3$d treff</string>
     <string name="stats_drift_oldest">Eldst</string>
     <string name="stats_drift_newest">Nyest</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Siste treffpunkt: %1$s (%2$d mm fra midten), %3$d mm nærmere enn %4$s.</string>
     <string name="stats_drift_summary_further">Siste treffpunkt: %1$s (%2$d mm fra midten), %3$d mm lenger ut enn %4$s.</string>
     <string name="stats_drift_summary_same">Siste treffpunkt: %1$s (%2$d mm fra midten), like langt ut som %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d serier · %3$d treff</string>
-    <string name="stats_drift_point_series">%1$s · serie %2$d av %3$d · %4$d treff</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d serie · %3$s</item>
+        <item quantity="other">%1$s · %2$d serier · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d treff</item>
+        <item quantity="other">%1$d treff</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · serie %2$d av %3$d · %4$d treff</item>
+        <item quantity="other">%1$s · serie %2$d av %3$d · %4$d treff</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Venstre/høyre og høyt/lavt over tid (snitt)</string>
     <string name="stats_drift_strips_median">Venstre/høyre og høyt/lavt over tid (median)</string>
@@ -297,17 +329,31 @@
     <string name="import_auto_body">Lagrer hvert bilde som får poeng uten å stoppe; de som ikke gjør det, vises etterpå.</string>
     <string name="import_progress">Import %1$d / %2$d</string>
     <string name="import_skip">Hopp over</string>
-    <string name="import_summary">%1$d lagret, %2$d hoppet over</string>
+    <string name="import_summary">%1$s, %2$s</string>
+    <plurals name="import_summary_saved">
+        <item quantity="one">%1$d lagret</item>
+        <item quantity="other">%1$d lagret</item>
+    </plurals>
+    <plurals name="import_summary_skipped">
+        <item quantity="one">%1$d hoppet over</item>
+        <item quantity="other">%1$d hoppet over</item>
+    </plurals>
     <string name="help_home_import">Importer bilder</string>
     <string name="help_home_import_body">I menyen: gi poeng til bilder som allerede ligger på telefonen, fra galleriet eller fra filer. Hvert bilde skannes og resultatet vises, så du kan lagre eller hoppe over. Med Automatisk import på lagres hvert bilde som får poeng av seg selv, med datoen bildet ble tatt; resten vises ett og ett etterpå.</string>
     <string name="series_status_phone">Lagret på denne enheten</string>
     <string name="series_not_uploaded">Ikke lastet opp</string>
-    <string name="stats_not_uploaded">Ikke lastet opp: %1$d serier</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Ikke lastet opp: %1$d serie</item>
+        <item quantity="other">Ikke lastet opp: %1$d serier</item>
+    </plurals>
     <string name="local_claim_title">Serier på denne enheten</string>
     <string name="local_claim_body">Serier lagret på denne enheten mens du var logget ut eller for en annen konto: %1$d. Legg dem til denne kontoen, slett dem fra enheten, eller forbli utlogget.</string>
     <string name="local_claim_add">Legg til kontoen</string>
     <string name="local_claim_delete">Slett fra enheten</string>
-    <string name="local_claim_delete_body">Slette %1$d serier og bildene deres fra denne enheten? Dette kan ikke angres. De er ikke lastet opp til denne kontoen.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Slette %1$d serie og bildet dens fra denne enheten? Dette kan ikke angres. Den er ikke lastet opp til denne kontoen.</item>
+        <item quantity="other">Slette %1$d serier og bildene deres fra denne enheten? Dette kan ikke angres. De er ikke lastet opp til denne kontoen.</item>
+    </plurals>
     <string name="local_claim_stay">Forbli utlogget</string>
     <string name="local_claim_error">Handlingen kunne ikke fullføres. De gjenværende seriene dine ligger fortsatt på denne enheten. Lukk og prøv å logge inn igjen.</string>
     <string name="home_week_series">serier på 7 dager</string>
@@ -317,17 +363,38 @@
     <string name="home_insight_stretch_vertical">Denne uken er %1$s-gruppen din omtrent %2$d prosent høyere enn den er bred.</string>
     <string name="home_insight_stretch_horizontal">Denne uken er %1$s-gruppen din omtrent %2$d prosent bredere enn den er høy.</string>
     <string name="home_insight_stretch_diagonal">Denne uken er %1$s-gruppen din omtrent %2$d prosent lengre på skrå.</string>
-    <string name="home_insight_fliers">Denne uken stakk ett skudd av i %2$d av dine %3$d %1$s-serier.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Denne uken stakk ett skudd av i %2$d av din %3$d %1$s-serie.</item>
+        <item quantity="other">Denne uken stakk ett skudd av i %2$d av dine %3$d %1$s-serier.</item>
+    </plurals>
     <string name="home_insight_wide">%2$s var %1$s-gruppene dine omtrent %3$d prosent bredere enn før.</string>
     <string name="home_insight_low_series">Den siste %1$s-serien din fikk %2$d, mot vanligvis %3$d.</string>
     <string name="home_insight_low_day">%2$s var snittet for %1$s-seriene dine %3$d, mot vanligvis %4$d.</string>
-    <string name="home_insight_trend_up">%1$s-poengene dine stiger: omtrent %2$d poeng over %3$d uker.</string>
-    <string name="home_insight_trend_down">%1$s-poengene dine synker: omtrent %2$d poeng over %3$d uker.</string>
-    <string name="home_insight_session_down">Denne uken fikk de senere %1$s-seriene dine færre poeng på %2$d av %3$d lengre dager.</string>
-    <string name="home_insight_session_up">Denne uken fikk de senere %1$s-seriene dine flere poeng på %2$d av %3$d lengre dager.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">%1$s-poengene dine stiger: omtrent %2$d poeng over %3$s.</item>
+        <item quantity="other">%1$s-poengene dine stiger: omtrent %2$d poeng over %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d uke</item>
+        <item quantity="other">%1$d uker</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">%1$s-poengene dine synker: omtrent %2$d poeng over %3$s.</item>
+        <item quantity="other">%1$s-poengene dine synker: omtrent %2$d poeng over %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Denne uken fikk de senere %1$s-seriene dine færre poeng på %2$d av %3$d lengre dag.</item>
+        <item quantity="other">Denne uken fikk de senere %1$s-seriene dine færre poeng på %2$d av %3$d lengre dager.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Denne uken fikk de senere %1$s-seriene dine flere poeng på %2$d av %3$d lengre dag.</item>
+        <item quantity="other">Denne uken fikk de senere %1$s-seriene dine flere poeng på %2$d av %3$d lengre dager.</item>
+    </plurals>
     <string name="home_insight_dismiss">Skjul denne analysen</string>
-    <string name="home_local_title">%1$d serier bare på denne telefonen</string>
-    <string name="home_local_title_one">1 serie bare på denne telefonen</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d serie bare på denne telefonen</item>
+        <item quantity="other">%1$d serier bare på denne telefonen</item>
+    </plurals>
     <string name="home_signin_title">Lagre seriene dine på kontoen</string>
     <string name="home_signin_body">Logg inn for å beholde dem når du bytter telefon.</string>
     <string name="action_sign_in">Logg inn</string>
@@ -366,12 +433,25 @@
     <string name="advice_move_down_left">ned og til venstre</string>
     <string name="advice_move_left">til venstre</string>
     <string name="advice_move_up_left">opp og til venstre</string>
-    <string name="advice_offset_stable_summary">Gruppen din sitter %1$d mm %2$s over %3$d skudd, på samme måte %4$d av %5$d dager.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Gruppen din sitter %1$d mm %2$s over %3$d skudd, på samme måte %4$d av %5$s.</item>
+        <item quantity="other">Gruppen din sitter %1$d mm %2$s over %3$d skudd, på samme måte %4$d av %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dag</item>
+        <item quantity="other">%1$d dager</item>
+    </plurals>
     <string name="advice_cause_sights_1">Siktet er ikke innskutt for denne ammunisjonen eller avstanden.</string>
     <string name="advice_cause_sights_2">Siktet har flyttet seg siden det ble stilt, eller en annen ammunisjon treffer et annet sted.</string>
     <string name="advice_try_sights">Still siktet slik at gruppen flytter seg omtrent %1$d mm %2$s, og skyt så en ny gruppe før du rører det igjen.</string>
-    <string name="advice_offset_varies_summary">Gruppen din sitter %1$d mm %2$s over %3$d skudd, men ikke på samme måte hver dag.</string>
-    <string name="advice_offset_few_days_summary">Gruppen din sitter %1$d mm %2$s over %3$d skudd, på for få dager til å si om det alltid er slik.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Gruppen din sitter %1$d mm %2$s over %3$d skudd, men ikke på samme måte hver dag.</item>
+        <item quantity="other">Gruppen din sitter %1$d mm %2$s over %3$d skudd, men ikke på samme måte hver dag.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Gruppen din sitter %1$d mm %2$s over %3$d skudd, på for få dager til å si om det alltid er slik.</item>
+        <item quantity="other">Gruppen din sitter %1$d mm %2$s over %3$d skudd, på for få dager til å si om det alltid er slik.</item>
+    </plurals>
     <string name="advice_cause_high_1">At du skyver håndflaten fram når skuddet går.</string>
     <string name="advice_cause_high_2">At håndleddet knekker oppover i skuddet.</string>
     <string name="advice_cause_high_3">At du ser etter treffet og løfter våpenet for tidlig.</string>
@@ -390,21 +470,33 @@
     <string name="advice_cause_side_2">At tommeltrykk på grepet skyver våpenet til siden.</string>
     <string name="advice_cause_side_3">Et avtrekk som ikke går rett bakover.</string>
     <string name="advice_try_side">Sjekk hvor fingeren møter avtrekkeren og hvor hardt tommelen trykker, og tørrtren så og se på siktet.</string>
-    <string name="advice_stretch_vertical_summary">Gruppen din er omtrent %1$d prosent høyere enn den er bred, over %2$d skudd.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Gruppen din er omtrent %1$d prosent høyere enn den er bred, over %2$d skudd.</item>
+        <item quantity="other">Gruppen din er omtrent %1$d prosent høyere enn den er bred, over %2$d skudd.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Pusten: at du skyter på ulike steder i pusten hver gang.</string>
     <string name="advice_cause_vertical_2">At siktebildet endrer seg i høyden, med kornet høyere eller lavere i skuret.</string>
     <string name="advice_cause_vertical_3">Grepstrykk som varierer fra skudd til skudd.</string>
     <string name="advice_try_vertical">Hold pusten på samme sted hvert skudd og sjekk kornets høyde i skuret før du trykker av.</string>
-    <string name="advice_stretch_horizontal_summary">Gruppen din er omtrent %1$d prosent bredere enn den er høy, over %2$d skudd.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Gruppen din er omtrent %1$d prosent bredere enn den er høy, over %2$d skudd.</item>
+        <item quantity="other">Gruppen din er omtrent %1$d prosent bredere enn den er høy, over %2$d skudd.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Et avtrekk som går til siden.</string>
     <string name="advice_cause_horizontal_2">At håndleddet beveger seg i skuddet.</string>
     <string name="advice_cause_horizontal_3">En stilling som ikke står rett mot skiven.</string>
     <string name="advice_try_horizontal">Tørrtren med siktet på et merke og se om det glir til siden når avtrekket går.</string>
-    <string name="advice_stretch_diagonal_summary">Gruppen din er omtrent %1$d prosent lengre den ene veien enn den andre, på skrå, over %2$d skudd.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Gruppen din er omtrent %1$d prosent lengre den ene veien enn den andre, på skrå, over %2$d skudd.</item>
+        <item quantity="other">Gruppen din er omtrent %1$d prosent lengre den ene veien enn den andre, på skrå, over %2$d skudd.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">At grepstrykket og avtrekket motarbeider hverandre.</string>
     <string name="advice_cause_diagonal_2">En stilling eller armstilling som vipper våpenet.</string>
     <string name="advice_try_diagonal">Sjekk at grepet er likt hvert skudd og at siktet står rett før du trykker av.</string>
-    <string name="advice_fliers_summary">I %1$d av dine %2$d serier stakk ett skudd av fra resten, i snitt omtrent %3$d mm ut.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">I %1$d av din %2$d serie stakk ett skudd av fra resten, i snitt omtrent %3$d mm ut.</item>
+        <item quantity="other">I %1$d av dine %2$d serier stakk ett skudd av fra resten, i snitt omtrent %3$d mm ut.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Avtrekkskontroll på et enkelt skudd.</string>
     <string name="advice_cause_fliers_2">At du mister etterholdingen.</string>
     <string name="advice_cause_fliers_3">At du slipper skuddet uten å ha meldt det.</string>
@@ -415,48 +507,93 @@
     <string name="advice_cause_wide_3">At du stresser skuddene.</string>
     <string name="advice_try_wide">Tørrtrening: hold og trykk av uten å skyte, og hvil når holdet begynner å skjelve.</string>
     <string name="advice_low_series_summary">Den siste serien din fikk %1$d, mot %2$d i snitt over de siste %3$d.</string>
-    <string name="advice_low_day_summary">%1$s fikk dine %2$d serier %3$d i snitt, mot %4$d i snitt før.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s fikk din %2$d serie %3$d i snitt, mot %4$d i snitt før.</item>
+        <item quantity="other">%1$s fikk dine %2$d serier %3$d i snitt, mot %4$d i snitt før.</item>
+    </plurals>
     <string name="advice_try_low_plain">Ett lavt resultat sier lite: skyt noen flere før du endrer noe.</string>
     <string name="advice_try_low_explained">Begynn med merknaden under i stedet for å endre alt på en gang.</string>
     <string name="advice_low_note_offset">Gruppen din sitter utenfor midten, og det kan være en del av grunnen.</string>
     <string name="advice_low_note_stretched">Gruppen din er strukket i én retning, og det kan være en del av grunnen.</string>
     <string name="advice_low_note_fliers">At ett skudd i en serie stikker av, kan være en del av grunnen.</string>
     <string name="advice_low_note_wide">Bredere grupper enn vanlig kan være en del av grunnen.</string>
-    <string name="advice_trend_up_summary">Poengene dine har steget omtrent %1$d poeng over %3$d uker, fordelt på %2$d serier.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Poengene dine har steget omtrent %1$d poeng over %3$s, fordelt på %2$s.</item>
+        <item quantity="other">Poengene dine har steget omtrent %1$d poeng over %3$s, fordelt på %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d serier</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d uke</item>
+        <item quantity="other">%1$d uker</item>
+    </plurals>
     <string name="advice_try_trend_up">Fortsett med det du gjør, og noter hva som endret seg, så du kan gjenta det.</string>
-    <string name="advice_trend_down_summary">Poengene dine har falt omtrent %1$d poeng over %3$d uker, fordelt på %2$d serier.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Poengene dine har falt omtrent %1$d poeng over %3$s, fordelt på %2$s.</item>
+        <item quantity="other">Poengene dine har falt omtrent %1$d poeng over %3$s, fordelt på %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Tretthet eller mindre tid til trening.</string>
     <string name="advice_cause_trend_2">At du stresser skuddene.</string>
     <string name="advice_cause_trend_3">Bytte av våpen, ammunisjon eller rutine.</string>
     <string name="advice_try_trend_down">Kortere økter med pauser, og noen tørrtreningsskudd for å finne det grunnleggende igjen.</string>
-    <string name="advice_session_down_summary">På %1$d av dine %2$d lengre dager fikk de senere seriene færre poeng enn de første: %4$d i snitt mot %3$d de dagene.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">På %1$d av din %2$d lengre dag fikk de senere seriene færre poeng enn de første: %4$d i snitt mot %3$d de dagene.</item>
+        <item quantity="other">På %1$d av dine %2$d lengre dager fikk de senere seriene færre poeng enn de første: %4$d i snitt mot %3$d de dagene.</item>
+    </plurals>
     <string name="advice_cause_session_1">Tretthet i arm, skulder eller øyne utover i økten.</string>
     <string name="advice_cause_session_2">At konsentrasjonen svekkes, så skuddene stresses eller meldes dårligere.</string>
     <string name="advice_cause_session_3">For få pauser mellom seriene.</string>
     <string name="advice_try_session_down">Kortere økter, eller en ordentlig pause etter noen serier for å hvile øynene og armen.</string>
-    <string name="advice_session_up_summary">På %1$d av dine %2$d lengre dager fikk de senere seriene flere poeng enn de første: %4$d i snitt mot %3$d de dagene.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">På %1$d av din %2$d lengre dag fikk de senere seriene flere poeng enn de første: %4$d i snitt mot %3$d de dagene.</item>
+        <item quantity="other">På %1$d av dine %2$d lengre dager fikk de senere seriene flere poeng enn de første: %4$d i snitt mot %3$d de dagene.</item>
+    </plurals>
     <string name="advice_try_session_up">Treg start: begynn med noen tørrtreningsskudd eller prøveskudd før den første serien teller.</string>
     <string name="stats_help_insights">Analyse</string>
     <string name="stats_help_insights_body">Analyse ser på de lagrede seriene dine, ett kaliber om gangen, og peker på mønstre den er ganske sikker på: en gruppe som sitter til én side, en gruppe som er strukket, et skudd som stikker av, eller poeng som synker eller stiger. Den trenger et godt antall skudd før den sier noe. Hver merknad forteller hva tallene viser, hva som ofte er årsaken og én ting du kan prøve. Det er et tips, ikke en trener: årsakene er vanlige, ikke en dom. Velg skytehånd og slå av Analyse under Innstillinger.</string>
     <string name="stats_tab_insights">Analyse</string>
-    <string name="stats_insights_need_more">Analysen trenger omtrent %1$d skudd; her har du %2$d.</string>
-    <string name="stats_insights_nothing">Ingenting skiller seg ut i disse %1$d skuddene fra %2$d serier.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analysen trenger omtrent %1$d skudd; her har du %2$d.</item>
+        <item quantity="other">Analysen trenger omtrent %1$d skudd; her har du %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Ingenting skiller seg ut i dette %1$d skuddet fra %2$s.</item>
+        <item quantity="other">Ingenting skiller seg ut i disse %1$d skuddene fra %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d serier</item>
+    </plurals>
     <string name="stats_insights_numbers">Middeltreffpunkt %1$s, spredning %2$d mm, snittserie %3$s.</string>
     <string name="stats_insights_legend">Den gule ellipsen rommer omtrent 86 prosent av skuddene; pilen går fra midten til middeltreffpunktet. Trykk på en merknad for å se hva den viser til på skiven.</string>
-    <string name="stats_insights_target_description">Analyseskive med %1$d skudd, ellipsen og pilen til middeltreffpunktet</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Analyseskive med %1$d skudd, ellipsen og pilen til middeltreffpunktet</item>
+        <item quantity="other">Analyseskive med %1$d skudd, ellipsen og pilen til middeltreffpunktet</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analyse ser på ett kaliber om gangen, og disse seriene har ikke noe. Sett et kaliber på dem i Historikk for å se analysen.</string>
-    <string name="stats_insights_uncalibered">%1$d serier uten kaliber holdes utenfor.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d serie uten kaliber holdes utenfor.</item>
+        <item quantity="other">%1$d serier uten kaliber holdes utenfor.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d under snittet ditt på %2$d</string>
     <string name="detail_vs_over">%1$d over snittet ditt på %2$d</string>
     <string name="detail_vs_on">På snittet ditt på %1$d</string>
-    <string name="detail_vs_best">Ditt beste de siste %1$d dagene</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Ditt beste den siste %1$d dagen</item>
+        <item quantity="other">Ditt beste de siste %1$d dagene</item>
+    </plurals>
     <string name="detail_day_in_insights">Se denne dagen i Analyse</string>
     <string name="sight_title">Siktekorrigering</string>
     <string name="sight_up_mm">Opp %1$d mm</string>
     <string name="sight_down_mm">Ned %1$d mm</string>
     <string name="sight_left_mm">Venstre %1$d mm</string>
     <string name="sight_right_mm">Høyre %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d klikk</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d klikk</item>
+        <item quantity="other">%1$s: %2$d klikk</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 klikk</string>
     <string name="sight_under_half_click">%1$s: under et halvt klikk, la det være</string>
     <string name="sight_no_height">Høyde: ingen endring</string>
@@ -467,7 +604,10 @@
     <string name="sight_set_clicks">Legg inn klikkverdi</string>
     <string name="sight_change_clicks">Endre klikkverdi</string>
     <string name="sight_adjusted_button">Jeg har stilt siktet</string>
-    <string name="sight_adjusted_note">Siktet stilt %1$s: avviket vurderes ut fra de %2$d skuddene siden da.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Siktet stilt %1$s: avviket vurderes ut fra det %2$d skuddet siden da.</item>
+        <item quantity="other">Siktet stilt %1$s: avviket vurderes ut fra de %2$d skuddene siden da.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Angre</string>
     <string name="sight_dialog_title">Klikkverdi, %1$s</string>
     <string name="sight_dialog_help">Hvor langt ett klikk flytter treffet på skiven på skyteavstanden din. Det står som regel i bruksanvisningen til siktet, ellers kan du telle klikkene for én korrigering og måle hvor langt gruppen flyttet seg.</string>

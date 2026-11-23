@@ -64,6 +64,7 @@ import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -206,7 +207,12 @@ internal fun TargetCanvas(
     var zoom by remember { mutableStateOf(1f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     // The numbers are spelled out in the measurement rows below; this names the picture.
-    val description = stringResource(Res.string.stats_target_description, stats?.hitCount ?: 0, plotted.size)
+    val description = pluralStringResource(
+        Res.plurals.stats_target_description,
+        stats?.hitCount ?: 0,
+        stats?.hitCount ?: 0,
+        pluralStringResource(Res.plurals.stats_target_description_series, plotted.size, plotted.size),
+    )
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
