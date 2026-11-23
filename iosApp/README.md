@@ -136,6 +136,18 @@ sh scripts/mac.sh 'bash scripts/mac-metadata.sh'
 sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane release'
 ```
 
+**App Review contact (local only).** The contact Apple calls during review lives in
+`fastlane/metadata/review_information/` as `first_name.txt`, `last_name.txt`,
+`phone_number.txt` and `email_address.txt` (one value per file, no trailing text).
+They are gitignored: the repository is public and the contact is for Apple only
+(issue #8). Only `notes.txt` is committed. Create the four files by hand in the
+Windows checkout; `scripts/mac-sync.sh` carries them to the Mac on every sync and,
+when the syncing checkout has none, keeps the copies already there. A fresh Mac clone
+gets them on the first sync from a checkout that has them, or by copying them into
+`~/source/Markera/iosApp/fastlane/metadata/review_information/` once. Without them
+`metadata`/`release` warn and App Store Connect keeps the contact it already has;
+`submit` never reads them (`skip_metadata`).
+
 Not reachable through the API and done once in the App Store Connect UI: the App
 Privacy questionnaire (account name/user id, photos, user content; all linked to the
 user, none used for tracking).

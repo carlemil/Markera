@@ -166,6 +166,11 @@ platform :ios do
     build = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID).to_s
     submit = options[:submit]
     UI.message("App Store version #{version}, build #{build}, submit=#{submit}")
+    # The App Review contact files are gitignored (issue #8) and live only on the
+    # machines that push; without them deliver leaves the contact in ASC as it is.
+    missing = %w[first_name last_name phone_number email_address]
+      .reject { |f| File.exist?("metadata/review_information/#{f}.txt") }
+    UI.important("Review contact files missing (#{missing.join(', ')}); App Store Connect keeps its current contact. See iosApp/README.md.") unless missing.empty?
     # App-level and required before a submission is accepted; deliver does not set
     # it. The other app-level requirement, the App Privacy answers, has no public
     # API (dataUsages is a web-session endpoint) and is done once in the ASC UI.
