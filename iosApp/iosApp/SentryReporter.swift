@@ -12,7 +12,8 @@ final class SentryReporter: NSObject, NativeErrorReporter {
             options.dsn = dsn
             #if DEBUG
             options.environment = "debug"
-            options.debug = true
+            // No options.debug (issue #87): with it Sentry 8.58 runs its duplicate-SDK check, which on the
+            // iOS 27 simulator never returns from dyld while holding the loader lock, so the app hangs at launch.
             #else
             options.environment = "release"
             #endif
