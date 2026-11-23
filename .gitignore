@@ -50,3 +50,5 @@ iosApp/iosApp/iosApp.entitlements
 iosApp/*.cer
 iosApp/*.mobileprovision
 promo/_scratch/series.db
+# UI-test upload gate (gradle/ui-test-gate.gradle.kts, scripts/ui-gate.sh): the commit AppUiTest last passed on.
+/.ui-test-pass

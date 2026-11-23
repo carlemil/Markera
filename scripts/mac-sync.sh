@@ -17,4 +17,11 @@ deleted=$(git diff --name-only --no-renames --diff-filter=D HEAD)
 if [ -n "$deleted" ]; then
     printf '%s\n' "$deleted" | ssh macmini 'cd ~/source/Markera && xargs rm -f'
 fi
+# The UI-test gate record (gitignored, so neither the push nor the tar above carries it): the Mac's
+# upload lanes check it against the Mac's HEAD (scripts/ui-gate.sh). No record here, none there.
+if [ -f .ui-test-pass ]; then
+    ssh macmini 'cat > ~/source/Markera/.ui-test-pass' < .ui-test-pass
+else
+    ssh macmini 'rm -f ~/source/Markera/.ui-test-pass'
+fi
 echo "Mac at $(git rev-parse --short HEAD) + $(printf '%s' "$files" | grep -c .) uncommitted file(s)"

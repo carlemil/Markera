@@ -56,6 +56,20 @@ until the UI tests pass on the phone, against the exact source being shipped:
 $env:ANDROID_SERIAL="<phone serial>"; .\gradlew.bat :composeApp:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=se.kjellstrand.markera.AppUiTest"
 ```
 
+**The gate enforces it** (`gradle/ui-test-gate.gradle.kts`, `scripts/ui-gate.sh`). That run, on a
+clean, committed tree, writes `.ui-test-pass` at the repo root (gitignored; line 1 = the HEAD sha)
+only if it was the whole class (the runner arg exactly as above, not `#method`), every fresh result
+XML has 0 failures/errors/skips, and HEAD and the clean tree held from start to end; a failing
+AppUiTest run deletes it. Uploads refuse unless the record names HEAD and the tree is clean:
+`checkUiTestGate` is a dependency of every Play `publish*` task (`promote*` is not gated: it moves
+an already uploaded build); `scripts/mac.sh` checks before it sends an upload command;
+`mac-sync.sh` copies the record to the Mac (or removes it there), where `mac-beta.sh`,
+`mac-metadata.sh` and the Fastfile's `beta`/`metadata`/`release`/`submit`/`reupload` lanes check it
+against the Mac clone's HEAD (the same commit). So commit first (version bump, notes, screenshots),
+then test, then upload; any later commit, even docs, needs a new run. Emergency override, with a
+loud warning: `-Pmarkera.skipUiGate=true` (Gradle) or `SKIP_UI_GATE=1` (scripts, fastlane; `mac.sh`
+passes it on). `sh scripts/ui-gate-test.sh` tests the shell check.
+
 `AppUiTest` (androidInstrumentedTest) runs the real `MarkeraApp` against a MockEngine backend with an
 in-memory database and login store, so it never touches the phone's own data. It covers the 1.14.0
 regressions (Home empty after sign-in; a backup-restored series cache shown with blank photos while

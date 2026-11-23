@@ -7,8 +7,26 @@ opt_out_usage
 # project's key works here too once the Markera app record exists.
 
 APP_ID = "se.kjellstrand.markera"
+# Lanes that upload to App Store Connect; each passes the UI-test gate first (before_all below).
+UPLOAD_LANES = %i[beta metadata release submit reupload].freeze
 
 platform :ios do
+  # UI-test gate (issue #15, CLAUDE.md "Release rule"): every lane that uploads to App Store
+  # Connect refuses unless AppUiTest passed on the phone for exactly this commit and the clone is
+  # clean. scripts/ui-gate.sh compares the record scripts/mac-sync.sh carried over (.ui-test-pass)
+  # with this clone's HEAD, which mac-sync pushed from the Windows checkout. before_all runs once
+  # per invocation, so `release` calling `submit` checks once. SKIP_UI_GATE=1 overrides, loudly.
+  before_all do |lane|
+    if UPLOAD_LANES.include?(lane)
+      # Lane code runs in iosApp/fastlane (as metadata/ and ../project.yml below assume); the
+      # second path covers a run from iosApp.
+      gate = ["../../scripts/ui-gate.sh", "../scripts/ui-gate.sh"].map { |p| File.expand_path(p) }.find { |p| File.file?(p) }
+      UI.user_error!("UI-test gate: scripts/ui-gate.sh not found from #{Dir.pwd}") unless gate
+      system("sh", gate) or
+        UI.user_error!("UI-test gate refused the #{lane} lane (see above)")
+    end
+  end
+
   desc "Regenerate iosApp.xcodeproj from project.yml (idempotent)."
   lane :gen do
     sh("cd .. && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodegen generate")
