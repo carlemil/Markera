@@ -84,6 +84,8 @@ import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.onFirst
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.files.Path
@@ -221,7 +223,7 @@ class AppUiTest {
         )
     }
     /** What GET /series answers; a test fills it before launch. */
-    private var onServer: List<SeriesDto> = listOf(serverSeries) + offsetSeries
+    @Volatile private var onServer: List<SeriesDto> = listOf(serverSeries) + offsetSeries
 
     private val jpeg: ByteArray by lazy {
         val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.rgb(200, 180, 120)) }
@@ -2114,6 +2116,36 @@ class AppUiTest {
         waitForExact(localStamp(serverSeries.timestamp))
         click(inDialog(button("Close")))
         rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasTestTag(STATS_PHOTO_TAG)) }
+    }
+
+    /**
+     * Issue #11: new series with the same count give the knob new state but used to leave its
+     * gestures on the old onKnob, so a drag did nothing. A refresh that moves the newest series a
+     * few minutes keeps the count at 5 and changes what is plotted; the knob must still follow a drag.
+     */
+    @Test fun statsKnobStillDragsAfterSameCountChange() {
+        onServer = varied
+        openStatistics()
+        waitForDescribed("hits from 5 series")
+        rule.waitUntil(TIMEOUT_MS) { requests.contains("GET /series") }
+        rule.waitForIdle()
+        val moved = (kotlin.time.Instant.parse(serverSeries.timestamp) + 2.minutes).toString()
+        onServer = varied.map { if (it.id == serverSeries.id) it.copy(timestamp = moved) else it }
+        val before = requests.count { it == "GET /series" }
+        rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+            .onFirst().performTouchInput { swipeDown() }
+        rule.waitUntil(TIMEOUT_MS) { requests.count { it == "GET /series" } > before }
+        // The newest stamp under the timeline is the moved one: the refresh has been plotted.
+        waitForExact(localStamp(moved))
+        waitForDescribed("hits from 5 series")
+        val knob = hasContentDescription("Series timeline") and SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)
+        rule.onNode(knob).performScrollTo()
+        // From the knob (on the newest, at the right end) all the way left: on, on the oldest.
+        rule.onNode(knob).performTouchInput { swipeLeft(startX = right - 2f, endX = left + 2f) }
+        waitForDescribed("hits from 1 series")
+        // On, the timeline names only the oldest series; the newest's stamp is gone.
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText(localStamp(moved))) }
+        waitForExact(localStamp(varied.minBy { kotlin.time.Instant.parse(it.timestamp) }.timestamp))
     }
 
     /** Trend draws a line per caliber until Per caliber is switched off; one caliber filtered in offers no split. */

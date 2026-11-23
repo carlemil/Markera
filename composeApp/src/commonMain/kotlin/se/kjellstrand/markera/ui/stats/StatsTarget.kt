@@ -537,8 +537,10 @@ internal fun AgeLegend(plotted: List<PlottedSeries>, knob: Int, on: Boolean, onK
         val accent = MaterialTheme.colorScheme.primary
         val muted = MaterialTheme.colorScheme.surface
         val outline = MaterialTheme.colorScheme.outline
-        // The gestures are not restarted per recomposition, so they read these.
+        // The gestures restart only when the count changes, so they read these: a new filter or
+        // a refresh with the same count brings a new onKnob (writing to new knob state) (#11).
         val current by rememberUpdatedState(knob to on)
+        val currentOnKnob by rememberUpdatedState(onKnob)
         val count = plotted.size
         val timeline = stringResource(Res.string.stats_timeline)
         val knobStamp = localStamp(plotted[knob].series.timestamp)
@@ -553,7 +555,7 @@ internal fun AgeLegend(plotted: List<PlottedSeries>, knob: Int, on: Boolean, onK
                     progressBarRangeInfo = ProgressBarRangeInfo(
                         knob.toFloat(), 0f..(count - 1).coerceAtLeast(0).toFloat(), (count - 2).coerceAtLeast(0),
                     )
-                    setProgress { v -> onKnob(v.roundToInt().coerceIn(0, count - 1), true); true }
+                    setProgress { v -> currentOnKnob(v.roundToInt().coerceIn(0, count - 1), true); true }
                 }
                 .pointerInput(count) {
                     // The knob's centre travels between the insets, so it never overhangs the bar.
@@ -563,9 +565,9 @@ internal fun AgeLegend(plotted: List<PlottedSeries>, knob: Int, on: Boolean, onK
                     detectTapGestures { at ->
                         val (k, wasOn) = current
                         if (abs(at.x - knobX(k)) <= KNOB_TOUCH.toPx() / 2f) {
-                            onKnob(k, !wasOn)
+                            currentOnKnob(k, !wasOn)
                         } else {
-                            onKnob(indexAt(at.x), true)
+                            currentOnKnob(indexAt(at.x), true)
                         }
                     }
                 }
@@ -574,10 +576,10 @@ internal fun AgeLegend(plotted: List<PlottedSeries>, knob: Int, on: Boolean, onK
                     fun indexAt(x: Float) = knobIndex(x - inset, size.width - 2f * inset, count)
                     // Horizontal only, so a vertical swipe over the bar still scrolls the page.
                     detectHorizontalDragGestures(
-                        onDragStart = { onKnob(indexAt(it.x), true) },
+                        onDragStart = { currentOnKnob(indexAt(it.x), true) },
                     ) { change, _ ->
                         change.consume()
-                        onKnob(indexAt(change.position.x), true)
+                        currentOnKnob(indexAt(change.position.x), true)
                     }
                 },
         ) {
