@@ -21,7 +21,12 @@ import java.io.File
 import java.security.KeyPairGenerator
 import java.util.Base64
 import kotlin.test.Test
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -44,19 +49,24 @@ class AppleWebAuthTest {
 
         val SECRET = "a".repeat(64)
         val STATE = sha256(SECRET)
+
+        /** Made-up fingerprints of the right shape; real ones come from Play Console and the debug keystore. */
+        val FP_PLAY = List(32) { "%02X".format(it) }.joinToString(":")
+        val FP_DEBUG = List(32) { "%02X".format(255 - it) }.joinToString(":")
     }
 
     /** [appleWeb] null exercises the unconfigured case. */
     private fun appleTest(
         appleWeb: AppleWebConfig? = webConfig,
         identity: (String) -> Identity = { Identity("apple-sub-1", "ada@privaterelay.appleid.com") },
+        certFingerprints: List<String> = emptyList(),
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) = testApplication {
         val dbFile = File.createTempFile("markera-apple-test", ".db").also { it.delete(); it.deleteOnExit() }
         val imagesDir = File(dbFile.path + "-images").also { it.deleteOnExit() }
         application {
             markeraModule(
-                Config(0, dbFile.path, null, null, false, imagesDir.path, null, null, appleWeb),
+                Config(0, dbFile.path, null, null, false, imagesDir.path, null, null, appleWeb, androidCertSha256 = certFingerprints),
                 Db(dbFile.path),
                 appleCodeIdentity = identity,
             )
@@ -71,7 +81,12 @@ class AppleWebAuthTest {
 
     /** A whole round: `/start` issues [state], then Apple's redirect lands on the callback. */
     private suspend fun HttpClient.callback(state: String = STATE, code: String = "apple-code") =
-        get("/auth/apple/start?state=$state").let { rawCallback(state, code) }
+        // `/start` takes the plain hash; the https return travels as `return=https` and comes back as a suffix.
+        get(
+            if (state.endsWith(APPLE_HTTPS_STATE_SUFFIX))
+                "/auth/apple/start?state=${state.removeSuffix(APPLE_HTTPS_STATE_SUFFIX)}&return=https"
+            else "/auth/apple/start?state=$state",
+        ).let { rawCallback(state, code) }
 
     /** The callback alone, without a `/start` before it. */
     private suspend fun HttpClient.rawCallback(state: String = STATE, code: String = "apple-code") =
@@ -199,6 +214,106 @@ class AppleWebAuthTest {
         assertEquals(webConfig.servicesId, jwt.subject)
         assertEquals(listOf("https://appleid.apple.com"), jwt.audience)
         assertTrue(jwt.expiresAtAsInstant.isAfter(jwt.issuedAtAsInstant))
+    }
+
+    // --- The https return (issue #48): new apps ask for it at start, old apps keep markera://. ---
+
+    @Test
+    fun aNewAppsStartCarriesTheHttpsReturnInsideTheStateSentToApple() = appleTest { client ->
+        val location = Url(assertNotNull(client.get("/auth/apple/start?state=$STATE&return=https").headers[HttpHeaders.Location]))
+        assertEquals("$STATE$APPLE_HTTPS_STATE_SUFFIX", location.parameters["state"])
+    }
+
+    @Test
+    fun anUnknownReturnValueKeepsTheCustomScheme() = appleTest { client ->
+        val location = Url(assertNotNull(client.get("/auth/apple/start?state=$STATE&return=ftp").headers[HttpHeaders.Location]))
+        assertEquals(STATE, location.parameters["state"])
+    }
+
+    @Test
+    fun aNewAppsCallbackRedirectsToTheHttpsReturnAndTheLoginIsClaimable() = appleTest { client ->
+        val redirect = client.callback(state = "$STATE$APPLE_HTTPS_STATE_SUFFIX")
+        assertEquals(HttpStatusCode.Found, redirect.status)
+        val location = assertNotNull(redirect.headers[HttpHeaders.Location])
+        // The suffix is gone: the app compares the plain hex, and the login is parked under it.
+        assertTrue(location.startsWith("https://markera.example$APPLE_DONE_PATH?state=$STATE&nonce="), location)
+        val nonce = assertNotNull(Url(location).parameters["nonce"])
+        assertEquals(HttpStatusCode.OK, client.claim(STATE, SECRET, nonce).status)
+    }
+
+    @Test
+    fun anOldAppsCallbackStillRedirectsToTheCustomScheme() = appleTest { client ->
+        val location = assertNotNull(client.callback().headers[HttpHeaders.Location])
+        assertTrue(location.startsWith("markera://auth/apple?state=$STATE&nonce="), location)
+    }
+
+    @Test
+    fun aNewAppsCancelComesBackOnTheHttpsReturn() = appleTest { client ->
+        val response = client.get("/auth/apple/callback?error=user_cancelled_authorize&state=$STATE$APPLE_HTTPS_STATE_SUFFIX")
+        assertEquals("https://markera.example$APPLE_DONE_PATH?state=$STATE&error=cancelled", response.headers[HttpHeaders.Location])
+    }
+
+    @Test
+    fun theCallbackRejectsAnyOtherSuffix() = appleTest { client ->
+        assertEquals(HttpStatusCode.BadRequest, client.callback(state = "$STATE-evil").status)
+    }
+
+    @Test
+    fun theDonePageHandsTheParametersToTheAppByHand() = appleTest { client ->
+        val nonce = "b".repeat(64)
+        val response = client.get("$APPLE_DONE_PATH?state=$STATE&nonce=$nonce")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
+        val html = response.body<String>()
+        assertTrue("href=\"markera://auth/apple?state=$STATE&amp;nonce=$nonce\"" in html, html)
+        assertTrue("intent://auth/apple?state=$STATE&amp;nonce=$nonce#Intent;scheme=markera;package=se.kjellstrand.markera;end" in html, html)
+    }
+
+    @Test
+    fun theDonePageCarriesACancel() = appleTest { client ->
+        val html = client.get("$APPLE_DONE_PATH?state=$STATE&error=cancelled").body<String>()
+        assertTrue("markera://auth/apple?state=$STATE&amp;error=cancelled" in html, html)
+    }
+
+    @Test
+    fun theDonePageEchoesNothingUnchecked() = appleTest { client ->
+        assertEquals(HttpStatusCode.BadRequest, client.get("$APPLE_DONE_PATH?state=$STATE&nonce=%3Cscript%3E").status)
+        assertEquals(HttpStatusCode.BadRequest, client.get("$APPLE_DONE_PATH?state=%3Cscript%3E&nonce=$STATE").status)
+        assertEquals(HttpStatusCode.BadRequest, client.get("$APPLE_DONE_PATH?state=$STATE&error=%3Cb%3E").status)
+        assertEquals(HttpStatusCode.BadRequest, client.get("$APPLE_DONE_PATH?state=$STATE").status)
+    }
+
+    @Test
+    fun assetLinksIs404WithoutFingerprints() = appleTest { client ->
+        assertEquals(HttpStatusCode.NotFound, client.get("/.well-known/assetlinks.json").status)
+    }
+
+    @Test
+    fun assetLinksListsThePackageAndEveryFingerprint() = appleTest(certFingerprints = listOf(FP_PLAY, FP_DEBUG)) { client ->
+        val response = client.get("/.well-known/assetlinks.json")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(ContentType.Application.Json, response.contentType()?.withoutParameters())
+        val statements = Json.parseToJsonElement(response.body<String>()).jsonArray
+        assertEquals(1, statements.size)
+        val statement = statements[0].jsonObject
+        assertEquals(
+            listOf("delegate_permission/common.handle_all_urls"),
+            statement["relation"]!!.jsonArray.map { it.jsonPrimitive.content },
+        )
+        val target = statement["target"]!!.jsonObject
+        assertEquals("android_app", target["namespace"]!!.jsonPrimitive.content)
+        assertEquals("se.kjellstrand.markera", target["package_name"]!!.jsonPrimitive.content)
+        assertEquals(listOf(FP_PLAY, FP_DEBUG), target["sha256_cert_fingerprints"]!!.jsonArray.map { it.jsonPrimitive.content })
+    }
+
+    @Test
+    fun fingerprintsAreTrimmedUpperCasedAndChecked() {
+        assertEquals(emptyList(), parseCertFingerprints(null))
+        assertEquals(emptyList(), parseCertFingerprints(" , "))
+        assertEquals(listOf(FP_PLAY, FP_DEBUG), parseCertFingerprints(" ${FP_PLAY.lowercase()} ,$FP_DEBUG"))
+        assertFailsWith<IllegalArgumentException> { parseCertFingerprints("AB:CD") }
+        // A SHA-1 (20 bytes) is the classic mix-up.
+        assertFailsWith<IllegalArgumentException> { parseCertFingerprints(List(20) { "AB" }.joinToString(":")) }
     }
 
     @Test

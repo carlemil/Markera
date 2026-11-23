@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.Properties
 
 plugins {
@@ -141,6 +142,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        // Sign in with Apple returns through the App Link https://<this host>/auth/apple/done (AndroidManifest).
+        manifestPlaceholders["appleReturnHost"] = requireNotNull(URI(backendUrl).host) {
+            "markera.backend.url has no host: $backendUrl"
+        }
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
         buildConfigField("String", "SENTRY_DSN", "\"$sentryDsn\"")
     }

@@ -44,9 +44,34 @@ issues for domain verification, if it asks for one, and is **not in git**: the s
 `docker compose cp <file> markera-server:/data/`). It is re-read on every request, so no restart is needed,
 and the route answers 404 while the file is absent.
 
+**Android App Link return** (issue #48). `markera://` can be registered by any app, which can then swallow the
+return from Apple. Apps from this change on send `return=https` to `/auth/apple/start` and come back through
+`$PUBLIC_URL/auth/apple/done?…`, a verified App Link that only Markera can open. Android verifies it by
+fetching `/.well-known/assetlinks.json`, built from two env vars:
+
+- `ANDROID_PACKAGE` (default `se.kjellstrand.markera`): the app it vouches for.
+- `ANDROID_CERT_SHA256`: comma-separated SHA-256 signing-certificate fingerprints (`AA:BB:…`, 32 bytes;
+  a SHA-1 or other malformed value stops the server at startup). List **every** key that signs an installed
+  build: Play Console → *Test and release → App integrity → App signing* → *App signing key certificate*
+  SHA-256 (what Play installs carry), plus the upload key's and the debug keystore's for sideloaded builds
+  (`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`, or
+  `./gradlew :composeApp:signingReport`). Unset or blank answers the file with **404**: nothing verifies,
+  and the app falls back to the page below.
+
+The return mode rides inside the `state` sent to Apple (`<hash>-https`, stripped again in the callback, so
+`/claim` and the app see the same hash as before): the server keeps nothing between start and callback, an app
+without the parameter keeps getting `markera://`, and a new app on an older server gets `markera://` too, which
+it still registers. When the App Link does not open the app (not verified yet, or a browser that keeps a
+redirect to itself), `/auth/apple/done` shows a page with an `intent://…;package=$ANDROID_PACKAGE` button
+(only Markera can take it) and a plain `markera://` link; it validates every parameter (400 otherwise) and
+sends `Cache-Control: no-store`.
+
 API: `GET /health` (runs `SELECT 1`; 503 when the database does not answer), `POST /auth/{google,apple,dev}` → `{token, userId}`,
-`GET /auth/apple/start?state=` → 302 to Apple, `GET /auth/apple/callback` → 302 to
-`markera://auth/apple?state=&nonce=`, `POST /auth/apple/claim` `{state, secret, nonce}` → `{token, userId}`
+`GET /auth/apple/start?state=[&return=https]` → 302 to Apple, `GET /auth/apple/callback` → 302 to
+`markera://auth/apple?state=&nonce=` (or, after `return=https`, `$PUBLIC_URL/auth/apple/done?state=&nonce=`;
+`error=cancelled` in place of the nonce when the user backed out), `GET /auth/apple/done` → the fallback page
+above, `GET /.well-known/assetlinks.json` → the Digital Asset Links statement (404 without fingerprints),
+`POST /auth/apple/claim` `{state, secret, nonce}` → `{token, userId}`
 (`state` is the hex sha256 of `secret`, which never leaves the device — any app can catch the deep link, only
 the one that started the flow can redeem it; the one-time `nonce` goes only to the browser that signed in, so
 whoever chose the `state` cannot redeem someone else's login either; single use, 60 s),

@@ -48,6 +48,15 @@ This file keeps only the decisions still in force that are not spelled out in
 
 ## User actions still open
 
+- [ ] Android Apple sign-in App Link (issue #48): set `ANDROID_CERT_SHA256` in the Mac mini's `server/.env`
+      (`ANDROID_PACKAGE` defaults to `se.kjellstrand.markera`) to the comma-separated SHA-256 fingerprints of
+      Play Console → Test and release → App integrity → App signing → *App signing key certificate*, plus the
+      upload key's and the debug keystore's (`./gradlew :composeApp:signingReport`); redeploy; check
+      `https://markera.duckdns.org/.well-known/assetlinks.json`; then, with a build of this change installed,
+      `adb shell pm verify-app-links --re-verify se.kjellstrand.markera` and
+      `adb shell pm get-app-links se.kjellstrand.markera` must show `markera.duckdns.org: verified`. Until then the
+      sign-in still works through the `/auth/apple/done` page's buttons.
+
 - [ ] Data safety declaration is wrong (says "App doesn't collect or share data", "Data isn't
       encrypted"): the app collects account info (sign-in name + subject), photos (target
       frames) and user content (series), all encrypted in transit (HTTPS), with in-app

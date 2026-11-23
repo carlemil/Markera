@@ -39,8 +39,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Where the backend sends the browser when Sign in with Apple is done. singleTop above
-                 matters: a second activity instance would lose the waiting AppleReturn. -->
+            <!-- Where the backend sends the browser when Sign in with Apple is done: a verified App Link on
+                 the backend host (markera.backend.url, via manifestPlaceholders), which no other app can
+                 claim once the server's /.well-known/assetlinks.json lists this app's signing key. singleTop
+                 above matters: a second activity instance would lose the waiting AppleReturn. Its own
+                 filter: <data> elements in one filter cross-multiply. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="${appleReturnHost}"
+                    android:path="/auth/apple/done" />
+            </intent-filter>
+
+            <!-- The old return, kept for backends that predate the https one and for the done page's
+                 fallback button; any app can register this scheme (issue #48). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
