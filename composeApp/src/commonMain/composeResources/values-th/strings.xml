@@ -83,11 +83,17 @@
     <string name="history_signed_out">ลงชื่อเข้าใช้เพื่อดูประวัติของคุณ</string>
     <string name="history_empty">ยังไม่มีชุดยิงที่บันทึกไว้</string>
     <string name="history_filter_empty">ไม่มีชุดยิงที่ตรงกับตัวกรอง</string>
-    <string name="history_day_summary">%1$d ชุด · เฉลี่ย %2$s</string>
-    <string name="history_day_summary_one">1 ชุด · %1$d คะแนน</string>
+    <plurals name="history_day_summary">
+        <item quantity="other">%1$d ชุด · เฉลี่ย %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="other">1 ชุด · %1$d คะแนน</item>
+    </plurals>
     <string name="history_card_title">%1$s · ชุดที่ %2$d</string>
     <string name="history_delete_title">ลบชุดยิงนี้หรือไม่</string>
-    <string name="history_delete_message">%1$s · %2$d คะแนน</string>
+    <plurals name="history_delete_message">
+        <item quantity="other">%1$s · %2$d คะแนน</item>
+    </plurals>
     <string name="history_delete_confirm">ลบ</string>
     <string name="history_delete_cancel">ยกเลิก</string>
     <string name="history_delete_failed">ลบไม่ได้</string>
@@ -134,7 +140,12 @@
     <string name="stats_group_date">วันที่</string>
     <string name="filter_clear">ล้างตัวกรอง</string>
     <string name="stats_no_geometry">ไม่มีชุดยิงใดที่มีวงสำหรับใช้แสดงผล สแกนชุดที่พบวง 6/7</string>
-    <string name="stats_target_description">เป้าที่มี %1$d นัดจาก %2$d ชุด</string>
+    <plurals name="stats_target_description">
+        <item quantity="other">เป้าที่มี %1$d นัดจาก %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="other">%1$d ชุด</item>
+    </plurals>
     <string name="stats_timeline">ไทม์ไลน์ชุดยิง</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">กลุ่มกระสุน</string>
@@ -158,12 +169,16 @@
     <string name="stats_short_mean_score">คะแนน</string>
     <string name="stats_trend_description">กราฟแนวโน้ม เส้น: %1$d จุด: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d ชุด)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="other">%1$s %2$s: %3$s (%4$d ชุด)</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">แนวโน้ม</string>
     <string name="stats_help_trend_body">แท็บแนวโน้มแสดงค่าที่วัดใดก็ได้เป็นเส้นกราฟตามเวลา เลือกค่าที่วัดด้วยปุ่ม และเลือกว่าจะให้แต่ละชุดเป็นหนึ่งจุด หรือรวมชุดตามวัน สัปดาห์ หรือเดือน (ค่าที่วัดจะคำนวณจากทุกชุดในช่วงนั้น) แยกตามขนาดลำกล้องจะวาดเส้นหนึ่งเส้นต่อขนาดลำกล้อง ตัวกรองด้านบนใช้กับทุกแท็บ แตะจุดเพื่ออ่านค่า</string>
     <string name="stats_tab_drift">การเลื่อน</string>
-    <string name="stats_drift_description">เป้าที่แสดงจุดกระทบเฉลี่ยและมัธยฐานตามเวลา %1$d จุด</string>
+    <plurals name="stats_drift_description">
+        <item quantity="other">เป้าที่แสดงจุดกระทบเฉลี่ยและมัธยฐานตามเวลา %1$d จุด</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d วัน · %2$d ชุด · %3$d นัด</string>
     <string name="stats_drift_oldest">เก่าสุด</string>
     <string name="stats_drift_newest">ใหม่สุด</string>
@@ -182,8 +197,15 @@
     <string name="stats_drift_summary_closer">จุดกระทบล่าสุด: %1$s (ห่างจากศูนย์กลาง %2$d mm) ใกล้ขึ้น %3$d mm เมื่อเทียบกับวันที่ %4$s</string>
     <string name="stats_drift_summary_further">จุดกระทบล่าสุด: %1$s (ห่างจากศูนย์กลาง %2$d mm) ห่างออกไป %3$d mm เมื่อเทียบกับวันที่ %4$s</string>
     <string name="stats_drift_summary_same">จุดกระทบล่าสุด: %1$s (ห่างจากศูนย์กลาง %2$d mm) ห่างเท่ากับวันที่ %3$s</string>
-    <string name="stats_drift_point_day">%1$s · %2$d ชุด · %3$d นัด</string>
-    <string name="stats_drift_point_series">%1$s · ชุดที่ %2$d จาก %3$d · %4$d นัด</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="other">%1$s · %2$d ชุด · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="other">%1$d นัด</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="other">%1$s · ชุดที่ %2$d จาก %3$d · %4$d นัด</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">ซ้าย/ขวา และ สูง/ต่ำ ตามเวลา (ค่าเฉลี่ย)</string>
     <string name="stats_drift_strips_median">ซ้าย/ขวา และ สูง/ต่ำ ตามเวลา (มัธยฐาน)</string>
@@ -302,12 +324,16 @@
     <string name="help_home_import_body">ในเมนู: นับคะแนนรูปที่มีอยู่ในโทรศัพท์แล้ว จากแกลเลอรีหรือไฟล์ แต่ละรูปจะถูกสแกนและแสดงผล เพื่อให้บันทึกหรือข้าม เมื่อเปิดนำเข้าอัตโนมัติ ทุกรูปที่นับคะแนนได้จะบันทึกเองพร้อมวันที่ถ่ายรูป ส่วนที่เหลือจะแสดงทีละรูปภายหลัง</string>
     <string name="series_status_phone">บันทึกไว้ในอุปกรณ์นี้</string>
     <string name="series_not_uploaded">ยังไม่ได้อัปโหลด</string>
-    <string name="stats_not_uploaded">ยังไม่ได้อัปโหลด: %1$d ชุด</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="other">ยังไม่ได้อัปโหลด: %1$d ชุด</item>
+    </plurals>
     <string name="local_claim_title">ชุดยิงในอุปกรณ์นี้</string>
     <string name="local_claim_body">ชุดยิงที่บันทึกในอุปกรณ์นี้ขณะไม่ได้ลงชื่อเข้าใช้หรือสำหรับบัญชีอื่น: %1$d ชุด เพิ่มลงในบัญชีนี้ ลบออกจากอุปกรณ์นี้ หรือคงสถานะไม่ลงชื่อเข้าใช้</string>
     <string name="local_claim_add">เพิ่มลงในบัญชี</string>
     <string name="local_claim_delete">ลบออกจากอุปกรณ์</string>
-    <string name="local_claim_delete_body">ลบ %1$d ชุดพร้อมรูปออกจากอุปกรณ์นี้หรือไม่ การดำเนินการนี้ย้อนกลับไม่ได้ ชุดเหล่านี้ยังไม่ได้อัปโหลดไปยังบัญชีนี้</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="other">ลบ %1$d ชุดพร้อมรูปออกจากอุปกรณ์นี้หรือไม่ การดำเนินการนี้ย้อนกลับไม่ได้ ชุดเหล่านี้ยังไม่ได้อัปโหลดไปยังบัญชีนี้</item>
+    </plurals>
     <string name="local_claim_stay">ไม่ลงชื่อเข้าใช้ต่อไป</string>
     <string name="local_claim_error">ดำเนินการไม่สำเร็จ ชุดยิงที่เหลือยังอยู่ในอุปกรณ์นี้ ปิดแล้วลองลงชื่อเข้าใช้อีกครั้ง</string>
     <string name="home_week_series">ชุดใน 7 วัน</string>
@@ -317,17 +343,31 @@
     <string name="home_insight_stretch_vertical">สัปดาห์นี้กลุ่มกระสุน %1$s ของคุณสูงกว่ากว้างประมาณ %2$d เปอร์เซ็นต์</string>
     <string name="home_insight_stretch_horizontal">สัปดาห์นี้กลุ่มกระสุน %1$s ของคุณกว้างกว่าสูงประมาณ %2$d เปอร์เซ็นต์</string>
     <string name="home_insight_stretch_diagonal">สัปดาห์นี้กลุ่มกระสุน %1$s ของคุณยาวตามแนวเฉียงมากกว่าประมาณ %2$d เปอร์เซ็นต์</string>
-    <string name="home_insight_fliers">สัปดาห์นี้มีนัดหลุดกลุ่มหนึ่งนัดใน %2$d จาก %3$d ชุด %1$s ของคุณ</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="other">สัปดาห์นี้มีนัดหลุดกลุ่มหนึ่งนัดใน %2$d จาก %3$d ชุด %1$s ของคุณ</item>
+    </plurals>
     <string name="home_insight_wide">วันที่ %2$s กลุ่มกระสุน %1$s ของคุณกว้างกว่าเดิมประมาณ %3$d เปอร์เซ็นต์</string>
     <string name="home_insight_low_series">ชุด %1$s ล่าสุดของคุณได้ %2$d คะแนน เทียบกับปกติ %3$d</string>
     <string name="home_insight_low_day">วันที่ %2$s ชุด %1$s ของคุณเฉลี่ย %3$d คะแนน เทียบกับปกติ %4$d</string>
-    <string name="home_insight_trend_up">คะแนน %1$s ของคุณกำลังเพิ่มขึ้น: ประมาณ %2$d คะแนนใน %3$d สัปดาห์</string>
-    <string name="home_insight_trend_down">คะแนน %1$s ของคุณกำลังลดลง: ประมาณ %2$d คะแนนใน %3$d สัปดาห์</string>
-    <string name="home_insight_session_down">สัปดาห์นี้ชุด %1$s ช่วงหลังของคุณได้คะแนนต่ำลงใน %2$d จาก %3$d วันที่ยิงนาน</string>
-    <string name="home_insight_session_up">สัปดาห์นี้ชุด %1$s ช่วงหลังของคุณได้คะแนนสูงขึ้นใน %2$d จาก %3$d วันที่ยิงนาน</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="other">คะแนน %1$s ของคุณกำลังเพิ่มขึ้น: ประมาณ %2$d คะแนนใน %3$s</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="other">%1$d สัปดาห์</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="other">คะแนน %1$s ของคุณกำลังลดลง: ประมาณ %2$d คะแนนใน %3$s</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="other">สัปดาห์นี้ชุด %1$s ช่วงหลังของคุณได้คะแนนต่ำลงใน %2$d จาก %3$d วันที่ยิงนาน</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="other">สัปดาห์นี้ชุด %1$s ช่วงหลังของคุณได้คะแนนสูงขึ้นใน %2$d จาก %3$d วันที่ยิงนาน</item>
+    </plurals>
     <string name="home_insight_dismiss">ซ่อนข้อสังเกตนี้</string>
-    <string name="home_local_title">%1$d ชุดอยู่ในโทรศัพท์นี้เท่านั้น</string>
-    <string name="home_local_title_one">1 ชุดอยู่ในโทรศัพท์นี้เท่านั้น</string>
+    <plurals name="home_local_title">
+        <item quantity="other">%1$d ชุดอยู่ในโทรศัพท์นี้เท่านั้น</item>
+    </plurals>
     <string name="home_signin_title">บันทึกชุดยิงลงในบัญชีของคุณ</string>
     <string name="home_signin_body">ลงชื่อเข้าใช้เพื่อเก็บไว้เมื่อเปลี่ยนโทรศัพท์</string>
     <string name="action_sign_in">ลงชื่อเข้าใช้</string>
@@ -366,12 +406,21 @@
     <string name="advice_move_down_left">ลงและไปทางซ้าย</string>
     <string name="advice_move_left">ไปทางซ้าย</string>
     <string name="advice_move_up_left">ขึ้นและไปทางซ้าย</string>
-    <string name="advice_offset_stable_summary">กลุ่มกระสุนของคุณอยู่%2$s %1$d mm จาก %3$d นัด และเป็นแบบเดียวกันใน %4$d จาก %5$d วัน</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="other">กลุ่มกระสุนของคุณอยู่%2$s %1$d mm จาก %3$d นัด และเป็นแบบเดียวกันใน %4$d จาก %5$s</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="other">%1$d วัน</item>
+    </plurals>
     <string name="advice_cause_sights_1">ศูนย์เล็งยังไม่ได้ตั้งให้ตรงกับกระสุนหรือระยะนี้</string>
     <string name="advice_cause_sights_2">ศูนย์เล็งเคลื่อนไปหลังจากตั้งไว้ หรือกระสุนต่างชนิดให้จุดกระทบต่างกัน</string>
     <string name="advice_try_sights">ปรับศูนย์เล็งให้กลุ่มกระสุนเลื่อน%2$sประมาณ %1$d mm แล้วยิงกลุ่มใหม่ก่อนจะปรับอีกครั้ง</string>
-    <string name="advice_offset_varies_summary">กลุ่มกระสุนของคุณอยู่%2$s %1$d mm จาก %3$d นัด แต่ไม่ได้เป็นแบบเดียวกันทุกวัน</string>
-    <string name="advice_offset_few_days_summary">กลุ่มกระสุนของคุณอยู่%2$s %1$d mm จาก %3$d นัด แต่มีจำนวนวันน้อยเกินไปที่จะบอกว่าเป็นเช่นนี้เสมอหรือไม่</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="other">กลุ่มกระสุนของคุณอยู่%2$s %1$d mm จาก %3$d นัด แต่ไม่ได้เป็นแบบเดียวกันทุกวัน</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="other">กลุ่มกระสุนของคุณอยู่%2$s %1$d mm จาก %3$d นัด แต่มีจำนวนวันน้อยเกินไปที่จะบอกว่าเป็นเช่นนี้เสมอหรือไม่</item>
+    </plurals>
     <string name="advice_cause_high_1">ดันอุ้งมือไปข้างหน้าขณะกระสุนลั่น</string>
     <string name="advice_cause_high_2">ข้อมือหักขึ้นขณะยิง</string>
     <string name="advice_cause_high_3">มองหารอยกระสุนและยกปืนเร็วเกินไป</string>
@@ -390,21 +439,29 @@
     <string name="advice_cause_side_2">แรงกดของนิ้วโป้งบนด้ามดันปืนไปด้านข้าง</string>
     <string name="advice_cause_side_3">เหนี่ยวไกไม่ตรงไปข้างหลัง</string>
     <string name="advice_try_side">ตรวจดูตำแหน่งที่นิ้วสัมผัสไกและแรงกดของนิ้วโป้ง จากนั้นซ้อมยิงแห้งและดูศูนย์เล็ง</string>
-    <string name="advice_stretch_vertical_summary">กลุ่มกระสุนของคุณสูงกว่ากว้างประมาณ %1$d เปอร์เซ็นต์ จาก %2$d นัด</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="other">กลุ่มกระสุนของคุณสูงกว่ากว้างประมาณ %1$d เปอร์เซ็นต์ จาก %2$d นัด</item>
+    </plurals>
     <string name="advice_cause_vertical_1">การหายใจ: ยิงในจังหวะการหายใจที่ต่างกันในแต่ละนัด</string>
     <string name="advice_cause_vertical_2">ภาพการเล็งเปลี่ยนระดับ โดยศูนย์หน้าอยู่สูงหรือต่ำในร่องศูนย์หลัง</string>
     <string name="advice_cause_vertical_3">แรงกำด้ามที่ไม่เท่ากันในแต่ละนัด</string>
     <string name="advice_try_vertical">กลั้นหายใจที่จังหวะเดียวกันทุกนัด และตรวจระดับศูนย์หน้าในร่องก่อนเหนี่ยวไก</string>
-    <string name="advice_stretch_horizontal_summary">กลุ่มกระสุนของคุณกว้างกว่าสูงประมาณ %1$d เปอร์เซ็นต์ จาก %2$d นัด</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="other">กลุ่มกระสุนของคุณกว้างกว่าสูงประมาณ %1$d เปอร์เซ็นต์ จาก %2$d นัด</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">การเหนี่ยวไกที่เบี้ยวไปด้านข้าง</string>
     <string name="advice_cause_horizontal_2">ข้อมือขยับขณะยิง</string>
     <string name="advice_cause_horizontal_3">ท่ายืนที่ไม่ได้หันตรงกับเป้า</string>
     <string name="advice_try_horizontal">ซ้อมยิงแห้งโดยเล็งศูนย์ไว้ที่จุดหนึ่ง แล้วดูว่าศูนย์เลื่อนไปด้านข้างหรือไม่เมื่อไกลั่น</string>
-    <string name="advice_stretch_diagonal_summary">กลุ่มกระสุนของคุณยาวด้านหนึ่งมากกว่าอีกด้านประมาณ %1$d เปอร์เซ็นต์ ตามแนวเฉียง จาก %2$d นัด</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="other">กลุ่มกระสุนของคุณยาวด้านหนึ่งมากกว่าอีกด้านประมาณ %1$d เปอร์เซ็นต์ ตามแนวเฉียง จาก %2$d นัด</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">แรงกำด้ามและการเหนี่ยวไกทำงานสวนทางกัน</string>
     <string name="advice_cause_diagonal_2">ท่ายืนหรือตำแหน่งแขนที่ทำให้ปืนเอียง</string>
     <string name="advice_try_diagonal">ตรวจว่ากำด้ามเหมือนเดิมทุกนัด และศูนย์เล็งได้ระดับก่อนเหนี่ยวไก</string>
-    <string name="advice_fliers_summary">ใน %1$d จาก %2$d ชุดของคุณ มีหนึ่งนัดหลุดออกจากกลุ่ม ห่างออกไปเฉลี่ยประมาณ %3$d mm</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="other">ใน %1$d จาก %2$d ชุดของคุณ มีหนึ่งนัดหลุดออกจากกลุ่ม ห่างออกไปเฉลี่ยประมาณ %3$d mm</item>
+    </plurals>
     <string name="advice_cause_fliers_1">การควบคุมไกในนัดเดียว</string>
     <string name="advice_cause_fliers_2">ขาด follow-through</string>
     <string name="advice_cause_fliers_3">ปล่อยนัดโดยไม่ได้จำตำแหน่งศูนย์ขณะลั่น</string>
@@ -415,48 +472,79 @@
     <string name="advice_cause_wide_3">ยิงเร่งรีบเกินไป</string>
     <string name="advice_try_wide">ซ้อมยิงแห้ง: ประคองปืนและเหนี่ยวไกโดยไม่ยิงจริง และพักเมื่อเริ่มสั่น</string>
     <string name="advice_low_series_summary">ชุดล่าสุดของคุณได้ %1$d คะแนน เทียบกับเฉลี่ย %2$d จาก %3$d ชุดล่าสุด</string>
-    <string name="advice_low_day_summary">วันที่ %1$s ชุดยิง %2$d ชุดของคุณเฉลี่ย %3$d คะแนน เทียบกับเฉลี่ย %4$d ก่อนหน้านี้</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="other">วันที่ %1$s ชุดยิง %2$d ชุดของคุณเฉลี่ย %3$d คะแนน เทียบกับเฉลี่ย %4$d ก่อนหน้านี้</item>
+    </plurals>
     <string name="advice_try_low_plain">ผลต่ำครั้งเดียวบอกอะไรได้ไม่มาก: ยิงเพิ่มอีกสักหน่อยก่อนจะเปลี่ยนอะไร</string>
     <string name="advice_try_low_explained">เริ่มจากหมายเหตุด้านล่าง แทนที่จะเปลี่ยนทุกอย่างพร้อมกัน</string>
     <string name="advice_low_note_offset">กลุ่มกระสุนของคุณอยู่นอกศูนย์กลาง ซึ่งอาจเป็นส่วนหนึ่งของสาเหตุ</string>
     <string name="advice_low_note_stretched">กลุ่มกระสุนของคุณยืดไปทางหนึ่ง ซึ่งอาจเป็นส่วนหนึ่งของสาเหตุ</string>
     <string name="advice_low_note_fliers">นัดหลุดกลุ่มหนึ่งนัดในชุดอาจเป็นส่วนหนึ่งของสาเหตุ</string>
     <string name="advice_low_note_wide">กลุ่มกระสุนที่กว้างกว่าปกติอาจเป็นส่วนหนึ่งของสาเหตุ</string>
-    <string name="advice_trend_up_summary">คะแนนของคุณเพิ่มขึ้นประมาณ %1$d คะแนนใน %3$d สัปดาห์ จาก %2$d ชุด</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="other">คะแนนของคุณเพิ่มขึ้นประมาณ %1$d คะแนนใน %3$s จาก %2$s</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="other">%1$d ชุด</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="other">%1$d สัปดาห์</item>
+    </plurals>
     <string name="advice_try_trend_up">ทำแบบที่ทำอยู่ต่อไป และจดว่าอะไรเปลี่ยนไปเพื่อจะทำซ้ำได้</string>
-    <string name="advice_trend_down_summary">คะแนนของคุณลดลงประมาณ %1$d คะแนนใน %3$d สัปดาห์ จาก %2$d ชุด</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="other">คะแนนของคุณลดลงประมาณ %1$d คะแนนใน %3$s จาก %2$s</item>
+    </plurals>
     <string name="advice_cause_trend_1">ความเหนื่อยล้าหรือมีเวลาฝึกน้อยลง</string>
     <string name="advice_cause_trend_2">ยิงเร่งรีบเกินไป</string>
     <string name="advice_cause_trend_3">การเปลี่ยนปืน กระสุน หรือกิจวัตร</string>
     <string name="advice_try_trend_down">ฝึกให้สั้นลงพร้อมพักเป็นช่วง และซ้อมยิงแห้งสักสองสามนัดเพื่อกลับไปหาพื้นฐาน</string>
-    <string name="advice_session_down_summary">ใน %1$d จาก %2$d วันที่ยิงนาน ชุดช่วงหลังของคุณได้คะแนนต่ำกว่าชุดแรกๆ: เฉลี่ย %4$d เทียบกับ %3$d ในวันเหล่านั้น</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="other">ใน %1$d จาก %2$d วันที่ยิงนาน ชุดช่วงหลังของคุณได้คะแนนต่ำกว่าชุดแรกๆ: เฉลี่ย %4$d เทียบกับ %3$d ในวันเหล่านั้น</item>
+    </plurals>
     <string name="advice_cause_session_1">ความเหนื่อยล้าที่แขน ไหล่ หรือตา เมื่อการฝึกดำเนินไป</string>
     <string name="advice_cause_session_2">สมาธิลดลง ทำให้ยิงเร่งรีบหรือจำตำแหน่งศูนย์ขณะลั่นได้ไม่ดี</string>
     <string name="advice_cause_session_3">พักระหว่างชุดน้อยเกินไป</string>
     <string name="advice_try_session_down">ฝึกให้สั้นลง หรือพักจริงจังทุกสองสามชุดเพื่อพักสายตาและแขน</string>
-    <string name="advice_session_up_summary">ใน %1$d จาก %2$d วันที่ยิงนาน ชุดช่วงหลังของคุณได้คะแนนสูงกว่าชุดแรกๆ: เฉลี่ย %4$d เทียบกับ %3$d ในวันเหล่านั้น</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="other">ใน %1$d จาก %2$d วันที่ยิงนาน ชุดช่วงหลังของคุณได้คะแนนสูงกว่าชุดแรกๆ: เฉลี่ย %4$d เทียบกับ %3$d ในวันเหล่านั้น</item>
+    </plurals>
     <string name="advice_try_session_up">เริ่มต้นช้า: เริ่มด้วยการซ้อมยิงแห้งหรือยิงทดลองสักสองสามนัดก่อนชุดแรกที่นับคะแนน</string>
     <string name="stats_help_insights">ข้อสังเกต</string>
     <string name="stats_help_insights_body">ข้อสังเกตจะดูชุดยิงที่คุณบันทึกไว้ทีละขนาดลำกล้อง และชี้รูปแบบที่ค่อนข้างมั่นใจ เช่น กลุ่มกระสุนที่อยู่ค่อนไปด้านหนึ่ง กลุ่มที่ยืดออก นัดที่หลุดกลุ่ม หรือคะแนนที่ลดลงหรือเพิ่มขึ้น ต้องมีจำนวนนัดมากพอก่อนจะบอกอะไรได้ แต่ละหมายเหตุบอกสิ่งที่ตัวเลขแสดง สาเหตุที่พบบ่อย และหนึ่งสิ่งที่ควรลอง นี่เป็นเพียงคำแนะนำ ไม่ใช่โค้ช: สาเหตุเป็นเพียงสาเหตุทั่วไป ไม่ใช่คำตัดสิน ตั้งค่ามือที่ใช้ยิงและปิดข้อสังเกตได้ในการตั้งค่า</string>
     <string name="stats_tab_insights">ข้อสังเกต</string>
-    <string name="stats_insights_need_more">ข้อสังเกตต้องใช้ประมาณ %1$d นัด ที่นี่มี %2$d นัด</string>
-    <string name="stats_insights_nothing">ไม่มีอะไรโดดเด่นใน %1$d นัดจาก %2$d ชุดนี้</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="other">ข้อสังเกตต้องใช้ประมาณ %1$d นัด ที่นี่มี %2$d นัด</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="other">ไม่มีอะไรโดดเด่นใน %1$d นัดจาก %2$s นี้</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="other">%1$d ชุด</item>
+    </plurals>
     <string name="stats_insights_numbers">จุดกระทบเฉลี่ย %1$s การกระจาย %2$d mm ชุดเฉลี่ย %3$s</string>
     <string name="stats_insights_legend">วงรีสีเหลืองครอบคลุมประมาณ 86 เปอร์เซ็นต์ของนัด ลูกศรชี้จากจุดศูนย์กลางไปยังจุดกระทบเฉลี่ย แตะหมายเหตุเพื่อดูว่าหมายถึงส่วนใดบนเป้า</string>
-    <string name="stats_insights_target_description">เป้าข้อสังเกตที่มี %1$d นัด วงรี และลูกศรไปยังจุดกระทบเฉลี่ย</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="other">เป้าข้อสังเกตที่มี %1$d นัด วงรี และลูกศรไปยังจุดกระทบเฉลี่ย</item>
+    </plurals>
     <string name="stats_insights_no_caliber">ข้อสังเกตดูทีละขนาดลำกล้อง แต่ชุดเหล่านี้ไม่มีขนาดลำกล้อง กำหนดขนาดลำกล้องให้ชุดเหล่านี้ในประวัติเพื่อดูข้อสังเกต</string>
-    <string name="stats_insights_uncalibered">ไม่นับรวม %1$d ชุดที่ไม่มีขนาดลำกล้อง</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="other">ไม่นับรวม %1$d ชุดที่ไม่มีขนาดลำกล้อง</item>
+    </plurals>
     <string name="detail_vs_under">ต่ำกว่าค่าเฉลี่ย %2$d ของคุณ %1$d</string>
     <string name="detail_vs_over">สูงกว่าค่าเฉลี่ย %2$d ของคุณ %1$d</string>
     <string name="detail_vs_on">เท่ากับค่าเฉลี่ย %1$d ของคุณ</string>
-    <string name="detail_vs_best">ดีที่สุดของคุณใน %1$d วันที่ผ่านมา</string>
+    <plurals name="detail_vs_best">
+        <item quantity="other">ดีที่สุดของคุณใน %1$d วันที่ผ่านมา</item>
+    </plurals>
     <string name="detail_day_in_insights">ดูวันนี้ในข้อสังเกต</string>
     <string name="sight_title">การปรับศูนย์เล็ง</string>
     <string name="sight_up_mm">ขึ้น %1$d mm</string>
     <string name="sight_down_mm">ลง %1$d mm</string>
     <string name="sight_left_mm">ซ้าย %1$d mm</string>
     <string name="sight_right_mm">ขวา %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d คลิก</string>
+    <plurals name="sight_clicks">
+        <item quantity="other">%1$s: %2$d คลิก</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 คลิก</string>
     <string name="sight_under_half_click">%1$s: ไม่ถึงครึ่งคลิก ไม่ต้องปรับ</string>
     <string name="sight_no_height">ระดับสูง-ต่ำ: ไม่ต้องปรับ</string>
@@ -467,7 +555,9 @@
     <string name="sight_set_clicks">ใส่ค่าคลิก</string>
     <string name="sight_change_clicks">เปลี่ยนค่าคลิก</string>
     <string name="sight_adjusted_button">ฉันปรับศูนย์เล็งแล้ว</string>
-    <string name="sight_adjusted_note">ปรับศูนย์เล็งเมื่อ %1$s: ประเมินการเยื้องจาก %2$d นัดหลังจากนั้น</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="other">ปรับศูนย์เล็งเมื่อ %1$s: ประเมินการเยื้องจาก %2$d นัดหลังจากนั้น</item>
+    </plurals>
     <string name="sight_adjusted_undo">เลิกทำ</string>
     <string name="sight_dialog_title">ค่าคลิก, %1$s</string>
     <string name="sight_dialog_help">หนึ่งคลิกทำให้จุดกระทบบนเป้าเลื่อนไปเท่าใดที่ระยะยิงของคุณ ปกติคู่มือศูนย์เล็งจะระบุไว้ หรือนับคลิกของการปรับหนึ่งครั้งแล้ววัดว่ากลุ่มกระสุนเลื่อนไปเท่าใด</string>

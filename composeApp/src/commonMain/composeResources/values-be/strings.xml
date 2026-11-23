@@ -83,11 +83,26 @@
     <string name="history_signed_out">Увайдзіце, каб бачыць сваю гісторыю</string>
     <string name="history_empty">Захаваных серый пакуль няма</string>
     <string name="history_filter_empty">Няма серый, што адпавядаюць фільтру.</string>
-    <string name="history_day_summary">Серый: %1$d · сярэдняе %2$s</string>
-    <string name="history_day_summary_one">1 серыя · балы: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d серыя · сярэдняе %2$s</item>
+        <item quantity="few">%1$d серыі · сярэдняе %2$s</item>
+        <item quantity="many">%1$d серый · сярэдняе %2$s</item>
+        <item quantity="other">%1$d серый · сярэдняе %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 серыя · %1$d бал</item>
+        <item quantity="few">1 серыя · %1$d балы</item>
+        <item quantity="many">1 серыя · %1$d балаў</item>
+        <item quantity="other">1 серыя · %1$d балаў</item>
+    </plurals>
     <string name="history_card_title">%1$s · серыя %2$d</string>
     <string name="history_delete_title">Выдаліць серыю?</string>
-    <string name="history_delete_message">%1$s · балы: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d бал</item>
+        <item quantity="few">%1$s · %2$d балы</item>
+        <item quantity="many">%1$s · %2$d балаў</item>
+        <item quantity="other">%1$s · %2$d балаў</item>
+    </plurals>
     <string name="history_delete_confirm">Выдаліць</string>
     <string name="history_delete_cancel">Скасаваць</string>
     <string name="history_delete_failed">Не ўдалося выдаліць</string>
@@ -134,7 +149,18 @@
     <string name="stats_group_date">Дата</string>
     <string name="filter_clear">Скінуць фільтры</string>
     <string name="stats_no_geometry">Ні ў адной вашай серыі няма кальца, па якім можна будаваць графік. Адсканіруйце серыю са знойдзеным кальцом 6/7.</string>
-    <string name="stats_target_description">Мішэнь, пападанняў: %1$d, серый: %2$d</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Мішэнь з %1$d пападаннем з %2$s</item>
+        <item quantity="few">Мішэнь з %1$d пападаннямі з %2$s</item>
+        <item quantity="many">Мішэнь з %1$d пападаннямі з %2$s</item>
+        <item quantity="other">Мішэнь з %1$d пападаннямі з %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d серыі</item>
+        <item quantity="few">%1$d серый</item>
+        <item quantity="many">%1$d серый</item>
+        <item quantity="other">%1$d серый</item>
+    </plurals>
     <string name="stats_timeline">Шкала серый</string>
     <string name="stats_limit_mm">%1$d мм</string>
     <string name="stats_section_group">Купчастасць</string>
@@ -158,12 +184,22 @@
     <string name="stats_short_mean_score">Вынік</string>
     <string name="stats_trend_description">Графік тэндэнцыі, ліній: %1$d, кропак: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (серый: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d серыя)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d серыі)</item>
+        <item quantity="many">%1$s %2$s: %3$s (%4$d серый)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d серый)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Тэндэнцыя</string>
     <string name="stats_help_trend_body">Укладка «Тэндэнцыя» паказвае любы паказчык крывой у часе. Выберыце паказчык кнопкамі, а таксама ці будзе кожная серыя асобнай кропкай, ці серыі аб’ядноўваюцца па днях, тыднях або месяцах (тады паказчык лічыцца па ўсіх серыях перыяду). «Па калібрах» малюе асобную крывую для кожнага калібра. Фільтры зверху дзейнічаюць на ўсе ўкладкі. Націсніце на кропку, каб убачыць значэнне.</string>
     <string name="stats_tab_drift">Зрух</string>
-    <string name="stats_drift_description">Мішэнь з сярэдняй і медыяннай кропкай пападання ў часе, кропак: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Мішэнь з сярэдняй і медыяннай кропкай пападання ў часе, %1$d кропка</item>
+        <item quantity="few">Мішэнь з сярэдняй і медыяннай кропкай пападання ў часе, %1$d кропкі</item>
+        <item quantity="many">Мішэнь з сярэдняй і медыяннай кропкай пападання ў часе, %1$d кропак</item>
+        <item quantity="other">Мішэнь з сярэдняй і медыяннай кропкай пападання ў часе, %1$d кропак</item>
+    </plurals>
     <string name="stats_drift_counts">Дзён: %1$d · серый: %2$d · пападанняў: %3$d</string>
     <string name="stats_drift_oldest">Найстарэйшая</string>
     <string name="stats_drift_newest">Найнавейшая</string>
@@ -182,8 +218,24 @@
     <string name="stats_drift_summary_closer">Апошняя кропка пападання: %1$s (%2$d мм ад цэнтра), на %3$d мм бліжэй, чым %4$s.</string>
     <string name="stats_drift_summary_further">Апошняя кропка пападання: %1$s (%2$d мм ад цэнтра), на %3$d мм далей, чым %4$s.</string>
     <string name="stats_drift_summary_same">Апошняя кропка пападання: %1$s (%2$d мм ад цэнтра), гэтак жа далёка, як %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · серый: %2$d · пападанняў: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · серыя %2$d з %3$d · пападанняў: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d серыя · %3$s</item>
+        <item quantity="few">%1$s · %2$d серыі · %3$s</item>
+        <item quantity="many">%1$s · %2$d серый · %3$s</item>
+        <item quantity="other">%1$s · %2$d серый · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d пападанне</item>
+        <item quantity="few">%1$d пападанні</item>
+        <item quantity="many">%1$d пападанняў</item>
+        <item quantity="other">%1$d пападанняў</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · серыя %2$d з %3$d · %4$d пападанне</item>
+        <item quantity="few">%1$s · серыя %2$d з %3$d · %4$d пападанні</item>
+        <item quantity="many">%1$s · серыя %2$d з %3$d · %4$d пападанняў</item>
+        <item quantity="other">%1$s · серыя %2$d з %3$d · %4$d пападанняў</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Улева / управа і ўверх / уніз у часе (сярэдняе)</string>
     <string name="stats_drift_strips_median">Улева / управа і ўверх / уніз у часе (медыяна)</string>
@@ -302,12 +354,22 @@
     <string name="help_home_import_body">У меню: падлічыце фота, якія ўжо ёсць у тэлефоне, з галерэі або з файлаў. Кожная выява скануецца і паказваюцца вынікі, каб захаваць або прапусціць. Калі «Аўтаімпарт» уключаны, кожная выява, якая падлічваецца, захоўваецца сама з датай здымкі; астатнія паказваюцца потым па адной.</string>
     <string name="series_status_phone">Захавана на гэтай прыладзе</string>
     <string name="series_not_uploaded">Не загружана</string>
-    <string name="stats_not_uploaded">Не загружана серый: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Не загружана %1$d серыя</item>
+        <item quantity="few">Не загружаны %1$d серыі</item>
+        <item quantity="many">Не загружана %1$d серый</item>
+        <item quantity="other">Не загружана %1$d серый</item>
+    </plurals>
     <string name="local_claim_title">Серыі на гэтай прыладзе</string>
     <string name="local_claim_body">Серыі, захаваныя на гэтай прыладзе без уваходу або для іншага ўліковага запісу: %1$d. Дадайце іх у гэты ўліковы запіс, выдаліце з прылады або застаньцеся па-за ўліковым запісам.</string>
     <string name="local_claim_add">Дадаць ва ўліковы запіс</string>
     <string name="local_claim_delete">Выдаліць з прылады</string>
-    <string name="local_claim_delete_body">Выдаліць з гэтай прылады серыі (%1$d) і іх фота? Гэта нельга адмяніць. Яны не былі загружаны ў гэты ўліковы запіс.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Выдаліць з гэтай прылады %1$d серыю і яе фота? Гэта нельга адмяніць. Яна не была загружана ў гэты ўліковы запіс.</item>
+        <item quantity="few">Выдаліць з гэтай прылады %1$d серыі і іх фота? Гэта нельга адмяніць. Яны не былі загружаны ў гэты ўліковы запіс.</item>
+        <item quantity="many">Выдаліць з гэтай прылады %1$d серый і іх фота? Гэта нельга адмяніць. Яны не былі загружаны ў гэты ўліковы запіс.</item>
+        <item quantity="other">Выдаліць з гэтай прылады %1$d серый і іх фота? Гэта нельга адмяніць. Яны не былі загружаны ў гэты ўліковы запіс.</item>
+    </plurals>
     <string name="local_claim_stay">Не ўваходзіць</string>
     <string name="local_claim_error">Аперацыю не ўдалося завяршыць. Астатнія серыі па-ранейшаму на гэтай прыладзе. Закрыйце і паспрабуйце ўвайсці зноў.</string>
     <string name="home_week_series">серый за 7 дзён</string>
@@ -317,17 +379,52 @@
     <string name="home_insight_stretch_vertical">На гэтым тыдні ваша група %1$s прыкладна на %2$d адс. вышэйшая, чым шырокая.</string>
     <string name="home_insight_stretch_horizontal">На гэтым тыдні ваша група %1$s прыкладна на %2$d адс. шырэйшая, чым высокая.</string>
     <string name="home_insight_stretch_diagonal">На гэтым тыдні ваша група %1$s прыкладна на %2$d адс. даўжэйшая па дыяганалі.</string>
-    <string name="home_insight_fliers">На гэтым тыдні адзін стрэл адарваўся ў %2$d з %3$d вашых серый %1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">На гэтым тыдні адзін стрэл адарваўся ў %2$d з %3$d вашай серыі %1$s.</item>
+        <item quantity="few">На гэтым тыдні адзін стрэл адарваўся ў %2$d з %3$d вашых серый %1$s.</item>
+        <item quantity="many">На гэтым тыдні адзін стрэл адарваўся ў %2$d з %3$d вашых серый %1$s.</item>
+        <item quantity="other">На гэтым тыдні адзін стрэл адарваўся ў %2$d з %3$d вашых серый %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">%2$s вашы групы %1$s былі прыкладна на %3$d адс. шырэйшыя, чым раней.</string>
     <string name="home_insight_low_series">Ваша апошняя серыя %1$s дала %2$d пры звычайных %3$d.</string>
     <string name="home_insight_low_day">%2$s вашы серыі %1$s у сярэднім далі %3$d пры звычайных %4$d.</string>
-    <string name="home_insight_trend_up">Вашы вынікі з %1$s растуць: прыкладна на %2$d за %3$d тыдн.</string>
-    <string name="home_insight_trend_down">Вашы вынікі з %1$s падаюць: прыкладна на %2$d за %3$d тыдн.</string>
-    <string name="home_insight_session_down">На гэтым тыдні пазнейшыя серыі %1$s былі слабейшыя ў %2$d з %3$d доўгіх дзён.</string>
-    <string name="home_insight_session_up">На гэтым тыдні пазнейшыя серыі %1$s былі мацнейшыя ў %2$d з %3$d доўгіх дзён.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Вашы вынікі з %1$s растуць: прыкладна на %2$d бал за %3$s.</item>
+        <item quantity="few">Вашы вынікі з %1$s растуць: прыкладна на %2$d балы за %3$s.</item>
+        <item quantity="many">Вашы вынікі з %1$s растуць: прыкладна на %2$d балаў за %3$s.</item>
+        <item quantity="other">Вашы вынікі з %1$s растуць: прыкладна на %2$d балаў за %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d тыдзень</item>
+        <item quantity="few">%1$d тыдні</item>
+        <item quantity="many">%1$d тыдняў</item>
+        <item quantity="other">%1$d тыдняў</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Вашы вынікі з %1$s падаюць: прыкладна на %2$d бал за %3$s.</item>
+        <item quantity="few">Вашы вынікі з %1$s падаюць: прыкладна на %2$d балы за %3$s.</item>
+        <item quantity="many">Вашы вынікі з %1$s падаюць: прыкладна на %2$d балаў за %3$s.</item>
+        <item quantity="other">Вашы вынікі з %1$s падаюць: прыкладна на %2$d балаў за %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">На гэтым тыдні пазнейшыя серыі %1$s былі слабейшыя ў %2$d з %3$d доўгага дня.</item>
+        <item quantity="few">На гэтым тыдні пазнейшыя серыі %1$s былі слабейшыя ў %2$d з %3$d доўгіх дзён.</item>
+        <item quantity="many">На гэтым тыдні пазнейшыя серыі %1$s былі слабейшыя ў %2$d з %3$d доўгіх дзён.</item>
+        <item quantity="other">На гэтым тыдні пазнейшыя серыі %1$s былі слабейшыя ў %2$d з %3$d доўгіх дзён.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">На гэтым тыдні пазнейшыя серыі %1$s былі мацнейшыя ў %2$d з %3$d доўгага дня.</item>
+        <item quantity="few">На гэтым тыдні пазнейшыя серыі %1$s былі мацнейшыя ў %2$d з %3$d доўгіх дзён.</item>
+        <item quantity="many">На гэтым тыдні пазнейшыя серыі %1$s былі мацнейшыя ў %2$d з %3$d доўгіх дзён.</item>
+        <item quantity="other">На гэтым тыдні пазнейшыя серыі %1$s былі мацнейшыя ў %2$d з %3$d доўгіх дзён.</item>
+    </plurals>
     <string name="home_insight_dismiss">Схаваць гэту выснову</string>
-    <string name="home_local_title">Серый толькі ў гэтым тэлефоне: %1$d</string>
-    <string name="home_local_title_one">1 серыя толькі ў гэтым тэлефоне</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d серыя толькі ў гэтым тэлефоне</item>
+        <item quantity="few">%1$d серыі толькі ў гэтым тэлефоне</item>
+        <item quantity="many">%1$d серый толькі ў гэтым тэлефоне</item>
+        <item quantity="other">%1$d серый толькі ў гэтым тэлефоне</item>
+    </plurals>
     <string name="home_signin_title">Захоўвайце серыі ва ўліковым запісе</string>
     <string name="home_signin_body">Увайдзіце, каб не страціць іх пры змене тэлефона.</string>
     <string name="action_sign_in">Увайсці</string>
@@ -366,12 +463,33 @@
     <string name="advice_move_down_left">уніз і ўлева</string>
     <string name="advice_move_left">улева</string>
     <string name="advice_move_up_left">уверх і ўлева</string>
-    <string name="advice_offset_stable_summary">Ваша група зрушана на %1$d мм %2$s (стрэлаў: %3$d), аднолькава ў %4$d з %5$d дзён.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Ваша група зрушана на %1$d мм %2$s у %3$d стрэле, аднолькава ў %4$d з %5$s.</item>
+        <item quantity="few">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, аднолькава ў %4$d з %5$s.</item>
+        <item quantity="many">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, аднолькава ў %4$d з %5$s.</item>
+        <item quantity="other">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, аднолькава ў %4$d з %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d дня</item>
+        <item quantity="few">%1$d дзён</item>
+        <item quantity="many">%1$d дзён</item>
+        <item quantity="other">%1$d дзён</item>
+    </plurals>
     <string name="advice_cause_sights_1">Прыцэльныя прыстасаванні не прыстраляны пад гэты патрон або дыстанцыю.</string>
     <string name="advice_cause_sights_2">Прыцэл зрушыўся пасля налады, або іншыя патроны б’юць у іншае месца.</string>
     <string name="advice_try_sights">Перастаўце прыцэл так, каб група зрушылася прыкладна на %1$d мм %2$s, затым страляйце новую групу, перш чым кранаць яго зноў.</string>
-    <string name="advice_offset_varies_summary">Ваша група зрушана на %1$d мм %2$s (стрэлаў: %3$d), але не аднолькава кожны дзень.</string>
-    <string name="advice_offset_few_days_summary">Ваша група зрушана на %1$d мм %2$s (стрэлаў: %3$d), але дзён замала, каб сказаць, ці так заўсёды.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Ваша група зрушана на %1$d мм %2$s у %3$d стрэле, але не аднолькава кожны дзень.</item>
+        <item quantity="few">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, але не аднолькава кожны дзень.</item>
+        <item quantity="many">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, але не аднолькава кожны дзень.</item>
+        <item quantity="other">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, але не аднолькава кожны дзень.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Ваша група зрушана на %1$d мм %2$s у %3$d стрэле, але дзён замала, каб сказаць, ці так заўсёды.</item>
+        <item quantity="few">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, але дзён замала, каб сказаць, ці так заўсёды.</item>
+        <item quantity="many">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, але дзён замала, каб сказаць, ці так заўсёды.</item>
+        <item quantity="other">Ваша група зрушана на %1$d мм %2$s у %3$d стрэлах, але дзён замала, каб сказаць, ці так заўсёды.</item>
+    </plurals>
     <string name="advice_cause_high_1">Падпіханне пісталета: далонь штурхае наперад у момант стрэлу.</string>
     <string name="advice_cause_high_2">Кісць заломваецца ўверх пры стрэле.</string>
     <string name="advice_cause_high_3">Жаданне ўбачыць пападанне і ранні ўздым пісталета.</string>
@@ -390,21 +508,41 @@
     <string name="advice_cause_side_2">Ціск вялікага пальца на дзяржальню адводзіць пісталет убок.</string>
     <string name="advice_cause_side_3">Націск на спуск не прама назад.</string>
     <string name="advice_try_side">Праверце, як палец ляжыць на спуску і наколькі моцна ціскае вялікі палец, затым зрабіце халасты спуск і сачыце за прыцэлам.</string>
-    <string name="advice_stretch_vertical_summary">Ваша група прыкладна на %1$d адс. вышэйшая, чым шырокая (стрэлаў: %2$d).</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Ваша група прыкладна на %1$d адс. вышэйшая, чым шырокая, у %2$d стрэле.</item>
+        <item quantity="few">Ваша група прыкладна на %1$d адс. вышэйшая, чым шырокая, у %2$d стрэлах.</item>
+        <item quantity="many">Ваша група прыкладна на %1$d адс. вышэйшая, чым шырокая, у %2$d стрэлах.</item>
+        <item quantity="other">Ваша група прыкладна на %1$d адс. вышэйшая, чым шырокая, у %2$d стрэлах.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Дыханне: стрэл кожны раз у іншы момант дыхальнага цыкла.</string>
     <string name="advice_cause_vertical_2">Прыцэльванне змяняецца па вышыні: мушка стаіць то вышэй, то ніжэй у прарэзы цаліка.</string>
     <string name="advice_cause_vertical_3">Сцісканне дзяржальні змяняецца ад стрэлу да стрэлу.</string>
     <string name="advice_try_vertical">Затрымлівайце дыханне ў адным і тым жа месцы кожны стрэл і правярайце вышыню мушкі ў прарэзы, перш чым націскаць.</string>
-    <string name="advice_stretch_horizontal_summary">Ваша група прыкладна на %1$d адс. шырэйшая, чым высокая (стрэлаў: %2$d).</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Ваша група прыкладна на %1$d адс. шырэйшая, чым высокая, у %2$d стрэле.</item>
+        <item quantity="few">Ваша група прыкладна на %1$d адс. шырэйшая, чым высокая, у %2$d стрэлах.</item>
+        <item quantity="many">Ваша група прыкладна на %1$d адс. шырэйшая, чым высокая, у %2$d стрэлах.</item>
+        <item quantity="other">Ваша група прыкладна на %1$d адс. шырэйшая, чым высокая, у %2$d стрэлах.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Націск на спуск ідзе ўбок.</string>
     <string name="advice_cause_horizontal_2">Кісць рухаецца пры стрэле.</string>
     <string name="advice_cause_horizontal_3">Стойка не выраўнавана адносна мішэні.</string>
     <string name="advice_try_horizontal">Рабіце халастыя спускі з прыцэлам на адзнацы і глядзіце, ці з’язджае ён убок, калі спрацоўвае спуск.</string>
-    <string name="advice_stretch_diagonal_summary">Ваша група прыкладна на %1$d адс. даўжэйшая ў адным кірунку, чым у іншым, па дыяганалі (стрэлаў: %2$d).</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Ваша група прыкладна на %1$d адс. даўжэйшая ў адным кірунку, чым у іншым, па дыяганалі, у %2$d стрэле.</item>
+        <item quantity="few">Ваша група прыкладна на %1$d адс. даўжэйшая ў адным кірунку, чым у іншым, па дыяганалі, у %2$d стрэлах.</item>
+        <item quantity="many">Ваша група прыкладна на %1$d адс. даўжэйшая ў адным кірунку, чым у іншым, па дыяганалі, у %2$d стрэлах.</item>
+        <item quantity="other">Ваша група прыкладна на %1$d адс. даўжэйшая ў адным кірунку, чым у іншым, па дыяганалі, у %2$d стрэлах.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Сцісканне дзяржальні і націск на спуск працуюць адно супраць аднаго.</string>
     <string name="advice_cause_diagonal_2">Стойка або становішча рукі, якія нахіляюць пісталет.</string>
     <string name="advice_try_diagonal">Праверце, што хват аднолькавы кожны стрэл і што прыцэл стаіць роўна, перш чым націскаць.</string>
-    <string name="advice_fliers_summary">У %1$d з %2$d вашых серый адзін стрэл адарваўся ад астатніх, у сярэднім прыкладна на %3$d мм.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">У %1$d з %2$d вашай серыі адзін стрэл адарваўся ад астатніх, у сярэднім прыкладна на %3$d мм.</item>
+        <item quantity="few">У %1$d з %2$d вашых серый адзін стрэл адарваўся ад астатніх, у сярэднім прыкладна на %3$d мм.</item>
+        <item quantity="many">У %1$d з %2$d вашых серый адзін стрэл адарваўся ад астатніх, у сярэднім прыкладна на %3$d мм.</item>
+        <item quantity="other">У %1$d з %2$d вашых серый адзін стрэл адарваўся ад астатніх, у сярэднім прыкладна на %3$d мм.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Праца са спускам на асобным стрэле.</string>
     <string name="advice_cause_fliers_2">Страта завяршэння стрэлу.</string>
     <string name="advice_cause_fliers_3">Стрэл без фіксацыі моманту стрэлу.</string>
@@ -415,48 +553,121 @@
     <string name="advice_cause_wide_3">Спешка са стрэламі.</string>
     <string name="advice_try_wide">Халастая трэніроўка: утрымлівайце і націскайце без стрэлу, і адпачывайце, калі пачынае калаціць.</string>
     <string name="advice_low_series_summary">Ваша апошняя серыя дала %1$d супраць %2$d у сярэднім за апошнія серыі (%3$d).</string>
-    <string name="advice_low_day_summary">%1$s вашы серыі (%2$d) у сярэднім далі %3$d супраць %4$d у сярэднім раней.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s ваша %2$d серыя ў сярэднім дала %3$d супраць %4$d у сярэднім раней.</item>
+        <item quantity="few">%1$s вашы %2$d серыі ў сярэднім далі %3$d супраць %4$d у сярэднім раней.</item>
+        <item quantity="many">%1$s вашы %2$d серый у сярэднім далі %3$d супраць %4$d у сярэднім раней.</item>
+        <item quantity="other">%1$s вашы %2$d серый у сярэднім далі %3$d супраць %4$d у сярэднім раней.</item>
+    </plurals>
     <string name="advice_try_low_plain">Адзін нізкі вынік мала што кажа: страляйце яшчэ некалькі серый, перш чым нешта мяняць.</string>
     <string name="advice_try_low_explained">Пачніце з заўвагі ніжэй, а не мяняйце ўсё адразу.</string>
     <string name="advice_low_note_offset">Ваша група зрушана ад цэнтра, і гэта можа быць часткай прычыны.</string>
     <string name="advice_low_note_stretched">Ваша група выцягнута ў адным кірунку, і гэта можа быць часткай прычыны.</string>
     <string name="advice_low_note_fliers">Адзін адарваны стрэл у серыі можа быць часткай прычыны.</string>
     <string name="advice_low_note_wide">Шырэйшыя, чым звычайна, групы могуць быць часткай прычыны.</string>
-    <string name="advice_trend_up_summary">Вашы вынікі выраслі прыкладна на %1$d за %3$d тыдн. (серый: %2$d).</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Вашы вынікі выраслі прыкладна на %1$d бал за %3$s, у %2$s.</item>
+        <item quantity="few">Вашы вынікі выраслі прыкладна на %1$d балы за %3$s, у %2$s.</item>
+        <item quantity="many">Вашы вынікі выраслі прыкладна на %1$d балаў за %3$s, у %2$s.</item>
+        <item quantity="other">Вашы вынікі выраслі прыкладна на %1$d балаў за %3$s, у %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d серыі</item>
+        <item quantity="few">%1$d серыях</item>
+        <item quantity="many">%1$d серыях</item>
+        <item quantity="other">%1$d серыях</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d тыдзень</item>
+        <item quantity="few">%1$d тыдні</item>
+        <item quantity="many">%1$d тыдняў</item>
+        <item quantity="other">%1$d тыдняў</item>
+    </plurals>
     <string name="advice_try_trend_up">Працягвайце ў тым жа духу і запішыце, што змянілася, каб гэта паўтарыць.</string>
-    <string name="advice_trend_down_summary">Вашы вынікі знізіліся прыкладна на %1$d за %3$d тыдн. (серый: %2$d).</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Вашы вынікі знізіліся прыкладна на %1$d бал за %3$s, у %2$s.</item>
+        <item quantity="few">Вашы вынікі знізіліся прыкладна на %1$d балы за %3$s, у %2$s.</item>
+        <item quantity="many">Вашы вынікі знізіліся прыкладна на %1$d балаў за %3$s, у %2$s.</item>
+        <item quantity="other">Вашы вынікі знізіліся прыкладна на %1$d балаў за %3$s, у %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Стома або менш часу на трэніроўкі.</string>
     <string name="advice_cause_trend_2">Спешка са стрэламі.</string>
     <string name="advice_cause_trend_3">Змена пісталета, патронаў або руціны.</string>
     <string name="advice_try_trend_down">Карацейшыя трэніроўкі з паўзамі і некалькі халастых спускаў, каб зноў знайсці асновы.</string>
-    <string name="advice_session_down_summary">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі слабейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">У %1$d з %2$d вашага доўгага дня пазнейшыя серыі былі слабейшыя за першыя: %4$d у сярэднім супраць %3$d у той дзень.</item>
+        <item quantity="few">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі слабейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</item>
+        <item quantity="many">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі слабейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</item>
+        <item quantity="other">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі слабейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</item>
+    </plurals>
     <string name="advice_cause_session_1">Стома рукі, пляча або вачэй па ходзе трэніроўкі.</string>
     <string name="advice_cause_session_2">Канцэнтрацыя слабее, таму стрэлы спешныя або горш зафіксаваныя.</string>
     <string name="advice_cause_session_3">Замала паўз паміж серыямі.</string>
     <string name="advice_try_session_down">Карацейшыя трэніроўкі або сапраўдная паўза праз кожныя некалькі серый, каб адпачылі вочы і рука.</string>
-    <string name="advice_session_up_summary">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі мацнейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">У %1$d з %2$d вашага доўгага дня пазнейшыя серыі былі мацнейшыя за першыя: %4$d у сярэднім супраць %3$d у той дзень.</item>
+        <item quantity="few">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі мацнейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</item>
+        <item quantity="many">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі мацнейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</item>
+        <item quantity="other">У %1$d з %2$d вашых доўгіх дзён пазнейшыя серыі былі мацнейшыя за першыя: %4$d у сярэднім супраць %3$d у тыя дні.</item>
+    </plurals>
     <string name="advice_try_session_up">Павольны пачатак: пачынайце з некалькіх халастых спускаў або прабных стрэлаў, перш чым пойдзе першая залікавая серыя.</string>
     <string name="stats_help_insights">Высновы</string>
     <string name="stats_help_insights_body">«Высновы» праглядаюць вашы захаваныя серыі, па адным калібры, і паказваюць заканамернасці, у якіх даволі ўпэўнены: група, зрушаная ўбок, выцягнутая група, адарваны стрэл або вынікі, што падаюць ці растуць. Каб нешта сказаць, патрэбна дастаткова шмат стрэлаў. Кожная заўвага паказвае, што кажуць лічбы, што часта гэта выклікае, і адну рэч, якую варта паспрабаваць. Гэта падказка, а не трэнер: прычыны распаўсюджаныя, а не прысуд. Страляльную руку і адключэнне «Высноў» можна задаць у Наладах.</string>
     <string name="stats_tab_insights">Высновы</string>
-    <string name="stats_insights_need_more">Для высноў патрэбна каля %1$d стрэлаў; тут у вас: %2$d.</string>
-    <string name="stats_insights_nothing">Нічога асаблівага ў гэтых стрэлах (%1$d) з серый (%2$d).</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Для высноў патрэбна каля %1$d стрэла; тут у вас: %2$d.</item>
+        <item quantity="few">Для высноў патрэбна каля %1$d стрэлаў; тут у вас: %2$d.</item>
+        <item quantity="many">Для высноў патрэбна каля %1$d стрэлаў; тут у вас: %2$d.</item>
+        <item quantity="other">Для высноў патрэбна каля %1$d стрэлаў; тут у вас: %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Нічога асаблівага ў гэтым %1$d стрэле з %2$s.</item>
+        <item quantity="few">Нічога асаблівага ў гэтых %1$d стрэлах з %2$s.</item>
+        <item quantity="many">Нічога асаблівага ў гэтых %1$d стрэлах з %2$s.</item>
+        <item quantity="other">Нічога асаблівага ў гэтых %1$d стрэлах з %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d серыі</item>
+        <item quantity="few">%1$d серый</item>
+        <item quantity="many">%1$d серый</item>
+        <item quantity="other">%1$d серый</item>
+    </plurals>
     <string name="stats_insights_numbers">Сярэдняя кропка пападання %1$s, рассейванне %2$d мм, сярэдняя серыя %3$s.</string>
     <string name="stats_insights_legend">Жоўты эліпс утрымлівае прыкладна 86 адсоткаў стрэлаў; стрэлка ідзе ад цэнтра да сярэдняй кропкі пападання. Націсніце на заўвагу, каб убачыць, да чаго яна адносіцца на мішэні.</string>
-    <string name="stats_insights_target_description">Мішэнь высноў, стрэлаў: %1$d, з эліпсам і стрэлкай да сярэдняй кропкі пападання</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Мішэнь высноў з %1$d стрэлам, эліпсам і стрэлкай да сярэдняй кропкі пападання</item>
+        <item quantity="few">Мішэнь высноў з %1$d стрэламі, эліпсам і стрэлкай да сярэдняй кропкі пападання</item>
+        <item quantity="many">Мішэнь высноў з %1$d стрэламі, эліпсам і стрэлкай да сярэдняй кропкі пападання</item>
+        <item quantity="other">Мішэнь высноў з %1$d стрэламі, эліпсам і стрэлкай да сярэдняй кропкі пападання</item>
+    </plurals>
     <string name="stats_insights_no_caliber">«Высновы» глядзяць па адным калібры, а ў гэтых серый калібра няма. Задайце ім калібр у Гісторыі, каб убачыць высновы.</string>
-    <string name="stats_insights_uncalibered">Серыі без калібра не ўлічваюцца: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d серыя без калібра не ўлічваецца.</item>
+        <item quantity="few">%1$d серыі без калібра не ўлічваюцца.</item>
+        <item quantity="many">%1$d серый без калібра не ўлічваюцца.</item>
+        <item quantity="other">%1$d серый без калібра не ўлічваюцца.</item>
+    </plurals>
     <string name="detail_vs_under">На %1$d ніжэй за ваша сярэдняе %2$d</string>
     <string name="detail_vs_over">На %1$d вышэй за ваша сярэдняе %2$d</string>
     <string name="detail_vs_on">На ўзроўні вашага сярэдняга %1$d</string>
-    <string name="detail_vs_best">Ваш лепшы вынік за апошнія %1$d дзён</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Ваш лепшы вынік за апошні %1$d дзень</item>
+        <item quantity="few">Ваш лепшы вынік за апошнія %1$d дні</item>
+        <item quantity="many">Ваш лепшы вынік за апошнія %1$d дзён</item>
+        <item quantity="other">Ваш лепшы вынік за апошнія %1$d дзён</item>
+    </plurals>
     <string name="detail_day_in_insights">Паглядзець гэты дзень у Высновах</string>
     <string name="sight_title">Папраўка прыцэла</string>
     <string name="sight_up_mm">Уверх %1$d мм</string>
     <string name="sight_down_mm">Уніз %1$d мм</string>
     <string name="sight_left_mm">Улева %1$d мм</string>
     <string name="sight_right_mm">Управа %1$d мм</string>
-    <string name="sight_clicks">%1$s: пстрычак: %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d пстрычка</item>
+        <item quantity="few">%1$s: %2$d пстрычкі</item>
+        <item quantity="many">%1$s: %2$d пстрычак</item>
+        <item quantity="other">%1$s: %2$d пстрычак</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 пстрычка</string>
     <string name="sight_under_half_click">%1$s: менш за паўпстрычкі, не чапайце</string>
     <string name="sight_no_height">Вышыня: без змен</string>
@@ -467,7 +678,12 @@
     <string name="sight_set_clicks">Увесці цану пстрычкі</string>
     <string name="sight_change_clicks">Змяніць цану пстрычкі</string>
     <string name="sight_adjusted_button">Прыцэл папраўлены</string>
-    <string name="sight_adjusted_note">Прыцэл папраўлены %1$s: зрух ацэньваецца па стрэлах пасля гэтага (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Прыцэл папраўлены %1$s: зрух ацэньваецца па %2$d стрэле пасля гэтага.</item>
+        <item quantity="few">Прыцэл папраўлены %1$s: зрух ацэньваецца па %2$d стрэлах пасля гэтага.</item>
+        <item quantity="many">Прыцэл папраўлены %1$s: зрух ацэньваецца па %2$d стрэлах пасля гэтага.</item>
+        <item quantity="other">Прыцэл папраўлены %1$s: зрух ацэньваецца па %2$d стрэлах пасля гэтага.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Адмяніць</string>
     <string name="sight_dialog_title">Цана пстрычкі, %1$s</string>
     <string name="sight_dialog_help">Наколькі адна пстрычка зрушвае пападанне на мішэні на вашай дыстанцыі стральбы. Звычайна гэта сказана ў інструкцыі да прыцэла, або палічыце пстрычкі адной папраўкі і вымерайце, наколькі зрушылася група.</string>

@@ -83,11 +83,23 @@
     <string name="history_signed_out">Conectează-te pentru a-ți vedea istoricul</string>
     <string name="history_empty">Nicio serie salvată încă</string>
     <string name="history_filter_empty">Nicio serie nu corespunde filtrului.</string>
-    <string name="history_day_summary">Serii: %1$d · medie %2$s</string>
-    <string name="history_day_summary_one">1 serie · puncte: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d serie · medie %2$s</item>
+        <item quantity="few">%1$d serii · medie %2$s</item>
+        <item quantity="other">%1$d de serii · medie %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 serie · %1$d punct</item>
+        <item quantity="few">1 serie · %1$d puncte</item>
+        <item quantity="other">1 serie · %1$d de puncte</item>
+    </plurals>
     <string name="history_card_title">%1$s · seria %2$d</string>
     <string name="history_delete_title">Ștergi seria?</string>
-    <string name="history_delete_message">%1$s · puncte: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d punct</item>
+        <item quantity="few">%1$s · %2$d puncte</item>
+        <item quantity="other">%1$s · %2$d de puncte</item>
+    </plurals>
     <string name="history_delete_confirm">Șterge</string>
     <string name="history_delete_cancel">Anulează</string>
     <string name="history_delete_failed">Nu s-a putut șterge</string>
@@ -134,7 +146,16 @@
     <string name="stats_group_date">Dată</string>
     <string name="filter_clear">Șterge filtrele</string>
     <string name="stats_no_geometry">Niciuna dintre seriile tale nu are un cerc față de care să fie reprezentată. Scanează una în care cercul 6/7 este găsit.</string>
-    <string name="stats_target_description">Țintă, lovituri: %1$d, serii: %2$d</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Țintă cu %1$d lovitură din %2$s</item>
+        <item quantity="few">Țintă cu %1$d lovituri din %2$s</item>
+        <item quantity="other">Țintă cu %1$d de lovituri din %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="few">%1$d serii</item>
+        <item quantity="other">%1$d de serii</item>
+    </plurals>
     <string name="stats_timeline">Cronologia seriilor</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Grupaj</string>
@@ -158,12 +179,20 @@
     <string name="stats_short_mean_score">Punctaj</string>
     <string name="stats_trend_description">Grafic de tendință, linii: %1$d, puncte: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (serii: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d serie)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d serii)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d de serii)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Tendință</string>
     <string name="stats_help_trend_body">Fila Tendință reprezintă orice măsură ca o curbă în timp. Alege măsura cu butoanele și dacă fiecare serie devine un punct sau dacă seriile sunt combinate pe zi, săptămână sau lună (măsura se calculează atunci pe toate seriile din perioadă). Pe calibru desenează câte o curbă pentru fiecare calibru. Filtrele de deasupra se aplică tuturor filelor. Atinge un punct pentru a-l citi.</string>
     <string name="stats_tab_drift">Deriva</string>
-    <string name="stats_drift_description">Țintă cu punctul mediu și median de impact în timp, puncte: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Țintă cu punctul mediu și median de impact în timp, %1$d punct</item>
+        <item quantity="few">Țintă cu punctul mediu și median de impact în timp, %1$d puncte</item>
+        <item quantity="other">Țintă cu punctul mediu și median de impact în timp, %1$d de puncte</item>
+    </plurals>
     <string name="stats_drift_counts">zile: %1$d · serii: %2$d · lovituri: %3$d</string>
     <string name="stats_drift_oldest">Cel mai vechi</string>
     <string name="stats_drift_newest">Cel mai nou</string>
@@ -182,8 +211,21 @@
     <string name="stats_drift_summary_closer">Ultimul punct de impact: %1$s (%2$d mm de centru), cu %3$d mm mai aproape decât pe %4$s.</string>
     <string name="stats_drift_summary_further">Ultimul punct de impact: %1$s (%2$d mm de centru), cu %3$d mm mai departe decât pe %4$s.</string>
     <string name="stats_drift_summary_same">Ultimul punct de impact: %1$s (%2$d mm de centru), la fel de departe ca pe %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · serii: %2$d · lovituri: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · seria %2$d din %3$d · lovituri: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d serie · %3$s</item>
+        <item quantity="few">%1$s · %2$d serii · %3$s</item>
+        <item quantity="other">%1$s · %2$d de serii · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d lovitură</item>
+        <item quantity="few">%1$d lovituri</item>
+        <item quantity="other">%1$d de lovituri</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · seria %2$d din %3$d · %4$d lovitură</item>
+        <item quantity="few">%1$s · seria %2$d din %3$d · %4$d lovituri</item>
+        <item quantity="other">%1$s · seria %2$d din %3$d · %4$d de lovituri</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Stânga / dreapta și sus / jos în timp (medie)</string>
     <string name="stats_drift_strips_median">Stânga / dreapta și sus / jos în timp (mediană)</string>
@@ -302,12 +344,20 @@
     <string name="help_home_import_body">Din meniu: punctează fotografii aflate deja pe telefon, din galerie sau din fișiere. Fiecare imagine este scanată și rezultatele ei sunt afișate, pentru a o salva sau a o sări. Cu Import automat activ, fiecare imagine care primește punctaj se salvează singură, cu data la care a fost făcută fotografia; restul sunt afișate pe rând la final.</string>
     <string name="series_status_phone">Salvat pe acest dispozitiv</string>
     <string name="series_not_uploaded">Neîncărcat</string>
-    <string name="stats_not_uploaded">Serii neîncărcate: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">%1$d serie neîncărcată</item>
+        <item quantity="few">%1$d serii neîncărcate</item>
+        <item quantity="other">%1$d de serii neîncărcate</item>
+    </plurals>
     <string name="local_claim_title">Serii pe acest dispozitiv</string>
     <string name="local_claim_body">Serii salvate pe acest dispozitiv fără conectare sau pentru alt cont: %1$d. Adaugă-le în acest cont, șterge-le de pe acest dispozitiv sau rămâi deconectat.</string>
     <string name="local_claim_add">Adaugă în cont</string>
     <string name="local_claim_delete">Șterge de pe dispozitiv</string>
-    <string name="local_claim_delete_body">Ștergi seriile (%1$d) și fotografiile lor de pe acest dispozitiv? Acțiunea nu poate fi anulată. Nu au fost încărcate în acest cont.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Ștergi %1$d serie și fotografia ei de pe acest dispozitiv? Acțiunea nu poate fi anulată. Nu a fost încărcată în acest cont.</item>
+        <item quantity="few">Ștergi %1$d serii și fotografiile lor de pe acest dispozitiv? Acțiunea nu poate fi anulată. Nu au fost încărcate în acest cont.</item>
+        <item quantity="other">Ștergi %1$d de serii și fotografiile lor de pe acest dispozitiv? Acțiunea nu poate fi anulată. Nu au fost încărcate în acest cont.</item>
+    </plurals>
     <string name="local_claim_stay">Rămâi deconectat</string>
     <string name="local_claim_error">Operațiunea nu s-a putut finaliza. Seriile rămase sunt încă pe acest dispozitiv. Închide și încearcă din nou să te conectezi.</string>
     <string name="home_week_series">serii în 7 zile</string>
@@ -317,17 +367,45 @@
     <string name="home_insight_stretch_vertical">Săptămâna aceasta grupajul tău %1$s este cu aproximativ %2$d la sută mai înalt decât lat.</string>
     <string name="home_insight_stretch_horizontal">Săptămâna aceasta grupajul tău %1$s este cu aproximativ %2$d la sută mai lat decât înalt.</string>
     <string name="home_insight_stretch_diagonal">Săptămâna aceasta grupajul tău %1$s este cu aproximativ %2$d la sută mai lung pe diagonală.</string>
-    <string name="home_insight_fliers">Săptămâna aceasta o lovitură a scăpat în %2$d dintre seriile tale %1$s (%3$d în total).</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Săptămâna aceasta o lovitură a scăpat în %2$d din %3$d serie %1$s a ta.</item>
+        <item quantity="few">Săptămâna aceasta o lovitură a scăpat în %2$d din cele %3$d serii %1$s ale tale.</item>
+        <item quantity="other">Săptămâna aceasta o lovitură a scăpat în %2$d din cele %3$d de serii %1$s ale tale.</item>
+    </plurals>
     <string name="home_insight_wide">Pe %2$s grupajele tale %1$s au fost cu aproximativ %3$d la sută mai largi decât înainte.</string>
     <string name="home_insight_low_series">Ultima ta serie %1$s a obținut %2$d, față de %3$d de obicei.</string>
     <string name="home_insight_low_day">Pe %2$s seriile tale %1$s au avut media %3$d, față de %4$d de obicei.</string>
-    <string name="home_insight_trend_up">Punctajele tale %1$s cresc: cu aproximativ %2$d p. în %3$d săpt.</string>
-    <string name="home_insight_trend_down">Punctajele tale %1$s scad: cu aproximativ %2$d p. în %3$d săpt.</string>
-    <string name="home_insight_session_down">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mic în %2$d din %3$d zile mai lungi.</string>
-    <string name="home_insight_session_up">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mare în %2$d din %3$d zile mai lungi.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Punctajele tale %1$s cresc: cu aproximativ %2$d punct în %3$s.</item>
+        <item quantity="few">Punctajele tale %1$s cresc: cu aproximativ %2$d puncte în %3$s.</item>
+        <item quantity="other">Punctajele tale %1$s cresc: cu aproximativ %2$d de puncte în %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d săptămână</item>
+        <item quantity="few">%1$d săptămâni</item>
+        <item quantity="other">%1$d de săptămâni</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Punctajele tale %1$s scad: cu aproximativ %2$d punct în %3$s.</item>
+        <item quantity="few">Punctajele tale %1$s scad: cu aproximativ %2$d puncte în %3$s.</item>
+        <item quantity="other">Punctajele tale %1$s scad: cu aproximativ %2$d de puncte în %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mic în %2$d din %3$d zi mai lungă.</item>
+        <item quantity="few">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mic în %2$d din %3$d zile mai lungi.</item>
+        <item quantity="other">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mic în %2$d din %3$d de zile mai lungi.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mare în %2$d din %3$d zi mai lungă.</item>
+        <item quantity="few">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mare în %2$d din %3$d zile mai lungi.</item>
+        <item quantity="other">Săptămâna aceasta seriile tale %1$s de mai târziu au avut punctaj mai mare în %2$d din %3$d de zile mai lungi.</item>
+    </plurals>
     <string name="home_insight_dismiss">Ascunde această analiză</string>
-    <string name="home_local_title">Serii doar pe acest telefon: %1$d</string>
-    <string name="home_local_title_one">1 serie doar pe acest telefon</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d serie doar pe acest telefon</item>
+        <item quantity="few">%1$d serii doar pe acest telefon</item>
+        <item quantity="other">%1$d de serii doar pe acest telefon</item>
+    </plurals>
     <string name="home_signin_title">Salvează seriile în contul tău</string>
     <string name="home_signin_body">Conectează-te pentru a le păstra când schimbi telefonul.</string>
     <string name="action_sign_in">Conectare</string>
@@ -366,12 +444,29 @@
     <string name="advice_move_down_left">în jos și la stânga</string>
     <string name="advice_move_left">la stânga</string>
     <string name="advice_move_up_left">în sus și la stânga</string>
-    <string name="advice_offset_stable_summary">Grupajul tău este cu %1$d mm %2$s (focuri: %3$d), la fel în zile: %4$d din %5$d.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Grupajul tău este cu %1$d mm %2$s în %3$d foc, la fel în %4$d din %5$s.</item>
+        <item quantity="few">Grupajul tău este cu %1$d mm %2$s în %3$d focuri, la fel în %4$d din %5$s.</item>
+        <item quantity="other">Grupajul tău este cu %1$d mm %2$s în %3$d de focuri, la fel în %4$d din %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d zi</item>
+        <item quantity="few">%1$d zile</item>
+        <item quantity="other">%1$d de zile</item>
+    </plurals>
     <string name="advice_cause_sights_1">Aparatele de ochire nu sunt reglate pentru această muniție sau distanță.</string>
     <string name="advice_cause_sights_2">Aparatele de ochire s-au mișcat de când au fost reglate sau altă muniție lovește în alt loc.</string>
     <string name="advice_try_sights">Reglează aparatele de ochire astfel încât grupajul să se mute cu aproximativ %1$d mm %2$s, apoi trage un grupaj nou înainte să le atingi din nou.</string>
-    <string name="advice_offset_varies_summary">Grupajul tău este cu %1$d mm %2$s (focuri: %3$d), dar nu la fel în fiecare zi.</string>
-    <string name="advice_offset_few_days_summary">Grupajul tău este cu %1$d mm %2$s (focuri: %3$d), în prea puține zile ca să se poată spune dacă e mereu așa.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Grupajul tău este cu %1$d mm %2$s în %3$d foc, dar nu la fel în fiecare zi.</item>
+        <item quantity="few">Grupajul tău este cu %1$d mm %2$s în %3$d focuri, dar nu la fel în fiecare zi.</item>
+        <item quantity="other">Grupajul tău este cu %1$d mm %2$s în %3$d de focuri, dar nu la fel în fiecare zi.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Grupajul tău este cu %1$d mm %2$s în %3$d foc, în prea puține zile ca să se poată spune dacă e mereu așa.</item>
+        <item quantity="few">Grupajul tău este cu %1$d mm %2$s în %3$d focuri, în prea puține zile ca să se poată spune dacă e mereu așa.</item>
+        <item quantity="other">Grupajul tău este cu %1$d mm %2$s în %3$d de focuri, în prea puține zile ca să se poată spune dacă e mereu așa.</item>
+    </plurals>
     <string name="advice_cause_high_1">Împingerea armei cu podul palmei în momentul plecării focului.</string>
     <string name="advice_cause_high_2">Încheietura care se frânge în sus la foc.</string>
     <string name="advice_cause_high_3">Căutarea loviturii și ridicarea prea devreme a armei.</string>
@@ -390,21 +485,37 @@
     <string name="advice_cause_side_2">Presiunea degetului mare pe mâner care împinge arma lateral.</string>
     <string name="advice_cause_side_3">O apăsare pe trăgaci care nu este drept înapoi.</string>
     <string name="advice_try_side">Verifică unde atinge degetul trăgaciul și cât de tare apasă degetul mare, apoi trage pe sec și urmărește aparatele de ochire.</string>
-    <string name="advice_stretch_vertical_summary">Grupajul tău este cu aproximativ %1$d la sută mai înalt decât lat (focuri: %2$d).</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Grupajul tău este cu aproximativ %1$d la sută mai înalt decât lat, în %2$d foc.</item>
+        <item quantity="few">Grupajul tău este cu aproximativ %1$d la sută mai înalt decât lat, în %2$d focuri.</item>
+        <item quantity="other">Grupajul tău este cu aproximativ %1$d la sută mai înalt decât lat, în %2$d de focuri.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Respirația: tragi de fiecare dată în alt punct al respirației.</string>
     <string name="advice_cause_vertical_2">Imaginea de ochire se schimbă pe înălțime, cu cătarea mai sus sau mai jos în crestătura înălțătorului.</string>
     <string name="advice_cause_vertical_3">Presiunea prizei variază de la un foc la altul.</string>
     <string name="advice_try_vertical">Oprește respirația în același punct la fiecare foc și verifică înălțimea cătării în crestătură înainte să apeși.</string>
-    <string name="advice_stretch_horizontal_summary">Grupajul tău este cu aproximativ %1$d la sută mai lat decât înalt (focuri: %2$d).</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Grupajul tău este cu aproximativ %1$d la sută mai lat decât înalt, în %2$d foc.</item>
+        <item quantity="few">Grupajul tău este cu aproximativ %1$d la sută mai lat decât înalt, în %2$d focuri.</item>
+        <item quantity="other">Grupajul tău este cu aproximativ %1$d la sută mai lat decât înalt, în %2$d de focuri.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">O apăsare pe trăgaci care deviază lateral.</string>
     <string name="advice_cause_horizontal_2">Încheietura care se mișcă la foc.</string>
     <string name="advice_cause_horizontal_3">O poziție care nu este bine orientată față de țintă.</string>
     <string name="advice_try_horizontal">Trage pe sec cu aparatele de ochire pe un reper și vezi dacă alunecă lateral când pleacă trăgaciul.</string>
-    <string name="advice_stretch_diagonal_summary">Grupajul tău este cu aproximativ %1$d la sută mai lung într-o direcție decât în cealaltă, pe diagonală (focuri: %2$d).</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Grupajul tău este cu aproximativ %1$d la sută mai lung într-o direcție decât în cealaltă, pe diagonală, în %2$d foc.</item>
+        <item quantity="few">Grupajul tău este cu aproximativ %1$d la sută mai lung într-o direcție decât în cealaltă, pe diagonală, în %2$d focuri.</item>
+        <item quantity="other">Grupajul tău este cu aproximativ %1$d la sută mai lung într-o direcție decât în cealaltă, pe diagonală, în %2$d de focuri.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Presiunea prizei și apăsarea pe trăgaci lucrează una împotriva celeilalte.</string>
     <string name="advice_cause_diagonal_2">O poziție a corpului sau a brațului care înclină arma.</string>
     <string name="advice_try_diagonal">Verifică dacă priza este aceeași la fiecare foc și dacă aparatele de ochire sunt drepte înainte să apeși.</string>
-    <string name="advice_fliers_summary">În %1$d dintre seriile tale (%2$d în total), o lovitură a scăpat de restul grupajului, în medie la aproximativ %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">În %1$d din %2$d serie a ta, o lovitură a scăpat de restul grupajului, în medie la aproximativ %3$d mm.</item>
+        <item quantity="few">În %1$d din cele %2$d serii ale tale, o lovitură a scăpat de restul grupajului, în medie la aproximativ %3$d mm.</item>
+        <item quantity="other">În %1$d din cele %2$d de serii ale tale, o lovitură a scăpat de restul grupajului, în medie la aproximativ %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Controlul trăgaciului la un singur foc.</string>
     <string name="advice_cause_fliers_2">Pierderea menținerii ochirii după foc.</string>
     <string name="advice_cause_fliers_3">Declanșarea focului fără să-l fi anunțat.</string>
@@ -415,48 +526,107 @@
     <string name="advice_cause_wide_3">Grăbirea focurilor.</string>
     <string name="advice_try_wide">Antrenament pe sec: ține și apasă fără să tragi și odihnește-te când ținerea începe să tremure.</string>
     <string name="advice_low_series_summary">Ultima ta serie a obținut %1$d, față de o medie de %2$d în ultimele tale %3$d.</string>
-    <string name="advice_low_day_summary">Pe %1$s seriile tale (%2$d) au avut media %3$d, față de o medie de %4$d înainte.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Pe %1$s, %2$d serie a ta a avut media %3$d, față de o medie de %4$d înainte.</item>
+        <item quantity="few">Pe %1$s, cele %2$d serii ale tale au avut media %3$d, față de o medie de %4$d înainte.</item>
+        <item quantity="other">Pe %1$s, cele %2$d de serii ale tale au avut media %3$d, față de o medie de %4$d înainte.</item>
+    </plurals>
     <string name="advice_try_low_plain">Un singur rezultat slab spune puțin: mai trage câteva înainte să schimbi ceva.</string>
     <string name="advice_try_low_explained">Începe cu nota de mai jos în loc să schimbi totul deodată.</string>
     <string name="advice_low_note_offset">Grupajul tău este deplasat față de centru, ceea ce poate fi o parte din motiv.</string>
     <string name="advice_low_note_stretched">Grupajul tău este alungit într-o direcție, ceea ce poate fi o parte din motiv.</string>
     <string name="advice_low_note_fliers">O lovitură scăpată într-o serie poate fi o parte din motiv.</string>
     <string name="advice_low_note_wide">Grupajele mai largi decât de obicei pot fi o parte din motiv.</string>
-    <string name="advice_trend_up_summary">Punctajele tale au crescut cu aproximativ %1$d p. în %3$d săpt. (serii: %2$d).</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Punctajele tale au crescut cu aproximativ %1$d punct în %3$s (%2$s).</item>
+        <item quantity="few">Punctajele tale au crescut cu aproximativ %1$d puncte în %3$s (%2$s).</item>
+        <item quantity="other">Punctajele tale au crescut cu aproximativ %1$d de puncte în %3$s (%2$s).</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="few">%1$d serii</item>
+        <item quantity="other">%1$d de serii</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d săptămână</item>
+        <item quantity="few">%1$d săptămâni</item>
+        <item quantity="other">%1$d de săptămâni</item>
+    </plurals>
     <string name="advice_try_trend_up">Continuă ce faci și notează ce s-a schimbat, ca să poți repeta.</string>
-    <string name="advice_trend_down_summary">Punctajele tale au scăzut cu aproximativ %1$d p. în %3$d săpt. (serii: %2$d).</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Punctajele tale au scăzut cu aproximativ %1$d punct în %3$s (%2$s).</item>
+        <item quantity="few">Punctajele tale au scăzut cu aproximativ %1$d puncte în %3$s (%2$s).</item>
+        <item quantity="other">Punctajele tale au scăzut cu aproximativ %1$d de puncte în %3$s (%2$s).</item>
+    </plurals>
     <string name="advice_cause_trend_1">Oboseala sau mai puțin timp pentru antrenament.</string>
     <string name="advice_cause_trend_2">Grăbirea focurilor.</string>
     <string name="advice_cause_trend_3">O schimbare de armă, muniție sau rutină.</string>
     <string name="advice_try_trend_down">Sesiuni mai scurte cu pauze și câteva trageri pe sec pentru a regăsi elementele de bază.</string>
-    <string name="advice_session_down_summary">În %1$d dintre zilele tale mai lungi (%2$d în total), seriile de mai târziu au avut punctaje mai mici decât primele: %4$d în medie față de %3$d în acele zile.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">În %1$d din %2$d zi mai lungă a ta, seriile de mai târziu au avut punctaje mai mici decât primele: %4$d în medie față de %3$d în acele zile.</item>
+        <item quantity="few">În %1$d din cele %2$d zile mai lungi ale tale, seriile de mai târziu au avut punctaje mai mici decât primele: %4$d în medie față de %3$d în acele zile.</item>
+        <item quantity="other">În %1$d din cele %2$d de zile mai lungi ale tale, seriile de mai târziu au avut punctaje mai mici decât primele: %4$d în medie față de %3$d în acele zile.</item>
+    </plurals>
     <string name="advice_cause_session_1">Oboseala brațului, umărului sau ochilor pe măsură ce sesiunea avansează.</string>
     <string name="advice_cause_session_2">Concentrarea scade, așa că focurile sunt grăbite sau mai puțin bine anunțate.</string>
     <string name="advice_cause_session_3">Prea puține pauze între serii.</string>
     <string name="advice_try_session_down">Sesiuni mai scurte sau o pauză adevărată la câteva serii, pentru a-ți odihni ochii și brațul.</string>
-    <string name="advice_session_up_summary">În %1$d dintre zilele tale mai lungi (%2$d în total), seriile de mai târziu au avut punctaje mai mari decât primele: %4$d în medie față de %3$d în acele zile.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">În %1$d din %2$d zi mai lungă a ta, seriile de mai târziu au avut punctaje mai mari decât primele: %4$d în medie față de %3$d în acele zile.</item>
+        <item quantity="few">În %1$d din cele %2$d zile mai lungi ale tale, seriile de mai târziu au avut punctaje mai mari decât primele: %4$d în medie față de %3$d în acele zile.</item>
+        <item quantity="other">În %1$d din cele %2$d de zile mai lungi ale tale, seriile de mai târziu au avut punctaje mai mari decât primele: %4$d în medie față de %3$d în acele zile.</item>
+    </plurals>
     <string name="advice_try_session_up">Un început lent: începe cu câteva trageri pe sec sau focuri de probă înainte ca prima serie să conteze.</string>
     <string name="stats_help_insights">Analize</string>
     <string name="stats_help_insights_body">Analize se uită la seriile tale salvate, câte un calibru pe rând, și semnalează tipare de care este destul de sigură: un grupaj deplasat într-o parte, un grupaj alungit, o lovitură scăpată sau punctaje care scad ori cresc. Are nevoie de un număr bun de focuri înainte să spună ceva. Fiecare notă arată ce indică cifrele, ce o cauzează frecvent și un lucru de încercat. Este un indiciu, nu un antrenor: cauzele sunt unele obișnuite, nu un verdict. Setează mâna de tragere și dezactivează Analize din Setări.</string>
     <string name="stats_tab_insights">Analize</string>
-    <string name="stats_insights_need_more">Analizele au nevoie de aproximativ %1$d focuri; aici ai %2$d.</string>
-    <string name="stats_insights_nothing">Nimic nu iese în evidență în aceste focuri (%1$d) din serii (%2$d).</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analizele au nevoie de aproximativ %1$d foc; aici ai %2$d.</item>
+        <item quantity="few">Analizele au nevoie de aproximativ %1$d focuri; aici ai %2$d.</item>
+        <item quantity="other">Analizele au nevoie de aproximativ %1$d de focuri; aici ai %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Nimic nu iese în evidență în acest %1$d foc din %2$s.</item>
+        <item quantity="few">Nimic nu iese în evidență în aceste %1$d focuri din %2$s.</item>
+        <item quantity="other">Nimic nu iese în evidență în aceste %1$d de focuri din %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="few">%1$d serii</item>
+        <item quantity="other">%1$d de serii</item>
+    </plurals>
     <string name="stats_insights_numbers">Punct mediu de impact %1$s, dispersie %2$d mm, serie medie %3$s.</string>
     <string name="stats_insights_legend">Elipsa galbenă cuprinde aproximativ 86 la sută din focuri; săgeata merge de la centru la punctul mediu de impact. Atinge o notă pentru a vedea la ce se referă pe țintă.</string>
-    <string name="stats_insights_target_description">Țintă de analiză cu focuri (%1$d), elipsa și săgeata spre punctul mediu de impact</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Țintă de analiză cu %1$d foc, elipsa și săgeata spre punctul mediu de impact</item>
+        <item quantity="few">Țintă de analiză cu %1$d focuri, elipsa și săgeata spre punctul mediu de impact</item>
+        <item quantity="other">Țintă de analiză cu %1$d de focuri, elipsa și săgeata spre punctul mediu de impact</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analize se uită la câte un calibru pe rând, iar aceste serii nu au niciunul. Setează-le un calibru în Istoric pentru a vedea analize.</string>
-    <string name="stats_insights_uncalibered">Serii fără calibru excluse: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d serie fără calibru este exclusă.</item>
+        <item quantity="few">%1$d serii fără calibru sunt excluse.</item>
+        <item quantity="other">%1$d de serii fără calibru sunt excluse.</item>
+    </plurals>
     <string name="detail_vs_under">Cu %1$d sub media ta de %2$d</string>
     <string name="detail_vs_over">Cu %1$d peste media ta de %2$d</string>
     <string name="detail_vs_on">La media ta de %1$d</string>
-    <string name="detail_vs_best">Cel mai bun rezultat al tău din ultimele %1$d de zile</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Cel mai bun rezultat al tău din ultima %1$d zi</item>
+        <item quantity="few">Cel mai bun rezultat al tău din ultimele %1$d zile</item>
+        <item quantity="other">Cel mai bun rezultat al tău din ultimele %1$d de zile</item>
+    </plurals>
     <string name="detail_day_in_insights">Vezi această zi în Analize</string>
     <string name="sight_title">Corecția ochirii</string>
     <string name="sight_up_mm">Sus %1$d mm</string>
     <string name="sight_down_mm">Jos %1$d mm</string>
     <string name="sight_left_mm">Stânga %1$d mm</string>
     <string name="sight_right_mm">Dreapta %1$d mm</string>
-    <string name="sight_clicks">%1$s, clicuri: %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d clic</item>
+        <item quantity="few">%1$s: %2$d clicuri</item>
+        <item quantity="other">%1$s: %2$d de clicuri</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 clic</string>
     <string name="sight_under_half_click">%1$s: sub o jumătate de clic, las-o așa</string>
     <string name="sight_no_height">Înălțime: fără schimbare</string>
@@ -467,7 +637,11 @@
     <string name="sight_set_clicks">Introdu valoarea clicului</string>
     <string name="sight_change_clicks">Schimbă valoarea clicului</string>
     <string name="sight_adjusted_button">Am reglat aparatele de ochire</string>
-    <string name="sight_adjusted_note">Aparate de ochire reglate %1$s: abaterea este evaluată pe focurile de atunci (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Aparate de ochire reglate %1$s: abaterea este evaluată pe %2$d foc tras de atunci.</item>
+        <item quantity="few">Aparate de ochire reglate %1$s: abaterea este evaluată pe %2$d focuri trase de atunci.</item>
+        <item quantity="other">Aparate de ochire reglate %1$s: abaterea este evaluată pe %2$d de focuri trase de atunci.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Anulează</string>
     <string name="sight_dialog_title">Valoarea clicului, %1$s</string>
     <string name="sight_dialog_help">Cât mută un clic impactul pe țintă la distanța ta de tragere. Manualul aparatului de ochire spune de obicei, sau numără clicurile unei corecții și măsoară cât s-a mutat grupajul.</string>

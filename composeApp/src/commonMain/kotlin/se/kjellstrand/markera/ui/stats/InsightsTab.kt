@@ -40,6 +40,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -94,7 +95,7 @@ internal fun InsightsTab(
         }
         if (insights.uncaliberedSeries > 0) {
             Text(
-                stringResource(Res.string.stats_insights_uncalibered, insights.uncaliberedSeries),
+                pluralStringResource(Res.plurals.stats_insights_uncalibered, insights.uncaliberedSeries, insights.uncaliberedSeries),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -121,7 +122,7 @@ private fun InsightSectionView(
 ) {
     // Five holes are too few to judge a shape: no ellipse, no arrow, just how many are needed.
     if (!section.enoughData) {
-        Note(stringResource(Res.string.stats_insights_need_more, needed, section.hitCount))
+        Note(pluralStringResource(Res.plurals.stats_insights_need_more, needed, needed, section.hitCount))
         return
     }
     val advice = remember(section, hand) { adviceFor(section.findings, hand) }
@@ -141,7 +142,12 @@ private fun InsightSectionView(
             AdjustedNote(at, section.offsetHitCount) { settings?.undoSightsAdjusted(section.caliber.label) }
         }
         if (advice.isEmpty()) {
-            val nothing = stringResource(Res.string.stats_insights_nothing, section.hitCount, section.series.size)
+            val nothing = pluralStringResource(
+                Res.plurals.stats_insights_nothing,
+                section.hitCount,
+                section.hitCount,
+                pluralStringResource(Res.plurals.stats_insights_nothing_series, section.series.size, section.series.size),
+            )
             val numbers = section.stats?.let {
                 stringResource(
                     Res.string.stats_insights_numbers,
@@ -232,7 +238,7 @@ private fun axisLine(mm: Int, clicks: Int?, vertical: Boolean): String {
         null -> move
         0 -> stringResource(Res.string.sight_under_half_click, move)
         1 -> stringResource(Res.string.sight_one_click, move)
-        else -> stringResource(Res.string.sight_clicks, move, n)
+        else -> pluralStringResource(Res.plurals.sight_clicks, n, move, n)
     }
 }
 
@@ -251,7 +257,7 @@ private fun AdjustedNote(at: Instant, shots: Int, onUndo: () -> Unit) {
     val date = at.toLocalDateTime(TimeZone.currentSystemDefault()).date
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            stringResource(Res.string.sight_adjusted_note, date.toString(), shots),
+            pluralStringResource(Res.plurals.sight_adjusted_note, shots, date.toString(), shots),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),

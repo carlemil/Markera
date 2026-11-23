@@ -83,11 +83,20 @@
     <string name="history_signed_out">Kirjaudu sisään nähdäksesi historiasi</string>
     <string name="history_empty">Ei vielä tallennettuja sarjoja</string>
     <string name="history_filter_empty">Mikään sarja ei vastaa suodatinta.</string>
-    <string name="history_day_summary">%1$d sarjaa · ka. %2$s</string>
-    <string name="history_day_summary_one">1 sarja · %1$d pistettä</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d sarja · ka. %2$s</item>
+        <item quantity="other">%1$d sarjaa · ka. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 sarja · %1$d piste</item>
+        <item quantity="other">1 sarja · %1$d pistettä</item>
+    </plurals>
     <string name="history_card_title">%1$s · sarja %2$d</string>
     <string name="history_delete_title">Poistetaanko sarja?</string>
-    <string name="history_delete_message">%1$s · %2$d pistettä</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d piste</item>
+        <item quantity="other">%1$s · %2$d pistettä</item>
+    </plurals>
     <string name="history_delete_confirm">Poista</string>
     <string name="history_delete_cancel">Peruuta</string>
     <string name="history_delete_failed">Poisto epäonnistui</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Päivämäärä</string>
     <string name="filter_clear">Tyhjennä suodattimet</string>
     <string name="stats_no_geometry">Yhdessäkään sarjassasi ei ole rengasta, jota vasten piirtää. Skannaa sarja, jossa 6/7-rengas löytyy.</string>
-    <string name="stats_target_description">Taulu, jossa %1$d osumaa %2$d sarjasta</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Taulu, jossa %1$d osuma %2$s</item>
+        <item quantity="other">Taulu, jossa %1$d osumaa %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d sarjasta</item>
+        <item quantity="other">%1$d sarjasta</item>
+    </plurals>
     <string name="stats_timeline">Sarjojen aikajana</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Ryhmitys</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Pisteet</string>
     <string name="stats_trend_description">Trendikaavio, viivoja: %1$d, pisteitä: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d sarjaa)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d sarja)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d sarjaa)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trendi</string>
     <string name="stats_help_trend_body">Trendi-välilehti piirtää minkä tahansa mittarin käyräksi ajan funktiona. Valitse mittari painikkeilla ja se, tuleeko jokaisesta sarjasta oma piste vai yhdistetäänkö sarjat päivittäin, viikoittain tai kuukausittain (mittari lasketaan silloin kaikista jakson sarjoista). Kaliipereittain piirtää oman käyrän jokaiselle kaliiperille. Yllä olevat suodattimet koskevat kaikkia välilehtiä. Lue piste napauttamalla sitä.</string>
     <string name="stats_tab_drift">Siirtymä</string>
-    <string name="stats_drift_description">Taulu, jossa keski- ja mediaaniosumapiste ajan mittaan, %1$d pistettä</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Taulu, jossa keski- ja mediaaniosumapiste ajan mittaan, %1$d piste</item>
+        <item quantity="other">Taulu, jossa keski- ja mediaaniosumapiste ajan mittaan, %1$d pistettä</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d päivää · %2$d sarjaa · %3$d osumaa</string>
     <string name="stats_drift_oldest">Vanhin</string>
     <string name="stats_drift_newest">Uusin</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Viimeisin osumapiste: %1$s (%2$d mm keskipisteestä), %3$d mm lähempänä kuin %4$s.</string>
     <string name="stats_drift_summary_further">Viimeisin osumapiste: %1$s (%2$d mm keskipisteestä), %3$d mm kauempana kuin %4$s.</string>
     <string name="stats_drift_summary_same">Viimeisin osumapiste: %1$s (%2$d mm keskipisteestä), yhtä kaukana kuin %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d sarjaa · %3$d osumaa</string>
-    <string name="stats_drift_point_series">%1$s · sarja %2$d/%3$d · %4$d osumaa</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d sarja · %3$s</item>
+        <item quantity="other">%1$s · %2$d sarjaa · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d osuma</item>
+        <item quantity="other">%1$d osumaa</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · sarja %2$d/%3$d · %4$d osuma</item>
+        <item quantity="other">%1$s · sarja %2$d/%3$d · %4$d osumaa</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Vasen/oikea ja ylä/ala ajan mittaan (keskiarvo)</string>
     <string name="stats_drift_strips_median">Vasen/oikea ja ylä/ala ajan mittaan (mediaani)</string>
@@ -302,12 +334,18 @@
     <string name="help_home_import_body">Valikossa: pisteytä puhelimessa jo olevia kuvia galleriasta tai tiedostoista. Jokainen kuva skannataan ja tulos näytetään tallennettavaksi tai ohitettavaksi. Kun Automaattinen tuonti on päällä, jokainen pisteet saava kuva tallennetaan itsestään kuvan ottopäivämäärällä; loput näytetään yksi kerrallaan jälkeenpäin.</string>
     <string name="series_status_phone">Tallennettu tähän laitteeseen</string>
     <string name="series_not_uploaded">Ei ladattu</string>
-    <string name="stats_not_uploaded">Ei ladattu: %1$d sarjaa</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Ei ladattu: %1$d sarja</item>
+        <item quantity="other">Ei ladattu: %1$d sarjaa</item>
+    </plurals>
     <string name="local_claim_title">Sarjat tässä laitteessa</string>
     <string name="local_claim_body">Tähän laitteeseen uloskirjautuneena tai toiselle tilille tallennetut sarjat: %1$d. Lisää ne tähän tiliin, poista ne laitteesta tai pysy uloskirjautuneena.</string>
     <string name="local_claim_add">Lisää tiliin</string>
     <string name="local_claim_delete">Poista laitteesta</string>
-    <string name="local_claim_delete_body">Poistetaanko %1$d sarjaa ja niiden kuvat tästä laitteesta? Tätä ei voi perua. Niitä ei ole ladattu tähän tiliin.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Poistetaanko %1$d sarja ja sen kuva tästä laitteesta? Tätä ei voi perua. Sitä ei ole ladattu tähän tiliin.</item>
+        <item quantity="other">Poistetaanko %1$d sarjaa ja niiden kuvat tästä laitteesta? Tätä ei voi perua. Niitä ei ole ladattu tähän tiliin.</item>
+    </plurals>
     <string name="local_claim_stay">Pysy uloskirjautuneena</string>
     <string name="local_claim_error">Toimintoa ei voitu viedä loppuun. Jäljellä olevat sarjasi ovat yhä tässä laitteessa. Sulje ja yritä kirjautua uudelleen.</string>
     <string name="home_week_series">sarjaa 7 päivässä</string>
@@ -317,17 +355,38 @@
     <string name="home_insight_stretch_vertical">Tällä viikolla ryhmäsi (%1$s) on noin %2$d prosenttia korkeampi kuin leveä.</string>
     <string name="home_insight_stretch_horizontal">Tällä viikolla ryhmäsi (%1$s) on noin %2$d prosenttia leveämpi kuin korkea.</string>
     <string name="home_insight_stretch_diagonal">Tällä viikolla ryhmäsi (%1$s) on noin %2$d prosenttia pidempi vinottain.</string>
-    <string name="home_insight_fliers">Tällä viikolla yksi laukaus karkasi %2$d sarjassa %3$d sarjastasi (%1$s).</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Tällä viikolla yksi laukaus karkasi %2$d sarjassa %3$d sarjastasi (%1$s).</item>
+        <item quantity="other">Tällä viikolla yksi laukaus karkasi %2$d sarjassa %3$d sarjastasi (%1$s).</item>
+    </plurals>
     <string name="home_insight_wide">%2$s ryhmäsi (%1$s) olivat noin %3$d prosenttia leveämpiä kuin aiemmin.</string>
     <string name="home_insight_low_series">Viimeisin sarjasi (%1$s) sai %2$d pistettä, kun tavallisesti %3$d.</string>
     <string name="home_insight_low_day">%2$s sarjojesi (%1$s) keskiarvo oli %3$d, kun tavallisesti %4$d.</string>
-    <string name="home_insight_trend_up">Pisteesi (%1$s) nousevat: noin %2$d pistettä %3$d viikossa.</string>
-    <string name="home_insight_trend_down">Pisteesi (%1$s) laskevat: noin %2$d pistettä %3$d viikossa.</string>
-    <string name="home_insight_session_down">Tällä viikolla myöhemmät sarjasi (%1$s) saivat vähemmän pisteitä %2$d pidempänä päivänä %3$d:sta.</string>
-    <string name="home_insight_session_up">Tällä viikolla myöhemmät sarjasi (%1$s) saivat enemmän pisteitä %2$d pidempänä päivänä %3$d:sta.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Pisteesi (%1$s) nousevat: noin %2$d piste %3$s.</item>
+        <item quantity="other">Pisteesi (%1$s) nousevat: noin %2$d pistettä %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d viikossa</item>
+        <item quantity="other">%1$d viikossa</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Pisteesi (%1$s) laskevat: noin %2$d piste %3$s.</item>
+        <item quantity="other">Pisteesi (%1$s) laskevat: noin %2$d pistettä %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Tällä viikolla myöhemmät sarjasi (%1$s) saivat vähemmän pisteitä %2$d pidempänä päivänä %3$d:sta.</item>
+        <item quantity="other">Tällä viikolla myöhemmät sarjasi (%1$s) saivat vähemmän pisteitä %2$d pidempänä päivänä %3$d:sta.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Tällä viikolla myöhemmät sarjasi (%1$s) saivat enemmän pisteitä %2$d pidempänä päivänä %3$d:sta.</item>
+        <item quantity="other">Tällä viikolla myöhemmät sarjasi (%1$s) saivat enemmän pisteitä %2$d pidempänä päivänä %3$d:sta.</item>
+    </plurals>
     <string name="home_insight_dismiss">Piilota tämä havainto</string>
-    <string name="home_local_title">%1$d sarjaa vain tässä puhelimessa</string>
-    <string name="home_local_title_one">1 sarja vain tässä puhelimessa</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d sarja vain tässä puhelimessa</item>
+        <item quantity="other">%1$d sarjaa vain tässä puhelimessa</item>
+    </plurals>
     <string name="home_signin_title">Tallenna sarjasi tilillesi</string>
     <string name="home_signin_body">Kirjaudu sisään, niin ne säilyvät, kun vaihdat puhelinta.</string>
     <string name="action_sign_in">Kirjaudu</string>
@@ -366,12 +425,25 @@
     <string name="advice_move_down_left">alas ja vasemmalle</string>
     <string name="advice_move_left">vasemmalle</string>
     <string name="advice_move_up_left">ylös ja vasemmalle</string>
-    <string name="advice_offset_stable_summary">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, samalla tavalla %4$d päivänä %5$d:sta.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, samalla tavalla %4$d päivänä %5$s.</item>
+        <item quantity="other">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, samalla tavalla %4$d päivänä %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d päivästä</item>
+        <item quantity="other">%1$d päivästä</item>
+    </plurals>
     <string name="advice_cause_sights_1">Tähtäimiä ei ole kohdistettu tälle patrunalle tai etäisyydelle.</string>
     <string name="advice_cause_sights_2">Tähtäimet ovat siirtyneet säätämisen jälkeen, tai eri patruuna osuu muualle.</string>
     <string name="advice_try_sights">Säädä tähtäimiä niin, että ryhmä siirtyy noin %1$d mm %2$s, ja ammu sitten uusi ryhmä ennen kuin kosket niihin uudelleen.</string>
-    <string name="advice_offset_varies_summary">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, mutta ei samalla tavalla joka päivä.</string>
-    <string name="advice_offset_few_days_summary">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, mutta liian harvana päivänä, jotta voisi sanoa, onko se aina niin.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, mutta ei samalla tavalla joka päivä.</item>
+        <item quantity="other">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, mutta ei samalla tavalla joka päivä.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, mutta liian harvana päivänä, jotta voisi sanoa, onko se aina niin.</item>
+        <item quantity="other">Ryhmäsi on %1$d mm %2$s %3$d laukauksen perusteella, mutta liian harvana päivänä, jotta voisi sanoa, onko se aina niin.</item>
+    </plurals>
     <string name="advice_cause_high_1">Kämmenen työntäminen eteenpäin laukauksen lähtiessä.</string>
     <string name="advice_cause_high_2">Ranne taittuu ylöspäin laukauksessa.</string>
     <string name="advice_cause_high_3">Osuman katsominen ja aseen nostaminen liian aikaisin.</string>
@@ -390,21 +462,33 @@
     <string name="advice_cause_side_2">Peukalon paine kahvassa työntää asetta sivulle.</string>
     <string name="advice_cause_side_3">Liipaisu, joka ei ole suoraan taaksepäin.</string>
     <string name="advice_try_side">Tarkista, missä kohtaa sormi koskettaa liipaisinta ja kuinka kovaa peukalo painaa, ja tee sitten kuivaharjoitusta tähtäimiä seuraten.</string>
-    <string name="advice_stretch_vertical_summary">Ryhmäsi on noin %1$d prosenttia korkeampi kuin leveä %2$d laukauksen perusteella.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Ryhmäsi on noin %1$d prosenttia korkeampi kuin leveä %2$d laukauksen perusteella.</item>
+        <item quantity="other">Ryhmäsi on noin %1$d prosenttia korkeampi kuin leveä %2$d laukauksen perusteella.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Hengitys: laukaus lähtee joka kerta eri kohdassa hengitystä.</string>
     <string name="advice_cause_vertical_2">Tähtäinkuva vaihtelee korkeussuunnassa, jyvä on lovessa korkeammalla tai matalammalla.</string>
     <string name="advice_cause_vertical_3">Otepaine, joka vaihtelee laukauksesta toiseen.</string>
     <string name="advice_try_vertical">Pysäytä hengitys samaan kohtaan joka laukauksella ja tarkista jyvän korkeus lovessa ennen kuin puristat.</string>
-    <string name="advice_stretch_horizontal_summary">Ryhmäsi on noin %1$d prosenttia leveämpi kuin korkea %2$d laukauksen perusteella.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Ryhmäsi on noin %1$d prosenttia leveämpi kuin korkea %2$d laukauksen perusteella.</item>
+        <item quantity="other">Ryhmäsi on noin %1$d prosenttia leveämpi kuin korkea %2$d laukauksen perusteella.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Liipaisu, joka menee sivulle.</string>
     <string name="advice_cause_horizontal_2">Ranne liikkuu laukauksessa.</string>
     <string name="advice_cause_horizontal_3">Asento, joka ei ole suorassa tauluun nähden.</string>
     <string name="advice_try_horizontal">Tee kuivaharjoitusta tähtäimet merkissä ja katso, liukuvatko ne sivulle liipaisimen lauetessa.</string>
-    <string name="advice_stretch_diagonal_summary">Ryhmäsi on noin %1$d prosenttia pidempi yhteen suuntaan kuin toiseen, vinottain, %2$d laukauksen perusteella.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Ryhmäsi on noin %1$d prosenttia pidempi yhteen suuntaan kuin toiseen, vinottain, %2$d laukauksen perusteella.</item>
+        <item quantity="other">Ryhmäsi on noin %1$d prosenttia pidempi yhteen suuntaan kuin toiseen, vinottain, %2$d laukauksen perusteella.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Otepaine ja liipaisu toimivat toisiaan vastaan.</string>
     <string name="advice_cause_diagonal_2">Asento tai käden asento, joka kallistaa asetta.</string>
     <string name="advice_try_diagonal">Tarkista, että ote on joka laukauksella sama ja että tähtäimet ovat suorassa ennen kuin puristat.</string>
-    <string name="advice_fliers_summary">%1$d sarjassa %2$d sarjastasi yksi laukaus karkasi muista, keskimäärin noin %3$d mm ulommas.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">%1$d sarjassa %2$d sarjastasi yksi laukaus karkasi muista, keskimäärin noin %3$d mm ulommas.</item>
+        <item quantity="other">%1$d sarjassa %2$d sarjastasi yksi laukaus karkasi muista, keskimäärin noin %3$d mm ulommas.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Liipaisun hallinta yksittäisessä laukauksessa.</string>
     <string name="advice_cause_fliers_2">Jälkipidon menettäminen.</string>
     <string name="advice_cause_fliers_3">Laukauksen päästäminen ilmoittamatta sitä.</string>
@@ -415,48 +499,93 @@
     <string name="advice_cause_wide_3">Laukausten kiirehtiminen.</string>
     <string name="advice_try_wide">Kuivaharjoittelu: pidä ja purista ampumatta, ja lepää, kun pito alkaa täristä.</string>
     <string name="advice_low_series_summary">Viimeisin sarjasi sai %1$d pistettä, kun viimeisten %3$d sarjan keskiarvo on %2$d.</string>
-    <string name="advice_low_day_summary">%1$s %2$d sarjasi keskiarvo oli %3$d, kun aiempi keskiarvo on %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s %2$d sarjasi keskiarvo oli %3$d, kun aiempi keskiarvo on %4$d.</item>
+        <item quantity="other">%1$s %2$d sarjasi keskiarvo oli %3$d, kun aiempi keskiarvo on %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">Yksi heikko tulos kertoo vähän: ammu vielä muutama ennen kuin muutat mitään.</string>
     <string name="advice_try_low_explained">Aloita alla olevasta huomiosta sen sijaan, että muuttaisit kaiken kerralla.</string>
     <string name="advice_low_note_offset">Ryhmäsi on sivussa keskeltä, mikä voi olla osasyy.</string>
     <string name="advice_low_note_stretched">Ryhmäsi on venynyt yhteen suuntaan, mikä voi olla osasyy.</string>
     <string name="advice_low_note_fliers">Sarjasta karkaava yksittäinen laukaus voi olla osasyy.</string>
     <string name="advice_low_note_wide">Tavallista leveämmät ryhmät voivat olla osasyy.</string>
-    <string name="advice_trend_up_summary">Pisteesi ovat nousseet noin %1$d pistettä %3$d viikossa %2$d sarjan aikana.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Pisteesi ovat nousseet noin %1$d pisteen %3$s %2$s aikana.</item>
+        <item quantity="other">Pisteesi ovat nousseet noin %1$d pistettä %3$s %2$s aikana.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d sarjan</item>
+        <item quantity="other">%1$d sarjan</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d viikossa</item>
+        <item quantity="other">%1$d viikossa</item>
+    </plurals>
     <string name="advice_try_trend_up">Jatka samaan malliin ja kirjaa ylös, mikä muuttui, jotta voit toistaa sen.</string>
-    <string name="advice_trend_down_summary">Pisteesi ovat laskeneet noin %1$d pistettä %3$d viikossa %2$d sarjan aikana.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Pisteesi ovat laskeneet noin %1$d pisteen %3$s %2$s aikana.</item>
+        <item quantity="other">Pisteesi ovat laskeneet noin %1$d pistettä %3$s %2$s aikana.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Väsymys tai vähemmän aikaa harjoitella.</string>
     <string name="advice_cause_trend_2">Laukausten kiirehtiminen.</string>
     <string name="advice_cause_trend_3">Aseen, patruunan tai rutiinin vaihtuminen.</string>
     <string name="advice_try_trend_down">Lyhyempiä harjoituksia tauoin ja muutama kuivalaukaus perusasioiden löytämiseksi uudelleen.</string>
-    <string name="advice_session_down_summary">%1$d pidempänä päivänä %2$d:sta myöhemmät sarjasi saivat vähemmän pisteitä kuin ensimmäiset: keskimäärin %4$d, kun ensimmäiset %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">%1$d pidempänä päivänä %2$d:sta myöhemmät sarjasi saivat vähemmän pisteitä kuin ensimmäiset: keskimäärin %4$d, kun ensimmäiset %3$d.</item>
+        <item quantity="other">%1$d pidempänä päivänä %2$d:sta myöhemmät sarjasi saivat vähemmän pisteitä kuin ensimmäiset: keskimäärin %4$d, kun ensimmäiset %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Käden, olkapään tai silmien väsyminen harjoituksen edetessä.</string>
     <string name="advice_cause_session_2">Keskittyminen herpaantuu, jolloin laukaukset kiirehditään tai ilmoitetaan huonommin.</string>
     <string name="advice_cause_session_3">Liian vähän taukoja sarjojen välillä.</string>
     <string name="advice_try_session_down">Lyhyempiä harjoituksia tai kunnon tauko muutaman sarjan välein silmien ja käden lepuuttamiseksi.</string>
-    <string name="advice_session_up_summary">%1$d pidempänä päivänä %2$d:sta myöhemmät sarjasi saivat enemmän pisteitä kuin ensimmäiset: keskimäärin %4$d, kun ensimmäiset %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">%1$d pidempänä päivänä %2$d:sta myöhemmät sarjasi saivat enemmän pisteitä kuin ensimmäiset: keskimäärin %4$d, kun ensimmäiset %3$d.</item>
+        <item quantity="other">%1$d pidempänä päivänä %2$d:sta myöhemmät sarjasi saivat enemmän pisteitä kuin ensimmäiset: keskimäärin %4$d, kun ensimmäiset %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Hidas aloitus: aloita muutamalla kuivalaukauksella tai koelaukauksella ennen kuin ensimmäinen sarja lasketaan.</string>
     <string name="stats_help_insights">Analyysi</string>
     <string name="stats_help_insights_body">Analyysi käy läpi tallennetut sarjasi kaliiperi kerrallaan ja tuo esiin kuvioita, joista se on melko varma: sivuun osuva ryhmä, venynyt ryhmä, karkaava laukaus tai laskevat tai nousevat pisteet. Se tarvitsee runsaasti laukauksia ennen kuin sanoo mitään. Jokainen huomio kertoo, mitä luvut näyttävät, mikä sen usein aiheuttaa ja yhden asian, jota kokeilla. Se on vihje, ei valmentaja: syyt ovat yleisiä, eivät tuomio. Valitse ampumakätesi ja kytke Analyysi pois asetuksista.</string>
     <string name="stats_tab_insights">Analyysi</string>
-    <string name="stats_insights_need_more">Analyysi tarvitsee noin %1$d laukausta; tässä on %2$d.</string>
-    <string name="stats_insights_nothing">Mikään ei erotu näissä %1$d laukauksessa %2$d sarjasta.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analyysi tarvitsee noin %1$d laukauksen; tässä on %2$d.</item>
+        <item quantity="other">Analyysi tarvitsee noin %1$d laukausta; tässä on %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Mikään ei erotu tässä %1$d laukauksessa %2$s.</item>
+        <item quantity="other">Mikään ei erotu näissä %1$d laukauksessa %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d sarjasta</item>
+        <item quantity="other">%1$d sarjasta</item>
+    </plurals>
     <string name="stats_insights_numbers">Keskiosumapiste %1$s, hajonta %2$d mm, keskimääräinen sarja %3$s.</string>
     <string name="stats_insights_legend">Keltainen ellipsi sisältää noin 86 prosenttia laukauksista; nuoli kulkee keskipisteestä keskiosumapisteeseen. Napauta huomiota nähdäksesi, mihin se viittaa taululla.</string>
-    <string name="stats_insights_target_description">Analyysitaulu, jossa %1$d laukausta, ellipsi ja nuoli keskiosumapisteeseen</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Analyysitaulu, jossa %1$d laukaus, ellipsi ja nuoli keskiosumapisteeseen</item>
+        <item quantity="other">Analyysitaulu, jossa %1$d laukausta, ellipsi ja nuoli keskiosumapisteeseen</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analyysi käsittelee yhden kaliiperin kerrallaan, eikä näillä sarjoilla ole kaliiperia. Aseta niille kaliiperi historiassa nähdäksesi analyysin.</string>
-    <string name="stats_insights_uncalibered">%1$d sarjaa ilman kaliiperia jätetään pois.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d sarja ilman kaliiperia jätetään pois.</item>
+        <item quantity="other">%1$d sarjaa ilman kaliiperia jätetään pois.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d alle keskiarvosi %2$d</string>
     <string name="detail_vs_over">%1$d yli keskiarvosi %2$d</string>
     <string name="detail_vs_on">Keskiarvossasi %1$d</string>
-    <string name="detail_vs_best">Paras tuloksesi viimeisten %1$d päivän aikana</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Paras tuloksesi viimeisen %1$d päivän aikana</item>
+        <item quantity="other">Paras tuloksesi viimeisten %1$d päivän aikana</item>
+    </plurals>
     <string name="detail_day_in_insights">Näytä tämä päivä analyysissä</string>
     <string name="sight_title">Tähtäinkorjaus</string>
     <string name="sight_up_mm">Ylös %1$d mm</string>
     <string name="sight_down_mm">Alas %1$d mm</string>
     <string name="sight_left_mm">Vasemmalle %1$d mm</string>
     <string name="sight_right_mm">Oikealle %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d naksua</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d naksu</item>
+        <item quantity="other">%1$s: %2$d naksua</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 naksu</string>
     <string name="sight_under_half_click">%1$s: alle puoli naksua, jätä ennalleen</string>
     <string name="sight_no_height">Korkeus: ei muutosta</string>
@@ -467,7 +596,10 @@
     <string name="sight_set_clicks">Syötä naksuarvo</string>
     <string name="sight_change_clicks">Muuta naksuarvoa</string>
     <string name="sight_adjusted_button">Säädin tähtäimiä</string>
-    <string name="sight_adjusted_note">Tähtäimiä säädetty %1$s: poikkeama arvioidaan sen jälkeen ammuttujen %2$d laukauksen perusteella.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Tähtäimiä säädetty %1$s: poikkeama arvioidaan sen jälkeen ammutun %2$d laukauksen perusteella.</item>
+        <item quantity="other">Tähtäimiä säädetty %1$s: poikkeama arvioidaan sen jälkeen ammuttujen %2$d laukauksen perusteella.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Kumoa</string>
     <string name="sight_dialog_title">Naksuarvo, %1$s</string>
     <string name="sight_dialog_help">Kuinka paljon yksi naksu siirtää osumaa taululla ampumaetäisyydelläsi. Tähtäimen ohjeessa se yleensä kerrotaan; muuten laske yhden korjauksen naksut ja mittaa, kuinka paljon ryhmä siirtyi.</string>

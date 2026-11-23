@@ -12,7 +12,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.series.stats.AdviceText
@@ -72,18 +74,23 @@ private fun comparisonText(c: SeriesComparison): String = when (c) {
     is SeriesComparison.Under -> stringResource(Res.string.detail_vs_under, c.points, c.average)
     is SeriesComparison.Over -> stringResource(Res.string.detail_vs_over, c.points, c.average)
     is SeriesComparison.OnAverage -> stringResource(Res.string.detail_vs_on, c.average)
-    is SeriesComparison.Best -> stringResource(Res.string.detail_vs_best, c.days)
+    is SeriesComparison.Best -> pluralStringResource(Res.plurals.detail_vs_best, c.days, c.days)
 }
 
-/** Resolves direction words and dates in [text]'s arguments, as [AdviceText] asks of its renderer. */
+/** Resolves direction words, dates and counted phrases in [text]'s arguments, as [AdviceText] asks of its renderer. */
 @Composable
 internal fun adviceString(text: AdviceText): String {
     val args = text.args.map {
         when (it) {
             is StringResource -> stringResource(it)
             is LocalDate -> it.toString()
+            is AdviceText -> adviceString(it)
             else -> it
         }
     }
-    return stringResource(text.res, *args.toTypedArray())
+    return when (val res = text.res) {
+        is PluralStringResource -> pluralStringResource(res, text.count, *args.toTypedArray())
+        is StringResource -> stringResource(res, *args.toTypedArray())
+        else -> error("not a string: $res")
+    }
 }

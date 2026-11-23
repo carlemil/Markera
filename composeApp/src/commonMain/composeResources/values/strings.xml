@@ -89,11 +89,20 @@
     <string name="history_signed_out">Sign in to see your history</string>
     <string name="history_empty">No saved series yet</string>
     <string name="history_filter_empty">No series match the filter.</string>
-    <string name="history_day_summary">%1$d series · avg %2$s</string>
-    <string name="history_day_summary_one">1 series · %1$d points</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d series · avg %2$s</item>
+        <item quantity="other">%1$d series · avg %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 series · %1$d point</item>
+        <item quantity="other">1 series · %1$d points</item>
+    </plurals>
     <string name="history_card_title">%1$s · series %2$d</string>
     <string name="history_delete_title">Delete the series?</string>
-    <string name="history_delete_message">%1$s · %2$d points</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d point</item>
+        <item quantity="other">%1$s · %2$d points</item>
+    </plurals>
     <string name="history_delete_confirm">Delete</string>
     <string name="history_delete_cancel">Cancel</string>
     <string name="history_delete_failed">Could not delete</string>
@@ -142,7 +151,14 @@
     <string name="stats_group_date">Date</string>
     <string name="filter_clear">Clear filters</string>
     <string name="stats_no_geometry">None of your series has a ring to plot against. Scan one with the 6/7 ring found.</string>
-    <string name="stats_target_description">Target with %1$d hits from %2$d series</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Target with %1$d hit from %2$s</item>
+        <item quantity="other">Target with %1$d hits from %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d series</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
     <string name="stats_timeline">Series timeline</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Grouping</string>
@@ -167,12 +183,18 @@
     <string name="stats_short_mean_score">Score</string>
     <string name="stats_trend_description">Trend chart, lines: %1$d, points: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d series)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d series)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d series)</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">The Trend tab plots any measure as a curve over time. Pick the measure with the buttons, and whether each series becomes a point or the series are merged per day, week or month (the measure is then computed over all series in the period). Per caliber draws one curve per caliber. The filters above apply to all tabs. Tap a point to read it.</string>
     <string name="stats_tab_drift">Drift</string>
-    <string name="stats_drift_description">Target with the mean and median point of impact over time, %1$d points</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Target with the mean and median point of impact over time, %1$d point</item>
+        <item quantity="other">Target with the mean and median point of impact over time, %1$d points</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d days · %2$d series · %3$d hits</string>
     <string name="stats_drift_oldest">Oldest</string>
     <string name="stats_drift_newest">Newest</string>
@@ -191,8 +213,18 @@
     <string name="stats_drift_summary_closer">Latest point of impact: %1$s (%2$d mm from centre), %3$d mm closer than on %4$s.</string>
     <string name="stats_drift_summary_further">Latest point of impact: %1$s (%2$d mm from centre), %3$d mm further out than on %4$s.</string>
     <string name="stats_drift_summary_same">Latest point of impact: %1$s (%2$d mm from centre), as far out as on %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d series · %3$d hits</string>
-    <string name="stats_drift_point_series">%1$s · series %2$d of %3$d · %4$d hits</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d series · %3$s</item>
+        <item quantity="other">%1$s · %2$d series · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d hit</item>
+        <item quantity="other">%1$d hits</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · series %2$d of %3$d · %4$d hit</item>
+        <item quantity="other">%1$s · series %2$d of %3$d · %4$d hits</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Left / right and high / low over time (mean)</string>
     <string name="stats_drift_strips_median">Left / right and high / low over time (median)</string>
@@ -328,12 +360,18 @@
     <string name="help_home_import_body">In the menu: score photos already on the phone, from the gallery or from files. Each image is scanned and its results shown, to save or skip. With Auto import on, every image that scores is saved on its own with the date the photo was taken; the rest are shown one by one afterwards.</string>
     <string name="series_status_phone">Saved on this device</string>
     <string name="series_not_uploaded">Not uploaded</string>
-    <string name="stats_not_uploaded">Not uploaded: %1$d series</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Not uploaded: %1$d series</item>
+        <item quantity="other">Not uploaded: %1$d series</item>
+    </plurals>
     <string name="local_claim_title">Series on this device</string>
     <string name="local_claim_body">Series saved on this device signed out or for another account: %1$d. Add them to this account, delete them from this device, or stay signed out.</string>
     <string name="local_claim_add">Add to account</string>
     <string name="local_claim_delete">Delete from device</string>
-    <string name="local_claim_delete_body">Delete %1$d series and their photos from this device? This cannot be undone. They have not been uploaded to this account.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Delete %1$d series and its photo from this device? This cannot be undone. It has not been uploaded to this account.</item>
+        <item quantity="other">Delete %1$d series and their photos from this device? This cannot be undone. They have not been uploaded to this account.</item>
+    </plurals>
     <string name="local_claim_stay">Stay signed out</string>
     <string name="local_claim_error">The operation could not finish. Your remaining series are still on this device. Close and try signing in again.</string>
     <string name="home_week_series">series in 7 days</string>
@@ -343,17 +381,38 @@
     <string name="home_insight_stretch_vertical">This week your %1$s group is about %2$d percent taller than it is wide.</string>
     <string name="home_insight_stretch_horizontal">This week your %1$s group is about %2$d percent wider than it is tall.</string>
     <string name="home_insight_stretch_diagonal">This week your %1$s group is about %2$d percent longer along a slant.</string>
-    <string name="home_insight_fliers">This week one shot got away in %2$d of your %3$d %1$s series.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">This week one shot got away in %2$d of your %3$d %1$s series.</item>
+        <item quantity="other">This week one shot got away in %2$d of your %3$d %1$s series.</item>
+    </plurals>
     <string name="home_insight_wide">On %2$s your %1$s groups were about %3$d percent wider than before.</string>
     <string name="home_insight_low_series">Your latest %1$s series scored %2$d, against %3$d as usual.</string>
     <string name="home_insight_low_day">On %2$s your %1$s series averaged %3$d, against %4$d as usual.</string>
-    <string name="home_insight_trend_up">Your %1$s scores are rising: about %2$d points over %3$d weeks.</string>
-    <string name="home_insight_trend_down">Your %1$s scores are falling: about %2$d points over %3$d weeks.</string>
-    <string name="home_insight_session_down">This week your later %1$s series scored lower on %2$d of %3$d longer days.</string>
-    <string name="home_insight_session_up">This week your later %1$s series scored higher on %2$d of %3$d longer days.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Your %1$s scores are rising: about %2$d point over %3$s.</item>
+        <item quantity="other">Your %1$s scores are rising: about %2$d points over %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weeks</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Your %1$s scores are falling: about %2$d point over %3$s.</item>
+        <item quantity="other">Your %1$s scores are falling: about %2$d points over %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">This week your later %1$s series scored lower on %2$d of %3$d longer day.</item>
+        <item quantity="other">This week your later %1$s series scored lower on %2$d of %3$d longer days.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">This week your later %1$s series scored higher on %2$d of %3$d longer day.</item>
+        <item quantity="other">This week your later %1$s series scored higher on %2$d of %3$d longer days.</item>
+    </plurals>
     <string name="home_insight_dismiss">Hide this insight</string>
-    <string name="home_local_title">%1$d series only on this phone</string>
-    <string name="home_local_title_one">1 series only on this phone</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d series only on this phone</item>
+        <item quantity="other">%1$d series only on this phone</item>
+    </plurals>
     <string name="home_signin_title">Save your series to your account</string>
     <string name="home_signin_body">Sign in to keep them when you change phone.</string>
     <string name="action_sign_in">Sign in</string>
@@ -395,13 +454,26 @@
     <string name="advice_move_left">left</string>
     <string name="advice_move_up_left">up and left</string>
 
-    <string name="advice_offset_stable_summary">Your group sits %1$d mm %2$s over %3$d shots, the same way on %4$d of %5$d days.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Your group sits %1$d mm %2$s over %3$d shot, the same way on %4$d of %5$s.</item>
+        <item quantity="other">Your group sits %1$d mm %2$s over %3$d shots, the same way on %4$d of %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
     <string name="advice_cause_sights_1">The sights are not zeroed for this load or distance.</string>
     <string name="advice_cause_sights_2">The sights have moved since they were set, or a different ammunition shoots elsewhere.</string>
     <string name="advice_try_sights">Move the sights so the group moves about %1$d mm %2$s, then shoot a fresh group before touching them again.</string>
 
-    <string name="advice_offset_varies_summary">Your group sits %1$d mm %2$s over %3$d shots, but not the same way every day.</string>
-    <string name="advice_offset_few_days_summary">Your group sits %1$d mm %2$s over %3$d shots, on too few days to tell whether it is always so.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Your group sits %1$d mm %2$s over %3$d shot, but not the same way every day.</item>
+        <item quantity="other">Your group sits %1$d mm %2$s over %3$d shots, but not the same way every day.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Your group sits %1$d mm %2$s over %3$d shot, on too few days to tell whether it is always so.</item>
+        <item quantity="other">Your group sits %1$d mm %2$s over %3$d shots, on too few days to tell whether it is always so.</item>
+    </plurals>
     <string name="advice_cause_high_1">Heeling the gun: pushing the palm forward as the shot breaks.</string>
     <string name="advice_cause_high_2">The wrist breaking upward in the shot.</string>
     <string name="advice_cause_high_3">Looking for the hit and lifting the gun early.</string>
@@ -421,22 +493,34 @@
     <string name="advice_cause_side_3">A trigger pull that is not straight back.</string>
     <string name="advice_try_side">Check where the finger meets the trigger and how hard the thumb presses, then dry-fire and watch the sights.</string>
 
-    <string name="advice_stretch_vertical_summary">Your group is about %1$d percent taller than it is wide, over %2$d shots.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Your group is about %1$d percent taller than it is wide, over %2$d shot.</item>
+        <item quantity="other">Your group is about %1$d percent taller than it is wide, over %2$d shots.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Breathing: shooting at a different point in the breath each time.</string>
     <string name="advice_cause_vertical_2">The sight picture changing in height, with the front sight sitting higher or lower in the notch.</string>
     <string name="advice_cause_vertical_3">Grip pressure that varies from shot to shot.</string>
     <string name="advice_try_vertical">Settle the breath at the same point every shot and check the height of the front sight in the notch before you squeeze.</string>
-    <string name="advice_stretch_horizontal_summary">Your group is about %1$d percent wider than it is tall, over %2$d shots.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Your group is about %1$d percent wider than it is tall, over %2$d shot.</item>
+        <item quantity="other">Your group is about %1$d percent wider than it is tall, over %2$d shots.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">A trigger pull that goes sideways.</string>
     <string name="advice_cause_horizontal_2">The wrist moving in the shot.</string>
     <string name="advice_cause_horizontal_3">A stance that is not square to the target.</string>
     <string name="advice_try_horizontal">Dry-fire with the sights on a mark and see whether they slide sideways when the trigger breaks.</string>
-    <string name="advice_stretch_diagonal_summary">Your group is about %1$d percent longer one way than the other, along a slant, over %2$d shots.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Your group is about %1$d percent longer one way than the other, along a slant, over %2$d shot.</item>
+        <item quantity="other">Your group is about %1$d percent longer one way than the other, along a slant, over %2$d shots.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Grip pressure and the trigger pull working against each other.</string>
     <string name="advice_cause_diagonal_2">A stance or arm position that tilts the gun.</string>
     <string name="advice_try_diagonal">Check that the grip is the same every shot and that the sights are level before you squeeze.</string>
 
-    <string name="advice_fliers_summary">In %1$d of your %2$d series one shot got away from the rest, about %3$d mm out on average.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">In %1$d of your %2$d series one shot got away from the rest, about %3$d mm out on average.</item>
+        <item quantity="other">In %1$d of your %2$d series one shot got away from the rest, about %3$d mm out on average.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Trigger control on a single shot.</string>
     <string name="advice_cause_fliers_2">Losing the follow-through.</string>
     <string name="advice_cause_fliers_3">Releasing the shot without having called it.</string>
@@ -449,7 +533,10 @@
     <string name="advice_try_wide">Dry-fire practice: hold and squeeze without shooting, and rest when the hold starts to shake.</string>
 
     <string name="advice_low_series_summary">Your latest series scored %1$d, against %2$d on average over your last %3$d.</string>
-    <string name="advice_low_day_summary">On %1$s your %2$d series averaged %3$d, against %4$d on average before.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">On %1$s your %2$d series averaged %3$d, against %4$d on average before.</item>
+        <item quantity="other">On %1$s your %2$d series averaged %3$d, against %4$d on average before.</item>
+    </plurals>
     <string name="advice_try_low_plain">One low result says little: shoot a few more before you change anything.</string>
     <string name="advice_try_low_explained">Start with the note below rather than changing everything at once.</string>
     <string name="advice_low_note_offset">Your group sits off centre, which may be part of the reason.</string>
@@ -457,19 +544,39 @@
     <string name="advice_low_note_fliers">One shot in a series getting away may be part of the reason.</string>
     <string name="advice_low_note_wide">Wider groups than usual may be part of the reason.</string>
 
-    <string name="advice_trend_up_summary">Your scores have risen about %1$d points over %3$d weeks, across %2$d series.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Your scores have risen about %1$d point over %3$s, across %2$s.</item>
+        <item quantity="other">Your scores have risen about %1$d points over %3$s, across %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d series</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weeks</item>
+    </plurals>
     <string name="advice_try_trend_up">Keep doing what you do, and note what changed so you can repeat it.</string>
-    <string name="advice_trend_down_summary">Your scores have dropped about %1$d points over %3$d weeks, across %2$d series.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Your scores have dropped about %1$d point over %3$s, across %2$s.</item>
+        <item quantity="other">Your scores have dropped about %1$d points over %3$s, across %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Tiredness or less time to practise.</string>
     <string name="advice_cause_trend_2">Rushing the shots.</string>
     <string name="advice_cause_trend_3">A change of gun, ammunition or routine.</string>
     <string name="advice_try_trend_down">Shorter sessions with pauses, and a few dry-fire shots to find the basics again.</string>
-    <string name="advice_session_down_summary">On %1$d of your %2$d longer days, your later series scored lower than the first ones: %4$d on average against %3$d on those days.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">On %1$d of your %2$d longer day, your later series scored lower than the first ones: %4$d on average against %3$d on those days.</item>
+        <item quantity="other">On %1$d of your %2$d longer days, your later series scored lower than the first ones: %4$d on average against %3$d on those days.</item>
+    </plurals>
     <string name="advice_cause_session_1">Tiredness in the arm, shoulder or eyes as the session goes on.</string>
     <string name="advice_cause_session_2">Concentration fading, so shots are rushed or less well called.</string>
     <string name="advice_cause_session_3">Too few pauses between series.</string>
     <string name="advice_try_session_down">Shorter sessions, or a real pause every few series to rest your eyes and arm.</string>
-    <string name="advice_session_up_summary">On %1$d of your %2$d longer days, your later series scored higher than the first ones: %4$d on average against %3$d on those days.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">On %1$d of your %2$d longer day, your later series scored higher than the first ones: %4$d on average against %3$d on those days.</item>
+        <item quantity="other">On %1$d of your %2$d longer days, your later series scored higher than the first ones: %4$d on average against %3$d on those days.</item>
+    </plurals>
     <string name="advice_try_session_up">A slow start: begin with a few dry-fire shots or sighting shots before the first series counts.</string>
 
     <string name="stats_help_insights">Insights</string>
@@ -477,24 +584,46 @@
 
     <!-- Statistics, Insights tab (ui/stats/InsightsTab.kt) -->
     <string name="stats_tab_insights">Insights</string>
-    <string name="stats_insights_need_more">Insights need about %1$d shots; you have %2$d here.</string>
-    <string name="stats_insights_nothing">Nothing stands out in these %1$d shots from %2$d series.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Insights need about %1$d shot; you have %2$d here.</item>
+        <item quantity="other">Insights need about %1$d shots; you have %2$d here.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Nothing stands out in this %1$d shot from %2$s.</item>
+        <item quantity="other">Nothing stands out in these %1$d shots from %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d series</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
     <string name="stats_insights_numbers">Mean point of impact %1$s, spread %2$d mm, mean series %3$s.</string>
     <string name="stats_insights_legend">The yellow ellipse holds about 86 percent of the shots; the arrow runs from the centre to the mean point of impact. Tap a note to see what it refers to on the target.</string>
-    <string name="stats_insights_target_description">Insights target with %1$d shots, the ellipse and the arrow to the mean point of impact</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Insights target with %1$d shot, the ellipse and the arrow to the mean point of impact</item>
+        <item quantity="other">Insights target with %1$d shots, the ellipse and the arrow to the mean point of impact</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Insights looks at one caliber at a time, and these series have none. Set a caliber on them in History to see insights.</string>
-    <string name="stats_insights_uncalibered">%1$d series without a caliber are left out.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d series without a caliber is left out.</item>
+        <item quantity="other">%1$d series without a caliber are left out.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d under your average of %2$d</string>
     <string name="detail_vs_over">%1$d over your average of %2$d</string>
     <string name="detail_vs_on">On your average of %1$d</string>
-    <string name="detail_vs_best">Your best in the last %1$d days</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Your best in the last %1$d day</item>
+        <item quantity="other">Your best in the last %1$d days</item>
+    </plurals>
     <string name="detail_day_in_insights">See this day in Insights</string>
     <string name="sight_title">Sight correction</string>
     <string name="sight_up_mm">Up %1$d mm</string>
     <string name="sight_down_mm">Down %1$d mm</string>
     <string name="sight_left_mm">Left %1$d mm</string>
     <string name="sight_right_mm">Right %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d clicks</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d click</item>
+        <item quantity="other">%1$s: %2$d clicks</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 click</string>
     <string name="sight_under_half_click">%1$s: under half a click, leave it</string>
     <string name="sight_no_height">Height: no change</string>
@@ -505,7 +634,10 @@
     <string name="sight_set_clicks">Enter click value</string>
     <string name="sight_change_clicks">Change click value</string>
     <string name="sight_adjusted_button">I adjusted the sights</string>
-    <string name="sight_adjusted_note">Sights adjusted %1$s: the offset is judged on the %2$d shots since then.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Sights adjusted %1$s: the offset is judged on the %2$d shot since then.</item>
+        <item quantity="other">Sights adjusted %1$s: the offset is judged on the %2$d shots since then.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Undo</string>
     <string name="sight_dialog_title">Click value, %1$s</string>
     <string name="sight_dialog_help">How far one click moves the impact on the target at your shooting distance. The sight's manual usually says, or count the clicks of one correction and measure how far the group moved.</string>

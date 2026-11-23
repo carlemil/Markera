@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -28,7 +29,7 @@ internal fun LocalClaimDialog(controller: LocalClaimController) {
         text = {
             when (val current = state) {
                 is ClaimState.Ask -> Text(stringResource(Res.string.local_claim_body, current.count))
-                is ClaimState.ConfirmDelete -> Text(stringResource(Res.string.local_claim_delete_body, current.count))
+                is ClaimState.ConfirmDelete -> Text(pluralStringResource(Res.plurals.local_claim_delete_body, current.count, current.count))
                 is ClaimState.Error -> Text(stringResource(Res.string.local_claim_error))
                 else -> CircularProgressIndicator()
             }

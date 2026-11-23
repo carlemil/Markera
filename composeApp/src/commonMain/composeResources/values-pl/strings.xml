@@ -83,11 +83,26 @@
     <string name="history_signed_out">Zaloguj się, aby zobaczyć swoją historię</string>
     <string name="history_empty">Nie ma jeszcze zapisanych serii</string>
     <string name="history_filter_empty">Żadna seria nie pasuje do filtra.</string>
-    <string name="history_day_summary">Serie: %1$d · śr. %2$s</string>
-    <string name="history_day_summary_one">1 seria · punkty: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d seria · śr. %2$s</item>
+        <item quantity="few">%1$d serie · śr. %2$s</item>
+        <item quantity="many">%1$d serii · śr. %2$s</item>
+        <item quantity="other">%1$d serii · śr. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 seria · %1$d punkt</item>
+        <item quantity="few">1 seria · %1$d punkty</item>
+        <item quantity="many">1 seria · %1$d punktów</item>
+        <item quantity="other">1 seria · %1$d punktów</item>
+    </plurals>
     <string name="history_card_title">%1$s · seria %2$d</string>
     <string name="history_delete_title">Usunąć serię?</string>
-    <string name="history_delete_message">%1$s · punkty: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d punkt</item>
+        <item quantity="few">%1$s · %2$d punkty</item>
+        <item quantity="many">%1$s · %2$d punktów</item>
+        <item quantity="other">%1$s · %2$d punktów</item>
+    </plurals>
     <string name="history_delete_confirm">Usuń</string>
     <string name="history_delete_cancel">Anuluj</string>
     <string name="history_delete_failed">Nie udało się usunąć</string>
@@ -134,7 +149,18 @@
     <string name="stats_group_date">Data</string>
     <string name="filter_clear">Wyczyść filtry</string>
     <string name="stats_no_geometry">Żadna z twoich serii nie ma pierścienia, względem którego można by je narysować. Zeskanuj serię, w której zostanie znaleziony pierścień 6/7.</string>
-    <string name="stats_target_description">Tarcza z trafieniami (%1$d) z serii (%2$d)</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Tarcza z %1$d trafieniem z %2$s</item>
+        <item quantity="few">Tarcza z %1$d trafieniami z %2$s</item>
+        <item quantity="many">Tarcza z %1$d trafieniami z %2$s</item>
+        <item quantity="other">Tarcza z %1$d trafieniami z %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d serii</item>
+        <item quantity="few">%1$d serii</item>
+        <item quantity="many">%1$d serii</item>
+        <item quantity="other">%1$d serii</item>
+    </plurals>
     <string name="stats_timeline">Oś czasu serii</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Skupienie</string>
@@ -158,12 +184,22 @@
     <string name="stats_short_mean_score">Wynik</string>
     <string name="stats_trend_description">Wykres trendu, linie: %1$d, punkty: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (serie: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d seria)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d serie)</item>
+        <item quantity="many">%1$s %2$s: %3$s (%4$d serii)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d serii)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Karta Trend rysuje dowolną miarę jako krzywą w czasie. Wybierz miarę przyciskami oraz to, czy każda seria ma być punktem, czy serie mają być łączone według dnia, tygodnia lub miesiąca (miara jest wtedy liczona ze wszystkich serii w okresie). Według kalibru rysuje jedną krzywą dla każdego kalibru. Filtry powyżej dotyczą wszystkich kart. Stuknij punkt, aby odczytać jego wartość.</string>
     <string name="stats_tab_drift">Dryf</string>
-    <string name="stats_drift_description">Tarcza ze średnim i medianowym punktem trafienia w czasie, punkty: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Tarcza ze średnim i medianowym punktem trafienia w czasie, %1$d punkt</item>
+        <item quantity="few">Tarcza ze średnim i medianowym punktem trafienia w czasie, %1$d punkty</item>
+        <item quantity="many">Tarcza ze średnim i medianowym punktem trafienia w czasie, %1$d punktów</item>
+        <item quantity="other">Tarcza ze średnim i medianowym punktem trafienia w czasie, %1$d punktów</item>
+    </plurals>
     <string name="stats_drift_counts">Dni: %1$d · serie: %2$d · trafienia: %3$d</string>
     <string name="stats_drift_oldest">Najstarsze</string>
     <string name="stats_drift_newest">Najnowsze</string>
@@ -182,8 +218,24 @@
     <string name="stats_drift_summary_closer">Ostatni punkt trafienia: %1$s (%2$d mm od środka), o %3$d mm bliżej niż %4$s.</string>
     <string name="stats_drift_summary_further">Ostatni punkt trafienia: %1$s (%2$d mm od środka), o %3$d mm dalej niż %4$s.</string>
     <string name="stats_drift_summary_same">Ostatni punkt trafienia: %1$s (%2$d mm od środka), tak samo daleko jak %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · serie: %2$d · trafienia: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · seria %2$d z %3$d · trafienia: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d seria · %3$s</item>
+        <item quantity="few">%1$s · %2$d serie · %3$s</item>
+        <item quantity="many">%1$s · %2$d serii · %3$s</item>
+        <item quantity="other">%1$s · %2$d serii · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d trafienie</item>
+        <item quantity="few">%1$d trafienia</item>
+        <item quantity="many">%1$d trafień</item>
+        <item quantity="other">%1$d trafień</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · seria %2$d z %3$d · %4$d trafienie</item>
+        <item quantity="few">%1$s · seria %2$d z %3$d · %4$d trafienia</item>
+        <item quantity="many">%1$s · seria %2$d z %3$d · %4$d trafień</item>
+        <item quantity="other">%1$s · seria %2$d z %3$d · %4$d trafień</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Lewo / prawo i wysoko / nisko w czasie (średnia)</string>
     <string name="stats_drift_strips_median">Lewo / prawo i wysoko / nisko w czasie (mediana)</string>
@@ -302,12 +354,22 @@
     <string name="help_home_import_body">W menu: policz wyniki ze zdjęć, które już są w telefonie, z galerii lub z plików. Każdy obraz zostaje zeskanowany, a wynik pokazany do zapisania lub pominięcia. Przy włączonym imporcie automatycznym każdy obraz, który da się policzyć, zapisuje się sam z datą wykonania zdjęcia; pozostałe są potem pokazywane po kolei.</string>
     <string name="series_status_phone">Zapisano na tym urządzeniu</string>
     <string name="series_not_uploaded">Nie przesłano</string>
-    <string name="stats_not_uploaded">Nieprzesłane serie: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Nieprzesłane: %1$d seria</item>
+        <item quantity="few">Nieprzesłane: %1$d serie</item>
+        <item quantity="many">Nieprzesłane: %1$d serii</item>
+        <item quantity="other">Nieprzesłane: %1$d serii</item>
+    </plurals>
     <string name="local_claim_title">Serie na tym urządzeniu</string>
     <string name="local_claim_body">Serie zapisane na tym urządzeniu bez logowania lub dla innego konta: %1$d. Dodaj je do tego konta, usuń je z tego urządzenia albo pozostań bez logowania.</string>
     <string name="local_claim_add">Dodaj do konta</string>
     <string name="local_claim_delete">Usuń z urządzenia</string>
-    <string name="local_claim_delete_body">Usunąć serie (%1$d) i ich zdjęcia z tego urządzenia? Tego nie można cofnąć. Nie zostały przesłane na to konto.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Usunąć %1$d serię i jej zdjęcie z tego urządzenia? Tego nie można cofnąć. Nie została przesłana na to konto.</item>
+        <item quantity="few">Usunąć %1$d serie i ich zdjęcia z tego urządzenia? Tego nie można cofnąć. Nie zostały przesłane na to konto.</item>
+        <item quantity="many">Usunąć %1$d serii i ich zdjęcia z tego urządzenia? Tego nie można cofnąć. Nie zostały przesłane na to konto.</item>
+        <item quantity="other">Usunąć %1$d serii i ich zdjęcia z tego urządzenia? Tego nie można cofnąć. Nie zostały przesłane na to konto.</item>
+    </plurals>
     <string name="local_claim_stay">Nie loguj się</string>
     <string name="local_claim_error">Nie udało się dokończyć operacji. Pozostałe serie są nadal na tym urządzeniu. Zamknij okno i spróbuj zalogować się ponownie.</string>
     <string name="home_week_series">serie w 7 dni</string>
@@ -317,17 +379,52 @@
     <string name="home_insight_stretch_vertical">W tym tygodniu twoje skupienie z kalibrem %1$s jest o około %2$d procent wyższe niż szersze.</string>
     <string name="home_insight_stretch_horizontal">W tym tygodniu twoje skupienie z kalibrem %1$s jest o około %2$d procent szersze niż wyższe.</string>
     <string name="home_insight_stretch_diagonal">W tym tygodniu twoje skupienie z kalibrem %1$s jest po skosie o około %2$d procent dłuższe.</string>
-    <string name="home_insight_fliers">W tym tygodniu w %2$d z %3$d twoich serii z kalibrem %1$s jeden strzał odskoczył.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">W tym tygodniu w %2$d z %3$d twojej serii z kalibrem %1$s jeden strzał odskoczył.</item>
+        <item quantity="few">W tym tygodniu w %2$d z %3$d twoich serii z kalibrem %1$s jeden strzał odskoczył.</item>
+        <item quantity="many">W tym tygodniu w %2$d z %3$d twoich serii z kalibrem %1$s jeden strzał odskoczył.</item>
+        <item quantity="other">W tym tygodniu w %2$d z %3$d twoich serii z kalibrem %1$s jeden strzał odskoczył.</item>
+    </plurals>
     <string name="home_insight_wide">Dnia %2$s twoje skupienia z kalibrem %1$s były o około %3$d procent szersze niż wcześniej.</string>
     <string name="home_insight_low_series">Twoja ostatnia seria z kalibrem %1$s dała %2$d, a zwykle %3$d.</string>
     <string name="home_insight_low_day">Dnia %2$s twoje serie z kalibrem %1$s dały średnio %3$d, a zwykle %4$d.</string>
-    <string name="home_insight_trend_up">Twoje wyniki z kalibrem %1$s rosną: o około %2$d pkt w %3$d tyg.</string>
-    <string name="home_insight_trend_down">Twoje wyniki z kalibrem %1$s spadają: o około %2$d pkt w %3$d tyg.</string>
-    <string name="home_insight_session_down">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły gorzej w %2$d z %3$d dłuższych dni.</string>
-    <string name="home_insight_session_up">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły lepiej w %2$d z %3$d dłuższych dni.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Twoje wyniki z kalibrem %1$s rosną: o około %2$d punktu w %3$s.</item>
+        <item quantity="few">Twoje wyniki z kalibrem %1$s rosną: o około %2$d punktów w %3$s.</item>
+        <item quantity="many">Twoje wyniki z kalibrem %1$s rosną: o około %2$d punktów w %3$s.</item>
+        <item quantity="other">Twoje wyniki z kalibrem %1$s rosną: o około %2$d punktów w %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d tydzień</item>
+        <item quantity="few">%1$d tygodnie</item>
+        <item quantity="many">%1$d tygodni</item>
+        <item quantity="other">%1$d tygodni</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Twoje wyniki z kalibrem %1$s spadają: o około %2$d punktu w %3$s.</item>
+        <item quantity="few">Twoje wyniki z kalibrem %1$s spadają: o około %2$d punktów w %3$s.</item>
+        <item quantity="many">Twoje wyniki z kalibrem %1$s spadają: o około %2$d punktów w %3$s.</item>
+        <item quantity="other">Twoje wyniki z kalibrem %1$s spadają: o około %2$d punktów w %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły gorzej w %2$d z %3$d dłuższego dnia.</item>
+        <item quantity="few">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły gorzej w %2$d z %3$d dłuższych dni.</item>
+        <item quantity="many">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły gorzej w %2$d z %3$d dłuższych dni.</item>
+        <item quantity="other">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły gorzej w %2$d z %3$d dłuższych dni.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły lepiej w %2$d z %3$d dłuższego dnia.</item>
+        <item quantity="few">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły lepiej w %2$d z %3$d dłuższych dni.</item>
+        <item quantity="many">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły lepiej w %2$d z %3$d dłuższych dni.</item>
+        <item quantity="other">W tym tygodniu twoje późniejsze serie z kalibrem %1$s wypadły lepiej w %2$d z %3$d dłuższych dni.</item>
+    </plurals>
     <string name="home_insight_dismiss">Ukryj tę wskazówkę</string>
-    <string name="home_local_title">Serie tylko w tym telefonie: %1$d</string>
-    <string name="home_local_title_one">1 seria tylko w tym telefonie</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d seria tylko w tym telefonie</item>
+        <item quantity="few">%1$d serie tylko w tym telefonie</item>
+        <item quantity="many">%1$d serii tylko w tym telefonie</item>
+        <item quantity="other">%1$d serii tylko w tym telefonie</item>
+    </plurals>
     <string name="home_signin_title">Zapisz swoje serie na koncie</string>
     <string name="home_signin_body">Zaloguj się, aby zachować je przy zmianie telefonu.</string>
     <string name="action_sign_in">Zaloguj się</string>
@@ -366,12 +463,33 @@
     <string name="advice_move_down_left">w dół i w lewo</string>
     <string name="advice_move_left">w lewo</string>
     <string name="advice_move_up_left">w górę i w lewo</string>
-    <string name="advice_offset_stable_summary">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, tak samo w %4$d z %5$d dni.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Twoje skupienie leży %1$d mm %2$s w %3$d strzale, tak samo w %4$d z %5$s.</item>
+        <item quantity="few">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, tak samo w %4$d z %5$s.</item>
+        <item quantity="many">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, tak samo w %4$d z %5$s.</item>
+        <item quantity="other">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, tak samo w %4$d z %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dnia</item>
+        <item quantity="few">%1$d dni</item>
+        <item quantity="many">%1$d dni</item>
+        <item quantity="other">%1$d dni</item>
+    </plurals>
     <string name="advice_cause_sights_1">Przyrządy celownicze nie są przystrzelane do tej amunicji lub odległości.</string>
     <string name="advice_cause_sights_2">Przyrządy przesunęły się od czasu ustawienia albo inna amunicja strzela gdzie indziej.</string>
     <string name="advice_try_sights">Przestaw przyrządy tak, aby skupienie przesunęło się o około %1$d mm %2$s, a potem oddaj nowe skupienie, zanim znów ich dotkniesz.</string>
-    <string name="advice_offset_varies_summary">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale nie każdego dnia tak samo.</string>
-    <string name="advice_offset_few_days_summary">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale dni jest za mało, by stwierdzić, czy zawsze tak jest.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Twoje skupienie leży %1$d mm %2$s w %3$d strzale, ale nie każdego dnia tak samo.</item>
+        <item quantity="few">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale nie każdego dnia tak samo.</item>
+        <item quantity="many">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale nie każdego dnia tak samo.</item>
+        <item quantity="other">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale nie każdego dnia tak samo.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Twoje skupienie leży %1$d mm %2$s w %3$d strzale, ale dni jest za mało, by stwierdzić, czy zawsze tak jest.</item>
+        <item quantity="few">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale dni jest za mało, by stwierdzić, czy zawsze tak jest.</item>
+        <item quantity="many">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale dni jest za mało, by stwierdzić, czy zawsze tak jest.</item>
+        <item quantity="other">Twoje skupienie leży %1$d mm %2$s w %3$d strzałach, ale dni jest za mało, by stwierdzić, czy zawsze tak jest.</item>
+    </plurals>
     <string name="advice_cause_high_1">Pchanie nasadą dłoni do przodu w chwili strzału.</string>
     <string name="advice_cause_high_2">Nadgarstek załamuje się w górę przy strzale.</string>
     <string name="advice_cause_high_3">Wypatrywanie trafienia i zbyt wczesne unoszenie broni.</string>
@@ -390,21 +508,41 @@
     <string name="advice_cause_side_2">Nacisk kciuka na chwyt spycha broń w bok.</string>
     <string name="advice_cause_side_3">Ściąganie spustu, które nie idzie prosto do tyłu.</string>
     <string name="advice_try_side">Sprawdź, gdzie palec styka się ze spustem i jak mocno naciska kciuk, potem oddaj strzał na sucho i obserwuj przyrządy.</string>
-    <string name="advice_stretch_vertical_summary">Twoje skupienie jest w %2$d strzałach o około %1$d procent wyższe niż szersze.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Twoje skupienie jest w %2$d strzale o około %1$d procent wyższe niż szersze.</item>
+        <item quantity="few">Twoje skupienie jest w %2$d strzałach o około %1$d procent wyższe niż szersze.</item>
+        <item quantity="many">Twoje skupienie jest w %2$d strzałach o około %1$d procent wyższe niż szersze.</item>
+        <item quantity="other">Twoje skupienie jest w %2$d strzałach o około %1$d procent wyższe niż szersze.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Oddech: strzał za każdym razem w innej fazie oddechu.</string>
     <string name="advice_cause_vertical_2">Obraz celowania zmienia się w pionie, muszka stoi w szczerbince wyżej lub niżej.</string>
     <string name="advice_cause_vertical_3">Nacisk na chwyt, który zmienia się od strzału do strzału.</string>
     <string name="advice_try_vertical">Zatrzymuj oddech przy każdym strzale w tej samej fazie i przed ściągnięciem spustu sprawdź wysokość muszki w szczerbince.</string>
-    <string name="advice_stretch_horizontal_summary">Twoje skupienie jest w %2$d strzałach o około %1$d procent szersze niż wyższe.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Twoje skupienie jest w %2$d strzale o około %1$d procent szersze niż wyższe.</item>
+        <item quantity="few">Twoje skupienie jest w %2$d strzałach o około %1$d procent szersze niż wyższe.</item>
+        <item quantity="many">Twoje skupienie jest w %2$d strzałach o około %1$d procent szersze niż wyższe.</item>
+        <item quantity="other">Twoje skupienie jest w %2$d strzałach o około %1$d procent szersze niż wyższe.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Ściąganie spustu, które idzie w bok.</string>
     <string name="advice_cause_horizontal_2">Ruch nadgarstka przy strzale.</string>
     <string name="advice_cause_horizontal_3">Postawa, która nie jest właściwie ustawiona do tarczy.</string>
     <string name="advice_try_horizontal">Strzelaj na sucho z przyrządami na znaczniku i patrz, czy przy zwolnieniu spustu nie uciekają w bok.</string>
-    <string name="advice_stretch_diagonal_summary">Twoje skupienie jest w %2$d strzałach po skosie w jednym kierunku o około %1$d procent dłuższe niż w drugim.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Twoje skupienie jest w %2$d strzale po skosie w jednym kierunku o około %1$d procent dłuższe niż w drugim.</item>
+        <item quantity="few">Twoje skupienie jest w %2$d strzałach po skosie w jednym kierunku o około %1$d procent dłuższe niż w drugim.</item>
+        <item quantity="many">Twoje skupienie jest w %2$d strzałach po skosie w jednym kierunku o około %1$d procent dłuższe niż w drugim.</item>
+        <item quantity="other">Twoje skupienie jest w %2$d strzałach po skosie w jednym kierunku o około %1$d procent dłuższe niż w drugim.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Nacisk na chwyt i ściąganie spustu działają przeciwko sobie.</string>
     <string name="advice_cause_diagonal_2">Postawa lub ułożenie ręki, które przechyla broń.</string>
     <string name="advice_try_diagonal">Sprawdź, czy chwyt jest przy każdym strzale taki sam, a przyrządy stoją prosto, zanim ściągniesz spust.</string>
-    <string name="advice_fliers_summary">W %1$d z %2$d twoich serii jeden strzał odskoczył od reszty, średnio o około %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">W %1$d z %2$d twojej serii jeden strzał odskoczył od reszty, średnio o około %3$d mm.</item>
+        <item quantity="few">W %1$d z %2$d twoich serii jeden strzał odskoczył od reszty, średnio o około %3$d mm.</item>
+        <item quantity="many">W %1$d z %2$d twoich serii jeden strzał odskoczył od reszty, średnio o około %3$d mm.</item>
+        <item quantity="other">W %1$d z %2$d twoich serii jeden strzał odskoczył od reszty, średnio o około %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Praca na spuście przy pojedynczym strzale.</string>
     <string name="advice_cause_fliers_2">Brak utrzymania po strzale.</string>
     <string name="advice_cause_fliers_3">Oddanie strzału bez jego odczytania.</string>
@@ -415,48 +553,121 @@
     <string name="advice_cause_wide_3">Pośpiech przy strzałach.</string>
     <string name="advice_try_wide">Trening na sucho: trzymaj i ściągaj spust bez strzelania, a odpocznij, gdy trzymanie zaczyna drżeć.</string>
     <string name="advice_low_series_summary">Twoja ostatnia seria dała %1$d, wobec średnio %2$d w twoich ostatnich %3$d.</string>
-    <string name="advice_low_day_summary">Dnia %1$s twoje serie (%2$d) dały średnio %3$d, wobec średnio %4$d wcześniej.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Dnia %1$s twoja %2$d seria dała średnio %3$d, wobec średnio %4$d wcześniej.</item>
+        <item quantity="few">Dnia %1$s twoje %2$d serie dały średnio %3$d, wobec średnio %4$d wcześniej.</item>
+        <item quantity="many">Dnia %1$s twoich %2$d serii dało średnio %3$d, wobec średnio %4$d wcześniej.</item>
+        <item quantity="other">Dnia %1$s twoich %2$d serii dało średnio %3$d, wobec średnio %4$d wcześniej.</item>
+    </plurals>
     <string name="advice_try_low_plain">Jeden słabszy wynik niewiele mówi: oddaj jeszcze kilka serii, zanim coś zmienisz.</string>
     <string name="advice_try_low_explained">Zacznij od uwagi poniżej, zamiast zmieniać wszystko naraz.</string>
     <string name="advice_low_note_offset">Twoje skupienie leży poza środkiem, co może być częścią przyczyny.</string>
     <string name="advice_low_note_stretched">Twoje skupienie jest rozciągnięte w jednym kierunku, co może być częścią przyczyny.</string>
     <string name="advice_low_note_fliers">Częścią przyczyny może być jeden odskakujący strzał w serii.</string>
     <string name="advice_low_note_wide">Częścią przyczyny mogą być szersze skupienia niż zwykle.</string>
-    <string name="advice_trend_up_summary">Twoje wyniki wzrosły o około %1$d pkt w %3$d tyg., w %2$d seriach.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Twoje wyniki wzrosły o około %1$d punktu w %3$s, w %2$s.</item>
+        <item quantity="few">Twoje wyniki wzrosły o około %1$d punktów w %3$s, w %2$s.</item>
+        <item quantity="many">Twoje wyniki wzrosły o około %1$d punktów w %3$s, w %2$s.</item>
+        <item quantity="other">Twoje wyniki wzrosły o około %1$d punktów w %3$s, w %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d serii</item>
+        <item quantity="few">%1$d seriach</item>
+        <item quantity="many">%1$d seriach</item>
+        <item quantity="other">%1$d seriach</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d tydzień</item>
+        <item quantity="few">%1$d tygodnie</item>
+        <item quantity="many">%1$d tygodni</item>
+        <item quantity="other">%1$d tygodni</item>
+    </plurals>
     <string name="advice_try_trend_up">Rób tak dalej i zanotuj, co się zmieniło, aby móc to powtórzyć.</string>
-    <string name="advice_trend_down_summary">Twoje wyniki spadły o około %1$d pkt w %3$d tyg., w %2$d seriach.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Twoje wyniki spadły o około %1$d punktu w %3$s, w %2$s.</item>
+        <item quantity="few">Twoje wyniki spadły o około %1$d punktów w %3$s, w %2$s.</item>
+        <item quantity="many">Twoje wyniki spadły o około %1$d punktów w %3$s, w %2$s.</item>
+        <item quantity="other">Twoje wyniki spadły o około %1$d punktów w %3$s, w %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Zmęczenie lub mniej czasu na trening.</string>
     <string name="advice_cause_trend_2">Pośpiech przy strzałach.</string>
     <string name="advice_cause_trend_3">Zmiana broni, amunicji lub rutyny.</string>
     <string name="advice_try_trend_down">Krótsze treningi z przerwami i kilka strzałów na sucho, aby odnaleźć podstawy.</string>
-    <string name="advice_session_down_summary">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały niższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">W %1$d z twojego %2$d dłuższego dnia późniejsze serie dały niższy wynik niż pierwsze: w tym dniu średnio %4$d wobec %3$d.</item>
+        <item quantity="few">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały niższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</item>
+        <item quantity="many">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały niższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</item>
+        <item quantity="other">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały niższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Zmęczenie ręki, barku lub oczu w miarę trwania treningu.</string>
     <string name="advice_cause_session_2">Słabnąca koncentracja, przez co strzały są pospieszne lub gorzej odczytane.</string>
     <string name="advice_cause_session_3">Za mało przerw między seriami.</string>
     <string name="advice_try_session_down">Krótsze treningi albo co kilka serii prawdziwa przerwa, by odpoczęły oczy i ręka.</string>
-    <string name="advice_session_up_summary">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały wyższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">W %1$d z twojego %2$d dłuższego dnia późniejsze serie dały wyższy wynik niż pierwsze: w tym dniu średnio %4$d wobec %3$d.</item>
+        <item quantity="few">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały wyższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</item>
+        <item quantity="many">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały wyższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</item>
+        <item quantity="other">W %1$d z twoich %2$d dłuższych dni późniejsze serie dały wyższy wynik niż pierwsze: w te dni średnio %4$d wobec %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Powolny start: zacznij od kilku strzałów na sucho lub próbnych, zanim pierwsza seria zacznie się liczyć.</string>
     <string name="stats_help_insights">Analiza</string>
     <string name="stats_help_insights_body">Analiza przegląda twoje zapisane serie, po jednym kalibrze naraz, i wskazuje wzorce, których jest dość pewna: skupienie przesunięte w jedną stronę, rozciągnięte skupienie, odskakujący strzał lub wyniki, które spadają albo rosną. Zanim coś powie, potrzebuje sporej liczby strzałów. Każda uwaga podaje, co pokazują liczby, co często to powoduje i jedną rzecz do wypróbowania. To wskazówka, nie trener: przyczyny są typowe, to nie werdykt. Rękę strzelecką ustawisz, a Analizę wyłączysz w Ustawieniach.</string>
     <string name="stats_tab_insights">Analiza</string>
-    <string name="stats_insights_need_more">Analiza potrzebuje około %1$d strzałów; tutaj jest ich %2$d.</string>
-    <string name="stats_insights_nothing">W tych strzałach (%1$d) z serii (%2$d) nic się nie wyróżnia.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analiza potrzebuje około %1$d strzału; tutaj jest ich %2$d.</item>
+        <item quantity="few">Analiza potrzebuje około %1$d strzałów; tutaj jest ich %2$d.</item>
+        <item quantity="many">Analiza potrzebuje około %1$d strzałów; tutaj jest ich %2$d.</item>
+        <item quantity="other">Analiza potrzebuje około %1$d strzałów; tutaj jest ich %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">W tym %1$d strzale z %2$s nic się nie wyróżnia.</item>
+        <item quantity="few">W tych %1$d strzałach z %2$s nic się nie wyróżnia.</item>
+        <item quantity="many">W tych %1$d strzałach z %2$s nic się nie wyróżnia.</item>
+        <item quantity="other">W tych %1$d strzałach z %2$s nic się nie wyróżnia.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d serii</item>
+        <item quantity="few">%1$d serii</item>
+        <item quantity="many">%1$d serii</item>
+        <item quantity="other">%1$d serii</item>
+    </plurals>
     <string name="stats_insights_numbers">Średni punkt trafienia %1$s, rozrzut %2$d mm, średnia seria %3$s.</string>
     <string name="stats_insights_legend">Żółta elipsa obejmuje około 86 procent strzałów; strzałka biegnie od środka do średniego punktu trafienia. Stuknij uwagę, aby zobaczyć, czego dotyczy na tarczy.</string>
-    <string name="stats_insights_target_description">Tarcza analizy ze strzałami (%1$d), elipsą i strzałką do średniego punktu trafienia</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Tarcza analizy z %1$d strzałem, elipsą i strzałką do średniego punktu trafienia</item>
+        <item quantity="few">Tarcza analizy z %1$d strzałami, elipsą i strzałką do średniego punktu trafienia</item>
+        <item quantity="many">Tarcza analizy z %1$d strzałami, elipsą i strzałką do średniego punktu trafienia</item>
+        <item quantity="other">Tarcza analizy z %1$d strzałami, elipsą i strzałką do średniego punktu trafienia</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analiza przegląda jeden kaliber naraz, a te serie nie mają żadnego. Ustaw im kaliber w Historii, aby zobaczyć analizę.</string>
-    <string name="stats_insights_uncalibered">Serie bez kalibru (%1$d) zostały pominięte.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d seria bez kalibru została pominięta.</item>
+        <item quantity="few">%1$d serie bez kalibru zostały pominięte.</item>
+        <item quantity="many">%1$d serii bez kalibru zostało pominiętych.</item>
+        <item quantity="other">%1$d serii bez kalibru zostało pominiętych.</item>
+    </plurals>
     <string name="detail_vs_under">O %1$d poniżej twojej średniej %2$d</string>
     <string name="detail_vs_over">O %1$d powyżej twojej średniej %2$d</string>
     <string name="detail_vs_on">Równo twoja średnia %1$d</string>
-    <string name="detail_vs_best">Twój najlepszy wynik z ostatnich %1$d dni</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Twój najlepszy wynik z ostatniego %1$d dnia</item>
+        <item quantity="few">Twój najlepszy wynik z ostatnich %1$d dni</item>
+        <item quantity="many">Twój najlepszy wynik z ostatnich %1$d dni</item>
+        <item quantity="other">Twój najlepszy wynik z ostatnich %1$d dni</item>
+    </plurals>
     <string name="detail_day_in_insights">Zobacz ten dzień w Analizie</string>
     <string name="sight_title">Korekta przyrządów</string>
     <string name="sight_up_mm">W górę %1$d mm</string>
     <string name="sight_down_mm">W dół %1$d mm</string>
     <string name="sight_left_mm">W lewo %1$d mm</string>
     <string name="sight_right_mm">W prawo %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d kl.</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d kliknięcie</item>
+        <item quantity="few">%1$s: %2$d kliknięcia</item>
+        <item quantity="many">%1$s: %2$d kliknięć</item>
+        <item quantity="other">%1$s: %2$d kliknięć</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 kliknięcie</string>
     <string name="sight_under_half_click">%1$s: mniej niż pół kliknięcia, zostaw</string>
     <string name="sight_no_height">Wysokość: bez zmian</string>
@@ -467,7 +678,12 @@
     <string name="sight_set_clicks">Wpisz wartość kliknięcia</string>
     <string name="sight_change_clicks">Zmień wartość kliknięcia</string>
     <string name="sight_adjusted_button">Przyrządy przestawione</string>
-    <string name="sight_adjusted_note">Przyrządy przestawione %1$s: przesunięcie jest oceniane na podstawie strzałów od tego czasu (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Przyrządy przestawione %1$s: przesunięcie jest oceniane na podstawie %2$d strzału oddanego od tego czasu.</item>
+        <item quantity="few">Przyrządy przestawione %1$s: przesunięcie jest oceniane na podstawie %2$d strzałów oddanych od tego czasu.</item>
+        <item quantity="many">Przyrządy przestawione %1$s: przesunięcie jest oceniane na podstawie %2$d strzałów oddanych od tego czasu.</item>
+        <item quantity="other">Przyrządy przestawione %1$s: przesunięcie jest oceniane na podstawie %2$d strzałów oddanych od tego czasu.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Cofnij</string>
     <string name="sight_dialog_title">Wartość kliknięcia, %1$s</string>
     <string name="sight_dialog_help">Jak daleko jedno kliknięcie przesuwa trafienie na tarczy na twojej odległości strzelania. Zwykle podaje to instrukcja przyrządów; możesz też policzyć kliknięcia jednej korekty i zmierzyć, o ile przesunęło się skupienie.</string>

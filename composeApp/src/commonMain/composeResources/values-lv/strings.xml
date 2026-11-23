@@ -83,11 +83,23 @@
     <string name="history_signed_out">Pierakstieties, lai redzētu savu vēsturi</string>
     <string name="history_empty">Vēl nav saglabātu sēriju</string>
     <string name="history_filter_empty">Filtram neatbilst neviena sērija.</string>
-    <string name="history_day_summary">Sērijas: %1$d · vid. %2$s</string>
-    <string name="history_day_summary_one">1 sērija · punkti: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="zero">%1$d sērijas · vid. %2$s</item>
+        <item quantity="one">%1$d sērija · vid. %2$s</item>
+        <item quantity="other">%1$d sērijas · vid. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="zero">1 sērija · %1$d punkti</item>
+        <item quantity="one">1 sērija · %1$d punkts</item>
+        <item quantity="other">1 sērija · %1$d punkti</item>
+    </plurals>
     <string name="history_card_title">%1$s · sērija %2$d</string>
     <string name="history_delete_title">Dzēst sēriju?</string>
-    <string name="history_delete_message">%1$s · punkti: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="zero">%1$s · %2$d punkti</item>
+        <item quantity="one">%1$s · %2$d punkts</item>
+        <item quantity="other">%1$s · %2$d punkti</item>
+    </plurals>
     <string name="history_delete_confirm">Dzēst</string>
     <string name="history_delete_cancel">Atcelt</string>
     <string name="history_delete_failed">Neizdevās dzēst</string>
@@ -134,7 +146,16 @@
     <string name="stats_group_date">Datums</string>
     <string name="filter_clear">Notīrīt filtrus</string>
     <string name="stats_no_geometry">Nevienai no jūsu sērijām nav apļa, pret kuru attēlot. Noskenējiet sēriju, kurā tiek atrasts 6/7 aplis.</string>
-    <string name="stats_target_description">Mērķis ar trāpījumiem (%1$d) no sērijām (%2$d)</string>
+    <plurals name="stats_target_description">
+        <item quantity="zero">Mērķis ar %1$d trāpījumiem no %2$s</item>
+        <item quantity="one">Mērķis ar %1$d trāpījumu no %2$s</item>
+        <item quantity="other">Mērķis ar %1$d trāpījumiem no %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="zero">%1$d sērijām</item>
+        <item quantity="one">%1$d sērijas</item>
+        <item quantity="other">%1$d sērijām</item>
+    </plurals>
     <string name="stats_timeline">Sēriju laika skala</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Grupēšanās</string>
@@ -158,12 +179,20 @@
     <string name="stats_short_mean_score">Punkti</string>
     <string name="stats_trend_description">Tendences diagramma, līnijas: %1$d, punkti: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (sērijas: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="zero">%1$s %2$s: %3$s (%4$d sērijas)</item>
+        <item quantity="one">%1$s %2$s: %3$s (%4$d sērija)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d sērijas)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Tendence</string>
     <string name="stats_help_trend_body">Cilnē Tendence jebkurš rādītājs tiek attēlots kā līkne laikā. Ar pogām izvēlieties rādītāju un to, vai katra sērija kļūst par atsevišķu punktu vai sērijas tiek apvienotas pa dienām, nedēļām vai mēnešiem (tad rādītājs tiek aprēķināts no visām perioda sērijām). Pa kalibriem zīmē atsevišķu līkni katram kalibram. Augstāk esošie filtri attiecas uz visām cilnēm. Pieskarieties punktam, lai nolasītu tā vērtību.</string>
     <string name="stats_tab_drift">Nobīde</string>
-    <string name="stats_drift_description">Mērķis ar vidējo un mediānas trāpījuma punktu laikā, punkti: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="zero">Mērķis ar vidējo un mediānas trāpījuma punktu laikā, %1$d punkti</item>
+        <item quantity="one">Mērķis ar vidējo un mediānas trāpījuma punktu laikā, %1$d punkts</item>
+        <item quantity="other">Mērķis ar vidējo un mediānas trāpījuma punktu laikā, %1$d punkti</item>
+    </plurals>
     <string name="stats_drift_counts">Dienas: %1$d · sērijas: %2$d · trāpījumi: %3$d</string>
     <string name="stats_drift_oldest">Vecākais</string>
     <string name="stats_drift_newest">Jaunākais</string>
@@ -182,8 +211,21 @@
     <string name="stats_drift_summary_closer">Pēdējais trāpījuma punkts: %1$s (%2$d mm no centra), par %3$d mm tuvāk nekā %4$s.</string>
     <string name="stats_drift_summary_further">Pēdējais trāpījuma punkts: %1$s (%2$d mm no centra), par %3$d mm tālāk nekā %4$s.</string>
     <string name="stats_drift_summary_same">Pēdējais trāpījuma punkts: %1$s (%2$d mm no centra), tikpat tālu kā %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · sērijas: %2$d · trāpījumi: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · sērija %2$d no %3$d · trāpījumi: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="zero">%1$s · %2$d sērijas · %3$s</item>
+        <item quantity="one">%1$s · %2$d sērija · %3$s</item>
+        <item quantity="other">%1$s · %2$d sērijas · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="zero">%1$d trāpījumi</item>
+        <item quantity="one">%1$d trāpījums</item>
+        <item quantity="other">%1$d trāpījumi</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="zero">%1$s · sērija %2$d no %3$d · %4$d trāpījumi</item>
+        <item quantity="one">%1$s · sērija %2$d no %3$d · %4$d trāpījums</item>
+        <item quantity="other">%1$s · sērija %2$d no %3$d · %4$d trāpījumi</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Pa kreisi/pa labi un augstu/zemu laikā (vidējais)</string>
     <string name="stats_drift_strips_median">Pa kreisi/pa labi un augstu/zemu laikā (mediāna)</string>
@@ -302,12 +344,20 @@
     <string name="help_home_import_body">Izvēlnē: novērtējiet fotoattēlus, kas jau ir tālrunī, no galerijas vai failiem. Katrs attēls tiek noskenēts, un rezultāts tiek parādīts, lai to saglabātu vai izlaistu. Ja Automātiskais imports ir ieslēgts, katrs attēls, kuram izdodas aprēķināt punktus, tiek saglabāts pats ar fotografēšanas datumu; pārējie pēc tam tiek parādīti pa vienam.</string>
     <string name="series_status_phone">Saglabāts šajā ierīcē</string>
     <string name="series_not_uploaded">Nav augšupielādēts</string>
-    <string name="stats_not_uploaded">Nav augšupielādētas sērijas: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="zero">%1$d sērijas nav augšupielādētas</item>
+        <item quantity="one">%1$d sērija nav augšupielādēta</item>
+        <item quantity="other">%1$d sērijas nav augšupielādētas</item>
+    </plurals>
     <string name="local_claim_title">Sērijas šajā ierīcē</string>
     <string name="local_claim_body">Sērijas, kas šajā ierīcē saglabātas bez pierakstīšanās vai citam kontam: %1$d. Pievienojiet tās šim kontam, dzēsiet tās no ierīces vai palieciet izrakstījies.</string>
     <string name="local_claim_add">Pievienot kontam</string>
     <string name="local_claim_delete">Dzēst no ierīces</string>
-    <string name="local_claim_delete_body">Dzēst no šīs ierīces sērijas (%1$d) un to fotoattēlus? To nevar atsaukt. Tās nav augšupielādētas šajā kontā.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="zero">Dzēst no šīs ierīces %1$d sērijas un to fotoattēlus? To nevar atsaukt. Tās nav augšupielādētas šajā kontā.</item>
+        <item quantity="one">Dzēst no šīs ierīces %1$d sēriju un tās fotoattēlu? To nevar atsaukt. Tā nav augšupielādēta šajā kontā.</item>
+        <item quantity="other">Dzēst no šīs ierīces %1$d sērijas un to fotoattēlus? To nevar atsaukt. Tās nav augšupielādētas šajā kontā.</item>
+    </plurals>
     <string name="local_claim_stay">Palikt izrakstījies</string>
     <string name="local_claim_error">Darbību neizdevās pabeigt. Atlikušās sērijas joprojām ir šajā ierīcē. Aizveriet un mēģiniet pierakstīties vēlreiz.</string>
     <string name="home_week_series">sērijas 7 dienās</string>
@@ -317,17 +367,45 @@
     <string name="home_insight_stretch_vertical">Šonedēļ jūsu grupa (%1$s) ir aptuveni par %2$d % augstāka nekā plata.</string>
     <string name="home_insight_stretch_horizontal">Šonedēļ jūsu grupa (%1$s) ir aptuveni par %2$d % platāka nekā augsta.</string>
     <string name="home_insight_stretch_diagonal">Šonedēļ jūsu grupa (%1$s) ir aptuveni par %2$d % garāka slīpi.</string>
-    <string name="home_insight_fliers">Šonedēļ vienam šāvienam bija atrāviens %2$d no jūsu %3$d sērijām (%1$s).</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="zero">Šonedēļ vienam šāvienam bija atrāviens %2$d no jūsu %3$d sērijām (%1$s).</item>
+        <item quantity="one">Šonedēļ vienam šāvienam bija atrāviens %2$d no jūsu %3$d sērijas (%1$s).</item>
+        <item quantity="other">Šonedēļ vienam šāvienam bija atrāviens %2$d no jūsu %3$d sērijām (%1$s).</item>
+    </plurals>
     <string name="home_insight_wide">%2$s jūsu grupas (%1$s) bija aptuveni par %3$d % platākas nekā iepriekš.</string>
     <string name="home_insight_low_series">Jūsu pēdējā sērija (%1$s) deva %2$d p., parasti – %3$d.</string>
     <string name="home_insight_low_day">%2$s jūsu sēriju (%1$s) vidējais bija %3$d, parasti – %4$d.</string>
-    <string name="home_insight_trend_up">Jūsu punkti (%1$s) aug: aptuveni par %2$d p. %3$d ned. laikā.</string>
-    <string name="home_insight_trend_down">Jūsu punkti (%1$s) krītas: aptuveni par %2$d p. %3$d ned. laikā.</string>
-    <string name="home_insight_session_down">Šonedēļ jūsu vēlākās sērijas (%1$s) deva mazāk punktu %2$d no %3$d garākām dienām.</string>
-    <string name="home_insight_session_up">Šonedēļ jūsu vēlākās sērijas (%1$s) deva vairāk punktu %2$d no %3$d garākām dienām.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="zero">Jūsu punkti (%1$s) aug: aptuveni par %2$d punktiem %3$s laikā.</item>
+        <item quantity="one">Jūsu punkti (%1$s) aug: aptuveni par %2$d punktu %3$s laikā.</item>
+        <item quantity="other">Jūsu punkti (%1$s) aug: aptuveni par %2$d punktiem %3$s laikā.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="zero">%1$d nedēļu</item>
+        <item quantity="one">%1$d nedēļas</item>
+        <item quantity="other">%1$d nedēļu</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="zero">Jūsu punkti (%1$s) krītas: aptuveni par %2$d punktiem %3$s laikā.</item>
+        <item quantity="one">Jūsu punkti (%1$s) krītas: aptuveni par %2$d punktu %3$s laikā.</item>
+        <item quantity="other">Jūsu punkti (%1$s) krītas: aptuveni par %2$d punktiem %3$s laikā.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="zero">Šonedēļ jūsu vēlākās sērijas (%1$s) deva mazāk punktu %2$d no %3$d garākām dienām.</item>
+        <item quantity="one">Šonedēļ jūsu vēlākās sērijas (%1$s) deva mazāk punktu %2$d no %3$d garākās dienas.</item>
+        <item quantity="other">Šonedēļ jūsu vēlākās sērijas (%1$s) deva mazāk punktu %2$d no %3$d garākām dienām.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="zero">Šonedēļ jūsu vēlākās sērijas (%1$s) deva vairāk punktu %2$d no %3$d garākām dienām.</item>
+        <item quantity="one">Šonedēļ jūsu vēlākās sērijas (%1$s) deva vairāk punktu %2$d no %3$d garākās dienas.</item>
+        <item quantity="other">Šonedēļ jūsu vēlākās sērijas (%1$s) deva vairāk punktu %2$d no %3$d garākām dienām.</item>
+    </plurals>
     <string name="home_insight_dismiss">Paslēpt šo novērojumu</string>
-    <string name="home_local_title">Sērijas tikai šajā tālrunī: %1$d</string>
-    <string name="home_local_title_one">1 sērija tikai šajā tālrunī</string>
+    <plurals name="home_local_title">
+        <item quantity="zero">%1$d sērijas tikai šajā tālrunī</item>
+        <item quantity="one">%1$d sērija tikai šajā tālrunī</item>
+        <item quantity="other">%1$d sērijas tikai šajā tālrunī</item>
+    </plurals>
     <string name="home_signin_title">Saglabājiet sērijas savā kontā</string>
     <string name="home_signin_body">Pierakstieties, lai tās saglabātos, mainot tālruni.</string>
     <string name="action_sign_in">Pierakstīties</string>
@@ -366,12 +444,29 @@
     <string name="advice_move_down_left">uz leju un pa kreisi</string>
     <string name="advice_move_left">pa kreisi</string>
     <string name="advice_move_up_left">uz augšu un pa kreisi</string>
-    <string name="advice_offset_stable_summary">Jūsu grupa atrodas %1$d mm %2$s (šāvieni: %3$d), vienādi %4$d no %5$d dienām.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="zero">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienos, vienādi %4$d no %5$s.</item>
+        <item quantity="one">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienā, vienādi %4$d no %5$s.</item>
+        <item quantity="other">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienos, vienādi %4$d no %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="zero">%1$d dienām</item>
+        <item quantity="one">%1$d dienas</item>
+        <item quantity="other">%1$d dienām</item>
+    </plurals>
     <string name="advice_cause_sights_1">Tēmēklis nav pieregulēts šai munīcijai vai attālumam.</string>
     <string name="advice_cause_sights_2">Tēmēklis ir pārvietojies kopš iestatīšanas, vai cita munīcija trāpa citur.</string>
     <string name="advice_try_sights">Noregulējiet tēmēkli tā, lai grupa pārvietotos aptuveni par %1$d mm %2$s, un pēc tam izšaujiet jaunu grupu, pirms to atkal aiztiekat.</string>
-    <string name="advice_offset_varies_summary">Jūsu grupa atrodas %1$d mm %2$s (šāvieni: %3$d), bet ne katru dienu vienādi.</string>
-    <string name="advice_offset_few_days_summary">Jūsu grupa atrodas %1$d mm %2$s (šāvieni: %3$d), bet pārāk mazā dienu skaitā, lai teiktu, vai tā ir vienmēr.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="zero">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienos, bet ne katru dienu vienādi.</item>
+        <item quantity="one">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienā, bet ne katru dienu vienādi.</item>
+        <item quantity="other">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienos, bet ne katru dienu vienādi.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="zero">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienos, bet pārāk mazā dienu skaitā, lai teiktu, vai tā ir vienmēr.</item>
+        <item quantity="one">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienā, bet pārāk mazā dienu skaitā, lai teiktu, vai tā ir vienmēr.</item>
+        <item quantity="other">Jūsu grupa atrodas %1$d mm %2$s %3$d šāvienos, bet pārāk mazā dienu skaitā, lai teiktu, vai tā ir vienmēr.</item>
+    </plurals>
     <string name="advice_cause_high_1">Plaukstas spiešana uz priekšu šāviena brīdī.</string>
     <string name="advice_cause_high_2">Plaukstas locītava šāvienā salūzt uz augšu.</string>
     <string name="advice_cause_high_3">Trāpījuma meklēšana un ieroča pacelšana par agru.</string>
@@ -390,21 +485,37 @@
     <string name="advice_cause_side_2">Īkšķa spiediens uz rokturi pagrūž ieroci uz sāniem.</string>
     <string name="advice_cause_side_3">Mēlītes spiešana, kas nenotiek taisni atpakaļ.</string>
     <string name="advice_try_side">Pārbaudiet, kur pirksts saskaras ar mēlīti un cik stipri spiež īkšķis, tad trenējieties ar tukšajiem šāvieniem un vērojiet tēmēkli.</string>
-    <string name="advice_stretch_vertical_summary">Jūsu grupa ir aptuveni par %1$d % augstāka nekā plata (šāvieni: %2$d).</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="zero">Jūsu grupa ir aptuveni par %1$d % augstāka nekā plata %2$d šāvienos.</item>
+        <item quantity="one">Jūsu grupa ir aptuveni par %1$d % augstāka nekā plata %2$d šāvienā.</item>
+        <item quantity="other">Jūsu grupa ir aptuveni par %1$d % augstāka nekā plata %2$d šāvienos.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Elpošana: šaušana katru reizi citā elpas punktā.</string>
     <string name="advice_cause_vertical_2">Tēmēšanas attēls mainās augstumā – grauds iecirtumā atrodas augstāk vai zemāk.</string>
     <string name="advice_cause_vertical_3">Satvēriena spēks, kas mainās no šāviena uz šāvienu.</string>
     <string name="advice_try_vertical">Aizturiet elpu katrā šāvienā vienā un tajā pašā punktā un pirms nospiešanas pārbaudiet grauda augstumu iecirtumā.</string>
-    <string name="advice_stretch_horizontal_summary">Jūsu grupa ir aptuveni par %1$d % platāka nekā augsta (šāvieni: %2$d).</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="zero">Jūsu grupa ir aptuveni par %1$d % platāka nekā augsta %2$d šāvienos.</item>
+        <item quantity="one">Jūsu grupa ir aptuveni par %1$d % platāka nekā augsta %2$d šāvienā.</item>
+        <item quantity="other">Jūsu grupa ir aptuveni par %1$d % platāka nekā augsta %2$d šāvienos.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Mēlītes spiešana, kas aiziet uz sāniem.</string>
     <string name="advice_cause_horizontal_2">Plaukstas locītava kustas šāvienā.</string>
     <string name="advice_cause_horizontal_3">Stāja, kas nav pareizi nostādīta pret mērķi.</string>
     <string name="advice_try_horizontal">Trenējieties ar tukšajiem šāvieniem, tēmējot uz atzīmi, un skatieties, vai tēmēklis noslīd uz sāniem, kad nostrādā mēlīte.</string>
-    <string name="advice_stretch_diagonal_summary">Jūsu grupa ir aptuveni par %1$d % garāka vienā virzienā nekā otrā, slīpi (šāvieni: %2$d).</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="zero">Jūsu grupa ir aptuveni par %1$d % garāka vienā virzienā nekā otrā, slīpi, %2$d šāvienos.</item>
+        <item quantity="one">Jūsu grupa ir aptuveni par %1$d % garāka vienā virzienā nekā otrā, slīpi, %2$d šāvienā.</item>
+        <item quantity="other">Jūsu grupa ir aptuveni par %1$d % garāka vienā virzienā nekā otrā, slīpi, %2$d šāvienos.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Satvēriena spēks un mēlītes spiešana darbojas viens otram pretī.</string>
     <string name="advice_cause_diagonal_2">Stāja vai rokas stāvoklis, kas sasver ieroci.</string>
     <string name="advice_try_diagonal">Pārbaudiet, vai satvēriens katrā šāvienā ir vienāds un tēmēklis pirms nospiešanas ir līmenī.</string>
-    <string name="advice_fliers_summary">%1$d no jūsu %2$d sērijām viens šāviens atrāvās no pārējiem, vidēji aptuveni par %3$d mm tālāk.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="zero">%1$d no jūsu %2$d sērijām viens šāviens atrāvās no pārējiem, vidēji aptuveni par %3$d mm tālāk.</item>
+        <item quantity="one">%1$d no jūsu %2$d sērijas viens šāviens atrāvās no pārējiem, vidēji aptuveni par %3$d mm tālāk.</item>
+        <item quantity="other">%1$d no jūsu %2$d sērijām viens šāviens atrāvās no pārējiem, vidēji aptuveni par %3$d mm tālāk.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Mēlītes kontrole atsevišķā šāvienā.</string>
     <string name="advice_cause_fliers_2">Šāviena pabeigšanas zaudēšana.</string>
     <string name="advice_cause_fliers_3">Šāviena izšaušana, to nepieteicot.</string>
@@ -415,48 +526,107 @@
     <string name="advice_cause_wide_3">Steigšanās ar šāvieniem.</string>
     <string name="advice_try_wide">Tukšo šāvienu treniņš: turiet un nospiediet, nešaujot, un atpūtieties, kad turēšana sāk trīcēt.</string>
     <string name="advice_low_series_summary">Jūsu pēdējā sērija deva %1$d p., salīdzinot ar vidēji %2$d jūsu pēdējās sērijās (%3$d).</string>
-    <string name="advice_low_day_summary">%1$s jūsu sēriju (%2$d) vidējais bija %3$d, salīdzinot ar vidēji %4$d iepriekš.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="zero">%1$s jūsu %2$d sēriju vidējais bija %3$d, salīdzinot ar vidēji %4$d iepriekš.</item>
+        <item quantity="one">%1$s jūsu %2$d sērijas vidējais bija %3$d, salīdzinot ar vidēji %4$d iepriekš.</item>
+        <item quantity="other">%1$s jūsu %2$d sēriju vidējais bija %3$d, salīdzinot ar vidēji %4$d iepriekš.</item>
+    </plurals>
     <string name="advice_try_low_plain">Viens zems rezultāts pasaka maz: izšaujiet vēl dažas, pirms ko maināt.</string>
     <string name="advice_try_low_explained">Sāciet ar zemāk esošo piezīmi, nevis mainiet visu uzreiz.</string>
     <string name="advice_low_note_offset">Jūsu grupa atrodas ārpus centra, un tas var būt daļa no iemesla.</string>
     <string name="advice_low_note_stretched">Jūsu grupa ir izstiepta vienā virzienā, un tas var būt daļa no iemesla.</string>
     <string name="advice_low_note_fliers">Viens atrāvies šāviens sērijā var būt daļa no iemesla.</string>
     <string name="advice_low_note_wide">Platākas grupas nekā parasti var būt daļa no iemesla.</string>
-    <string name="advice_trend_up_summary">Jūsu punkti %3$d ned. laikā ir pieauguši aptuveni par %1$d p. (sērijas: %2$d).</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="zero">Jūsu punkti %3$s laikā ir pieauguši aptuveni par %1$d punktiem (%2$s).</item>
+        <item quantity="one">Jūsu punkti %3$s laikā ir pieauguši aptuveni par %1$d punktu (%2$s).</item>
+        <item quantity="other">Jūsu punkti %3$s laikā ir pieauguši aptuveni par %1$d punktiem (%2$s).</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="zero">%1$d sērijas</item>
+        <item quantity="one">%1$d sērija</item>
+        <item quantity="other">%1$d sērijas</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="zero">%1$d nedēļu</item>
+        <item quantity="one">%1$d nedēļas</item>
+        <item quantity="other">%1$d nedēļu</item>
+    </plurals>
     <string name="advice_try_trend_up">Turpiniet tāpat un pierakstiet, kas mainījās, lai varētu to atkārtot.</string>
-    <string name="advice_trend_down_summary">Jūsu punkti %3$d ned. laikā ir samazinājušies aptuveni par %1$d p. (sērijas: %2$d).</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="zero">Jūsu punkti %3$s laikā ir samazinājušies aptuveni par %1$d punktiem (%2$s).</item>
+        <item quantity="one">Jūsu punkti %3$s laikā ir samazinājušies aptuveni par %1$d punktu (%2$s).</item>
+        <item quantity="other">Jūsu punkti %3$s laikā ir samazinājušies aptuveni par %1$d punktiem (%2$s).</item>
+    </plurals>
     <string name="advice_cause_trend_1">Nogurums vai mazāk laika treniņiem.</string>
     <string name="advice_cause_trend_2">Steigšanās ar šāvieniem.</string>
     <string name="advice_cause_trend_3">Ieroča, munīcijas vai ieradumu maiņa.</string>
     <string name="advice_try_trend_down">Īsāki treniņi ar pauzēm un daži tukšie šāvieni, lai no jauna atrastu pamatus.</string>
-    <string name="advice_session_down_summary">%1$d no jūsu %2$d garākajām dienām vēlākās sērijas deva mazāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="zero">%1$d no jūsu %2$d garākajām dienām vēlākās sērijas deva mazāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</item>
+        <item quantity="one">%1$d no jūsu %2$d garākās dienas vēlākās sērijas deva mazāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</item>
+        <item quantity="other">%1$d no jūsu %2$d garākajām dienām vēlākās sērijas deva mazāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</item>
+    </plurals>
     <string name="advice_cause_session_1">Rokas, pleca vai acu nogurums treniņa gaitā.</string>
     <string name="advice_cause_session_2">Koncentrēšanās mazinās, tāpēc šāvieni tiek steigti vai sliktāk pieteikti.</string>
     <string name="advice_cause_session_3">Pārāk maz pauzu starp sērijām.</string>
     <string name="advice_try_session_down">Īsāki treniņi vai īsta pauze ik pēc dažām sērijām, lai atpūtinātu acis un roku.</string>
-    <string name="advice_session_up_summary">%1$d no jūsu %2$d garākajām dienām vēlākās sērijas deva vairāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="zero">%1$d no jūsu %2$d garākajām dienām vēlākās sērijas deva vairāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</item>
+        <item quantity="one">%1$d no jūsu %2$d garākās dienas vēlākās sērijas deva vairāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</item>
+        <item quantity="other">%1$d no jūsu %2$d garākajām dienām vēlākās sērijas deva vairāk punktu nekā pirmās: vidēji %4$d, salīdzinot ar %3$d šajās dienās.</item>
+    </plurals>
     <string name="advice_try_session_up">Lēns sākums: sāciet ar dažiem tukšajiem šāvieniem vai izmēģinājuma šāvieniem, pirms tiek ieskaitīta pirmā sērija.</string>
     <string name="stats_help_insights">Analīze</string>
     <string name="stats_help_insights_body">Analīze aplūko jūsu saglabātās sērijas, pa vienam kalibram, un norāda uz likumsakarībām, par kurām tā ir diezgan pārliecināta: grupa, kas atrodas vienā pusē, izstiepta grupa, atrāvies šāviens vai punkti, kas krītas vai aug. Pirms tā ko saka, nepieciešams pietiekami daudz šāvienu. Katra piezīme pasaka, ko rāda skaitļi, kas to bieži izraisa, un vienu lietu, ko izmēģināt. Tas ir padoms, nevis treneris: iemesli ir izplatīti, nevis spriedums. Iestatiet šaušanas roku un izslēdziet Analīzi sadaļā Iestatījumi.</string>
     <string name="stats_tab_insights">Analīze</string>
-    <string name="stats_insights_need_more">Analīzei nepieciešami aptuveni %1$d šāvieni; šeit jums ir %2$d.</string>
-    <string name="stats_insights_nothing">Šajos šāvienos (%1$d) no sērijām (%2$d) nekas neizceļas.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="zero">Analīzei nepieciešami aptuveni %1$d šāvieni; šeit jums ir %2$d.</item>
+        <item quantity="one">Analīzei nepieciešams aptuveni %1$d šāviens; šeit jums ir %2$d.</item>
+        <item quantity="other">Analīzei nepieciešami aptuveni %1$d šāvieni; šeit jums ir %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="zero">Šajos %1$d šāvienos no %2$s nekas neizceļas.</item>
+        <item quantity="one">Šajā %1$d šāvienā no %2$s nekas neizceļas.</item>
+        <item quantity="other">Šajos %1$d šāvienos no %2$s nekas neizceļas.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="zero">%1$d sērijām</item>
+        <item quantity="one">%1$d sērijas</item>
+        <item quantity="other">%1$d sērijām</item>
+    </plurals>
     <string name="stats_insights_numbers">Vidējais trāpījuma punkts %1$s, izkliede %2$d mm, vidējā sērija %3$s.</string>
     <string name="stats_insights_legend">Dzeltenā elipse ietver aptuveni 86 procentus šāvienu; bulta iet no centra līdz vidējam trāpījuma punktam. Pieskarieties piezīmei, lai redzētu, uz ko tā attiecas mērķī.</string>
-    <string name="stats_insights_target_description">Analīzes mērķis ar šāvieniem (%1$d), elipsi un bultu līdz vidējam trāpījuma punktam</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="zero">Analīzes mērķis ar %1$d šāvieniem, elipsi un bultu līdz vidējam trāpījuma punktam</item>
+        <item quantity="one">Analīzes mērķis ar %1$d šāvienu, elipsi un bultu līdz vidējam trāpījuma punktam</item>
+        <item quantity="other">Analīzes mērķis ar %1$d šāvieniem, elipsi un bultu līdz vidējam trāpījuma punktam</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analīze aplūko vienu kalibru vienlaikus, bet šīm sērijām kalibra nav. Iestatiet tām kalibru sadaļā Vēsture, lai redzētu analīzi.</string>
-    <string name="stats_insights_uncalibered">Sērijas bez kalibra (%1$d) netiek iekļautas.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="zero">%1$d sērijas bez kalibra netiek iekļautas.</item>
+        <item quantity="one">%1$d sērija bez kalibra netiek iekļauta.</item>
+        <item quantity="other">%1$d sērijas bez kalibra netiek iekļautas.</item>
+    </plurals>
     <string name="detail_vs_under">Par %1$d zem jūsu vidējā %2$d</string>
     <string name="detail_vs_over">Par %1$d virs jūsu vidējā %2$d</string>
     <string name="detail_vs_on">Jūsu vidējā līmenī %1$d</string>
-    <string name="detail_vs_best">Jūsu labākais pēdējo %1$d dienu laikā</string>
+    <plurals name="detail_vs_best">
+        <item quantity="zero">Jūsu labākais pēdējo %1$d dienu laikā</item>
+        <item quantity="one">Jūsu labākais pēdējās %1$d dienas laikā</item>
+        <item quantity="other">Jūsu labākais pēdējo %1$d dienu laikā</item>
+    </plurals>
     <string name="detail_day_in_insights">Skatīt šo dienu Analīzē</string>
     <string name="sight_title">Tēmēkļa korekcija</string>
     <string name="sight_up_mm">Uz augšu %1$d mm</string>
     <string name="sight_down_mm">Uz leju %1$d mm</string>
     <string name="sight_left_mm">Pa kreisi %1$d mm</string>
     <string name="sight_right_mm">Pa labi %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d klikšķ.</string>
+    <plurals name="sight_clicks">
+        <item quantity="zero">%1$s: %2$d klikšķi</item>
+        <item quantity="one">%1$s: %2$d klikšķis</item>
+        <item quantity="other">%1$s: %2$d klikšķi</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 klikšķis</string>
     <string name="sight_under_half_click">%1$s: mazāk par pusklikšķi, atstājiet</string>
     <string name="sight_no_height">Augstums: bez izmaiņām</string>
@@ -467,7 +637,11 @@
     <string name="sight_set_clicks">Ievadīt klikšķa vērtību</string>
     <string name="sight_change_clicks">Mainīt klikšķa vērtību</string>
     <string name="sight_adjusted_button">Es noregulēju tēmēkli</string>
-    <string name="sight_adjusted_note">Tēmēklis noregulēts %1$s: nobīde tiek vērtēta pēc kopš tā laika izšautajiem šāvieniem (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="zero">Tēmēklis noregulēts %1$s: nobīde tiek vērtēta pēc %2$d kopš tā laika izšautajiem šāvieniem.</item>
+        <item quantity="one">Tēmēklis noregulēts %1$s: nobīde tiek vērtēta pēc %2$d kopš tā laika izšautā šāviena.</item>
+        <item quantity="other">Tēmēklis noregulēts %1$s: nobīde tiek vērtēta pēc %2$d kopš tā laika izšautajiem šāvieniem.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Atsaukt</string>
     <string name="sight_dialog_title">Klikšķa vērtība, %1$s</string>
     <string name="sight_dialog_help">Cik tālu viens klikšķis pārvieto trāpījumu mērķī jūsu šaušanas attālumā. Parasti tas norādīts tēmēkļa instrukcijā; citādi saskaitiet vienas korekcijas klikšķus un izmēriet, cik tālu pārvietojās grupa.</string>

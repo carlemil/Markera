@@ -83,11 +83,20 @@
     <string name="history_signed_out">Συνδεθείτε για να δείτε το ιστορικό σας</string>
     <string name="history_empty">Δεν υπάρχουν ακόμη αποθηκευμένες σειρές</string>
     <string name="history_filter_empty">Καμία σειρά δεν ταιριάζει με το φίλτρο.</string>
-    <string name="history_day_summary">%1$d σειρές · μ.ό. %2$s</string>
-    <string name="history_day_summary_one">1 σειρά · %1$d βαθμοί</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d σειρά · μ.ό. %2$s</item>
+        <item quantity="other">%1$d σειρές · μ.ό. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 σειρά · %1$d βαθμός</item>
+        <item quantity="other">1 σειρά · %1$d βαθμοί</item>
+    </plurals>
     <string name="history_card_title">%1$s · σειρά %2$d</string>
     <string name="history_delete_title">Διαγραφή της σειράς;</string>
-    <string name="history_delete_message">%1$s · %2$d βαθμοί</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d βαθμός</item>
+        <item quantity="other">%1$s · %2$d βαθμοί</item>
+    </plurals>
     <string name="history_delete_confirm">Διαγραφή</string>
     <string name="history_delete_cancel">Άκυρο</string>
     <string name="history_delete_failed">Δεν ήταν δυνατή η διαγραφή</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Ημερομηνία</string>
     <string name="filter_clear">Καθαρισμός φίλτρων</string>
     <string name="stats_no_geometry">Καμία σειρά σας δεν έχει κύκλο για να σχεδιαστεί πάνω του. Σαρώστε μία στην οποία βρέθηκε ο κύκλος 6/7.</string>
-    <string name="stats_target_description">Στόχος με %1$d βολές από %2$d σειρές</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Στόχος με %1$d βολή από %2$s</item>
+        <item quantity="other">Στόχος με %1$d βολές από %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d σειρά</item>
+        <item quantity="other">%1$d σειρές</item>
+    </plurals>
     <string name="stats_timeline">Χρονολόγιο σειρών</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Ομαδοποίηση</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Σκορ</string>
     <string name="stats_trend_description">Διάγραμμα τάσης, γραμμές: %1$d, σημεία: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d σειρές)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d σειρά)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d σειρές)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Τάση</string>
     <string name="stats_help_trend_body">Η καρτέλα Τάση σχεδιάζει οποιαδήποτε μέτρηση ως καμπύλη στον χρόνο. Επιλέξτε τη μέτρηση με τα κουμπιά, και αν κάθε σειρά γίνεται ένα σημείο ή αν οι σειρές συγχωνεύονται ανά ημέρα, εβδομάδα ή μήνα (η μέτρηση υπολογίζεται τότε σε όλες τις σειρές της περιόδου). Το Ανά διαμέτρημα σχεδιάζει μία καμπύλη για κάθε διαμέτρημα. Τα φίλτρα επάνω ισχύουν για όλες τις καρτέλες. Πατήστε ένα σημείο για να το διαβάσετε.</string>
     <string name="stats_tab_drift">Μετατόπιση</string>
-    <string name="stats_drift_description">Στόχος με το μέσο και το διάμεσο σημείο πρόσκρουσης στον χρόνο, %1$d σημεία</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Στόχος με το μέσο και το διάμεσο σημείο πρόσκρουσης στον χρόνο, %1$d σημείο</item>
+        <item quantity="other">Στόχος με το μέσο και το διάμεσο σημείο πρόσκρουσης στον χρόνο, %1$d σημεία</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d ημέρες · %2$d σειρές · %3$d βολές</string>
     <string name="stats_drift_oldest">Παλαιότερο</string>
     <string name="stats_drift_newest">Νεότερο</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Τελευταίο σημείο πρόσκρουσης: %1$s (%2$d mm από το κέντρο), %3$d mm πιο κοντά από ό,τι στις %4$s.</string>
     <string name="stats_drift_summary_further">Τελευταίο σημείο πρόσκρουσης: %1$s (%2$d mm από το κέντρο), %3$d mm πιο μακριά από ό,τι στις %4$s.</string>
     <string name="stats_drift_summary_same">Τελευταίο σημείο πρόσκρουσης: %1$s (%2$d mm από το κέντρο), όσο μακριά και στις %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d σειρές · %3$d βολές</string>
-    <string name="stats_drift_point_series">%1$s · σειρά %2$d από %3$d · %4$d βολές</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d σειρά · %3$s</item>
+        <item quantity="other">%1$s · %2$d σειρές · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d βολή</item>
+        <item quantity="other">%1$d βολές</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · σειρά %2$d από %3$d · %4$d βολή</item>
+        <item quantity="other">%1$s · σειρά %2$d από %3$d · %4$d βολές</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Αριστερά / δεξιά και ψηλά / χαμηλά στον χρόνο (μέσο)</string>
     <string name="stats_drift_strips_median">Αριστερά / δεξιά και ψηλά / χαμηλά στον χρόνο (διάμεσο)</string>
@@ -302,12 +334,18 @@
     <string name="help_home_import_body">Στο μενού: βαθμολογήστε φωτογραφίες που υπάρχουν ήδη στο τηλέφωνο, από τη συλλογή ή από αρχεία. Κάθε εικόνα σαρώνεται και εμφανίζονται τα αποτελέσματά της, για αποθήκευση ή παράλειψη. Με την Αυτόματη εισαγωγή ενεργή, κάθε εικόνα που βαθμολογείται αποθηκεύεται μόνη της με την ημερομηνία λήψης της φωτογραφίας· οι υπόλοιπες εμφανίζονται μία μία στο τέλος.</string>
     <string name="series_status_phone">Αποθηκεύτηκε σε αυτή τη συσκευή</string>
     <string name="series_not_uploaded">Δεν ανέβηκε</string>
-    <string name="stats_not_uploaded">Δεν ανέβηκαν: %1$d σειρές</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Δεν ανέβηκε: %1$d σειρά</item>
+        <item quantity="other">Δεν ανέβηκαν: %1$d σειρές</item>
+    </plurals>
     <string name="local_claim_title">Σειρές σε αυτή τη συσκευή</string>
     <string name="local_claim_body">Σειρές αποθηκευμένες σε αυτή τη συσκευή χωρίς σύνδεση ή για άλλον λογαριασμό: %1$d. Προσθέστε τες σε αυτόν τον λογαριασμό, διαγράψτε τες από τη συσκευή ή μείνετε αποσυνδεδεμένοι.</string>
     <string name="local_claim_add">Προσθήκη στον λογαριασμό</string>
     <string name="local_claim_delete">Διαγραφή από τη συσκευή</string>
-    <string name="local_claim_delete_body">Διαγραφή %1$d σειρών και των φωτογραφιών τους από αυτή τη συσκευή; Αυτό δεν αναιρείται. Δεν έχουν ανέβει σε αυτόν τον λογαριασμό.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Διαγραφή %1$d σειράς και της φωτογραφίας της από αυτή τη συσκευή; Αυτό δεν αναιρείται. Δεν έχει ανέβει σε αυτόν τον λογαριασμό.</item>
+        <item quantity="other">Διαγραφή %1$d σειρών και των φωτογραφιών τους από αυτή τη συσκευή; Αυτό δεν αναιρείται. Δεν έχουν ανέβει σε αυτόν τον λογαριασμό.</item>
+    </plurals>
     <string name="local_claim_stay">Παραμονή εκτός σύνδεσης</string>
     <string name="local_claim_error">Η ενέργεια δεν ολοκληρώθηκε. Οι υπόλοιπες σειρές σας είναι ακόμη σε αυτή τη συσκευή. Κλείστε και δοκιμάστε να συνδεθείτε ξανά.</string>
     <string name="home_week_series">σειρές σε 7 ημέρες</string>
@@ -317,17 +355,38 @@
     <string name="home_insight_stretch_vertical">Αυτή την εβδομάδα η ομάδα σας στο %1$s είναι περίπου %2$d τοις εκατό ψηλότερη απ’ ό,τι φαρδιά.</string>
     <string name="home_insight_stretch_horizontal">Αυτή την εβδομάδα η ομάδα σας στο %1$s είναι περίπου %2$d τοις εκατό φαρδύτερη απ’ ό,τι ψηλή.</string>
     <string name="home_insight_stretch_diagonal">Αυτή την εβδομάδα η ομάδα σας στο %1$s είναι περίπου %2$d τοις εκατό μακρύτερη σε μια διαγώνιο.</string>
-    <string name="home_insight_fliers">Αυτή την εβδομάδα μία βολή ξέφυγε σε %2$d από τις %3$d σειρές σας στο %1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Αυτή την εβδομάδα μία βολή ξέφυγε σε %2$d από τη %3$d σειρά σας στο %1$s.</item>
+        <item quantity="other">Αυτή την εβδομάδα μία βολή ξέφυγε σε %2$d από τις %3$d σειρές σας στο %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">Στις %2$s οι ομάδες σας στο %1$s ήταν περίπου %3$d τοις εκατό φαρδύτερες από πριν.</string>
     <string name="home_insight_low_series">Η τελευταία σας σειρά στο %1$s έφερε %2$d, έναντι %3$d συνήθως.</string>
     <string name="home_insight_low_day">Στις %2$s οι σειρές σας στο %1$s είχαν μέσο όρο %3$d, έναντι %4$d συνήθως.</string>
-    <string name="home_insight_trend_up">Τα σκορ σας στο %1$s ανεβαίνουν: περίπου %2$d βαθμοί σε %3$d εβδομάδες.</string>
-    <string name="home_insight_trend_down">Τα σκορ σας στο %1$s πέφτουν: περίπου %2$d βαθμοί σε %3$d εβδομάδες.</string>
-    <string name="home_insight_session_down">Αυτή την εβδομάδα οι τελευταίες σειρές σας στο %1$s ήταν χαμηλότερες σε %2$d από %3$d μεγάλες ημέρες.</string>
-    <string name="home_insight_session_up">Αυτή την εβδομάδα οι τελευταίες σειρές σας στο %1$s ήταν υψηλότερες σε %2$d από %3$d μεγάλες ημέρες.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Τα σκορ σας στο %1$s ανεβαίνουν: περίπου %2$d βαθμός σε %3$s.</item>
+        <item quantity="other">Τα σκορ σας στο %1$s ανεβαίνουν: περίπου %2$d βαθμοί σε %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d εβδομάδα</item>
+        <item quantity="other">%1$d εβδομάδες</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Τα σκορ σας στο %1$s πέφτουν: περίπου %2$d βαθμός σε %3$s.</item>
+        <item quantity="other">Τα σκορ σας στο %1$s πέφτουν: περίπου %2$d βαθμοί σε %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Αυτή την εβδομάδα οι τελευταίες σειρές σας στο %1$s ήταν χαμηλότερες σε %2$d από %3$d μεγάλη ημέρα.</item>
+        <item quantity="other">Αυτή την εβδομάδα οι τελευταίες σειρές σας στο %1$s ήταν χαμηλότερες σε %2$d από %3$d μεγάλες ημέρες.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Αυτή την εβδομάδα οι τελευταίες σειρές σας στο %1$s ήταν υψηλότερες σε %2$d από %3$d μεγάλη ημέρα.</item>
+        <item quantity="other">Αυτή την εβδομάδα οι τελευταίες σειρές σας στο %1$s ήταν υψηλότερες σε %2$d από %3$d μεγάλες ημέρες.</item>
+    </plurals>
     <string name="home_insight_dismiss">Απόκρυψη αυτής της ανάλυσης</string>
-    <string name="home_local_title">%1$d σειρές μόνο σε αυτό το τηλέφωνο</string>
-    <string name="home_local_title_one">1 σειρά μόνο σε αυτό το τηλέφωνο</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d σειρά μόνο σε αυτό το τηλέφωνο</item>
+        <item quantity="other">%1$d σειρές μόνο σε αυτό το τηλέφωνο</item>
+    </plurals>
     <string name="home_signin_title">Αποθηκεύστε τις σειρές σας στον λογαριασμό σας</string>
     <string name="home_signin_body">Συνδεθείτε για να τις κρατήσετε όταν αλλάξετε τηλέφωνο.</string>
     <string name="action_sign_in">Σύνδεση</string>
@@ -366,12 +425,25 @@
     <string name="advice_move_down_left">κάτω και αριστερά</string>
     <string name="advice_move_left">προς τα αριστερά</string>
     <string name="advice_move_up_left">πάνω και αριστερά</string>
-    <string name="advice_offset_stable_summary">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολές, προς την ίδια μεριά σε %4$d από %5$d ημέρες.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολή, προς την ίδια μεριά σε %4$d από %5$s.</item>
+        <item quantity="other">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολές, προς την ίδια μεριά σε %4$d από %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d ημέρα</item>
+        <item quantity="other">%1$d ημέρες</item>
+    </plurals>
     <string name="advice_cause_sights_1">Τα σκοπευτικά δεν είναι ρυθμισμένα για αυτά τα φυσίγγια ή αυτή την απόσταση.</string>
     <string name="advice_cause_sights_2">Τα σκοπευτικά μετακινήθηκαν από τη ρύθμισή τους, ή άλλα φυσίγγια ρίχνουν αλλού.</string>
     <string name="advice_try_sights">Ρυθμίστε τα σκοπευτικά ώστε η ομάδα να μετακινηθεί περίπου %1$d mm %2$s, και ρίξτε μια νέα ομάδα πριν τα ξαναγγίξετε.</string>
-    <string name="advice_offset_varies_summary">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολές, αλλά όχι προς την ίδια μεριά κάθε μέρα.</string>
-    <string name="advice_offset_few_days_summary">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολές, σε πολύ λίγες ημέρες για να πούμε αν είναι πάντα έτσι.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολή, αλλά όχι προς την ίδια μεριά κάθε μέρα.</item>
+        <item quantity="other">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολές, αλλά όχι προς την ίδια μεριά κάθε μέρα.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολή, σε πολύ λίγες ημέρες για να πούμε αν είναι πάντα έτσι.</item>
+        <item quantity="other">Η ομάδα σας βρίσκεται %1$d mm %2$s σε %3$d βολές, σε πολύ λίγες ημέρες για να πούμε αν είναι πάντα έτσι.</item>
+    </plurals>
     <string name="advice_cause_high_1">Σπρώξιμο με την παλάμη προς τα εμπρός τη στιγμή που φεύγει η βολή.</string>
     <string name="advice_cause_high_2">Ο καρπός λυγίζει προς τα πάνω στη βολή.</string>
     <string name="advice_cause_high_3">Ψάχνετε τη βολή και σηκώνετε το όπλο νωρίς.</string>
@@ -390,21 +462,33 @@
     <string name="advice_cause_side_2">Η πίεση του αντίχειρα στη λαβή σπρώχνει το όπλο στο πλάι.</string>
     <string name="advice_cause_side_3">Πίεση σκανδάλης που δεν είναι ευθεία προς τα πίσω.</string>
     <string name="advice_try_side">Ελέγξτε πού ακουμπά το δάχτυλο στη σκανδάλη και πόσο πιέζει ο αντίχειρας, μετά ρίξτε εν ξηρώ και παρακολουθήστε τα σκοπευτικά.</string>
-    <string name="advice_stretch_vertical_summary">Η ομάδα σας είναι περίπου %1$d τοις εκατό ψηλότερη απ’ ό,τι φαρδιά, σε %2$d βολές.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Η ομάδα σας είναι περίπου %1$d τοις εκατό ψηλότερη απ’ ό,τι φαρδιά, σε %2$d βολή.</item>
+        <item quantity="other">Η ομάδα σας είναι περίπου %1$d τοις εκατό ψηλότερη απ’ ό,τι φαρδιά, σε %2$d βολές.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Η αναπνοή: η βολή φεύγει κάθε φορά σε άλλο σημείο της αναπνοής.</string>
     <string name="advice_cause_vertical_2">Η εικόνα σκόπευσης αλλάζει σε ύψος, με το στόχαστρο ψηλότερα ή χαμηλότερα στην εγκοπή.</string>
     <string name="advice_cause_vertical_3">Πίεση λαβής που αλλάζει από βολή σε βολή.</string>
     <string name="advice_try_vertical">Σταθεροποιήστε την αναπνοή στο ίδιο σημείο σε κάθε βολή και ελέγξτε το ύψος του στόχαστρου στην εγκοπή πριν πιέσετε.</string>
-    <string name="advice_stretch_horizontal_summary">Η ομάδα σας είναι περίπου %1$d τοις εκατό φαρδύτερη απ’ ό,τι ψηλή, σε %2$d βολές.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Η ομάδα σας είναι περίπου %1$d τοις εκατό φαρδύτερη απ’ ό,τι ψηλή, σε %2$d βολή.</item>
+        <item quantity="other">Η ομάδα σας είναι περίπου %1$d τοις εκατό φαρδύτερη απ’ ό,τι ψηλή, σε %2$d βολές.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Πίεση σκανδάλης που πηγαίνει στο πλάι.</string>
     <string name="advice_cause_horizontal_2">Ο καρπός κινείται στη βολή.</string>
     <string name="advice_cause_horizontal_3">Στάση που δεν είναι σωστά προσανατολισμένη προς τον στόχο.</string>
     <string name="advice_try_horizontal">Ρίξτε εν ξηρώ με τα σκοπευτικά σε ένα σημάδι και δείτε αν γλιστρούν στο πλάι όταν σπάει η σκανδάλη.</string>
-    <string name="advice_stretch_diagonal_summary">Η ομάδα σας είναι περίπου %1$d τοις εκατό μακρύτερη προς τη μία κατεύθυνση απ’ ό,τι την άλλη, σε μια διαγώνιο, σε %2$d βολές.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Η ομάδα σας είναι περίπου %1$d τοις εκατό μακρύτερη προς τη μία κατεύθυνση απ’ ό,τι την άλλη, σε μια διαγώνιο, σε %2$d βολή.</item>
+        <item quantity="other">Η ομάδα σας είναι περίπου %1$d τοις εκατό μακρύτερη προς τη μία κατεύθυνση απ’ ό,τι την άλλη, σε μια διαγώνιο, σε %2$d βολές.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Η πίεση της λαβής και η πίεση της σκανδάλης δουλεύουν η μία κόντρα στην άλλη.</string>
     <string name="advice_cause_diagonal_2">Στάση ή θέση του χεριού που γέρνει το όπλο.</string>
     <string name="advice_try_diagonal">Ελέγξτε ότι η λαβή είναι ίδια σε κάθε βολή και ότι τα σκοπευτικά είναι οριζόντια πριν πιέσετε.</string>
-    <string name="advice_fliers_summary">Σε %1$d από τις %2$d σειρές σας μία βολή ξέφυγε από τις υπόλοιπες, κατά μέσο όρο περίπου %3$d mm έξω.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">Σε %1$d από τη %2$d σειρά σας μία βολή ξέφυγε από τις υπόλοιπες, κατά μέσο όρο περίπου %3$d mm έξω.</item>
+        <item quantity="other">Σε %1$d από τις %2$d σειρές σας μία βολή ξέφυγε από τις υπόλοιπες, κατά μέσο όρο περίπου %3$d mm έξω.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Ο έλεγχος της σκανδάλης σε μία μεμονωμένη βολή.</string>
     <string name="advice_cause_fliers_2">Χάθηκε η συνέχεια μετά τη βολή.</string>
     <string name="advice_cause_fliers_3">Η βολή φεύγει χωρίς να έχει δηλωθεί.</string>
@@ -415,48 +499,93 @@
     <string name="advice_cause_wide_3">Βιαστικές βολές.</string>
     <string name="advice_try_wide">Εξάσκηση εν ξηρώ: κρατήστε και πιέστε χωρίς να ρίξετε, και ξεκουραστείτε όταν το κράτημα αρχίσει να τρέμει.</string>
     <string name="advice_low_series_summary">Η τελευταία σας σειρά έφερε %1$d, έναντι %2$d κατά μέσο όρο στις τελευταίες %3$d.</string>
-    <string name="advice_low_day_summary">Στις %1$s οι %2$d σειρές σας είχαν μέσο όρο %3$d, έναντι %4$d κατά μέσο όρο πριν.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Στις %1$s η %2$d σειρά σας είχε μέσο όρο %3$d, έναντι %4$d κατά μέσο όρο πριν.</item>
+        <item quantity="other">Στις %1$s οι %2$d σειρές σας είχαν μέσο όρο %3$d, έναντι %4$d κατά μέσο όρο πριν.</item>
+    </plurals>
     <string name="advice_try_low_plain">Ένα χαμηλό αποτέλεσμα λέει λίγα: ρίξτε μερικές ακόμη πριν αλλάξετε οτιδήποτε.</string>
     <string name="advice_try_low_explained">Ξεκινήστε από τη σημείωση παρακάτω αντί να αλλάξετε τα πάντα μαζί.</string>
     <string name="advice_low_note_offset">Η ομάδα σας είναι εκτός κέντρου, κάτι που μπορεί να εξηγεί εν μέρει το αποτέλεσμα.</string>
     <string name="advice_low_note_stretched">Η ομάδα σας είναι τεντωμένη προς μία κατεύθυνση, κάτι που μπορεί να εξηγεί εν μέρει το αποτέλεσμα.</string>
     <string name="advice_low_note_fliers">Μια βολή που ξεφεύγει σε μια σειρά μπορεί να εξηγεί εν μέρει το αποτέλεσμα.</string>
     <string name="advice_low_note_wide">Φαρδύτερες ομάδες από το συνηθισμένο μπορεί να εξηγούν εν μέρει το αποτέλεσμα.</string>
-    <string name="advice_trend_up_summary">Τα σκορ σας ανέβηκαν περίπου %1$d βαθμούς σε %3$d εβδομάδες, σε %2$d σειρές.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Τα σκορ σας ανέβηκαν περίπου %1$d βαθμό σε %3$s, σε %2$s.</item>
+        <item quantity="other">Τα σκορ σας ανέβηκαν περίπου %1$d βαθμούς σε %3$s, σε %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d σειρά</item>
+        <item quantity="other">%1$d σειρές</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d εβδομάδα</item>
+        <item quantity="other">%1$d εβδομάδες</item>
+    </plurals>
     <string name="advice_try_trend_up">Συνεχίστε ό,τι κάνετε και σημειώστε τι άλλαξε για να μπορείτε να το επαναλάβετε.</string>
-    <string name="advice_trend_down_summary">Τα σκορ σας έπεσαν περίπου %1$d βαθμούς σε %3$d εβδομάδες, σε %2$d σειρές.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Τα σκορ σας έπεσαν περίπου %1$d βαθμό σε %3$s, σε %2$s.</item>
+        <item quantity="other">Τα σκορ σας έπεσαν περίπου %1$d βαθμούς σε %3$s, σε %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Κούραση ή λιγότερος χρόνος για προπόνηση.</string>
     <string name="advice_cause_trend_2">Βιαστικές βολές.</string>
     <string name="advice_cause_trend_3">Αλλαγή όπλου, φυσιγγίων ή ρουτίνας.</string>
     <string name="advice_try_trend_down">Μικρότερες προπονήσεις με διαλείμματα, και μερικές βολές εν ξηρώ για να ξαναβρείτε τα βασικά.</string>
-    <string name="advice_session_down_summary">Σε %1$d από τις %2$d μεγάλες ημέρες σας, οι τελευταίες σειρές είχαν χαμηλότερο σκορ από τις πρώτες: %4$d κατά μέσο όρο έναντι %3$d εκείνες τις ημέρες.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">Σε %1$d από τη %2$d μεγάλη ημέρα σας, οι τελευταίες σειρές είχαν χαμηλότερο σκορ από τις πρώτες: %4$d κατά μέσο όρο έναντι %3$d εκείνες τις ημέρες.</item>
+        <item quantity="other">Σε %1$d από τις %2$d μεγάλες ημέρες σας, οι τελευταίες σειρές είχαν χαμηλότερο σκορ από τις πρώτες: %4$d κατά μέσο όρο έναντι %3$d εκείνες τις ημέρες.</item>
+    </plurals>
     <string name="advice_cause_session_1">Κούραση στο χέρι, τον ώμο ή τα μάτια όσο προχωρά η προπόνηση.</string>
     <string name="advice_cause_session_2">Η συγκέντρωση εξασθενεί, οπότε οι βολές βιάζονται ή δηλώνονται λιγότερο καλά.</string>
     <string name="advice_cause_session_3">Πολύ λίγα διαλείμματα μεταξύ των σειρών.</string>
     <string name="advice_try_session_down">Μικρότερες προπονήσεις, ή ένα πραγματικό διάλειμμα κάθε λίγες σειρές για να ξεκουράσετε μάτια και χέρι.</string>
-    <string name="advice_session_up_summary">Σε %1$d από τις %2$d μεγάλες ημέρες σας, οι τελευταίες σειρές είχαν υψηλότερο σκορ από τις πρώτες: %4$d κατά μέσο όρο έναντι %3$d εκείνες τις ημέρες.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">Σε %1$d από τη %2$d μεγάλη ημέρα σας, οι τελευταίες σειρές είχαν υψηλότερο σκορ από τις πρώτες: %4$d κατά μέσο όρο έναντι %3$d εκείνες τις ημέρες.</item>
+        <item quantity="other">Σε %1$d από τις %2$d μεγάλες ημέρες σας, οι τελευταίες σειρές είχαν υψηλότερο σκορ από τις πρώτες: %4$d κατά μέσο όρο έναντι %3$d εκείνες τις ημέρες.</item>
+    </plurals>
     <string name="advice_try_session_up">Αργό ξεκίνημα: αρχίστε με μερικές βολές εν ξηρώ ή δοκιμαστικές βολές πριν μετρήσει η πρώτη σειρά.</string>
     <string name="stats_help_insights">Αναλύσεις</string>
     <string name="stats_help_insights_body">Οι Αναλύσεις εξετάζουν τις αποθηκευμένες σειρές σας, ένα διαμέτρημα τη φορά, και επισημαίνουν μοτίβα για τα οποία είναι αρκετά σίγουρες: μια ομάδα που βρίσκεται στο πλάι, μια ομάδα τεντωμένη, μια βολή που ξεφεύγει, ή σκορ που πέφτουν ή ανεβαίνουν. Χρειάζονται αρκετές βολές πριν πουν οτιδήποτε. Κάθε σημείωση λέει τι δείχνουν τα νούμερα, τι το προκαλεί συχνά και ένα πράγμα να δοκιμάσετε. Είναι μια ένδειξη, όχι προπονητής: οι αιτίες είναι συνηθισμένες, όχι ετυμηγορία. Ορίστε το χέρι βολής σας και απενεργοποιήστε τις Αναλύσεις στις Ρυθμίσεις.</string>
     <string name="stats_tab_insights">Αναλύσεις</string>
-    <string name="stats_insights_need_more">Οι Αναλύσεις χρειάζονται περίπου %1$d βολές· εδώ έχετε %2$d.</string>
-    <string name="stats_insights_nothing">Τίποτα δεν ξεχωρίζει σε αυτές τις %1$d βολές από %2$d σειρές.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Οι Αναλύσεις χρειάζονται περίπου %1$d βολή· εδώ έχετε %2$d.</item>
+        <item quantity="other">Οι Αναλύσεις χρειάζονται περίπου %1$d βολές· εδώ έχετε %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Τίποτα δεν ξεχωρίζει σε αυτή τη %1$d βολή από %2$s.</item>
+        <item quantity="other">Τίποτα δεν ξεχωρίζει σε αυτές τις %1$d βολές από %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d σειρά</item>
+        <item quantity="other">%1$d σειρές</item>
+    </plurals>
     <string name="stats_insights_numbers">Μέσο σημείο πρόσκρουσης %1$s, διασπορά %2$d mm, μέση σειρά %3$s.</string>
     <string name="stats_insights_legend">Η κίτρινη έλλειψη περιέχει περίπου το 86 τοις εκατό των βολών· το βέλος πηγαίνει από το κέντρο στο μέσο σημείο πρόσκρουσης. Πατήστε μια σημείωση για να δείτε σε τι αντιστοιχεί στον στόχο.</string>
-    <string name="stats_insights_target_description">Στόχος αναλύσεων με %1$d βολές, την έλλειψη και το βέλος προς το μέσο σημείο πρόσκρουσης</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Στόχος αναλύσεων με %1$d βολή, την έλλειψη και το βέλος προς το μέσο σημείο πρόσκρουσης</item>
+        <item quantity="other">Στόχος αναλύσεων με %1$d βολές, την έλλειψη και το βέλος προς το μέσο σημείο πρόσκρουσης</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Οι Αναλύσεις εξετάζουν ένα διαμέτρημα τη φορά, και αυτές οι σειρές δεν έχουν κανένα. Ορίστε τους διαμέτρημα στο Ιστορικό για να δείτε αναλύσεις.</string>
-    <string name="stats_insights_uncalibered">%1$d σειρές χωρίς διαμέτρημα εξαιρούνται.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d σειρά χωρίς διαμέτρημα εξαιρείται.</item>
+        <item quantity="other">%1$d σειρές χωρίς διαμέτρημα εξαιρούνται.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d κάτω από τον μέσο όρο σας %2$d</string>
     <string name="detail_vs_over">%1$d πάνω από τον μέσο όρο σας %2$d</string>
     <string name="detail_vs_on">Στον μέσο όρο σας %1$d</string>
-    <string name="detail_vs_best">Η καλύτερή σας των τελευταίων %1$d ημερών</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Η καλύτερή σας της τελευταίας %1$d ημέρας</item>
+        <item quantity="other">Η καλύτερή σας των τελευταίων %1$d ημερών</item>
+    </plurals>
     <string name="detail_day_in_insights">Δείτε αυτή την ημέρα στις Αναλύσεις</string>
     <string name="sight_title">Διόρθωση σκοπευτικών</string>
     <string name="sight_up_mm">Πάνω %1$d mm</string>
     <string name="sight_down_mm">Κάτω %1$d mm</string>
     <string name="sight_left_mm">Αριστερά %1$d mm</string>
     <string name="sight_right_mm">Δεξιά %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d κλικ</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d κλικ</item>
+        <item quantity="other">%1$s: %2$d κλικ</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 κλικ</string>
     <string name="sight_under_half_click">%1$s: κάτω από μισό κλικ, αφήστε το</string>
     <string name="sight_no_height">Ύψος: καμία αλλαγή</string>
@@ -467,7 +596,10 @@
     <string name="sight_set_clicks">Εισαγωγή τιμής κλικ</string>
     <string name="sight_change_clicks">Αλλαγή τιμής κλικ</string>
     <string name="sight_adjusted_button">Ρύθμισα τα σκοπευτικά</string>
-    <string name="sight_adjusted_note">Σκοπευτικά ρυθμισμένα στις %1$s: η απόκλιση κρίνεται από τις %2$d βολές από τότε.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Σκοπευτικά ρυθμισμένα στις %1$s: η απόκλιση κρίνεται από τη %2$d βολή από τότε.</item>
+        <item quantity="other">Σκοπευτικά ρυθμισμένα στις %1$s: η απόκλιση κρίνεται από τις %2$d βολές από τότε.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Αναίρεση</string>
     <string name="sight_dialog_title">Τιμή κλικ, %1$s</string>
     <string name="sight_dialog_help">Πόσο μετακινεί ένα κλικ τη βολή στον στόχο στην απόσταση βολής σας. Συνήθως το λέει το εγχειρίδιο του σκοπευτικού, αλλιώς μετρήστε τα κλικ μιας διόρθωσης και μετρήστε πόσο μετακινήθηκε η ομάδα.</string>

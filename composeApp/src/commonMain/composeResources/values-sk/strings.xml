@@ -83,11 +83,23 @@
     <string name="history_signed_out">Prihlás sa a uvidíš svoju históriu</string>
     <string name="history_empty">Zatiaľ žiadne uložené série</string>
     <string name="history_filter_empty">Filtru nezodpovedá žiadna séria.</string>
-    <string name="history_day_summary">Série: %1$d · priemer %2$s</string>
-    <string name="history_day_summary_one">1 séria · body: %1$d</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d séria · priemer %2$s</item>
+        <item quantity="few">%1$d série · priemer %2$s</item>
+        <item quantity="other">%1$d sérií · priemer %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 séria · %1$d bod</item>
+        <item quantity="few">1 séria · %1$d body</item>
+        <item quantity="other">1 séria · %1$d bodov</item>
+    </plurals>
     <string name="history_card_title">%1$s · séria %2$d</string>
     <string name="history_delete_title">Odstrániť sériu?</string>
-    <string name="history_delete_message">%1$s · body: %2$d</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d bod</item>
+        <item quantity="few">%1$s · %2$d body</item>
+        <item quantity="other">%1$s · %2$d bodov</item>
+    </plurals>
     <string name="history_delete_confirm">Odstrániť</string>
     <string name="history_delete_cancel">Zrušiť</string>
     <string name="history_delete_failed">Nedá sa odstrániť</string>
@@ -134,7 +146,16 @@
     <string name="stats_group_date">Dátum</string>
     <string name="filter_clear">Vymazať filtre</string>
     <string name="stats_no_geometry">Žiadna z tvojich sérií nemá kruh, ku ktorému by sa dali zásahy vykresliť. Naskenuj sériu, pri ktorej sa kruh 6/7 nájde.</string>
-    <string name="stats_target_description">Terč so zásahmi (%1$d) zo sérií (%2$d)</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Terč s %1$d zásahom z %2$s</item>
+        <item quantity="few">Terč s %1$d zásahmi z %2$s</item>
+        <item quantity="other">Terč s %1$d zásahmi z %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d série</item>
+        <item quantity="few">%1$d sérií</item>
+        <item quantity="other">%1$d sérií</item>
+    </plurals>
     <string name="stats_timeline">Časová os sérií</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Zoskupenie</string>
@@ -158,12 +179,20 @@
     <string name="stats_short_mean_score">Výsledok</string>
     <string name="stats_trend_description">Graf trendu, čiary: %1$d, body: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (série: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d séria)</item>
+        <item quantity="few">%1$s %2$s: %3$s (%4$d série)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d sérií)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Karta Trend vykreslí ľubovoľnú mieru ako krivku v čase. Tlačidlami vyber mieru a či sa každá séria stane bodom, alebo sa série zlúčia po dňoch, týždňoch či mesiacoch (miera sa potom počíta zo všetkých sérií v období). Podľa kalibra nakreslí jednu krivku pre každý kaliber. Filtre hore platia pre všetky karty. Ťuknutím na bod zobrazíš jeho hodnotu.</string>
     <string name="stats_tab_drift">Posun</string>
-    <string name="stats_drift_description">Terč s priemerným a mediánovým bodom zásahu v čase, body: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Terč s priemerným a mediánovým bodom zásahu v čase, %1$d bod</item>
+        <item quantity="few">Terč s priemerným a mediánovým bodom zásahu v čase, %1$d body</item>
+        <item quantity="other">Terč s priemerným a mediánovým bodom zásahu v čase, %1$d bodov</item>
+    </plurals>
     <string name="stats_drift_counts">Dni: %1$d · série: %2$d · zásahy: %3$d</string>
     <string name="stats_drift_oldest">Najstaršie</string>
     <string name="stats_drift_newest">Najnovšie</string>
@@ -182,8 +211,21 @@
     <string name="stats_drift_summary_closer">Posledný bod zásahu: %1$s (%2$d mm od stredu), o %3$d mm bližšie ako %4$s.</string>
     <string name="stats_drift_summary_further">Posledný bod zásahu: %1$s (%2$d mm od stredu), o %3$d mm ďalej ako %4$s.</string>
     <string name="stats_drift_summary_same">Posledný bod zásahu: %1$s (%2$d mm od stredu), rovnako ďaleko ako %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · série: %2$d · zásahy: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · séria %2$d z %3$d · zásahy: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d séria · %3$s</item>
+        <item quantity="few">%1$s · %2$d série · %3$s</item>
+        <item quantity="other">%1$s · %2$d sérií · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d zásah</item>
+        <item quantity="few">%1$d zásahy</item>
+        <item quantity="other">%1$d zásahov</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · séria %2$d z %3$d · %4$d zásah</item>
+        <item quantity="few">%1$s · séria %2$d z %3$d · %4$d zásahy</item>
+        <item quantity="other">%1$s · séria %2$d z %3$d · %4$d zásahov</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Vľavo / vpravo a vyššie / nižšie v čase (priemer)</string>
     <string name="stats_drift_strips_median">Vľavo / vpravo a vyššie / nižšie v čase (medián)</string>
@@ -302,12 +344,20 @@
     <string name="help_home_import_body">V ponuke: vyhodnoť fotky, ktoré už máš v telefóne, z galérie alebo zo súborov. Každý obrázok sa naskenuje a zobrazí sa výsledok, ktorý uložíš alebo preskočíš. So zapnutým automatickým importom sa každý obrázok, ktorý sa dá vyhodnotiť, uloží sám s dátumom vytvorenia fotky; ostatné sa potom zobrazia jeden po druhom.</string>
     <string name="series_status_phone">Uložené v tomto zariadení</string>
     <string name="series_not_uploaded">Nenahrané</string>
-    <string name="stats_not_uploaded">Nenahrané série: %1$d</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Nenahrané: %1$d séria</item>
+        <item quantity="few">Nenahrané: %1$d série</item>
+        <item quantity="other">Nenahrané: %1$d sérií</item>
+    </plurals>
     <string name="local_claim_title">Série v tomto zariadení</string>
     <string name="local_claim_body">Série uložené v tomto zariadení bez prihlásenia alebo pre iný účet: %1$d. Pridaj ich k tomuto účtu, odstráň ich z tohto zariadenia, alebo zostaň bez prihlásenia.</string>
     <string name="local_claim_add">Pridať k účtu</string>
     <string name="local_claim_delete">Odstrániť zo zariadenia</string>
-    <string name="local_claim_delete_body">Odstrániť série (%1$d) a ich fotky z tohto zariadenia? Túto akciu nie je možné vrátiť. K tomuto účtu neboli nahrané.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Odstrániť %1$d sériu a jej fotku z tohto zariadenia? Túto akciu nie je možné vrátiť. K tomuto účtu nebola nahraná.</item>
+        <item quantity="few">Odstrániť %1$d série a ich fotky z tohto zariadenia? Túto akciu nie je možné vrátiť. K tomuto účtu neboli nahrané.</item>
+        <item quantity="other">Odstrániť %1$d sérií a ich fotky z tohto zariadenia? Túto akciu nie je možné vrátiť. K tomuto účtu neboli nahrané.</item>
+    </plurals>
     <string name="local_claim_stay">Zostať bez prihlásenia</string>
     <string name="local_claim_error">Operáciu sa nepodarilo dokončiť. Zvyšné série sú stále v tomto zariadení. Zatvor okno a skús sa prihlásiť znova.</string>
     <string name="home_week_series">sérií za 7 dní</string>
@@ -317,17 +367,45 @@
     <string name="home_insight_stretch_vertical">Tento týždeň je tvoja skupina s kalibrom %1$s asi o %2$d percent vyššia ako širšia.</string>
     <string name="home_insight_stretch_horizontal">Tento týždeň je tvoja skupina s kalibrom %1$s asi o %2$d percent širšia ako vyššia.</string>
     <string name="home_insight_stretch_diagonal">Tento týždeň je tvoja skupina s kalibrom %1$s šikmo asi o %2$d percent dlhšia.</string>
-    <string name="home_insight_fliers">Tento týždeň ti v %2$d z %3$d sérií s kalibrom %1$s ušiel jeden výstrel.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Tento týždeň ti v %2$d z %3$d série s kalibrom %1$s ušiel jeden výstrel.</item>
+        <item quantity="few">Tento týždeň ti v %2$d z %3$d sérií s kalibrom %1$s ušiel jeden výstrel.</item>
+        <item quantity="other">Tento týždeň ti v %2$d z %3$d sérií s kalibrom %1$s ušiel jeden výstrel.</item>
+    </plurals>
     <string name="home_insight_wide">Dňa %2$s boli tvoje skupiny s kalibrom %1$s asi o %3$d percent širšie ako predtým.</string>
     <string name="home_insight_low_series">Tvoja posledná séria s kalibrom %1$s dala %2$d, zvyčajne dávaš %3$d.</string>
     <string name="home_insight_low_day">Dňa %2$s mali tvoje série s kalibrom %1$s priemer %3$d, zvyčajne %4$d.</string>
-    <string name="home_insight_trend_up">Tvoje výsledky s kalibrom %1$s rastú: asi o %2$d b. za %3$d týž.</string>
-    <string name="home_insight_trend_down">Tvoje výsledky s kalibrom %1$s klesajú: asi o %2$d b. za %3$d týž.</string>
-    <string name="home_insight_session_down">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s horšie v %2$d z %3$d dlhších dní.</string>
-    <string name="home_insight_session_up">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s lepšie v %2$d z %3$d dlhších dní.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Tvoje výsledky s kalibrom %1$s rastú: asi o %2$d bod za %3$s.</item>
+        <item quantity="few">Tvoje výsledky s kalibrom %1$s rastú: asi o %2$d body za %3$s.</item>
+        <item quantity="other">Tvoje výsledky s kalibrom %1$s rastú: asi o %2$d bodov za %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d týždeň</item>
+        <item quantity="few">%1$d týždne</item>
+        <item quantity="other">%1$d týždňov</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Tvoje výsledky s kalibrom %1$s klesajú: asi o %2$d bod za %3$s.</item>
+        <item quantity="few">Tvoje výsledky s kalibrom %1$s klesajú: asi o %2$d body za %3$s.</item>
+        <item quantity="other">Tvoje výsledky s kalibrom %1$s klesajú: asi o %2$d bodov za %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s horšie v %2$d z %3$d dlhšieho dňa.</item>
+        <item quantity="few">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s horšie v %2$d z %3$d dlhších dní.</item>
+        <item quantity="other">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s horšie v %2$d z %3$d dlhších dní.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s lepšie v %2$d z %3$d dlhšieho dňa.</item>
+        <item quantity="few">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s lepšie v %2$d z %3$d dlhších dní.</item>
+        <item quantity="other">Tento týždeň boli tvoje neskoršie série s kalibrom %1$s lepšie v %2$d z %3$d dlhších dní.</item>
+    </plurals>
     <string name="home_insight_dismiss">Skryť tento tip</string>
-    <string name="home_local_title">Série len v tomto telefóne: %1$d</string>
-    <string name="home_local_title_one">1 séria len v tomto telefóne</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d séria len v tomto telefóne</item>
+        <item quantity="few">%1$d série len v tomto telefóne</item>
+        <item quantity="other">%1$d sérií len v tomto telefóne</item>
+    </plurals>
     <string name="home_signin_title">Ulož svoje série do účtu</string>
     <string name="home_signin_body">Prihlás sa a zostanú ti aj pri výmene telefónu.</string>
     <string name="action_sign_in">Prihlásiť sa</string>
@@ -366,12 +444,29 @@
     <string name="advice_move_down_left">dole a doľava</string>
     <string name="advice_move_left">doľava</string>
     <string name="advice_move_up_left">hore a doľava</string>
-    <string name="advice_offset_stable_summary">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, rovnako v %4$d z %5$d dní.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Tvoja skupina leží pri %3$d výstrele %1$d mm %2$s, rovnako v %4$d z %5$s.</item>
+        <item quantity="few">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, rovnako v %4$d z %5$s.</item>
+        <item quantity="other">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, rovnako v %4$d z %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dňa</item>
+        <item quantity="few">%1$d dní</item>
+        <item quantity="other">%1$d dní</item>
+    </plurals>
     <string name="advice_cause_sights_1">Mieridlá nie sú nastrieľané pre tento náboj alebo vzdialenosť.</string>
     <string name="advice_cause_sights_2">Mieridlá sa od nastavenia posunuli, alebo iné strelivo strieľa inam.</string>
     <string name="advice_try_sights">Posuň mieridlá tak, aby sa skupina posunula asi o %1$d mm %2$s, a potom vystreľ novú skupinu, kým na ne znova siahneš.</string>
-    <string name="advice_offset_varies_summary">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, ale nie každý deň rovnako.</string>
-    <string name="advice_offset_few_days_summary">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, ale dní je príliš málo na to, aby sa dalo povedať, či je to tak vždy.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Tvoja skupina leží pri %3$d výstrele %1$d mm %2$s, ale nie každý deň rovnako.</item>
+        <item quantity="few">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, ale nie každý deň rovnako.</item>
+        <item quantity="other">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, ale nie každý deň rovnako.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Tvoja skupina leží pri %3$d výstrele %1$d mm %2$s, ale dní je príliš málo na to, aby sa dalo povedať, či je to tak vždy.</item>
+        <item quantity="few">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, ale dní je príliš málo na to, aby sa dalo povedať, či je to tak vždy.</item>
+        <item quantity="other">Tvoja skupina leží pri %3$d výstreloch %1$d mm %2$s, ale dní je príliš málo na to, aby sa dalo povedať, či je to tak vždy.</item>
+    </plurals>
     <string name="advice_cause_high_1">Tlačenie dlaňou dopredu v okamihu výstrelu.</string>
     <string name="advice_cause_high_2">Zápästie sa pri výstrele zlomí nahor.</string>
     <string name="advice_cause_high_3">Hľadanie zásahu a predčasné zdvihnutie zbrane.</string>
@@ -390,21 +485,37 @@
     <string name="advice_cause_side_2">Tlak palca na rukoväť tlačí zbraň do strany.</string>
     <string name="advice_cause_side_3">Spúšťanie, ktoré nejde priamo dozadu.</string>
     <string name="advice_try_side">Skontroluj, kde sa prst dotýka spúšte a ako silno tlačí palec, potom skús výstrel nasucho a sleduj mieridlá.</string>
-    <string name="advice_stretch_vertical_summary">Tvoja skupina je pri %2$d výstreloch asi o %1$d percent vyššia ako širšia.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Tvoja skupina je pri %2$d výstrele asi o %1$d percent vyššia ako širšia.</item>
+        <item quantity="few">Tvoja skupina je pri %2$d výstreloch asi o %1$d percent vyššia ako širšia.</item>
+        <item quantity="other">Tvoja skupina je pri %2$d výstreloch asi o %1$d percent vyššia ako širšia.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Dýchanie: výstrel zakaždým v inej fáze dychu.</string>
     <string name="advice_cause_vertical_2">Obraz mieridiel sa mení vo výške, muška je vo výreze vyššie alebo nižšie.</string>
     <string name="advice_cause_vertical_3">Tlak na rukoväť, ktorý sa mení od výstrelu k výstrelu.</string>
     <string name="advice_try_vertical">Zastav dych pri každom výstrele v rovnakej fáze a pred spustením skontroluj výšku mušky vo výreze.</string>
-    <string name="advice_stretch_horizontal_summary">Tvoja skupina je pri %2$d výstreloch asi o %1$d percent širšia ako vyššia.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Tvoja skupina je pri %2$d výstrele asi o %1$d percent širšia ako vyššia.</item>
+        <item quantity="few">Tvoja skupina je pri %2$d výstreloch asi o %1$d percent širšia ako vyššia.</item>
+        <item quantity="other">Tvoja skupina je pri %2$d výstreloch asi o %1$d percent širšia ako vyššia.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Spúšťanie, ktoré ide do strany.</string>
     <string name="advice_cause_horizontal_2">Pohyb zápästia pri výstrele.</string>
     <string name="advice_cause_horizontal_3">Postoj, ktorý nie je správne natočený k terču.</string>
     <string name="advice_try_horizontal">Strieľaj nasucho s mieridlami na značke a sleduj, či pri spustení nekĺznu do strany.</string>
-    <string name="advice_stretch_diagonal_summary">Tvoja skupina je pri %2$d výstreloch šikmo v jednom smere asi o %1$d percent dlhšia ako v druhom.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Tvoja skupina je pri %2$d výstrele šikmo v jednom smere asi o %1$d percent dlhšia ako v druhom.</item>
+        <item quantity="few">Tvoja skupina je pri %2$d výstreloch šikmo v jednom smere asi o %1$d percent dlhšia ako v druhom.</item>
+        <item quantity="other">Tvoja skupina je pri %2$d výstreloch šikmo v jednom smere asi o %1$d percent dlhšia ako v druhom.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Tlak na rukoväť a spúšťanie pôsobia proti sebe.</string>
     <string name="advice_cause_diagonal_2">Postoj alebo poloha ruky, ktorá zbraň nakláňa.</string>
     <string name="advice_try_diagonal">Skontroluj, že úchop je pri každom výstrele rovnaký a mieridlá rovno, kým spustíš.</string>
-    <string name="advice_fliers_summary">V %1$d z %2$d sérií ti jeden výstrel ušiel od ostatných, v priemere asi o %3$d mm.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">V %1$d z %2$d série ti jeden výstrel ušiel od ostatných, v priemere asi o %3$d mm.</item>
+        <item quantity="few">V %1$d z %2$d sérií ti jeden výstrel ušiel od ostatných, v priemere asi o %3$d mm.</item>
+        <item quantity="other">V %1$d z %2$d sérií ti jeden výstrel ušiel od ostatných, v priemere asi o %3$d mm.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Ovládanie spúšte pri jedinom výstrele.</string>
     <string name="advice_cause_fliers_2">Nedodržanie výstrelu.</string>
     <string name="advice_cause_fliers_3">Výstrel bez ohlásenia.</string>
@@ -415,48 +526,107 @@
     <string name="advice_cause_wide_3">Uponáhľané výstrely.</string>
     <string name="advice_try_wide">Tréning nasucho: drž a spúšťaj bez streľby, a oddýchni si, keď sa držanie začne chvieť.</string>
     <string name="advice_low_series_summary">Tvoja posledná séria dala %1$d, oproti priemeru %2$d z tvojich posledných %3$d.</string>
-    <string name="advice_low_day_summary">Dňa %1$s mali tvoje série (%2$d) priemer %3$d, oproti predchádzajúcemu priemeru %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Dňa %1$s mala tvoja %2$d séria priemer %3$d, oproti predchádzajúcemu priemeru %4$d.</item>
+        <item quantity="few">Dňa %1$s mali tvoje %2$d série priemer %3$d, oproti predchádzajúcemu priemeru %4$d.</item>
+        <item quantity="other">Dňa %1$s malo tvojich %2$d sérií priemer %3$d, oproti predchádzajúcemu priemeru %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">Jeden slabší výsledok veľa nehovorí: vystreľ ešte pár sérií, kým niečo zmeníš.</string>
     <string name="advice_try_low_explained">Začni poznámkou nižšie a nemeň všetko naraz.</string>
     <string name="advice_low_note_offset">Tvoja skupina leží mimo stredu, čo môže byť časť dôvodu.</string>
     <string name="advice_low_note_stretched">Tvoja skupina je pretiahnutá jedným smerom, čo môže byť časť dôvodu.</string>
     <string name="advice_low_note_fliers">Časť dôvodu môže byť jeden ulietnutý výstrel v sérii.</string>
     <string name="advice_low_note_wide">Časť dôvodu môžu byť širšie skupiny ako zvyčajne.</string>
-    <string name="advice_trend_up_summary">Tvoje výsledky stúpli asi o %1$d b. za %3$d týž., v %2$d sériách.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Tvoje výsledky stúpli asi o %1$d bod za %3$s, v %2$s.</item>
+        <item quantity="few">Tvoje výsledky stúpli asi o %1$d body za %3$s, v %2$s.</item>
+        <item quantity="other">Tvoje výsledky stúpli asi o %1$d bodov za %3$s, v %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d sérii</item>
+        <item quantity="few">%1$d sériách</item>
+        <item quantity="other">%1$d sériách</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d týždeň</item>
+        <item quantity="few">%1$d týždne</item>
+        <item quantity="other">%1$d týždňov</item>
+    </plurals>
     <string name="advice_try_trend_up">Pokračuj tak ďalej a zapíš si, čo sa zmenilo, aby si to mohol zopakovať.</string>
-    <string name="advice_trend_down_summary">Tvoje výsledky klesli asi o %1$d b. za %3$d týž., v %2$d sériách.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Tvoje výsledky klesli asi o %1$d bod za %3$s, v %2$s.</item>
+        <item quantity="few">Tvoje výsledky klesli asi o %1$d body za %3$s, v %2$s.</item>
+        <item quantity="other">Tvoje výsledky klesli asi o %1$d bodov za %3$s, v %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Únava alebo menej času na tréning.</string>
     <string name="advice_cause_trend_2">Uponáhľané výstrely.</string>
     <string name="advice_cause_trend_3">Zmena zbrane, streliva alebo postupu.</string>
     <string name="advice_try_trend_down">Kratšie tréningy s prestávkami a pár výstrelov nasucho, aby si znova našiel základy.</string>
-    <string name="advice_session_down_summary">V %1$d z tvojich %2$d dlhších dní mali neskoršie série nižší výsledok ako prvé: v tie dni v priemere %4$d oproti %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">V %1$d z tvojho %2$d dlhšieho dňa mali neskoršie série nižší výsledok ako prvé: v ten deň v priemere %4$d oproti %3$d.</item>
+        <item quantity="few">V %1$d z tvojich %2$d dlhších dní mali neskoršie série nižší výsledok ako prvé: v tie dni v priemere %4$d oproti %3$d.</item>
+        <item quantity="other">V %1$d z tvojich %2$d dlhších dní mali neskoršie série nižší výsledok ako prvé: v tie dni v priemere %4$d oproti %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Únava ruky, ramena alebo očí v priebehu tréningu.</string>
     <string name="advice_cause_session_2">Slabnúce sústredenie, takže výstrely sú uponáhľané alebo horšie hlásené.</string>
     <string name="advice_cause_session_3">Príliš málo prestávok medzi sériami.</string>
     <string name="advice_try_session_down">Kratšie tréningy, alebo po niekoľkých sériách skutočná prestávka, aby si oči a ruka oddýchli.</string>
-    <string name="advice_session_up_summary">V %1$d z tvojich %2$d dlhších dní mali neskoršie série vyšší výsledok ako prvé: v tie dni v priemere %4$d oproti %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">V %1$d z tvojho %2$d dlhšieho dňa mali neskoršie série vyšší výsledok ako prvé: v ten deň v priemere %4$d oproti %3$d.</item>
+        <item quantity="few">V %1$d z tvojich %2$d dlhších dní mali neskoršie série vyšší výsledok ako prvé: v tie dni v priemere %4$d oproti %3$d.</item>
+        <item quantity="other">V %1$d z tvojich %2$d dlhších dní mali neskoršie série vyšší výsledok ako prvé: v tie dni v priemere %4$d oproti %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Pomalý začiatok: začni niekoľkými výstrelmi nasucho alebo skúšobnými výstrelmi, kým sa začne počítať prvá séria.</string>
     <string name="stats_help_insights">Analýza</string>
     <string name="stats_help_insights_body">Analýza prechádza tvoje uložené série, vždy jeden kaliber, a upozorní na vzorce, ktorými si je celkom istá: skupinu posunutú na jednu stranu, pretiahnutú skupinu, ulietnutý výstrel alebo výsledky, ktoré klesajú či rastú. Kým niečo povie, potrebuje dosť výstrelov. Každá poznámka uvádza, čo ukazujú čísla, čo to často spôsobuje a jednu vec na vyskúšanie. Je to tip, nie tréner: príčiny sú bežné, nejde o verdikt. Streleckú ruku nastavíš a Analýzu vypneš v Nastaveniach.</string>
     <string name="stats_tab_insights">Analýza</string>
-    <string name="stats_insights_need_more">Analýza potrebuje asi %1$d výstrelov; tu ich je %2$d.</string>
-    <string name="stats_insights_nothing">V týchto výstreloch (%1$d) zo sérií (%2$d) nič nevyčnieva.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analýza potrebuje asi %1$d výstrel; tu ich je %2$d.</item>
+        <item quantity="few">Analýza potrebuje asi %1$d výstrely; tu ich je %2$d.</item>
+        <item quantity="other">Analýza potrebuje asi %1$d výstrelov; tu ich je %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">V tomto %1$d výstrele z %2$s nič nevyčnieva.</item>
+        <item quantity="few">V týchto %1$d výstreloch z %2$s nič nevyčnieva.</item>
+        <item quantity="other">V týchto %1$d výstreloch z %2$s nič nevyčnieva.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d série</item>
+        <item quantity="few">%1$d sérií</item>
+        <item quantity="other">%1$d sérií</item>
+    </plurals>
     <string name="stats_insights_numbers">Stredný bod zásahu %1$s, rozptyl %2$d mm, priemerná séria %3$s.</string>
     <string name="stats_insights_legend">Žltá elipsa obsahuje asi 86 percent výstrelov; šípka vedie od stredu k strednému bodu zásahu. Ťuknutím na poznámku uvidíš, čoho sa na terči týka.</string>
-    <string name="stats_insights_target_description">Terč analýzy s výstrelmi (%1$d), elipsou a šípkou k strednému bodu zásahu</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Terč analýzy s %1$d výstrelom, elipsou a šípkou k strednému bodu zásahu</item>
+        <item quantity="few">Terč analýzy s %1$d výstrelmi, elipsou a šípkou k strednému bodu zásahu</item>
+        <item quantity="other">Terč analýzy s %1$d výstrelmi, elipsou a šípkou k strednému bodu zásahu</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analýza pracuje vždy s jedným kalibrom a tieto série žiadny nemajú. Nastav im kaliber v Histórii, aby sa analýza zobrazila.</string>
-    <string name="stats_insights_uncalibered">Série bez kalibra (%1$d) sú vynechané.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d séria bez kalibra je vynechaná.</item>
+        <item quantity="few">%1$d série bez kalibra sú vynechané.</item>
+        <item quantity="other">%1$d sérií bez kalibra je vynechaných.</item>
+    </plurals>
     <string name="detail_vs_under">O %1$d pod tvojím priemerom %2$d</string>
     <string name="detail_vs_over">O %1$d nad tvojím priemerom %2$d</string>
     <string name="detail_vs_on">Presne tvoj priemer %1$d</string>
-    <string name="detail_vs_best">Tvoje najlepšie za posledných %1$d dní</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Tvoje najlepšie za posledný %1$d deň</item>
+        <item quantity="few">Tvoje najlepšie za posledné %1$d dni</item>
+        <item quantity="other">Tvoje najlepšie za posledných %1$d dní</item>
+    </plurals>
     <string name="detail_day_in_insights">Zobraziť tento deň v Analýze</string>
     <string name="sight_title">Korekcia mieridiel</string>
     <string name="sight_up_mm">Hore %1$d mm</string>
     <string name="sight_down_mm">Dole %1$d mm</string>
     <string name="sight_left_mm">Doľava %1$d mm</string>
     <string name="sight_right_mm">Doprava %1$d mm</string>
-    <string name="sight_clicks">%1$s: počet kliknutí %2$d</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d kliknutie</item>
+        <item quantity="few">%1$s: %2$d kliknutia</item>
+        <item quantity="other">%1$s: %2$d kliknutí</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 kliknutie</string>
     <string name="sight_under_half_click">%1$s: menej ako pol kliknutia, nechaj to tak</string>
     <string name="sight_no_height">Výška: bez zmeny</string>
@@ -467,7 +637,11 @@
     <string name="sight_set_clicks">Zadať hodnotu kliknutia</string>
     <string name="sight_change_clicks">Zmeniť hodnotu kliknutia</string>
     <string name="sight_adjusted_button">Mieridlá upravené</string>
-    <string name="sight_adjusted_note">Mieridlá upravené %1$s: posun sa posudzuje podľa výstrelov odvtedy (%2$d).</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Mieridlá upravené %1$s: posun sa posudzuje podľa %2$d výstrelu odvtedy.</item>
+        <item quantity="few">Mieridlá upravené %1$s: posun sa posudzuje podľa %2$d výstrelov odvtedy.</item>
+        <item quantity="other">Mieridlá upravené %1$s: posun sa posudzuje podľa %2$d výstrelov odvtedy.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Späť</string>
     <string name="sight_dialog_title">Hodnota kliknutia, %1$s</string>
     <string name="sight_dialog_help">Ako ďaleko jedno kliknutie posunie zásah na terči na tvoju streleckú vzdialenosť. Zvyčajne to býva v návode k mieridlám, alebo spočítaj kliknutia jednej korekcie a zmeraj, o koľko sa skupina posunula.</string>

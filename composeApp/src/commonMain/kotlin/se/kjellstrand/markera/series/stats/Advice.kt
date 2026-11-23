@@ -2,18 +2,32 @@ package se.kjellstrand.markera.series.stats
 
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.PluralStringResource
+import org.jetbrains.compose.resources.Resource
 import org.jetbrains.compose.resources.StringResource
 import se.kjellstrand.markera.res.*
 import se.kjellstrand.markera.ui.settings.ShootingHand
 
 /**
- * A string resource and its arguments, in format order. An argument is an [Int], a
- * [kotlinx.datetime.LocalDate] (the renderer formats it for the language) or a [StringResource]
- * (a direction word): the renderer must resolve the last two to text with `stringResource` before
- * it calls `stringResource(res, ...)`, since the format call only prints its arguments. Pure
+ * A string or plural resource and its arguments, in format order. An argument is an [Int], a
+ * [kotlinx.datetime.LocalDate] (the renderer formats it for the language), a [StringResource]
+ * (a direction word) or a nested [AdviceText] (a counted phrase such as "5 weeks", its own
+ * plural): the renderer must resolve the last three to text before it formats [res], since the
+ * format call only prints its arguments. A [PluralStringResource] picks its form by [count]. Pure
  * data, so [advice] is unit-testable.
  */
-data class AdviceText(val res: StringResource, val args: List<Any> = emptyList())
+data class AdviceText(val res: Resource, val args: List<Any> = emptyList(), val count: Int = 0) {
+    init {
+        require(res is StringResource || res is PluralStringResource) { "not a string: $res" }
+    }
+}
+
+/** A plural [res] whose form [count] picks; [count] is also one of [args] (the whole list by default). */
+internal fun plural(res: PluralStringResource, count: Int, args: List<Any> = listOf(count)) =
+    AdviceText(res, args, count)
+
+/** A counted phrase ("5 weeks") for a sentence slot: its own plural, with [n] as `%1$d`. */
+internal fun counted(res: PluralStringResource, n: Int) = AdviceText(res, listOf(n), n)
 
 /**
  * The words for one [Finding] (docs/coaching-plan.md): [summary] says what the data shows with its
@@ -43,8 +57,9 @@ fun advice(finding: Finding, hand: ShootingHand, all: List<Finding> = emptyList(
     is Finding.StretchedGroup -> stretchedAdvice(finding)
     is Finding.Fliers -> Advice(
         finding,
-        AdviceText(
-            Res.string.advice_fliers_summary,
+        plural(
+            Res.plurals.advice_fliers_summary,
+            finding.seriesCount,
             listOf(finding.seriesWithFliers, finding.seriesCount, finding.flierMeanDistanceMm.roundToInt()),
         ),
         texts(Res.string.advice_cause_fliers_1, Res.string.advice_cause_fliers_2, Res.string.advice_cause_fliers_3),
@@ -74,8 +89,9 @@ fun advice(finding: Finding, hand: ShootingHand, all: List<Finding> = emptyList(
     )
     is Finding.LowDay -> lowAdvice(
         finding,
-        AdviceText(
-            Res.string.advice_low_day_summary,
+        plural(
+            Res.plurals.advice_low_day_summary,
+            finding.seriesCount,
             listOf(
                 finding.date,
                 finding.seriesCount,
@@ -130,9 +146,13 @@ private fun offsetAdvice(f: Finding.OffsetGroup, hand: ShootingHand): Advice {
     if (f.stable) {
         return Advice(
             f,
-            AdviceText(
-                Res.string.advice_offset_stable_summary,
-                listOf(mm, impactWords[where], f.hitCount, f.daysAgreeing, f.daysChecked),
+            plural(
+                Res.plurals.advice_offset_stable_summary,
+                f.hitCount,
+                listOf(
+                    mm, impactWords[where], f.hitCount, f.daysAgreeing,
+                    counted(Res.plurals.advice_offset_stable_days, f.daysChecked),
+                ),
             ),
             texts(Res.string.advice_cause_sights_1, Res.string.advice_cause_sights_2),
             // The sights move the impact back to the centre: the opposite way.
@@ -140,8 +160,9 @@ private fun offsetAdvice(f: Finding.OffsetGroup, hand: ShootingHand): Advice {
         )
     }
     // Under three days with enough hits cannot show that the offset changes from day to day.
-    val summary = AdviceText(
-        if (f.daysChecked >= 3) Res.string.advice_offset_varies_summary else Res.string.advice_offset_few_days_summary,
+    val summary = plural(
+        if (f.daysChecked >= 3) Res.plurals.advice_offset_varies_summary else Res.plurals.advice_offset_few_days_summary,
+        f.hitCount,
         listOf(mm, impactWords[where], f.hitCount),
     )
     return when (offsetPattern(f.bearingDeg, hand)) {
@@ -177,17 +198,17 @@ private fun stretchedAdvice(f: Finding.StretchedGroup): Advice {
     val args = listOf(percentMore(f.elongation), f.hitCount)
     return when (f.orientation) {
         Finding.Orientation.VERTICAL -> Advice(
-            f, AdviceText(Res.string.advice_stretch_vertical_summary, args),
+            f, plural(Res.plurals.advice_stretch_vertical_summary, f.hitCount, args),
             texts(Res.string.advice_cause_vertical_1, Res.string.advice_cause_vertical_2, Res.string.advice_cause_vertical_3),
             AdviceText(Res.string.advice_try_vertical),
         )
         Finding.Orientation.HORIZONTAL -> Advice(
-            f, AdviceText(Res.string.advice_stretch_horizontal_summary, args),
+            f, plural(Res.plurals.advice_stretch_horizontal_summary, f.hitCount, args),
             texts(Res.string.advice_cause_horizontal_1, Res.string.advice_cause_horizontal_2, Res.string.advice_cause_horizontal_3),
             AdviceText(Res.string.advice_try_horizontal),
         )
         Finding.Orientation.DIAGONAL -> Advice(
-            f, AdviceText(Res.string.advice_stretch_diagonal_summary, args),
+            f, plural(Res.plurals.advice_stretch_diagonal_summary, f.hitCount, args),
             texts(Res.string.advice_cause_diagonal_1, Res.string.advice_cause_diagonal_2),
             AdviceText(Res.string.advice_try_diagonal),
         )
@@ -213,15 +234,20 @@ private fun lowAdvice(f: Finding, summary: AdviceText, all: List<Finding>): Advi
 
 private fun trendAdvice(f: Finding.Trend): Advice {
     val points = abs(f.changeOverSpan).roundToInt().coerceAtLeast(1)
-    val args = listOf(points, f.seriesCount, (f.spanDays / 7).roundToInt().coerceAtLeast(1))
+    val weeks = (f.spanDays / 7).roundToInt().coerceAtLeast(1)
+    val args = listOf(
+        points,
+        counted(Res.plurals.advice_trend_series, f.seriesCount),
+        counted(Res.plurals.advice_trend_weeks, weeks),
+    )
     return if (f.improving) {
         Advice(
-            f, AdviceText(Res.string.advice_trend_up_summary, args), emptyList(),
+            f, plural(Res.plurals.advice_trend_up_summary, points, args), emptyList(),
             AdviceText(Res.string.advice_try_trend_up),
         )
     } else {
         Advice(
-            f, AdviceText(Res.string.advice_trend_down_summary, args),
+            f, plural(Res.plurals.advice_trend_down_summary, points, args),
             texts(Res.string.advice_cause_trend_1, Res.string.advice_cause_trend_2, Res.string.advice_cause_trend_3),
             AdviceText(Res.string.advice_try_trend_down),
         )
@@ -232,13 +258,13 @@ private fun sessionAdvice(f: Finding.SessionTrend): Advice {
     val args = listOf(f.daysCounted, f.daysChecked, f.firstHalfMean.roundToInt(), f.laterHalfMean.roundToInt())
     return if (f.falling) {
         Advice(
-            f, AdviceText(Res.string.advice_session_down_summary, args),
+            f, plural(Res.plurals.advice_session_down_summary, f.daysChecked, args),
             texts(Res.string.advice_cause_session_1, Res.string.advice_cause_session_2, Res.string.advice_cause_session_3),
             AdviceText(Res.string.advice_try_session_down),
         )
     } else {
         Advice(
-            f, AdviceText(Res.string.advice_session_up_summary, args), emptyList(),
+            f, plural(Res.plurals.advice_session_up_summary, f.daysChecked, args), emptyList(),
             AdviceText(Res.string.advice_try_session_up),
         )
     }

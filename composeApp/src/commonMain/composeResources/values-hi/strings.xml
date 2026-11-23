@@ -83,11 +83,20 @@
     <string name="history_signed_out">अपना इतिहास देखने के लिए साइन इन करें</string>
     <string name="history_empty">अभी तक कोई सीरीज़ सहेजी नहीं गई</string>
     <string name="history_filter_empty">फ़िल्टर से कोई सीरीज़ मेल नहीं खाती।</string>
-    <string name="history_day_summary">सीरीज़: %1$d · औसत %2$s</string>
-    <string name="history_day_summary_one">1 सीरीज़ · %1$d अंक</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d सीरीज़ · औसत %2$s</item>
+        <item quantity="other">%1$d सीरीज़ · औसत %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 सीरीज़ · %1$d अंक</item>
+        <item quantity="other">1 सीरीज़ · %1$d अंक</item>
+    </plurals>
     <string name="history_card_title">%1$s · सीरीज़ %2$d</string>
     <string name="history_delete_title">सीरीज़ हटाएँ?</string>
-    <string name="history_delete_message">%1$s · %2$d अंक</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d अंक</item>
+        <item quantity="other">%1$s · %2$d अंक</item>
+    </plurals>
     <string name="history_delete_confirm">हटाएँ</string>
     <string name="history_delete_cancel">रद्द करें</string>
     <string name="history_delete_failed">हटाया नहीं जा सका</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">तारीख़</string>
     <string name="filter_clear">फ़िल्टर हटाएँ</string>
     <string name="stats_no_geometry">आपकी किसी भी सीरीज़ में ऐसी रिंग नहीं है जिस पर प्लॉट किया जा सके। 6/7 रिंग मिलने वाली एक सीरीज़ स्कैन करें।</string>
-    <string name="stats_target_description">%2$d सीरीज़ के %1$d हिट वाला टारगेट</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">%2$s के %1$d हिट वाला टारगेट</item>
+        <item quantity="other">%2$s के %1$d हिट वाला टारगेट</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d सीरीज़</item>
+        <item quantity="other">%1$d सीरीज़</item>
+    </plurals>
     <string name="stats_timeline">सीरीज़ टाइमलाइन</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">ग्रुपिंग</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">स्कोर</string>
     <string name="stats_trend_description">रुझान चार्ट, रेखाएँ: %1$d, बिंदु: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (सीरीज़: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d सीरीज़)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d सीरीज़)</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">रुझान</string>
     <string name="stats_help_trend_body">रुझान टैब किसी भी माप को समय के साथ एक वक्र के रूप में दिखाता है। बटनों से माप चुनें, और यह भी कि हर सीरीज़ एक बिंदु बने या सीरीज़ को दिन, सप्ताह या महीने के अनुसार मिलाया जाए (तब माप उस अवधि की सभी सीरीज़ पर गिना जाता है)। कैलिबर के अनुसार हर कैलिबर का एक वक्र बनाता है। ऊपर के फ़िल्टर सभी टैब पर लागू होते हैं। किसी बिंदु को पढ़ने के लिए उस पर टैप करें।</string>
     <string name="stats_tab_drift">ड्रिफ़्ट</string>
-    <string name="stats_drift_description">समय के साथ औसत और माध्यिका प्रहार बिंदु वाला टारगेट, बिंदु: %1$d</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">समय के साथ औसत और माध्यिका प्रहार बिंदु वाला टारगेट, %1$d बिंदु</item>
+        <item quantity="other">समय के साथ औसत और माध्यिका प्रहार बिंदु वाला टारगेट, %1$d बिंदु</item>
+    </plurals>
     <string name="stats_drift_counts">दिन: %1$d · सीरीज़: %2$d · हिट: %3$d</string>
     <string name="stats_drift_oldest">सबसे पुराना</string>
     <string name="stats_drift_newest">सबसे नया</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">नवीनतम प्रहार बिंदु: %1$s (केंद्र से %2$d mm), %4$s की तुलना में %3$d mm पास।</string>
     <string name="stats_drift_summary_further">नवीनतम प्रहार बिंदु: %1$s (केंद्र से %2$d mm), %4$s की तुलना में %3$d mm दूर।</string>
     <string name="stats_drift_summary_same">नवीनतम प्रहार बिंदु: %1$s (केंद्र से %2$d mm), %3$s जितना ही दूर।</string>
-    <string name="stats_drift_point_day">%1$s · सीरीज़: %2$d · हिट: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · सीरीज़ %2$d / %3$d · हिट: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d सीरीज़ · %3$s</item>
+        <item quantity="other">%1$s · %2$d सीरीज़ · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d हिट</item>
+        <item quantity="other">%1$d हिट</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · सीरीज़ %2$d / %3$d · %4$d हिट</item>
+        <item quantity="other">%1$s · सीरीज़ %2$d / %3$d · %4$d हिट</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">समय के साथ बाएँ / दाएँ और ऊपर / नीचे (औसत)</string>
     <string name="stats_drift_strips_median">समय के साथ बाएँ / दाएँ और ऊपर / नीचे (माध्यिका)</string>
@@ -302,12 +334,18 @@
     <string name="help_home_import_body">मेनू में: फ़ोन पर पहले से मौजूद फ़ोटो का स्कोर गिनें, गैलरी से या फ़ाइलों से। हर इमेज स्कैन होती है और उसके नतीजे दिखाए जाते हैं, सहेजने या छोड़ने के लिए। ऑटो इंपोर्ट चालू होने पर, स्कोर होने वाली हर इमेज फ़ोटो लेने की तारीख़ के साथ अपने आप सहेजी जाती है; बाकी बाद में एक-एक करके दिखाई जाती हैं।</string>
     <string name="series_status_phone">इस डिवाइस पर सहेजा गया</string>
     <string name="series_not_uploaded">अपलोड नहीं हुआ</string>
-    <string name="stats_not_uploaded">अपलोड नहीं हुईं: %1$d सीरीज़</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">अपलोड नहीं हुई: %1$d सीरीज़</item>
+        <item quantity="other">अपलोड नहीं हुईं: %1$d सीरीज़</item>
+    </plurals>
     <string name="local_claim_title">इस डिवाइस पर सीरीज़</string>
     <string name="local_claim_body">इस डिवाइस पर साइन आउट रहते हुए या किसी दूसरे खाते के लिए सहेजी गई सीरीज़: %1$d। उन्हें इस खाते में जोड़ें, इस डिवाइस से हटाएँ, या साइन आउट ही रहें।</string>
     <string name="local_claim_add">खाते में जोड़ें</string>
     <string name="local_claim_delete">डिवाइस से हटाएँ</string>
-    <string name="local_claim_delete_body">इस डिवाइस से %1$d सीरीज़ और उनकी फ़ोटो हटाएँ? इसे पूर्ववत नहीं किया जा सकता। वे इस खाते में अपलोड नहीं हुई हैं।</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">इस डिवाइस से %1$d सीरीज़ और उसकी फ़ोटो हटाएँ? इसे पूर्ववत नहीं किया जा सकता। वह इस खाते में अपलोड नहीं हुई है।</item>
+        <item quantity="other">इस डिवाइस से %1$d सीरीज़ और उनकी फ़ोटो हटाएँ? इसे पूर्ववत नहीं किया जा सकता। वे इस खाते में अपलोड नहीं हुई हैं।</item>
+    </plurals>
     <string name="local_claim_stay">साइन आउट ही रहें</string>
     <string name="local_claim_error">कार्रवाई पूरी नहीं हो सकी। आपकी बाकी सीरीज़ अब भी इस डिवाइस पर हैं। बंद करके फिर से साइन इन करने की कोशिश करें।</string>
     <string name="home_week_series">7 दिनों में सीरीज़</string>
@@ -317,17 +355,38 @@
     <string name="home_insight_stretch_vertical">इस सप्ताह आपका %1$s ग्रुप चौड़ाई से लगभग %2$d प्रतिशत ज़्यादा ऊँचा है।</string>
     <string name="home_insight_stretch_horizontal">इस सप्ताह आपका %1$s ग्रुप ऊँचाई से लगभग %2$d प्रतिशत ज़्यादा चौड़ा है।</string>
     <string name="home_insight_stretch_diagonal">इस सप्ताह आपका %1$s ग्रुप तिरछी दिशा में लगभग %2$d प्रतिशत ज़्यादा लंबा है।</string>
-    <string name="home_insight_fliers">इस सप्ताह आपकी %3$d %1$s सीरीज़ में से %2$d में एक शॉट भटक गया।</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">इस सप्ताह आपकी %3$d %1$s सीरीज़ में से %2$d में एक शॉट भटक गया।</item>
+        <item quantity="other">इस सप्ताह आपकी %3$d %1$s सीरीज़ में से %2$d में एक शॉट भटक गया।</item>
+    </plurals>
     <string name="home_insight_wide">%2$s को आपके %1$s ग्रुप पहले से लगभग %3$d प्रतिशत ज़्यादा चौड़े थे।</string>
     <string name="home_insight_low_series">आपकी नवीनतम %1$s सीरीज़ का स्कोर %2$d रहा, जबकि आम तौर पर %3$d रहता है।</string>
     <string name="home_insight_low_day">%2$s को आपकी %1$s सीरीज़ का औसत %3$d रहा, जबकि आम तौर पर %4$d रहता है।</string>
-    <string name="home_insight_trend_up">आपके %1$s स्कोर बढ़ रहे हैं: %3$d सप्ताह में लगभग %2$d अंक।</string>
-    <string name="home_insight_trend_down">आपके %1$s स्कोर घट रहे हैं: %3$d सप्ताह में लगभग %2$d अंक।</string>
-    <string name="home_insight_session_down">इस सप्ताह %3$d लंबे दिनों में से %2$d पर आपकी बाद की %1$s सीरीज़ का स्कोर कम रहा।</string>
-    <string name="home_insight_session_up">इस सप्ताह %3$d लंबे दिनों में से %2$d पर आपकी बाद की %1$s सीरीज़ का स्कोर ज़्यादा रहा।</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">आपके %1$s स्कोर बढ़ रहे हैं: %3$s में लगभग %2$d अंक।</item>
+        <item quantity="other">आपके %1$s स्कोर बढ़ रहे हैं: %3$s में लगभग %2$d अंक।</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d सप्ताह</item>
+        <item quantity="other">%1$d सप्ताह</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">आपके %1$s स्कोर घट रहे हैं: %3$s में लगभग %2$d अंक।</item>
+        <item quantity="other">आपके %1$s स्कोर घट रहे हैं: %3$s में लगभग %2$d अंक।</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">इस सप्ताह %3$d लंबे दिन में से %2$d पर आपकी बाद की %1$s सीरीज़ का स्कोर कम रहा।</item>
+        <item quantity="other">इस सप्ताह %3$d लंबे दिनों में से %2$d पर आपकी बाद की %1$s सीरीज़ का स्कोर कम रहा।</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">इस सप्ताह %3$d लंबे दिन में से %2$d पर आपकी बाद की %1$s सीरीज़ का स्कोर ज़्यादा रहा।</item>
+        <item quantity="other">इस सप्ताह %3$d लंबे दिनों में से %2$d पर आपकी बाद की %1$s सीरीज़ का स्कोर ज़्यादा रहा।</item>
+    </plurals>
     <string name="home_insight_dismiss">यह इनसाइट छिपाएँ</string>
-    <string name="home_local_title">सिर्फ़ इस फ़ोन पर सीरीज़: %1$d</string>
-    <string name="home_local_title_one">1 सीरीज़ सिर्फ़ इस फ़ोन पर</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d सीरीज़ सिर्फ़ इस फ़ोन पर</item>
+        <item quantity="other">%1$d सीरीज़ सिर्फ़ इस फ़ोन पर</item>
+    </plurals>
     <string name="home_signin_title">अपनी सीरीज़ अपने खाते में सहेजें</string>
     <string name="home_signin_body">फ़ोन बदलने पर भी उन्हें बनाए रखने के लिए साइन इन करें।</string>
     <string name="action_sign_in">साइन इन</string>
@@ -366,12 +425,25 @@
     <string name="advice_move_down_left">नीचे और बाएँ</string>
     <string name="advice_move_left">बाएँ</string>
     <string name="advice_move_up_left">ऊपर और बाएँ</string>
-    <string name="advice_offset_stable_summary">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, %5$d में से %4$d दिनों पर इसी तरह।</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, %5$s में से %4$d पर इसी तरह।</item>
+        <item quantity="other">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, %5$s में से %4$d पर इसी तरह।</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d दिन</item>
+        <item quantity="other">%1$d दिनों</item>
+    </plurals>
     <string name="advice_cause_sights_1">साइट इस लोड या दूरी के लिए ज़ीरो नहीं की गई हैं।</string>
     <string name="advice_cause_sights_2">साइट सेट करने के बाद खिसक गई हैं, या कोई दूसरा गोला-बारूद कहीं और लगता है।</string>
     <string name="advice_try_sights">साइट को इतना खिसकाएँ कि ग्रुप लगभग %1$d mm %2$s जाए, फिर उन्हें दोबारा छूने से पहले एक नया ग्रुप शूट करें।</string>
-    <string name="advice_offset_varies_summary">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, पर हर दिन एक ही तरह नहीं।</string>
-    <string name="advice_offset_few_days_summary">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, पर इतने कम दिनों पर कि यह कहना मुश्किल है कि हमेशा ऐसा ही होता है।</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, पर हर दिन एक ही तरह नहीं।</item>
+        <item quantity="other">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, पर हर दिन एक ही तरह नहीं।</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, पर इतने कम दिनों पर कि यह कहना मुश्किल है कि हमेशा ऐसा ही होता है।</item>
+        <item quantity="other">%3$d शॉट में आपका ग्रुप %1$d mm %2$s है, पर इतने कम दिनों पर कि यह कहना मुश्किल है कि हमेशा ऐसा ही होता है।</item>
+    </plurals>
     <string name="advice_cause_high_1">हीलिंग: शॉट छूटते समय हथेली को आगे धकेलना।</string>
     <string name="advice_cause_high_2">शॉट के समय कलाई का ऊपर की ओर मुड़ना।</string>
     <string name="advice_cause_high_3">हिट देखने के लिए पिस्टल जल्दी उठा लेना।</string>
@@ -390,21 +462,33 @@
     <string name="advice_cause_side_2">ग्रिप पर अँगूठे का दबाव पिस्टल को बगल में धकेलता है।</string>
     <string name="advice_cause_side_3">ट्रिगर सीधा पीछे नहीं दबाया जाता।</string>
     <string name="advice_try_side">जाँचें कि उँगली ट्रिगर को कहाँ छूती है और अँगूठा कितना दबाता है, फिर ड्राई-फ़ायर करें और साइट को देखें।</string>
-    <string name="advice_stretch_vertical_summary">%2$d शॉट में आपका ग्रुप चौड़ाई से लगभग %1$d प्रतिशत ज़्यादा ऊँचा है।</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">%2$d शॉट में आपका ग्रुप चौड़ाई से लगभग %1$d प्रतिशत ज़्यादा ऊँचा है।</item>
+        <item quantity="other">%2$d शॉट में आपका ग्रुप चौड़ाई से लगभग %1$d प्रतिशत ज़्यादा ऊँचा है।</item>
+    </plurals>
     <string name="advice_cause_vertical_1">साँस: हर बार साँस के अलग बिंदु पर शूट करना।</string>
     <string name="advice_cause_vertical_2">साइट पिक्चर की ऊँचाई बदलना, फ़्रंट साइट नॉच में ऊपर या नीचे रहना।</string>
     <string name="advice_cause_vertical_3">हर शॉट में बदलता ग्रिप दबाव।</string>
     <string name="advice_try_vertical">हर शॉट पर साँस को एक ही बिंदु पर रोकें और दबाने से पहले नॉच में फ़्रंट साइट की ऊँचाई जाँचें।</string>
-    <string name="advice_stretch_horizontal_summary">%2$d शॉट में आपका ग्रुप ऊँचाई से लगभग %1$d प्रतिशत ज़्यादा चौड़ा है।</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">%2$d शॉट में आपका ग्रुप ऊँचाई से लगभग %1$d प्रतिशत ज़्यादा चौड़ा है।</item>
+        <item quantity="other">%2$d शॉट में आपका ग्रुप ऊँचाई से लगभग %1$d प्रतिशत ज़्यादा चौड़ा है।</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">ट्रिगर का बगल की ओर दबना।</string>
     <string name="advice_cause_horizontal_2">शॉट के समय कलाई का हिलना।</string>
     <string name="advice_cause_horizontal_3">ऐसा स्टांस जो टारगेट के सही कोण पर नहीं है।</string>
     <string name="advice_try_horizontal">साइट को किसी निशान पर रखकर ड्राई-फ़ायर करें और देखें कि ट्रिगर छूटने पर वे बगल में खिसकती हैं या नहीं।</string>
-    <string name="advice_stretch_diagonal_summary">%2$d शॉट में आपका ग्रुप तिरछी दिशा में एक ओर दूसरी ओर से लगभग %1$d प्रतिशत ज़्यादा लंबा है।</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">%2$d शॉट में आपका ग्रुप तिरछी दिशा में एक ओर दूसरी ओर से लगभग %1$d प्रतिशत ज़्यादा लंबा है।</item>
+        <item quantity="other">%2$d शॉट में आपका ग्रुप तिरछी दिशा में एक ओर दूसरी ओर से लगभग %1$d प्रतिशत ज़्यादा लंबा है।</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">ग्रिप दबाव और ट्रिगर का दबाना एक-दूसरे के ख़िलाफ़ काम करते हैं।</string>
     <string name="advice_cause_diagonal_2">ऐसा स्टांस या बाँह की स्थिति जो पिस्टल को झुका देती है।</string>
     <string name="advice_try_diagonal">जाँचें कि हर शॉट पर ग्रिप एक जैसी है और दबाने से पहले साइट सीधी हैं।</string>
-    <string name="advice_fliers_summary">आपकी %2$d सीरीज़ में से %1$d में एक शॉट बाकियों से भटक गया, औसतन लगभग %3$d mm दूर।</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">आपकी %2$d सीरीज़ में से %1$d में एक शॉट बाकियों से भटक गया, औसतन लगभग %3$d mm दूर।</item>
+        <item quantity="other">आपकी %2$d सीरीज़ में से %1$d में एक शॉट बाकियों से भटक गया, औसतन लगभग %3$d mm दूर।</item>
+    </plurals>
     <string name="advice_cause_fliers_1">किसी एक शॉट पर ट्रिगर नियंत्रण।</string>
     <string name="advice_cause_fliers_2">फ़ॉलो-थ्रू छूट जाना।</string>
     <string name="advice_cause_fliers_3">शॉट को कॉल किए बिना छोड़ देना।</string>
@@ -415,48 +499,93 @@
     <string name="advice_cause_wide_3">शॉट में जल्दबाज़ी।</string>
     <string name="advice_try_wide">ड्राई-फ़ायर अभ्यास: बिना शूट किए होल्ड करें और दबाएँ, और जब होल्ड काँपने लगे तो आराम करें।</string>
     <string name="advice_low_series_summary">आपकी नवीनतम सीरीज़ का स्कोर %1$d रहा, जबकि आपकी पिछली %3$d सीरीज़ का औसत %2$d था।</string>
-    <string name="advice_low_day_summary">%1$s को आपकी %2$d सीरीज़ का औसत %3$d रहा, जबकि पहले औसत %4$d था।</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s को आपकी %2$d सीरीज़ का औसत %3$d रहा, जबकि पहले औसत %4$d था।</item>
+        <item quantity="other">%1$s को आपकी %2$d सीरीज़ का औसत %3$d रहा, जबकि पहले औसत %4$d था।</item>
+    </plurals>
     <string name="advice_try_low_plain">एक कम नतीजा ज़्यादा कुछ नहीं बताता: कुछ भी बदलने से पहले कुछ और शूट करें।</string>
     <string name="advice_try_low_explained">सब कुछ एक साथ बदलने के बजाय नीचे दिए नोट से शुरू करें।</string>
     <string name="advice_low_note_offset">आपका ग्रुप केंद्र से हटकर है, जो इसकी एक वजह हो सकती है।</string>
     <string name="advice_low_note_stretched">आपका ग्रुप एक दिशा में खिंचा हुआ है, जो इसकी एक वजह हो सकती है।</string>
     <string name="advice_low_note_fliers">किसी सीरीज़ में एक शॉट का भटक जाना इसकी एक वजह हो सकती है।</string>
     <string name="advice_low_note_wide">सामान्य से चौड़े ग्रुप इसकी एक वजह हो सकते हैं।</string>
-    <string name="advice_trend_up_summary">%2$d सीरीज़ में, %3$d सप्ताह में आपके स्कोर लगभग %1$d अंक बढ़े हैं।</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">%2$s में, %3$s में आपके स्कोर लगभग %1$d अंक बढ़े हैं।</item>
+        <item quantity="other">%2$s में, %3$s में आपके स्कोर लगभग %1$d अंक बढ़े हैं।</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d सीरीज़</item>
+        <item quantity="other">%1$d सीरीज़</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d सप्ताह</item>
+        <item quantity="other">%1$d सप्ताह</item>
+    </plurals>
     <string name="advice_try_trend_up">जो कर रहे हैं वही करते रहें, और नोट करें कि क्या बदला ताकि आप उसे दोहरा सकें।</string>
-    <string name="advice_trend_down_summary">%2$d सीरीज़ में, %3$d सप्ताह में आपके स्कोर लगभग %1$d अंक गिरे हैं।</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">%2$s में, %3$s में आपके स्कोर लगभग %1$d अंक गिरे हैं।</item>
+        <item quantity="other">%2$s में, %3$s में आपके स्कोर लगभग %1$d अंक गिरे हैं।</item>
+    </plurals>
     <string name="advice_cause_trend_1">थकान या अभ्यास के लिए कम समय।</string>
     <string name="advice_cause_trend_2">शॉट में जल्दबाज़ी।</string>
     <string name="advice_cause_trend_3">पिस्टल, गोला-बारूद या रूटीन में बदलाव।</string>
     <string name="advice_try_trend_down">विराम के साथ छोटे सत्र, और बुनियादी बातें फिर से पाने के लिए कुछ ड्राई-फ़ायर शॉट।</string>
-    <string name="advice_session_down_summary">आपके %2$d लंबे दिनों में से %1$d पर, आपकी बाद की सीरीज़ का स्कोर पहली सीरीज़ से कम रहा: उन दिनों औसतन %4$d, जबकि पहले %3$d।</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">आपके %2$d लंबे दिन में से %1$d पर, आपकी बाद की सीरीज़ का स्कोर पहली सीरीज़ से कम रहा: उन दिनों औसतन %4$d, जबकि पहले %3$d।</item>
+        <item quantity="other">आपके %2$d लंबे दिनों में से %1$d पर, आपकी बाद की सीरीज़ का स्कोर पहली सीरीज़ से कम रहा: उन दिनों औसतन %4$d, जबकि पहले %3$d।</item>
+    </plurals>
     <string name="advice_cause_session_1">सत्र आगे बढ़ने के साथ बाँह, कंधे या आँखों में थकान।</string>
     <string name="advice_cause_session_2">एकाग्रता घटना, जिससे शॉट जल्दबाज़ी में या कम अच्छी तरह कॉल किए जाते हैं।</string>
     <string name="advice_cause_session_3">सीरीज़ के बीच बहुत कम विराम।</string>
     <string name="advice_try_session_down">छोटे सत्र, या आँखों और बाँह को आराम देने के लिए हर कुछ सीरीज़ के बाद एक असली विराम।</string>
-    <string name="advice_session_up_summary">आपके %2$d लंबे दिनों में से %1$d पर, आपकी बाद की सीरीज़ का स्कोर पहली सीरीज़ से ज़्यादा रहा: उन दिनों औसतन %4$d, जबकि पहले %3$d।</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">आपके %2$d लंबे दिन में से %1$d पर, आपकी बाद की सीरीज़ का स्कोर पहली सीरीज़ से ज़्यादा रहा: उन दिनों औसतन %4$d, जबकि पहले %3$d।</item>
+        <item quantity="other">आपके %2$d लंबे दिनों में से %1$d पर, आपकी बाद की सीरीज़ का स्कोर पहली सीरीज़ से ज़्यादा रहा: उन दिनों औसतन %4$d, जबकि पहले %3$d।</item>
+    </plurals>
     <string name="advice_try_session_up">धीमी शुरुआत: पहली गिनी जाने वाली सीरीज़ से पहले कुछ ड्राई-फ़ायर या साइटिंग शॉट से शुरू करें।</string>
     <string name="stats_help_insights">इनसाइट्स</string>
     <string name="stats_help_insights_body">इनसाइट्स आपकी सहेजी गई सीरीज़ को एक-एक कैलिबर करके देखता है, और उन पैटर्न की ओर इशारा करता है जिनके बारे में वह काफ़ी पक्का है: एक ओर बैठा ग्रुप, खिंचा हुआ ग्रुप, भटका हुआ शॉट, या गिरते या बढ़ते स्कोर। कुछ कहने से पहले उसे अच्छी-ख़ासी संख्या में शॉट चाहिए। हर नोट बताता है कि आँकड़े क्या दिखाते हैं, अक्सर इसकी वजह क्या होती है और आज़माने के लिए एक चीज़। यह एक संकेत है, कोच नहीं: वजहें आम हैं, कोई फ़ैसला नहीं। सेटिंग्स में अपना शूटिंग हाथ चुनें और इनसाइट्स बंद करें।</string>
     <string name="stats_tab_insights">इनसाइट्स</string>
-    <string name="stats_insights_need_more">इनसाइट्स के लिए लगभग %1$d शॉट चाहिए; यहाँ आपके %2$d हैं।</string>
-    <string name="stats_insights_nothing">%2$d सीरीज़ के इन %1$d शॉट में कुछ भी ख़ास नहीं दिखता।</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">इनसाइट्स के लिए लगभग %1$d शॉट चाहिए; यहाँ आपके %2$d हैं।</item>
+        <item quantity="other">इनसाइट्स के लिए लगभग %1$d शॉट चाहिए; यहाँ आपके %2$d हैं।</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">%2$s के इस %1$d शॉट में कुछ भी ख़ास नहीं दिखता।</item>
+        <item quantity="other">%2$s के इन %1$d शॉट में कुछ भी ख़ास नहीं दिखता।</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d सीरीज़</item>
+        <item quantity="other">%1$d सीरीज़</item>
+    </plurals>
     <string name="stats_insights_numbers">औसत प्रहार बिंदु %1$s, फैलाव %2$d mm, औसत सीरीज़ %3$s।</string>
     <string name="stats_insights_legend">पीला दीर्घवृत्त लगभग 86 प्रतिशत शॉट को घेरता है; तीर केंद्र से औसत प्रहार बिंदु तक जाता है। टारगेट पर देखने के लिए कि कोई नोट किस बारे में है, उस पर टैप करें।</string>
-    <string name="stats_insights_target_description">%1$d शॉट, दीर्घवृत्त और औसत प्रहार बिंदु तक तीर के साथ इनसाइट्स टारगेट</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">%1$d शॉट, दीर्घवृत्त और औसत प्रहार बिंदु तक तीर के साथ इनसाइट्स टारगेट</item>
+        <item quantity="other">%1$d शॉट, दीर्घवृत्त और औसत प्रहार बिंदु तक तीर के साथ इनसाइट्स टारगेट</item>
+    </plurals>
     <string name="stats_insights_no_caliber">इनसाइट्स एक बार में एक कैलिबर देखता है, और इन सीरीज़ का कोई कैलिबर नहीं है। इनसाइट्स देखने के लिए इतिहास में इन पर कैलिबर सेट करें।</string>
-    <string name="stats_insights_uncalibered">बिना कैलिबर वाली सीरीज़ शामिल नहीं हैं: %1$d।</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">बिना कैलिबर वाली %1$d सीरीज़ शामिल नहीं है।</item>
+        <item quantity="other">बिना कैलिबर वाली %1$d सीरीज़ शामिल नहीं हैं।</item>
+    </plurals>
     <string name="detail_vs_under">आपके औसत %2$d से %1$d कम</string>
     <string name="detail_vs_over">आपके औसत %2$d से %1$d ज़्यादा</string>
     <string name="detail_vs_on">आपके औसत %1$d के बराबर</string>
-    <string name="detail_vs_best">पिछले %1$d दिनों में आपका सर्वश्रेष्ठ</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">पिछले %1$d दिन में आपका सर्वश्रेष्ठ</item>
+        <item quantity="other">पिछले %1$d दिनों में आपका सर्वश्रेष्ठ</item>
+    </plurals>
     <string name="detail_day_in_insights">यह दिन इनसाइट्स में देखें</string>
     <string name="sight_title">साइट सुधार</string>
     <string name="sight_up_mm">ऊपर %1$d mm</string>
     <string name="sight_down_mm">नीचे %1$d mm</string>
     <string name="sight_left_mm">बाएँ %1$d mm</string>
     <string name="sight_right_mm">दाएँ %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d क्लिक</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d क्लिक</item>
+        <item quantity="other">%1$s: %2$d क्लिक</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 क्लिक</string>
     <string name="sight_under_half_click">%1$s: आधे क्लिक से कम, रहने दें</string>
     <string name="sight_no_height">ऊँचाई: कोई बदलाव नहीं</string>
@@ -467,7 +596,10 @@
     <string name="sight_set_clicks">क्लिक मान डालें</string>
     <string name="sight_change_clicks">क्लिक मान बदलें</string>
     <string name="sight_adjusted_button">मैंने साइट ठीक कर दी</string>
-    <string name="sight_adjusted_note">साइट %1$s को ठीक की गई: ऑफ़सेट तब के बाद के %2$d शॉट से आँका जाता है।</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">साइट %1$s को ठीक की गई: ऑफ़सेट तब के बाद के %2$d शॉट से आँका जाता है।</item>
+        <item quantity="other">साइट %1$s को ठीक की गई: ऑफ़सेट तब के बाद के %2$d शॉट से आँका जाता है।</item>
+    </plurals>
     <string name="sight_adjusted_undo">पूर्ववत करें</string>
     <string name="sight_dialog_title">क्लिक मान, %1$s</string>
     <string name="sight_dialog_help">आपकी शूटिंग दूरी पर एक क्लिक टारगेट पर हिट को कितना खिसकाता है। साइट की मैनुअल में आम तौर पर लिखा होता है, या एक सुधार के क्लिक गिनें और नापें कि ग्रुप कितना खिसका।</string>

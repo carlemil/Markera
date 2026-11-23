@@ -83,11 +83,20 @@
     <string name="history_signed_out">برای دیدن تاریخچه وارد شوید</string>
     <string name="history_empty">هنوز سری ذخیره‌شده‌ای نیست</string>
     <string name="history_filter_empty">هیچ سری‌ای با فیلتر جور نیست.</string>
-    <string name="history_day_summary">سری: %1$d · میانگین %2$s</string>
-    <string name="history_day_summary_one">1 سری · %1$d امتیاز</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d سری · میانگین %2$s</item>
+        <item quantity="other">%1$d سری · میانگین %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 سری · %1$d امتیاز</item>
+        <item quantity="other">1 سری · %1$d امتیاز</item>
+    </plurals>
     <string name="history_card_title">%1$s · سری %2$d</string>
     <string name="history_delete_title">سری حذف شود؟</string>
-    <string name="history_delete_message">%1$s · %2$d امتیاز</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d امتیاز</item>
+        <item quantity="other">%1$s · %2$d امتیاز</item>
+    </plurals>
     <string name="history_delete_confirm">حذف</string>
     <string name="history_delete_cancel">لغو</string>
     <string name="history_delete_failed">حذف ممکن نشد</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">تاریخ</string>
     <string name="filter_clear">پاک کردن فیلترها</string>
     <string name="stats_no_geometry">هیچ‌کدام از سری‌های شما حلقه‌ای برای ترسیم ندارد. سری‌ای اسکن کنید که حلقه 6/7 آن پیدا شود.</string>
-    <string name="stats_target_description">سیبل با %1$d اصابت از %2$d سری</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">سیبل با %1$d اصابت از %2$s</item>
+        <item quantity="other">سیبل با %1$d اصابت از %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d سری</item>
+        <item quantity="other">%1$d سری</item>
+    </plurals>
     <string name="stats_timeline">خط زمانی سری‌ها</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">گروه‌بندی</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">امتیاز</string>
     <string name="stats_trend_description">نمودار روند، خط‌ها: %1$d، نقطه‌ها: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (سری: %4$d)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d سری)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d سری)</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">روند</string>
     <string name="stats_help_trend_body">زبانه روند هر معیاری را به‌صورت منحنی در طول زمان رسم می‌کند. معیار را با دکمه‌ها انتخاب کنید، و اینکه هر سری یک نقطه شود یا سری‌ها به تفکیک روز، هفته یا ماه ادغام شوند (در این صورت معیار روی همه سری‌های آن دوره حساب می‌شود). «به تفکیک کالیبر» برای هر کالیبر یک منحنی می‌کشد. فیلترهای بالا روی همه زبانه‌ها اعمال می‌شوند. برای خواندن یک نقطه روی آن ضربه بزنید.</string>
     <string name="stats_tab_drift">جابه‌جایی</string>
-    <string name="stats_drift_description">سیبل با میانگین و میانه نقطه اصابت در طول زمان، %1$d نقطه</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">سیبل با میانگین و میانه نقطه اصابت در طول زمان، %1$d نقطه</item>
+        <item quantity="other">سیبل با میانگین و میانه نقطه اصابت در طول زمان، %1$d نقطه</item>
+    </plurals>
     <string name="stats_drift_counts">روز: %1$d · سری: %2$d · اصابت: %3$d</string>
     <string name="stats_drift_oldest">قدیمی‌ترین</string>
     <string name="stats_drift_newest">جدیدترین</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">آخرین نقطه اصابت: %1$s (%2$d mm از مرکز)، %3$d mm نزدیک‌تر از %4$s.</string>
     <string name="stats_drift_summary_further">آخرین نقطه اصابت: %1$s (%2$d mm از مرکز)، %3$d mm دورتر از %4$s.</string>
     <string name="stats_drift_summary_same">آخرین نقطه اصابت: %1$s (%2$d mm از مرکز)، به همان فاصله‌ای که در %3$s بود.</string>
-    <string name="stats_drift_point_day">%1$s · سری: %2$d · اصابت: %3$d</string>
-    <string name="stats_drift_point_series">%1$s · سری %2$d از %3$d · اصابت: %4$d</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d سری · %3$s</item>
+        <item quantity="other">%1$s · %2$d سری · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d اصابت</item>
+        <item quantity="other">%1$d اصابت</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · سری %2$d از %3$d · %4$d اصابت</item>
+        <item quantity="other">%1$s · سری %2$d از %3$d · %4$d اصابت</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">چپ / راست و بالا / پایین در طول زمان (میانگین)</string>
     <string name="stats_drift_strips_median">چپ / راست و بالا / پایین در طول زمان (میانه)</string>
@@ -302,12 +334,18 @@
     <string name="help_home_import_body">در منو: به عکس‌هایی که از قبل روی گوشی هستند، از گالری یا از فایل‌ها، امتیاز بدهید. هر تصویر اسکن و نتیجه‌اش نمایش داده می‌شود تا ذخیره یا رد کنید. با روشن بودن «وارد کردن خودکار»، هر تصویری که امتیاز بگیرد خودبه‌خود با تاریخ گرفتن عکس ذخیره می‌شود؛ بقیه بعداً یکی‌یکی نمایش داده می‌شوند.</string>
     <string name="series_status_phone">روی این دستگاه ذخیره شد</string>
     <string name="series_not_uploaded">بارگذاری نشده</string>
-    <string name="stats_not_uploaded">بارگذاری‌نشده: %1$d سری</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">بارگذاری‌نشده: %1$d سری</item>
+        <item quantity="other">بارگذاری‌نشده: %1$d سری</item>
+    </plurals>
     <string name="local_claim_title">سری‌های روی این دستگاه</string>
     <string name="local_claim_body">سری‌هایی که روی این دستگاه بدون ورود یا برای حساب دیگری ذخیره شده‌اند: %1$d. آن‌ها را به این حساب اضافه کنید، از این دستگاه حذف کنید، یا بیرون از حساب بمانید.</string>
     <string name="local_claim_add">افزودن به حساب</string>
     <string name="local_claim_delete">حذف از دستگاه</string>
-    <string name="local_claim_delete_body">%1$d سری و عکس‌هایشان از این دستگاه حذف شوند؟ این کار برگشت‌پذیر نیست. آن‌ها در این حساب بارگذاری نشده‌اند.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">%1$d سری و عکسش از این دستگاه حذف شود؟ این کار برگشت‌پذیر نیست. این سری در این حساب بارگذاری نشده است.</item>
+        <item quantity="other">%1$d سری و عکس‌هایشان از این دستگاه حذف شوند؟ این کار برگشت‌پذیر نیست. آن‌ها در این حساب بارگذاری نشده‌اند.</item>
+    </plurals>
     <string name="local_claim_stay">بیرون از حساب بمان</string>
     <string name="local_claim_error">عملیات کامل نشد. سری‌های باقی‌مانده شما هنوز روی این دستگاه هستند. ببندید و دوباره برای ورود تلاش کنید.</string>
     <string name="home_week_series">سری در 7 روز</string>
@@ -317,17 +355,38 @@
     <string name="home_insight_stretch_vertical">این هفته گروه %1$s شما حدود %2$d درصد بلندتر از پهنایش است.</string>
     <string name="home_insight_stretch_horizontal">این هفته گروه %1$s شما حدود %2$d درصد پهن‌تر از بلندی‌اش است.</string>
     <string name="home_insight_stretch_diagonal">این هفته گروه %1$s شما در امتداد یک خط مورب حدود %2$d درصد کشیده‌تر است.</string>
-    <string name="home_insight_fliers">این هفته در %2$d سری از %3$d سری %1$s شما یک تیر پرت شد.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">این هفته در %2$d سری از %3$d سری %1$s شما یک تیر پرت شد.</item>
+        <item quantity="other">این هفته در %2$d سری از %3$d سری %1$s شما یک تیر پرت شد.</item>
+    </plurals>
     <string name="home_insight_wide">در %2$s گروه‌های %1$s شما حدود %3$d درصد بازتر از قبل بودند.</string>
     <string name="home_insight_low_series">آخرین سری %1$s شما %2$d امتیاز گرفت، در برابر %3$d معمول.</string>
     <string name="home_insight_low_day">در %2$s میانگین سری‌های %1$s شما %3$d بود، در برابر %4$d معمول.</string>
-    <string name="home_insight_trend_up">امتیازهای %1$s شما رو به افزایش است: حدود %2$d امتیاز در %3$d هفته.</string>
-    <string name="home_insight_trend_down">امتیازهای %1$s شما رو به کاهش است: حدود %2$d امتیاز در %3$d هفته.</string>
-    <string name="home_insight_session_down">این هفته سری‌های بعدیِ %1$s شما در %2$d روز از %3$d روزِ طولانی‌تر امتیاز کمتری گرفتند.</string>
-    <string name="home_insight_session_up">این هفته سری‌های بعدیِ %1$s شما در %2$d روز از %3$d روزِ طولانی‌تر امتیاز بیشتری گرفتند.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">امتیازهای %1$s شما رو به افزایش است: حدود %2$d امتیاز در %3$s.</item>
+        <item quantity="other">امتیازهای %1$s شما رو به افزایش است: حدود %2$d امتیاز در %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d هفته</item>
+        <item quantity="other">%1$d هفته</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">امتیازهای %1$s شما رو به کاهش است: حدود %2$d امتیاز در %3$s.</item>
+        <item quantity="other">امتیازهای %1$s شما رو به کاهش است: حدود %2$d امتیاز در %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">این هفته سری‌های بعدیِ %1$s شما در %2$d روز از %3$d روزِ طولانی‌تر امتیاز کمتری گرفتند.</item>
+        <item quantity="other">این هفته سری‌های بعدیِ %1$s شما در %2$d روز از %3$d روزِ طولانی‌تر امتیاز کمتری گرفتند.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">این هفته سری‌های بعدیِ %1$s شما در %2$d روز از %3$d روزِ طولانی‌تر امتیاز بیشتری گرفتند.</item>
+        <item quantity="other">این هفته سری‌های بعدیِ %1$s شما در %2$d روز از %3$d روزِ طولانی‌تر امتیاز بیشتری گرفتند.</item>
+    </plurals>
     <string name="home_insight_dismiss">پنهان کردن این بینش</string>
-    <string name="home_local_title">%1$d سری فقط روی این گوشی</string>
-    <string name="home_local_title_one">1 سری فقط روی این گوشی</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d سری فقط روی این گوشی</item>
+        <item quantity="other">%1$d سری فقط روی این گوشی</item>
+    </plurals>
     <string name="home_signin_title">سری‌هایتان را در حسابتان ذخیره کنید</string>
     <string name="home_signin_body">وارد شوید تا با عوض کردن گوشی آن‌ها را از دست ندهید.</string>
     <string name="action_sign_in">ورود</string>
@@ -366,12 +425,25 @@
     <string name="advice_move_down_left">پایین و چپ</string>
     <string name="advice_move_left">چپ</string>
     <string name="advice_move_up_left">بالا و چپ</string>
-    <string name="advice_offset_stable_summary">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، و در %4$d روز از %5$d روز به همین سمت.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، و در %4$d روز از %5$s به همین سمت.</item>
+        <item quantity="other">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، و در %4$d روز از %5$s به همین سمت.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d روز</item>
+        <item quantity="other">%1$d روز</item>
+    </plurals>
     <string name="advice_cause_sights_1">نشانه‌روی برای این مهمات یا این فاصله تنظیم نشده است.</string>
     <string name="advice_cause_sights_2">نشانه‌روی از زمان تنظیم جابه‌جا شده، یا مهمات دیگری به جای دیگری می‌زند.</string>
     <string name="advice_try_sights">نشانه‌روی را طوری تنظیم کنید که گروه حدود %1$d mm %2$s برود، سپس پیش از دست زدن دوباره به آن یک گروه تازه بزنید.</string>
-    <string name="advice_offset_varies_summary">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، اما هر روز به یک سمت نیست.</string>
-    <string name="advice_offset_few_days_summary">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، اما روزها برای اینکه بگوییم همیشه این‌طور است کم‌اند.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، اما هر روز به یک سمت نیست.</item>
+        <item quantity="other">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، اما هر روز به یک سمت نیست.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، اما روزها برای اینکه بگوییم همیشه این‌طور است کم‌اند.</item>
+        <item quantity="other">گروه شما در %3$d تیر، %1$d mm %2$s نشسته است، اما روزها برای اینکه بگوییم همیشه این‌طور است کم‌اند.</item>
+    </plurals>
     <string name="advice_cause_high_1">فشار دادن کف دست به جلو هنگام رها شدن تیر (هیلینگ).</string>
     <string name="advice_cause_high_2">شکستن مچ به سمت بالا هنگام شلیک.</string>
     <string name="advice_cause_high_3">نگاه کردن به دنبال اصابت و بالا بردن زودهنگام سلاح.</string>
@@ -390,21 +462,33 @@
     <string name="advice_cause_side_2">فشار شست روی قبضه سلاح را به پهلو هل می‌دهد.</string>
     <string name="advice_cause_side_3">کشیدن ماشه‌ای که مستقیم به عقب نیست.</string>
     <string name="advice_try_side">بررسی کنید انگشت کجای ماشه قرار می‌گیرد و شست چقدر فشار می‌دهد، سپس شلیک خشک بزنید و نشانه‌روی را زیر نظر بگیرید.</string>
-    <string name="advice_stretch_vertical_summary">گروه شما در %2$d تیر حدود %1$d درصد بلندتر از پهنایش است.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">گروه شما در %2$d تیر حدود %1$d درصد بلندتر از پهنایش است.</item>
+        <item quantity="other">گروه شما در %2$d تیر حدود %1$d درصد بلندتر از پهنایش است.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">تنفس: شلیک در نقطه متفاوتی از چرخه نفس هر بار.</string>
     <string name="advice_cause_vertical_2">تغییر ارتفاع تصویر نشانه‌روی، یعنی مگسک هر بار بالاتر یا پایین‌تر در شکاف درجه قرار می‌گیرد.</string>
     <string name="advice_cause_vertical_3">فشار گرفتنی که از تیری به تیر دیگر فرق می‌کند.</string>
     <string name="advice_try_vertical">نفس را در هر تیر در همان نقطه نگه دارید و پیش از فشردن ماشه ارتفاع مگسک در شکاف را بررسی کنید.</string>
-    <string name="advice_stretch_horizontal_summary">گروه شما در %2$d تیر حدود %1$d درصد پهن‌تر از بلندی‌اش است.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">گروه شما در %2$d تیر حدود %1$d درصد پهن‌تر از بلندی‌اش است.</item>
+        <item quantity="other">گروه شما در %2$d تیر حدود %1$d درصد پهن‌تر از بلندی‌اش است.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">کشیدن ماشه‌ای که به پهلو می‌رود.</string>
     <string name="advice_cause_horizontal_2">حرکت مچ هنگام شلیک.</string>
     <string name="advice_cause_horizontal_3">ایستادنی که درست رو به سیبل تنظیم نشده است.</string>
     <string name="advice_try_horizontal">با نشانه‌روی روی یک علامت شلیک خشک بزنید و ببینید هنگام رها شدن ماشه نشانه‌روی به پهلو می‌لغزد یا نه.</string>
-    <string name="advice_stretch_diagonal_summary">گروه شما در %2$d تیر حدود %1$d درصد در یک جهت مورب کشیده‌تر از جهت دیگر است.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">گروه شما در %2$d تیر حدود %1$d درصد در یک جهت مورب کشیده‌تر از جهت دیگر است.</item>
+        <item quantity="other">گروه شما در %2$d تیر حدود %1$d درصد در یک جهت مورب کشیده‌تر از جهت دیگر است.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">فشار گرفتن و کشیدن ماشه که خلاف هم کار می‌کنند.</string>
     <string name="advice_cause_diagonal_2">حالت ایستادن یا وضعیت بازویی که سلاح را کج می‌کند.</string>
     <string name="advice_try_diagonal">بررسی کنید که گرفتن در هر تیر یکسان باشد و نشانه‌روی پیش از فشردن ماشه تراز باشد.</string>
-    <string name="advice_fliers_summary">در %1$d سری از %2$d سری شما یک تیر از بقیه پرت شد، به‌طور میانگین حدود %3$d mm بیرون‌تر.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">در %1$d سری از %2$d سری شما یک تیر از بقیه پرت شد، به‌طور میانگین حدود %3$d mm بیرون‌تر.</item>
+        <item quantity="other">در %1$d سری از %2$d سری شما یک تیر از بقیه پرت شد، به‌طور میانگین حدود %3$d mm بیرون‌تر.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">کنترل ماشه در یک تیر.</string>
     <string name="advice_cause_fliers_2">از دست دادن ادامه حرکت پس از شلیک.</string>
     <string name="advice_cause_fliers_3">رها کردن تیر بدون اعلام آن.</string>
@@ -415,48 +499,93 @@
     <string name="advice_cause_wide_3">عجله در شلیک.</string>
     <string name="advice_try_wide">تمرین شلیک خشک: بدون شلیک نگه دارید و ماشه را بفشارید، و وقتی نگه‌داشتن شروع به لرزیدن کرد استراحت کنید.</string>
     <string name="advice_low_series_summary">آخرین سری شما %1$d امتیاز گرفت، در برابر میانگین %2$d در %3$d سری اخیر.</string>
-    <string name="advice_low_day_summary">در %1$s میانگین %2$d سری شما %3$d بود، در برابر میانگین %4$d پیش از آن.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">در %1$s میانگین %2$d سری شما %3$d بود، در برابر میانگین %4$d پیش از آن.</item>
+        <item quantity="other">در %1$s میانگین %2$d سری شما %3$d بود، در برابر میانگین %4$d پیش از آن.</item>
+    </plurals>
     <string name="advice_try_low_plain">یک نتیجه پایین چیز زیادی نمی‌گوید: پیش از تغییر هر چیزی چند سری دیگر بزنید.</string>
     <string name="advice_try_low_explained">به جای تغییر همه چیز با هم، از یادداشت زیر شروع کنید.</string>
     <string name="advice_low_note_offset">گروه شما از مرکز فاصله دارد، که ممکن است بخشی از علت باشد.</string>
     <string name="advice_low_note_stretched">گروه شما در یک جهت کشیده است، که ممکن است بخشی از علت باشد.</string>
     <string name="advice_low_note_fliers">پرت شدن یک تیر در یک سری ممکن است بخشی از علت باشد.</string>
     <string name="advice_low_note_wide">گروه‌های بازتر از معمول ممکن است بخشی از علت باشد.</string>
-    <string name="advice_trend_up_summary">امتیازهای شما در %3$d هفته و در %2$d سری حدود %1$d امتیاز بالا رفته است.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">امتیازهای شما در %3$s و در %2$s حدود %1$d امتیاز بالا رفته است.</item>
+        <item quantity="other">امتیازهای شما در %3$s و در %2$s حدود %1$d امتیاز بالا رفته است.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d سری</item>
+        <item quantity="other">%1$d سری</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d هفته</item>
+        <item quantity="other">%1$d هفته</item>
+    </plurals>
     <string name="advice_try_trend_up">همین کار را ادامه دهید، و یادداشت کنید چه چیزی تغییر کرد تا بتوانید تکرارش کنید.</string>
-    <string name="advice_trend_down_summary">امتیازهای شما در %3$d هفته و در %2$d سری حدود %1$d امتیاز پایین آمده است.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">امتیازهای شما در %3$s و در %2$s حدود %1$d امتیاز پایین آمده است.</item>
+        <item quantity="other">امتیازهای شما در %3$s و در %2$s حدود %1$d امتیاز پایین آمده است.</item>
+    </plurals>
     <string name="advice_cause_trend_1">خستگی یا وقت کمتر برای تمرین.</string>
     <string name="advice_cause_trend_2">عجله در شلیک.</string>
     <string name="advice_cause_trend_3">تغییر سلاح، مهمات یا روال.</string>
     <string name="advice_try_trend_down">جلسه‌های کوتاه‌تر با استراحت، و چند شلیک خشک برای بازیافتن اصول پایه.</string>
-    <string name="advice_session_down_summary">در %1$d روز از %2$d روزِ طولانی‌تر شما، سری‌های بعدی کمتر از سری‌های اول امتیاز گرفتند: به‌طور میانگین %4$d در برابر %3$d در آن روزها.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">در %1$d روز از %2$d روزِ طولانی‌تر شما، سری‌های بعدی کمتر از سری‌های اول امتیاز گرفتند: به‌طور میانگین %4$d در برابر %3$d در آن روزها.</item>
+        <item quantity="other">در %1$d روز از %2$d روزِ طولانی‌تر شما، سری‌های بعدی کمتر از سری‌های اول امتیاز گرفتند: به‌طور میانگین %4$d در برابر %3$d در آن روزها.</item>
+    </plurals>
     <string name="advice_cause_session_1">خستگی بازو، شانه یا چشم با پیش رفتن جلسه.</string>
     <string name="advice_cause_session_2">کم شدن تمرکز، طوری که تیرها با عجله یا با اعلام ضعیف‌تر زده می‌شوند.</string>
     <string name="advice_cause_session_3">استراحت بسیار کم بین سری‌ها.</string>
     <string name="advice_try_session_down">جلسه‌های کوتاه‌تر، یا هر چند سری یک استراحت واقعی برای آسودن چشم و بازو.</string>
-    <string name="advice_session_up_summary">در %1$d روز از %2$d روزِ طولانی‌تر شما، سری‌های بعدی بیشتر از سری‌های اول امتیاز گرفتند: به‌طور میانگین %4$d در برابر %3$d در آن روزها.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">در %1$d روز از %2$d روزِ طولانی‌تر شما، سری‌های بعدی بیشتر از سری‌های اول امتیاز گرفتند: به‌طور میانگین %4$d در برابر %3$d در آن روزها.</item>
+        <item quantity="other">در %1$d روز از %2$d روزِ طولانی‌تر شما، سری‌های بعدی بیشتر از سری‌های اول امتیاز گرفتند: به‌طور میانگین %4$d در برابر %3$d در آن روزها.</item>
+    </plurals>
     <string name="advice_try_session_up">شروع کُند: پیش از اینکه اولین سری حساب شود، با چند شلیک خشک یا تیر آزمایشی شروع کنید.</string>
     <string name="stats_help_insights">بینش‌ها</string>
     <string name="stats_help_insights_body">«بینش‌ها» سری‌های ذخیره‌شده شما را، هر بار یک کالیبر، بررسی می‌کند و الگوهایی را که تقریباً از آن‌ها مطمئن است نشان می‌دهد: گروهی که به یک سمت نشسته، گروهی که کشیده است، تیری که پرت می‌شود، یا امتیازهایی که پایین یا بالا می‌روند. پیش از گفتن هر چیزی به تعداد خوبی تیر نیاز دارد. هر یادداشت می‌گوید عددها چه نشان می‌دهند، معمولاً چه چیزی باعثش می‌شود و یک کار برای امتحان. این یک اشاره است، نه مربی: علت‌ها رایج‌اند، نه حکم قطعی. دست تیراندازی خود را تعیین کنید و «بینش‌ها» را در تنظیمات خاموش کنید.</string>
     <string name="stats_tab_insights">بینش‌ها</string>
-    <string name="stats_insights_need_more">بینش‌ها به حدود %1$d تیر نیاز دارند؛ اینجا %2$d تیر دارید.</string>
-    <string name="stats_insights_nothing">در این %1$d تیر از %2$d سری چیز قابل توجهی نیست.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">بینش‌ها به حدود %1$d تیر نیاز دارند؛ اینجا %2$d تیر دارید.</item>
+        <item quantity="other">بینش‌ها به حدود %1$d تیر نیاز دارند؛ اینجا %2$d تیر دارید.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">در این %1$d تیر از %2$s چیز قابل توجهی نیست.</item>
+        <item quantity="other">در این %1$d تیر از %2$s چیز قابل توجهی نیست.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d سری</item>
+        <item quantity="other">%1$d سری</item>
+    </plurals>
     <string name="stats_insights_numbers">میانگین نقطه اصابت %1$s، پراکندگی %2$d mm، میانگین سری %3$s.</string>
     <string name="stats_insights_legend">بیضی زرد حدود 86 درصد تیرها را در بر می‌گیرد؛ پیکان از مرکز تا میانگین نقطه اصابت می‌رود. روی یک یادداشت ضربه بزنید تا ببینید روی سیبل به چه چیزی اشاره دارد.</string>
-    <string name="stats_insights_target_description">سیبل بینش‌ها با %1$d تیر، بیضی و پیکان تا میانگین نقطه اصابت</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">سیبل بینش‌ها با %1$d تیر، بیضی و پیکان تا میانگین نقطه اصابت</item>
+        <item quantity="other">سیبل بینش‌ها با %1$d تیر، بیضی و پیکان تا میانگین نقطه اصابت</item>
+    </plurals>
     <string name="stats_insights_no_caliber">«بینش‌ها» هر بار یک کالیبر را بررسی می‌کند و این سری‌ها کالیبر ندارند. برای دیدن بینش‌ها در تاریخچه برایشان کالیبر تعیین کنید.</string>
-    <string name="stats_insights_uncalibered">سری‌های بدون کالیبر کنار گذاشته شده‌اند: %1$d.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d سری بدون کالیبر کنار گذاشته شده است.</item>
+        <item quantity="other">%1$d سری بدون کالیبر کنار گذاشته شده‌اند.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d کمتر از میانگین شما (%2$d)</string>
     <string name="detail_vs_over">%1$d بیشتر از میانگین شما (%2$d)</string>
     <string name="detail_vs_on">برابر میانگین شما (%1$d)</string>
-    <string name="detail_vs_best">بهترین شما در %1$d روز گذشته</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">بهترین شما در %1$d روز گذشته</item>
+        <item quantity="other">بهترین شما در %1$d روز گذشته</item>
+    </plurals>
     <string name="detail_day_in_insights">دیدن این روز در بینش‌ها</string>
     <string name="sight_title">اصلاح نشانه‌روی</string>
     <string name="sight_up_mm">بالا %1$d mm</string>
     <string name="sight_down_mm">پایین %1$d mm</string>
     <string name="sight_left_mm">چپ %1$d mm</string>
     <string name="sight_right_mm">راست %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d کلیک</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d کلیک</item>
+        <item quantity="other">%1$s: %2$d کلیک</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 کلیک</string>
     <string name="sight_under_half_click">%1$s: کمتر از نصف کلیک، دست نزنید</string>
     <string name="sight_no_height">ارتفاع: بدون تغییر</string>
@@ -467,7 +596,10 @@
     <string name="sight_set_clicks">وارد کردن مقدار کلیک</string>
     <string name="sight_change_clicks">تغییر مقدار کلیک</string>
     <string name="sight_adjusted_button">نشانه‌روی را تنظیم کردم</string>
-    <string name="sight_adjusted_note">نشانه‌روی در %1$s تنظیم شد: انحراف بر اساس %2$d تیر پس از آن سنجیده می‌شود.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">نشانه‌روی در %1$s تنظیم شد: انحراف بر اساس %2$d تیر پس از آن سنجیده می‌شود.</item>
+        <item quantity="other">نشانه‌روی در %1$s تنظیم شد: انحراف بر اساس %2$d تیر پس از آن سنجیده می‌شود.</item>
+    </plurals>
     <string name="sight_adjusted_undo">واگرد</string>
     <string name="sight_dialog_title">مقدار کلیک، %1$s</string>
     <string name="sight_dialog_help">یک کلیک در فاصله تیراندازی شما نقطه اصابت را روی سیبل چقدر جابه‌جا می‌کند. معمولاً دفترچه راهنمای نشانه‌روی آن را می‌گوید، یا کلیک‌های یک اصلاح را بشمارید و اندازه بگیرید گروه چقدر جابه‌جا شد.</string>

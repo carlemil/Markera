@@ -83,11 +83,17 @@
     <string name="history_signed_out">登录以查看你的历史记录</string>
     <string name="history_empty">还没有保存的组</string>
     <string name="history_filter_empty">没有符合筛选条件的组。</string>
-    <string name="history_day_summary">%1$d 组 · 平均 %2$s</string>
-    <string name="history_day_summary_one">1 组 · %1$d 环</string>
+    <plurals name="history_day_summary">
+        <item quantity="other">%1$d 组 · 平均 %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="other">1 组 · %1$d 环</item>
+    </plurals>
     <string name="history_card_title">%1$s · 第 %2$d 组</string>
     <string name="history_delete_title">删除这一组？</string>
-    <string name="history_delete_message">%1$s · %2$d 环</string>
+    <plurals name="history_delete_message">
+        <item quantity="other">%1$s · %2$d 环</item>
+    </plurals>
     <string name="history_delete_confirm">删除</string>
     <string name="history_delete_cancel">取消</string>
     <string name="history_delete_failed">无法删除</string>
@@ -134,7 +140,12 @@
     <string name="stats_group_date">日期</string>
     <string name="filter_clear">清除筛选</string>
     <string name="stats_no_geometry">你的组中没有可用于绘图的环。请扫描一组并识别出 6/7 环。</string>
-    <string name="stats_target_description">靶面，共 %2$d 组 %1$d 个弹孔</string>
+    <plurals name="stats_target_description">
+        <item quantity="other">靶面，共 %2$s %1$d 个弹孔</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="other">%1$d 组</item>
+    </plurals>
     <string name="stats_timeline">组时间轴</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">弹着群</string>
@@ -158,12 +169,16 @@
     <string name="stats_short_mean_score">成绩</string>
     <string name="stats_trend_description">趋势图，曲线：%1$d，数据点：%2$d</string>
     <string name="stats_trend_point">%1$s %2$s：%3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s：%3$s（%4$d 组）</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="other">%1$s %2$s：%3$s（%4$d 组）</item>
+    </plurals>
     <string name="decimal_mark">.</string>
     <string name="stats_help_trend">趋势</string>
     <string name="stats_help_trend_body">“趋势”页把任一指标绘制成随时间变化的曲线。用按钮选择指标，并选择每组作为一个点，或按日、周、月合并（此时指标按该时段内的所有组计算）。“按口径”为每个口径各画一条曲线。上方的筛选条件适用于所有页面。点按某个点即可查看数值。</string>
     <string name="stats_tab_drift">漂移</string>
-    <string name="stats_drift_description">显示平均和中位弹着点随时间变化的靶面，共 %1$d 个点</string>
+    <plurals name="stats_drift_description">
+        <item quantity="other">显示平均和中位弹着点随时间变化的靶面，共 %1$d 个点</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d 天 · %2$d 组 · %3$d 个弹孔</string>
     <string name="stats_drift_oldest">最早</string>
     <string name="stats_drift_newest">最新</string>
@@ -182,8 +197,15 @@
     <string name="stats_drift_summary_closer">最新弹着点：%1$s（距中心 %2$d mm），比 %4$s 时近了 %3$d mm。</string>
     <string name="stats_drift_summary_further">最新弹着点：%1$s（距中心 %2$d mm），比 %4$s 时远了 %3$d mm。</string>
     <string name="stats_drift_summary_same">最新弹着点：%1$s（距中心 %2$d mm），与 %3$s 时一样远。</string>
-    <string name="stats_drift_point_day">%1$s · %2$d 组 · %3$d 个弹孔</string>
-    <string name="stats_drift_point_series">%1$s · 第 %2$d / %3$d 组 · %4$d 个弹孔</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="other">%1$s · %2$d 组 · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="other">%1$d 个弹孔</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="other">%1$s · 第 %2$d / %3$d 组 · %4$d 个弹孔</item>
+    </plurals>
     <string name="stats_drift_value">%1$s：%2$s</string>
     <string name="stats_drift_strips">左/右与高/低随时间变化（平均）</string>
     <string name="stats_drift_strips_median">左/右与高/低随时间变化（中位数）</string>
@@ -302,12 +324,16 @@
     <string name="help_home_import_body">在菜单中：为手机上已有的照片计分，可从相册或文件中选择。每张图片都会被扫描并显示结果，可选择保存或跳过。开启“自动导入”后，每张能计分的图片都会以拍摄日期自动保存；其余的会在之后逐张显示。</string>
     <string name="series_status_phone">已保存在本设备上</string>
     <string name="series_not_uploaded">未上传</string>
-    <string name="stats_not_uploaded">未上传：%1$d 组</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="other">未上传：%1$d 组</item>
+    </plurals>
     <string name="local_claim_title">本设备上的组</string>
     <string name="local_claim_body">在本设备上未登录时或为其他账户保存的组：%1$d。可以把它们添加到此账户、从本设备删除，或保持未登录。</string>
     <string name="local_claim_add">添加到账户</string>
     <string name="local_claim_delete">从设备删除</string>
-    <string name="local_claim_delete_body">从本设备删除 %1$d 组及其照片？此操作无法撤销。它们尚未上传到此账户。</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="other">从本设备删除 %1$d 组及其照片？此操作无法撤销。它们尚未上传到此账户。</item>
+    </plurals>
     <string name="local_claim_stay">保持未登录</string>
     <string name="local_claim_error">操作未能完成。剩余的组仍在本设备上。请关闭后重新尝试登录。</string>
     <string name="home_week_series">7 天内组数</string>
@@ -317,17 +343,31 @@
     <string name="home_insight_stretch_vertical">本周你的 %1$s 弹着群高度比宽度大约多百分之 %2$d。</string>
     <string name="home_insight_stretch_horizontal">本周你的 %1$s 弹着群宽度比高度大约多百分之 %2$d。</string>
     <string name="home_insight_stretch_diagonal">本周你的 %1$s 弹着群沿斜向大约长了百分之 %2$d。</string>
-    <string name="home_insight_fliers">本周你的 %3$d 组 %1$s 中，有 %2$d 组出现了一发远弹。</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="other">本周你的 %3$d 组 %1$s 中，有 %2$d 组出现了一发远弹。</item>
+    </plurals>
     <string name="home_insight_wide">%2$s 你的 %1$s 弹着群比以前大约宽了百分之 %3$d。</string>
     <string name="home_insight_low_series">你最近一组 %1$s 得了 %2$d 环，平时为 %3$d 环。</string>
     <string name="home_insight_low_day">%2$s 你的 %1$s 各组平均 %3$d 环，平时为 %4$d 环。</string>
-    <string name="home_insight_trend_up">你的 %1$s 成绩在上升：%3$d 周内提高约 %2$d 环。</string>
-    <string name="home_insight_trend_down">你的 %1$s 成绩在下降：%3$d 周内下降约 %2$d 环。</string>
-    <string name="home_insight_session_down">本周在 %3$d 个较长的训练日中，有 %2$d 天你后面几组 %1$s 的成绩更低。</string>
-    <string name="home_insight_session_up">本周在 %3$d 个较长的训练日中，有 %2$d 天你后面几组 %1$s 的成绩更高。</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="other">你的 %1$s 成绩在上升：%3$s内提高约 %2$d 环。</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="other">%1$d 周</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="other">你的 %1$s 成绩在下降：%3$s内下降约 %2$d 环。</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="other">本周在 %3$d 个较长的训练日中，有 %2$d 天你后面几组 %1$s 的成绩更低。</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="other">本周在 %3$d 个较长的训练日中，有 %2$d 天你后面几组 %1$s 的成绩更高。</item>
+    </plurals>
     <string name="home_insight_dismiss">隐藏此洞察</string>
-    <string name="home_local_title">%1$d 组仅保存在这部手机上</string>
-    <string name="home_local_title_one">1 组仅保存在这部手机上</string>
+    <plurals name="home_local_title">
+        <item quantity="other">%1$d 组仅保存在这部手机上</item>
+    </plurals>
     <string name="home_signin_title">把你的组保存到账户</string>
     <string name="home_signin_body">登录后，换手机也不会丢失。</string>
     <string name="action_sign_in">登录</string>
@@ -366,12 +406,21 @@
     <string name="advice_move_down_left">向左下</string>
     <string name="advice_move_left">向左</string>
     <string name="advice_move_up_left">向左上</string>
-    <string name="advice_offset_stable_summary">在 %3$d 发中，你的弹着群%2$s %1$d mm，%5$d 天中有 %4$d 天偏向相同。</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="other">在 %3$d 发中，你的弹着群%2$s %1$d mm，%5$s中有 %4$d 天偏向相同。</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
     <string name="advice_cause_sights_1">瞄具没有针对这种弹药或距离归零。</string>
     <string name="advice_cause_sights_2">瞄具在调好后发生了移动，或换用的弹药弹着点不同。</string>
     <string name="advice_try_sights">调整瞄具，使弹着群%2$s移动约 %1$d mm，然后先打一组新的弹着群，再考虑下一次调整。</string>
-    <string name="advice_offset_varies_summary">在 %3$d 发中，你的弹着群%2$s %1$d mm，但并非每天都偏向相同。</string>
-    <string name="advice_offset_few_days_summary">在 %3$d 发中，你的弹着群%2$s %1$d mm，但天数太少，无法判断是否一直如此。</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="other">在 %3$d 发中，你的弹着群%2$s %1$d mm，但并非每天都偏向相同。</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="other">在 %3$d 发中，你的弹着群%2$s %1$d mm，但天数太少，无法判断是否一直如此。</item>
+    </plurals>
     <string name="advice_cause_high_1">击发时掌根向前推枪。</string>
     <string name="advice_cause_high_2">击发时手腕向上翻。</string>
     <string name="advice_cause_high_3">急于看弹着而过早抬枪。</string>
@@ -390,21 +439,29 @@
     <string name="advice_cause_side_2">拇指对握把的压力把枪推向一侧。</string>
     <string name="advice_cause_side_3">扣扳机的方向不是笔直向后。</string>
     <string name="advice_try_side">检查手指接触扳机的位置和拇指的压力，然后做空枪练习并观察瞄具。</string>
-    <string name="advice_stretch_vertical_summary">在 %2$d 发中，你的弹着群高度比宽度大约多百分之 %1$d。</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="other">在 %2$d 发中，你的弹着群高度比宽度大约多百分之 %1$d。</item>
+    </plurals>
     <string name="advice_cause_vertical_1">呼吸：每次在呼吸的不同阶段击发。</string>
     <string name="advice_cause_vertical_2">瞄准图像的高低在变化，准星在缺口中时高时低。</string>
     <string name="advice_cause_vertical_3">每发的握力不一致。</string>
     <string name="advice_try_vertical">每发都在呼吸的同一阶段屏住，扣扳机前检查准星在缺口中的高度。</string>
-    <string name="advice_stretch_horizontal_summary">在 %2$d 发中，你的弹着群宽度比高度大约多百分之 %1$d。</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="other">在 %2$d 发中，你的弹着群宽度比高度大约多百分之 %1$d。</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">扣扳机时向侧面用力。</string>
     <string name="advice_cause_horizontal_2">击发时手腕移动。</string>
     <string name="advice_cause_horizontal_3">站姿没有正对靶子。</string>
     <string name="advice_try_horizontal">把瞄具对准一个标记做空枪练习，看扳机击发时瞄具是否向侧面滑动。</string>
-    <string name="advice_stretch_diagonal_summary">在 %2$d 发中，你的弹着群沿斜向一个方向比另一个方向大约长百分之 %1$d。</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="other">在 %2$d 发中，你的弹着群沿斜向一个方向比另一个方向大约长百分之 %1$d。</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">握力和扣扳机的力相互抵触。</string>
     <string name="advice_cause_diagonal_2">站姿或手臂姿势让枪倾斜。</string>
     <string name="advice_try_diagonal">确认每发的握法一致，扣扳机前瞄具保持水平。</string>
-    <string name="advice_fliers_summary">在你的 %2$d 组中，有 %1$d 组出现一发偏离其余弹孔的远弹，平均偏出约 %3$d mm。</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="other">在你的 %2$d 组中，有 %1$d 组出现一发偏离其余弹孔的远弹，平均偏出约 %3$d mm。</item>
+    </plurals>
     <string name="advice_cause_fliers_1">某一发的扳机控制失误。</string>
     <string name="advice_cause_fliers_2">没有保持跟随动作。</string>
     <string name="advice_cause_fliers_3">击发后没有预报弹着点。</string>
@@ -415,48 +472,79 @@
     <string name="advice_cause_wide_3">射击过于仓促。</string>
     <string name="advice_try_wide">空枪练习：据枪并扣扳机但不实弹射击，开始晃动时就休息。</string>
     <string name="advice_low_series_summary">你最近一组得了 %1$d 环，而最近 %3$d 组的平均为 %2$d 环。</string>
-    <string name="advice_low_day_summary">%1$s 你的 %2$d 组平均 %3$d 环，之前的平均为 %4$d 环。</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="other">%1$s 你的 %2$d 组平均 %3$d 环，之前的平均为 %4$d 环。</item>
+    </plurals>
     <string name="advice_try_low_plain">一次低分说明不了什么：先多打几组，再考虑改变。</string>
     <string name="advice_try_low_explained">先从下面的提示入手，不要一次改变所有东西。</string>
     <string name="advice_low_note_offset">你的弹着群偏离中心，这可能是部分原因。</string>
     <string name="advice_low_note_stretched">你的弹着群向一个方向拉长，这可能是部分原因。</string>
     <string name="advice_low_note_fliers">一组中有一发远弹，这可能是部分原因。</string>
     <string name="advice_low_note_wide">弹着群比平时更散，这可能是部分原因。</string>
-    <string name="advice_trend_up_summary">在 %2$d 组中，你的成绩在 %3$d 周内提高了约 %1$d 环。</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="other">在 %2$s中，你的成绩在 %3$s内提高了约 %1$d 环。</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="other">%1$d 组</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="other">%1$d 周</item>
+    </plurals>
     <string name="advice_try_trend_up">继续保持，并记下有哪些改变，以便重复。</string>
-    <string name="advice_trend_down_summary">在 %2$d 组中，你的成绩在 %3$d 周内下降了约 %1$d 环。</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="other">在 %2$s中，你的成绩在 %3$s内下降了约 %1$d 环。</item>
+    </plurals>
     <string name="advice_cause_trend_1">疲劳或练习时间减少。</string>
     <string name="advice_cause_trend_2">射击过于仓促。</string>
     <string name="advice_cause_trend_3">更换了枪、弹药或训练习惯。</string>
     <string name="advice_try_trend_down">缩短训练时间并适当休息，再做几次空枪练习找回基本功。</string>
-    <string name="advice_session_down_summary">在你 %2$d 个较长的训练日中，有 %1$d 天后面几组的成绩低于前几组：那几天平均 %4$d 环，前几组为 %3$d 环。</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="other">在你 %2$d 个较长的训练日中，有 %1$d 天后面几组的成绩低于前几组：那几天平均 %4$d 环，前几组为 %3$d 环。</item>
+    </plurals>
     <string name="advice_cause_session_1">随着训练进行，手臂、肩膀或眼睛疲劳。</string>
     <string name="advice_cause_session_2">注意力下降，导致射击仓促或判断弹着不准。</string>
     <string name="advice_cause_session_3">组与组之间休息太少。</string>
     <string name="advice_try_session_down">缩短训练时间，或每打几组就好好休息一下，让眼睛和手臂放松。</string>
-    <string name="advice_session_up_summary">在你 %2$d 个较长的训练日中，有 %1$d 天后面几组的成绩高于前几组：那几天平均 %4$d 环，前几组为 %3$d 环。</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="other">在你 %2$d 个较长的训练日中，有 %1$d 天后面几组的成绩高于前几组：那几天平均 %4$d 环，前几组为 %3$d 环。</item>
+    </plurals>
     <string name="advice_try_session_up">起步较慢：在第一组正式计分前，先做几次空枪练习或打几发试射。</string>
     <string name="stats_help_insights">洞察</string>
     <string name="stats_help_insights_body">“洞察”会逐个口径查看你保存的组，并指出它比较有把握的规律：弹着群偏向一侧、弹着群被拉长、出现远弹，或成绩下降或上升。需要足够多的射击次数才会给出结论。每条提示会说明数据显示了什么、常见原因，以及一件值得尝试的事。它只是提示，不是教练：所列原因只是常见情况，不是定论。可在“设置”中设置射击手和关闭“洞察”。</string>
     <string name="stats_tab_insights">洞察</string>
-    <string name="stats_insights_need_more">洞察需要约 %1$d 发；这里有 %2$d 发。</string>
-    <string name="stats_insights_nothing">在这 %2$d 组的 %1$d 发中没有明显的问题。</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="other">洞察需要约 %1$d 发；这里有 %2$d 发。</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="other">在这 %2$s的 %1$d 发中没有明显的问题。</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="other">%1$d 组</item>
+    </plurals>
     <string name="stats_insights_numbers">平均弹着点 %1$s，散布 %2$d mm，平均每组 %3$s。</string>
     <string name="stats_insights_legend">黄色椭圆包含约百分之八十六的弹孔；箭头从中心指向平均弹着点。点按一条提示可在靶面上看到它所指的内容。</string>
-    <string name="stats_insights_target_description">洞察靶面，含 %1$d 发、椭圆以及指向平均弹着点的箭头</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="other">洞察靶面，含 %1$d 发、椭圆以及指向平均弹着点的箭头</item>
+    </plurals>
     <string name="stats_insights_no_caliber">“洞察”一次只看一个口径，而这些组都没有口径。请在“历史”中为它们设置口径以查看洞察。</string>
-    <string name="stats_insights_uncalibered">%1$d 组没有口径，未计入。</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="other">%1$d 组没有口径，未计入。</item>
+    </plurals>
     <string name="detail_vs_under">比你的平均 %2$d 低 %1$d</string>
     <string name="detail_vs_over">比你的平均 %2$d 高 %1$d</string>
     <string name="detail_vs_on">与你的平均 %1$d 持平</string>
-    <string name="detail_vs_best">你最近 %1$d 天的最佳成绩</string>
+    <plurals name="detail_vs_best">
+        <item quantity="other">你最近 %1$d 天的最佳成绩</item>
+    </plurals>
     <string name="detail_day_in_insights">在“洞察”中查看这一天</string>
     <string name="sight_title">瞄具修正</string>
     <string name="sight_up_mm">向上 %1$d mm</string>
     <string name="sight_down_mm">向下 %1$d mm</string>
     <string name="sight_left_mm">向左 %1$d mm</string>
     <string name="sight_right_mm">向右 %1$d mm</string>
-    <string name="sight_clicks">%1$s：%2$d 格</string>
+    <plurals name="sight_clicks">
+        <item quantity="other">%1$s：%2$d 格</item>
+    </plurals>
     <string name="sight_one_click">%1$s：1 格</string>
     <string name="sight_under_half_click">%1$s：不到半格，无需调整</string>
     <string name="sight_no_height">高低：无需调整</string>
@@ -467,7 +555,9 @@
     <string name="sight_set_clicks">输入每格调整量</string>
     <string name="sight_change_clicks">更改每格调整量</string>
     <string name="sight_adjusted_button">我已调整瞄具</string>
-    <string name="sight_adjusted_note">瞄具已于 %1$s 调整：偏差按此后的 %2$d 发判断。</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="other">瞄具已于 %1$s 调整：偏差按此后的 %2$d 发判断。</item>
+    </plurals>
     <string name="sight_adjusted_undo">撤销</string>
     <string name="sight_dialog_title">每格调整量，%1$s</string>
     <string name="sight_dialog_help">在你的射击距离上，调一格会让靶上的弹着点移动多少。瞄具说明书通常会写明，也可以数一次修正的格数，再量出弹着群移动了多少。</string>

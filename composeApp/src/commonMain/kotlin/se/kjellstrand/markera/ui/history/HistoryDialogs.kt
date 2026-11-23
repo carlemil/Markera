@@ -6,6 +6,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import se.kjellstrand.markera.res.Res
 import se.kjellstrand.markera.res.*
@@ -21,8 +22,9 @@ internal fun DeleteSeriesDialog(series: SeriesDto, onDismiss: () -> Unit, onConf
         title = { Text(stringResource(Res.string.history_delete_title)) },
         text = {
             Text(
-                stringResource(
-                    Res.string.history_delete_message,
+                pluralStringResource(
+                    Res.plurals.history_delete_message,
+                    series.total(),
                     localStamp(series.timestamp),
                     series.total(),
                 ),

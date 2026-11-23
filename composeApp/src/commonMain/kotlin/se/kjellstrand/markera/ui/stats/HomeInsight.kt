@@ -20,9 +20,11 @@ import se.kjellstrand.markera.series.stats.SightSetup
 import se.kjellstrand.markera.series.stats.StatsFilter
 import se.kjellstrand.markera.series.stats.advice
 import se.kjellstrand.markera.series.stats.byCaliber
+import se.kjellstrand.markera.series.stats.counted
 import se.kjellstrand.markera.series.stats.impactWords
 import se.kjellstrand.markera.series.stats.insights
 import se.kjellstrand.markera.series.stats.plotSeries
+import se.kjellstrand.markera.series.stats.plural
 import se.kjellstrand.markera.series.stats.sector
 import se.kjellstrand.markera.ui.settings.ShootingHand
 
@@ -120,7 +122,7 @@ fun HomeInsight.headline(hand: ShootingHand): AdviceText {
             },
             listOf(c, ((f.elongation - 1) * 100).roundToInt()),
         )
-        is Finding.Fliers -> AdviceText(Res.string.home_insight_fliers, listOf(c, f.seriesWithFliers, f.seriesCount))
+        is Finding.Fliers -> plural(Res.plurals.home_insight_fliers, f.seriesCount, listOf(c, f.seriesWithFliers, f.seriesCount))
         is Finding.WideRoundGroup -> AdviceText(
             Res.string.home_insight_wide,
             listOf(c, f.date, ((f.ratio - 1) * 100).roundToInt()),
@@ -133,12 +135,18 @@ fun HomeInsight.headline(hand: ShootingHand): AdviceText {
             Res.string.home_insight_low_day,
             listOf(c, f.date, f.meanTotal.roundToInt(), f.historyMeanTotal.roundToInt()),
         )
-        is Finding.Trend -> AdviceText(
-            if (f.improving) Res.string.home_insight_trend_up else Res.string.home_insight_trend_down,
-            listOf(c, abs(f.changeOverSpan).roundToInt().coerceAtLeast(1), (f.spanDays / 7).roundToInt().coerceAtLeast(1)),
-        )
-        is Finding.SessionTrend -> AdviceText(
-            if (f.falling) Res.string.home_insight_session_down else Res.string.home_insight_session_up,
+        is Finding.Trend -> {
+            val points = abs(f.changeOverSpan).roundToInt().coerceAtLeast(1)
+            val weeks = (f.spanDays / 7).roundToInt().coerceAtLeast(1)
+            plural(
+                if (f.improving) Res.plurals.home_insight_trend_up else Res.plurals.home_insight_trend_down,
+                points,
+                listOf(c, points, counted(Res.plurals.home_insight_trend_weeks, weeks)),
+            )
+        }
+        is Finding.SessionTrend -> plural(
+            if (f.falling) Res.plurals.home_insight_session_down else Res.plurals.home_insight_session_up,
+            f.daysChecked,
             listOf(c, f.daysCounted, f.daysChecked),
         )
         else -> advice(f, hand).summary

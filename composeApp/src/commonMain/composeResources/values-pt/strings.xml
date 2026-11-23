@@ -83,11 +83,20 @@
     <string name="history_signed_out">Entre para ver seu histórico</string>
     <string name="history_empty">Nenhuma série salva ainda</string>
     <string name="history_filter_empty">Nenhuma série corresponde ao filtro.</string>
-    <string name="history_day_summary">%1$d séries · média %2$s</string>
-    <string name="history_day_summary_one">1 série · %1$d pontos</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d série · média %2$s</item>
+        <item quantity="other">%1$d séries · média %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 série · %1$d ponto</item>
+        <item quantity="other">1 série · %1$d pontos</item>
+    </plurals>
     <string name="history_card_title">%1$s · série %2$d</string>
     <string name="history_delete_title">Excluir a série?</string>
-    <string name="history_delete_message">%1$s · %2$d pontos</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d ponto</item>
+        <item quantity="other">%1$s · %2$d pontos</item>
+    </plurals>
     <string name="history_delete_confirm">Excluir</string>
     <string name="history_delete_cancel">Cancelar</string>
     <string name="history_delete_failed">Não foi possível excluir</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Data</string>
     <string name="filter_clear">Limpar filtros</string>
     <string name="stats_no_geometry">Nenhuma das suas séries tem um anel para servir de referência. Escaneie uma com o anel 6/7 encontrado.</string>
-    <string name="stats_target_description">Alvo com %1$d impactos de %2$d séries</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Alvo com %1$d impacto de %2$s</item>
+        <item quantity="other">Alvo com %1$d impactos de %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d série</item>
+        <item quantity="other">%1$d séries</item>
+    </plurals>
     <string name="stats_timeline">Linha do tempo das séries</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Agrupamento</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Pontuação</string>
     <string name="stats_trend_description">Gráfico de tendência, linhas: %1$d, pontos: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d séries)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d série)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d séries)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Tendência</string>
     <string name="stats_help_trend_body">A aba Tendência mostra qualquer medida como uma curva ao longo do tempo. Escolha a medida com os botões, e se cada série vira um ponto ou se as séries são agrupadas por dia, semana ou mês (a medida é então calculada sobre todas as séries do período). Por calibre desenha uma curva por calibre. Os filtros acima valem para todas as abas. Toque em um ponto para ver o valor.</string>
     <string name="stats_tab_drift">Deriva</string>
-    <string name="stats_drift_description">Alvo com o ponto médio e o ponto mediano de impacto ao longo do tempo, %1$d pontos</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Alvo com o ponto médio e o ponto mediano de impacto ao longo do tempo, %1$d ponto</item>
+        <item quantity="other">Alvo com o ponto médio e o ponto mediano de impacto ao longo do tempo, %1$d pontos</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d dias · %2$d séries · %3$d impactos</string>
     <string name="stats_drift_oldest">Mais antigo</string>
     <string name="stats_drift_newest">Mais recente</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Último ponto de impacto: %1$s (%2$d mm do centro), %3$d mm mais perto do que em %4$s.</string>
     <string name="stats_drift_summary_further">Último ponto de impacto: %1$s (%2$d mm do centro), %3$d mm mais longe do que em %4$s.</string>
     <string name="stats_drift_summary_same">Último ponto de impacto: %1$s (%2$d mm do centro), tão longe quanto em %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d séries · %3$d impactos</string>
-    <string name="stats_drift_point_series">%1$s · série %2$d de %3$d · %4$d impactos</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d série · %3$s</item>
+        <item quantity="other">%1$s · %2$d séries · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d impacto</item>
+        <item quantity="other">%1$d impactos</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · série %2$d de %3$d · %4$d impacto</item>
+        <item quantity="other">%1$s · série %2$d de %3$d · %4$d impactos</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Esquerda / direita e acima / abaixo ao longo do tempo (média)</string>
     <string name="stats_drift_strips_median">Esquerda / direita e acima / abaixo ao longo do tempo (mediana)</string>
@@ -302,12 +334,18 @@
     <string name="help_home_import_body">No menu: pontue fotos que já estão no celular, da galeria ou dos arquivos. Cada imagem é escaneada e os resultados são mostrados, para salvar ou pular. Com a Importação automática ligada, cada imagem que recebe pontuação é salva sozinha com a data em que a foto foi tirada; as demais são mostradas uma a uma depois.</string>
     <string name="series_status_phone">Salva neste aparelho</string>
     <string name="series_not_uploaded">Não enviada</string>
-    <string name="stats_not_uploaded">Não enviadas: %1$d séries</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Não enviada: %1$d série</item>
+        <item quantity="other">Não enviadas: %1$d séries</item>
+    </plurals>
     <string name="local_claim_title">Séries neste aparelho</string>
     <string name="local_claim_body">Séries salvas neste aparelho sem conexão à conta ou para outra conta: %1$d. Adicione-as a esta conta, exclua-as deste aparelho ou continue desconectado.</string>
     <string name="local_claim_add">Adicionar à conta</string>
     <string name="local_claim_delete">Excluir do aparelho</string>
-    <string name="local_claim_delete_body">Excluir %1$d séries e as fotos delas deste aparelho? Isso não pode ser desfeito. Elas não foram enviadas para esta conta.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Excluir %1$d série e a foto dela deste aparelho? Isso não pode ser desfeito. Ela não foi enviada para esta conta.</item>
+        <item quantity="other">Excluir %1$d séries e as fotos delas deste aparelho? Isso não pode ser desfeito. Elas não foram enviadas para esta conta.</item>
+    </plurals>
     <string name="local_claim_stay">Continuar desconectado</string>
     <string name="local_claim_error">A operação não pôde ser concluída. As séries restantes continuam neste aparelho. Feche e tente entrar de novo.</string>
     <string name="home_week_series">séries em 7 dias</string>
@@ -317,17 +355,38 @@
     <string name="home_insight_stretch_vertical">Nesta semana seu agrupamento de %1$s está cerca de %2$d por cento mais alto do que largo.</string>
     <string name="home_insight_stretch_horizontal">Nesta semana seu agrupamento de %1$s está cerca de %2$d por cento mais largo do que alto.</string>
     <string name="home_insight_stretch_diagonal">Nesta semana seu agrupamento de %1$s está cerca de %2$d por cento mais longo na diagonal.</string>
-    <string name="home_insight_fliers">Nesta semana um tiro escapou em %2$d das suas %3$d séries de %1$s.</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Nesta semana um tiro escapou em %2$d da sua %3$d série de %1$s.</item>
+        <item quantity="other">Nesta semana um tiro escapou em %2$d das suas %3$d séries de %1$s.</item>
+    </plurals>
     <string name="home_insight_wide">Em %2$s seus agrupamentos de %1$s ficaram cerca de %3$d por cento mais abertos do que antes.</string>
     <string name="home_insight_low_series">Sua última série de %1$s fez %2$d, contra os %3$d de costume.</string>
     <string name="home_insight_low_day">Em %2$s suas séries de %1$s tiveram média de %3$d, contra os %4$d de costume.</string>
-    <string name="home_insight_trend_up">Suas pontuações de %1$s estão subindo: cerca de %2$d pontos em %3$d semanas.</string>
-    <string name="home_insight_trend_down">Suas pontuações de %1$s estão caindo: cerca de %2$d pontos em %3$d semanas.</string>
-    <string name="home_insight_session_down">Nesta semana suas últimas séries de %1$s pontuaram menos em %2$d de %3$d dias mais longos.</string>
-    <string name="home_insight_session_up">Nesta semana suas últimas séries de %1$s pontuaram mais em %2$d de %3$d dias mais longos.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Suas pontuações de %1$s estão subindo: cerca de %2$d ponto em %3$s.</item>
+        <item quantity="other">Suas pontuações de %1$s estão subindo: cerca de %2$d pontos em %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d semana</item>
+        <item quantity="other">%1$d semanas</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Suas pontuações de %1$s estão caindo: cerca de %2$d ponto em %3$s.</item>
+        <item quantity="other">Suas pontuações de %1$s estão caindo: cerca de %2$d pontos em %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Nesta semana suas últimas séries de %1$s pontuaram menos em %2$d de %3$d dia mais longo.</item>
+        <item quantity="other">Nesta semana suas últimas séries de %1$s pontuaram menos em %2$d de %3$d dias mais longos.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Nesta semana suas últimas séries de %1$s pontuaram mais em %2$d de %3$d dia mais longo.</item>
+        <item quantity="other">Nesta semana suas últimas séries de %1$s pontuaram mais em %2$d de %3$d dias mais longos.</item>
+    </plurals>
     <string name="home_insight_dismiss">Ocultar esta análise</string>
-    <string name="home_local_title">%1$d séries só neste celular</string>
-    <string name="home_local_title_one">1 série só neste celular</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d série só neste celular</item>
+        <item quantity="other">%1$d séries só neste celular</item>
+    </plurals>
     <string name="home_signin_title">Salve suas séries na sua conta</string>
     <string name="home_signin_body">Entre para mantê-las quando trocar de celular.</string>
     <string name="action_sign_in">Entrar</string>
@@ -366,12 +425,25 @@
     <string name="advice_move_down_left">para baixo e para a esquerda</string>
     <string name="advice_move_left">para a esquerda</string>
     <string name="advice_move_up_left">para cima e para a esquerda</string>
-    <string name="advice_offset_stable_summary">Seu agrupamento está %1$d mm %2$s em %3$d tiros, do mesmo jeito em %4$d de %5$d dias.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Seu agrupamento está %1$d mm %2$s em %3$d tiro, do mesmo jeito em %4$d de %5$s.</item>
+        <item quantity="other">Seu agrupamento está %1$d mm %2$s em %3$d tiros, do mesmo jeito em %4$d de %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d dia</item>
+        <item quantity="other">%1$d dias</item>
+    </plurals>
     <string name="advice_cause_sights_1">A mira não está regulada para esta munição ou distância.</string>
     <string name="advice_cause_sights_2">A mira se moveu desde que foi regulada, ou outra munição agrupa em outro lugar.</string>
     <string name="advice_try_sights">Regule a mira para que o agrupamento se mova cerca de %1$d mm %2$s, depois atire um novo agrupamento antes de mexer nela de novo.</string>
-    <string name="advice_offset_varies_summary">Seu agrupamento está %1$d mm %2$s em %3$d tiros, mas não do mesmo jeito todos os dias.</string>
-    <string name="advice_offset_few_days_summary">Seu agrupamento está %1$d mm %2$s em %3$d tiros, em poucos dias demais para saber se é sempre assim.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Seu agrupamento está %1$d mm %2$s em %3$d tiro, mas não do mesmo jeito todos os dias.</item>
+        <item quantity="other">Seu agrupamento está %1$d mm %2$s em %3$d tiros, mas não do mesmo jeito todos os dias.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Seu agrupamento está %1$d mm %2$s em %3$d tiro, em poucos dias demais para saber se é sempre assim.</item>
+        <item quantity="other">Seu agrupamento está %1$d mm %2$s em %3$d tiros, em poucos dias demais para saber se é sempre assim.</item>
+    </plurals>
     <string name="advice_cause_high_1">Empurrar com a palma: forçar a palma da mão para a frente no momento do disparo.</string>
     <string name="advice_cause_high_2">O punho quebrando para cima no disparo.</string>
     <string name="advice_cause_high_3">Procurar o impacto e levantar a arma cedo demais.</string>
@@ -390,21 +462,33 @@
     <string name="advice_cause_side_2">A pressão do polegar na empunhadura empurrando a arma para o lado.</string>
     <string name="advice_cause_side_3">Um acionamento do gatilho que não é direto para trás.</string>
     <string name="advice_try_side">Verifique onde o dedo toca o gatilho e quanta força o polegar faz, depois faça tiro em seco e observe a mira.</string>
-    <string name="advice_stretch_vertical_summary">Seu agrupamento está cerca de %1$d por cento mais alto do que largo, em %2$d tiros.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Seu agrupamento está cerca de %1$d por cento mais alto do que largo, em %2$d tiro.</item>
+        <item quantity="other">Seu agrupamento está cerca de %1$d por cento mais alto do que largo, em %2$d tiros.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Respiração: disparar em um ponto diferente da respiração a cada vez.</string>
     <string name="advice_cause_vertical_2">A imagem de mira mudando de altura, com a massa de mira mais alta ou mais baixa no entalhe da alça.</string>
     <string name="advice_cause_vertical_3">Pressão na empunhadura que varia de tiro para tiro.</string>
     <string name="advice_try_vertical">Pare a respiração no mesmo ponto a cada tiro e confira a altura da massa de mira no entalhe antes de pressionar.</string>
-    <string name="advice_stretch_horizontal_summary">Seu agrupamento está cerca de %1$d por cento mais largo do que alto, em %2$d tiros.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Seu agrupamento está cerca de %1$d por cento mais largo do que alto, em %2$d tiro.</item>
+        <item quantity="other">Seu agrupamento está cerca de %1$d por cento mais largo do que alto, em %2$d tiros.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Um acionamento do gatilho que vai para o lado.</string>
     <string name="advice_cause_horizontal_2">O punho se movendo no disparo.</string>
     <string name="advice_cause_horizontal_3">Uma base que não está bem alinhada com o alvo.</string>
     <string name="advice_try_horizontal">Faça tiro em seco com a mira em um ponto e veja se ela desliza para o lado quando o gatilho dispara.</string>
-    <string name="advice_stretch_diagonal_summary">Seu agrupamento está cerca de %1$d por cento mais longo em uma direção do que na outra, na diagonal, em %2$d tiros.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Seu agrupamento está cerca de %1$d por cento mais longo em uma direção do que na outra, na diagonal, em %2$d tiro.</item>
+        <item quantity="other">Seu agrupamento está cerca de %1$d por cento mais longo em uma direção do que na outra, na diagonal, em %2$d tiros.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">A pressão da empunhadura e o acionamento do gatilho trabalhando um contra o outro.</string>
     <string name="advice_cause_diagonal_2">Uma base ou posição do braço que inclina a arma.</string>
     <string name="advice_try_diagonal">Verifique se a empunhadura é a mesma a cada tiro e se a mira está nivelada antes de pressionar.</string>
-    <string name="advice_fliers_summary">Em %1$d das suas %2$d séries um tiro escapou do resto, em média cerca de %3$d mm para fora.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">Em %1$d da sua %2$d série um tiro escapou do resto, em média cerca de %3$d mm para fora.</item>
+        <item quantity="other">Em %1$d das suas %2$d séries um tiro escapou do resto, em média cerca de %3$d mm para fora.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Controle do gatilho em um único tiro.</string>
     <string name="advice_cause_fliers_2">Perder o acompanhamento.</string>
     <string name="advice_cause_fliers_3">Soltar o tiro sem tê-lo cantado.</string>
@@ -415,48 +499,93 @@
     <string name="advice_cause_wide_3">Apressar os tiros.</string>
     <string name="advice_try_wide">Treino em seco: segure e pressione sem atirar, e descanse quando a sustentação começar a tremer.</string>
     <string name="advice_low_series_summary">Sua última série fez %1$d, contra uma média de %2$d nas suas últimas %3$d.</string>
-    <string name="advice_low_day_summary">Em %1$s suas %2$d séries tiveram média de %3$d, contra uma média de %4$d antes.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">Em %1$s sua %2$d série teve média de %3$d, contra uma média de %4$d antes.</item>
+        <item quantity="other">Em %1$s suas %2$d séries tiveram média de %3$d, contra uma média de %4$d antes.</item>
+    </plurals>
     <string name="advice_try_low_plain">Um resultado baixo diz pouco: atire mais algumas antes de mudar qualquer coisa.</string>
     <string name="advice_try_low_explained">Comece pela observação abaixo em vez de mudar tudo de uma vez.</string>
     <string name="advice_low_note_offset">Seu agrupamento está fora do centro, o que pode ser parte do motivo.</string>
     <string name="advice_low_note_stretched">Seu agrupamento está alongado em uma direção, o que pode ser parte do motivo.</string>
     <string name="advice_low_note_fliers">Um tiro escapando em uma série pode ser parte do motivo.</string>
     <string name="advice_low_note_wide">Agrupamentos mais abertos que o normal podem ser parte do motivo.</string>
-    <string name="advice_trend_up_summary">Suas pontuações subiram cerca de %1$d pontos em %3$d semanas, ao longo de %2$d séries.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Suas pontuações subiram cerca de %1$d ponto em %3$s, ao longo de %2$s.</item>
+        <item quantity="other">Suas pontuações subiram cerca de %1$d pontos em %3$s, ao longo de %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d série</item>
+        <item quantity="other">%1$d séries</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d semana</item>
+        <item quantity="other">%1$d semanas</item>
+    </plurals>
     <string name="advice_try_trend_up">Continue fazendo o que você faz e anote o que mudou para poder repetir.</string>
-    <string name="advice_trend_down_summary">Suas pontuações caíram cerca de %1$d pontos em %3$d semanas, ao longo de %2$d séries.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Suas pontuações caíram cerca de %1$d ponto em %3$s, ao longo de %2$s.</item>
+        <item quantity="other">Suas pontuações caíram cerca de %1$d pontos em %3$s, ao longo de %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Cansaço ou menos tempo para treinar.</string>
     <string name="advice_cause_trend_2">Apressar os tiros.</string>
     <string name="advice_cause_trend_3">Uma troca de arma, munição ou rotina.</string>
     <string name="advice_try_trend_down">Sessões mais curtas com pausas, e alguns tiros em seco para reencontrar o básico.</string>
-    <string name="advice_session_down_summary">Em %1$d dos seus %2$d dias mais longos, suas últimas séries pontuaram menos que as primeiras: %4$d em média contra %3$d nesses dias.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">Em %1$d do seu %2$d dia mais longo, suas últimas séries pontuaram menos que as primeiras: %4$d em média contra %3$d nesses dias.</item>
+        <item quantity="other">Em %1$d dos seus %2$d dias mais longos, suas últimas séries pontuaram menos que as primeiras: %4$d em média contra %3$d nesses dias.</item>
+    </plurals>
     <string name="advice_cause_session_1">Cansaço no braço, no ombro ou nos olhos ao longo da sessão.</string>
     <string name="advice_cause_session_2">A concentração diminuindo, então os tiros são apressados ou menos bem cantados.</string>
     <string name="advice_cause_session_3">Pausas de menos entre as séries.</string>
     <string name="advice_try_session_down">Sessões mais curtas, ou uma pausa de verdade a cada poucas séries para descansar os olhos e o braço.</string>
-    <string name="advice_session_up_summary">Em %1$d dos seus %2$d dias mais longos, suas últimas séries pontuaram mais que as primeiras: %4$d em média contra %3$d nesses dias.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">Em %1$d do seu %2$d dia mais longo, suas últimas séries pontuaram mais que as primeiras: %4$d em média contra %3$d nesses dias.</item>
+        <item quantity="other">Em %1$d dos seus %2$d dias mais longos, suas últimas séries pontuaram mais que as primeiras: %4$d em média contra %3$d nesses dias.</item>
+    </plurals>
     <string name="advice_try_session_up">Um começo lento: comece com alguns tiros em seco ou tiros de ensaio antes de a primeira série valer.</string>
     <string name="stats_help_insights">Análises</string>
     <string name="stats_help_insights_body">As Análises olham suas séries salvas, um calibre de cada vez, e apontam padrões de que têm bastante certeza: um agrupamento deslocado para um lado, um agrupamento alongado, um tiro que escapa ou pontuações que caem ou sobem. É preciso um bom número de tiros antes de dizer alguma coisa. Cada observação traz o que os números mostram, o que costuma causar isso e uma coisa para experimentar. É uma dica, não um treinador: as causas são as comuns, não um veredito. Defina sua mão de tiro e desligue as Análises em Configurações.</string>
     <string name="stats_tab_insights">Análises</string>
-    <string name="stats_insights_need_more">As Análises precisam de cerca de %1$d tiros; aqui você tem %2$d.</string>
-    <string name="stats_insights_nothing">Nada se destaca nestes %1$d tiros de %2$d séries.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">As Análises precisam de cerca de %1$d tiro; aqui você tem %2$d.</item>
+        <item quantity="other">As Análises precisam de cerca de %1$d tiros; aqui você tem %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Nada se destaca neste %1$d tiro de %2$s.</item>
+        <item quantity="other">Nada se destaca nestes %1$d tiros de %2$s.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d série</item>
+        <item quantity="other">%1$d séries</item>
+    </plurals>
     <string name="stats_insights_numbers">Ponto médio de impacto %1$s, dispersão %2$d mm, série média %3$s.</string>
     <string name="stats_insights_legend">A elipse amarela contém cerca de 86 por cento dos tiros; a seta vai do centro até o ponto médio de impacto. Toque em uma observação para ver a que ela se refere no alvo.</string>
-    <string name="stats_insights_target_description">Alvo das Análises com %1$d tiros, a elipse e a seta até o ponto médio de impacto</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Alvo das Análises com %1$d tiro, a elipse e a seta até o ponto médio de impacto</item>
+        <item quantity="other">Alvo das Análises com %1$d tiros, a elipse e a seta até o ponto médio de impacto</item>
+    </plurals>
     <string name="stats_insights_no_caliber">As Análises olham um calibre de cada vez, e estas séries não têm nenhum. Defina um calibre para elas no Histórico para ver as análises.</string>
-    <string name="stats_insights_uncalibered">%1$d séries sem calibre ficaram de fora.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d série sem calibre ficou de fora.</item>
+        <item quantity="other">%1$d séries sem calibre ficaram de fora.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d abaixo da sua média de %2$d</string>
     <string name="detail_vs_over">%1$d acima da sua média de %2$d</string>
     <string name="detail_vs_on">Na sua média de %1$d</string>
-    <string name="detail_vs_best">Seu melhor resultado nos últimos %1$d dias</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Seu melhor resultado no último %1$d dia</item>
+        <item quantity="other">Seu melhor resultado nos últimos %1$d dias</item>
+    </plurals>
     <string name="detail_day_in_insights">Ver este dia nas Análises</string>
     <string name="sight_title">Correção da mira</string>
     <string name="sight_up_mm">Para cima %1$d mm</string>
     <string name="sight_down_mm">Para baixo %1$d mm</string>
     <string name="sight_left_mm">Para a esquerda %1$d mm</string>
     <string name="sight_right_mm">Para a direita %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d cliques</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d clique</item>
+        <item quantity="other">%1$s: %2$d cliques</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 clique</string>
     <string name="sight_under_half_click">%1$s: menos de meio clique, deixe como está</string>
     <string name="sight_no_height">Altura: sem mudança</string>
@@ -467,7 +596,10 @@
     <string name="sight_set_clicks">Informar valor do clique</string>
     <string name="sight_change_clicks">Mudar valor do clique</string>
     <string name="sight_adjusted_button">Ajustei a mira</string>
-    <string name="sight_adjusted_note">Mira ajustada em %1$s: o deslocamento é avaliado pelos %2$d tiros desde então.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Mira ajustada em %1$s: o deslocamento é avaliado pelo %2$d tiro desde então.</item>
+        <item quantity="other">Mira ajustada em %1$s: o deslocamento é avaliado pelos %2$d tiros desde então.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Desfazer</string>
     <string name="sight_dialog_title">Valor do clique, %1$s</string>
     <string name="sight_dialog_help">Quanto um clique move o impacto no alvo na sua distância de tiro. O manual da mira costuma informar, ou conte os cliques de uma correção e meça quanto o agrupamento se moveu.</string>

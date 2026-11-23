@@ -83,11 +83,20 @@
     <string name="history_signed_out">Logi sisse, et näha oma ajalugu</string>
     <string name="history_empty">Salvestatud seeriaid veel pole</string>
     <string name="history_filter_empty">Filtrile ei vasta ükski seeria.</string>
-    <string name="history_day_summary">%1$d seeriat · keskm. %2$s</string>
-    <string name="history_day_summary_one">1 seeria · %1$d punkti</string>
+    <plurals name="history_day_summary">
+        <item quantity="one">%1$d seeria · keskm. %2$s</item>
+        <item quantity="other">%1$d seeriat · keskm. %2$s</item>
+    </plurals>
+    <plurals name="history_day_summary_one">
+        <item quantity="one">1 seeria · %1$d punkt</item>
+        <item quantity="other">1 seeria · %1$d punkti</item>
+    </plurals>
     <string name="history_card_title">%1$s · seeria %2$d</string>
     <string name="history_delete_title">Kas kustutada seeria?</string>
-    <string name="history_delete_message">%1$s · %2$d punkti</string>
+    <plurals name="history_delete_message">
+        <item quantity="one">%1$s · %2$d punkt</item>
+        <item quantity="other">%1$s · %2$d punkti</item>
+    </plurals>
     <string name="history_delete_confirm">Kustuta</string>
     <string name="history_delete_cancel">Tühista</string>
     <string name="history_delete_failed">Ei saanud kustutada</string>
@@ -134,7 +143,14 @@
     <string name="stats_group_date">Kuupäev</string>
     <string name="filter_clear">Tühjenda filtrid</string>
     <string name="stats_no_geometry">Ühelgi sinu seerial pole ringi, mille suhtes joonistada. Skanni seeria, kus 6/7 ring leitakse.</string>
-    <string name="stats_target_description">Märklaud %1$d tabamusega %2$d seeriast</string>
+    <plurals name="stats_target_description">
+        <item quantity="one">Märklaud %1$d tabamusega %2$s</item>
+        <item quantity="other">Märklaud %1$d tabamusega %2$s</item>
+    </plurals>
+    <plurals name="stats_target_description_series">
+        <item quantity="one">%1$d seeriast</item>
+        <item quantity="other">%1$d seeriast</item>
+    </plurals>
     <string name="stats_timeline">Seeriate ajatelg</string>
     <string name="stats_limit_mm">%1$d mm</string>
     <string name="stats_section_group">Grupeering</string>
@@ -158,12 +174,18 @@
     <string name="stats_short_mean_score">Punktid</string>
     <string name="stats_trend_description">Trendigraafik, jooni: %1$d, punkte: %2$d</string>
     <string name="stats_trend_point">%1$s %2$s: %3$s</string>
-    <string name="stats_trend_point_many">%1$s %2$s: %3$s (%4$d seeriat)</string>
+    <plurals name="stats_trend_point_many">
+        <item quantity="one">%1$s %2$s: %3$s (%4$d seeria)</item>
+        <item quantity="other">%1$s %2$s: %3$s (%4$d seeriat)</item>
+    </plurals>
     <string name="decimal_mark">,</string>
     <string name="stats_help_trend">Trend</string>
     <string name="stats_help_trend_body">Vahekaart Trend näitab mis tahes mõõdikut kõverana ajas. Vali nuppudega mõõdik ning see, kas iga seeria on eraldi punkt või ühendatakse seeriad päeva, nädala või kuu kaupa (mõõdik arvutatakse siis kõigi perioodi seeriate põhjal). Kaliibrite kaupa joonistab iga kaliibri jaoks oma kõvera. Ülaltoodud filtrid kehtivad kõigil vahekaartidel. Puuduta punkti, et selle väärtust näha.</string>
     <string name="stats_tab_drift">Nihe</string>
-    <string name="stats_drift_description">Märklaud keskmise ja mediaanse tabamispunktiga ajas, %1$d punkti</string>
+    <plurals name="stats_drift_description">
+        <item quantity="one">Märklaud keskmise ja mediaanse tabamispunktiga ajas, %1$d punkt</item>
+        <item quantity="other">Märklaud keskmise ja mediaanse tabamispunktiga ajas, %1$d punkti</item>
+    </plurals>
     <string name="stats_drift_counts">%1$d päeva · %2$d seeriat · %3$d tabamust</string>
     <string name="stats_drift_oldest">Vanim</string>
     <string name="stats_drift_newest">Uusim</string>
@@ -182,8 +204,18 @@
     <string name="stats_drift_summary_closer">Viimane tabamispunkt: %1$s (%2$d mm keskpunktist), %3$d mm lähemal kui %4$s.</string>
     <string name="stats_drift_summary_further">Viimane tabamispunkt: %1$s (%2$d mm keskpunktist), %3$d mm kaugemal kui %4$s.</string>
     <string name="stats_drift_summary_same">Viimane tabamispunkt: %1$s (%2$d mm keskpunktist), sama kaugel kui %3$s.</string>
-    <string name="stats_drift_point_day">%1$s · %2$d seeriat · %3$d tabamust</string>
-    <string name="stats_drift_point_series">%1$s · seeria %2$d/%3$d · %4$d tabamust</string>
+    <plurals name="stats_drift_point_day">
+        <item quantity="one">%1$s · %2$d seeria · %3$s</item>
+        <item quantity="other">%1$s · %2$d seeriat · %3$s</item>
+    </plurals>
+    <plurals name="stats_drift_point_day_hits">
+        <item quantity="one">%1$d tabamus</item>
+        <item quantity="other">%1$d tabamust</item>
+    </plurals>
+    <plurals name="stats_drift_point_series">
+        <item quantity="one">%1$s · seeria %2$d/%3$d · %4$d tabamus</item>
+        <item quantity="other">%1$s · seeria %2$d/%3$d · %4$d tabamust</item>
+    </plurals>
     <string name="stats_drift_value">%1$s: %2$s</string>
     <string name="stats_drift_strips">Vasak/parem ja kõrge/madal ajas (keskmine)</string>
     <string name="stats_drift_strips_median">Vasak/parem ja kõrge/madal ajas (mediaan)</string>
@@ -302,12 +334,18 @@
     <string name="help_home_import_body">Menüüs: arvuta punktid telefonis juba olevatele fotodele galeriist või failidest. Iga pilt skannitakse ja tulemus kuvatakse, et saaksid selle salvestada või vahele jätta. Kui Automaatne import on sees, salvestatakse iga pilt, millele saab punktid arvutada, ise koos pildistamise kuupäevaga; ülejäänud näidatakse hiljem ükshaaval.</string>
     <string name="series_status_phone">Salvestatud sellesse seadmesse</string>
     <string name="series_not_uploaded">Üles laadimata</string>
-    <string name="stats_not_uploaded">Üles laadimata: %1$d seeriat</string>
+    <plurals name="stats_not_uploaded">
+        <item quantity="one">Üles laadimata: %1$d seeria</item>
+        <item quantity="other">Üles laadimata: %1$d seeriat</item>
+    </plurals>
     <string name="local_claim_title">Selles seadmes olevad seeriad</string>
     <string name="local_claim_body">Sellesse seadmesse väljalogituna või teise konto jaoks salvestatud seeriad: %1$d. Lisa need sellele kontole, kustuta need seadmest või jää väljalogituks.</string>
     <string name="local_claim_add">Lisa kontole</string>
     <string name="local_claim_delete">Kustuta seadmest</string>
-    <string name="local_claim_delete_body">Kas kustutada %1$d seeriat ja nende fotod sellest seadmest? Seda ei saa tagasi võtta. Neid pole sellele kontole üles laaditud.</string>
+    <plurals name="local_claim_delete_body">
+        <item quantity="one">Kas kustutada %1$d seeria ja selle foto sellest seadmest? Seda ei saa tagasi võtta. Seda pole sellele kontole üles laaditud.</item>
+        <item quantity="other">Kas kustutada %1$d seeriat ja nende fotod sellest seadmest? Seda ei saa tagasi võtta. Neid pole sellele kontole üles laaditud.</item>
+    </plurals>
     <string name="local_claim_stay">Jää väljalogituks</string>
     <string name="local_claim_error">Toimingut ei saanud lõpetada. Ülejäänud seeriad on endiselt selles seadmes. Sulge ja proovi uuesti sisse logida.</string>
     <string name="home_week_series">seeriat 7 päevaga</string>
@@ -317,17 +355,38 @@
     <string name="home_insight_stretch_vertical">Sel nädalal on sinu grupp (%1$s) umbes %2$d protsenti kõrgem kui lai.</string>
     <string name="home_insight_stretch_horizontal">Sel nädalal on sinu grupp (%1$s) umbes %2$d protsenti laiem kui kõrge.</string>
     <string name="home_insight_stretch_diagonal">Sel nädalal on sinu grupp (%1$s) diagonaalis umbes %2$d protsenti pikem.</string>
-    <string name="home_insight_fliers">Sel nädalal läks üks lask kõrvale %2$d seerias sinu %3$d seeriast (%1$s).</string>
+    <plurals name="home_insight_fliers">
+        <item quantity="one">Sel nädalal läks üks lask kõrvale %2$d seerias sinu %3$d seeriast (%1$s).</item>
+        <item quantity="other">Sel nädalal läks üks lask kõrvale %2$d seerias sinu %3$d seeriast (%1$s).</item>
+    </plurals>
     <string name="home_insight_wide">%2$s olid sinu grupid (%1$s) umbes %3$d protsenti laiemad kui varem.</string>
     <string name="home_insight_low_series">Sinu viimane seeria (%1$s) andis %2$d punkti, tavapärase %3$d asemel.</string>
     <string name="home_insight_low_day">%2$s oli sinu seeriate (%1$s) keskmine %3$d, tavapärase %4$d asemel.</string>
-    <string name="home_insight_trend_up">Sinu punktid (%1$s) tõusevad: umbes %2$d punkti %3$d nädalaga.</string>
-    <string name="home_insight_trend_down">Sinu punktid (%1$s) langevad: umbes %2$d punkti %3$d nädalaga.</string>
-    <string name="home_insight_session_down">Sel nädalal andsid sinu hilisemad seeriad (%1$s) vähem punkte %2$d pikemal päeval %3$d-st.</string>
-    <string name="home_insight_session_up">Sel nädalal andsid sinu hilisemad seeriad (%1$s) rohkem punkte %2$d pikemal päeval %3$d-st.</string>
+    <plurals name="home_insight_trend_up">
+        <item quantity="one">Sinu punktid (%1$s) tõusevad: umbes %2$d punkt %3$s.</item>
+        <item quantity="other">Sinu punktid (%1$s) tõusevad: umbes %2$d punkti %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_trend_weeks">
+        <item quantity="one">%1$d nädalaga</item>
+        <item quantity="other">%1$d nädalaga</item>
+    </plurals>
+    <plurals name="home_insight_trend_down">
+        <item quantity="one">Sinu punktid (%1$s) langevad: umbes %2$d punkt %3$s.</item>
+        <item quantity="other">Sinu punktid (%1$s) langevad: umbes %2$d punkti %3$s.</item>
+    </plurals>
+    <plurals name="home_insight_session_down">
+        <item quantity="one">Sel nädalal andsid sinu hilisemad seeriad (%1$s) vähem punkte %2$d pikemal päeval %3$d-st.</item>
+        <item quantity="other">Sel nädalal andsid sinu hilisemad seeriad (%1$s) vähem punkte %2$d pikemal päeval %3$d-st.</item>
+    </plurals>
+    <plurals name="home_insight_session_up">
+        <item quantity="one">Sel nädalal andsid sinu hilisemad seeriad (%1$s) rohkem punkte %2$d pikemal päeval %3$d-st.</item>
+        <item quantity="other">Sel nädalal andsid sinu hilisemad seeriad (%1$s) rohkem punkte %2$d pikemal päeval %3$d-st.</item>
+    </plurals>
     <string name="home_insight_dismiss">Peida see tähelepanek</string>
-    <string name="home_local_title">%1$d seeriat ainult selles telefonis</string>
-    <string name="home_local_title_one">1 seeria ainult selles telefonis</string>
+    <plurals name="home_local_title">
+        <item quantity="one">%1$d seeria ainult selles telefonis</item>
+        <item quantity="other">%1$d seeriat ainult selles telefonis</item>
+    </plurals>
     <string name="home_signin_title">Salvesta oma seeriad kontole</string>
     <string name="home_signin_body">Logi sisse, et need telefoni vahetamisel alles jääksid.</string>
     <string name="action_sign_in">Logi sisse</string>
@@ -366,12 +425,25 @@
     <string name="advice_move_down_left">alla ja vasakule</string>
     <string name="advice_move_left">vasakule</string>
     <string name="advice_move_up_left">üles ja vasakule</string>
-    <string name="advice_offset_stable_summary">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, samamoodi %4$d päeval %5$d-st.</string>
+    <plurals name="advice_offset_stable_summary">
+        <item quantity="one">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, samamoodi %4$d päeval %5$s.</item>
+        <item quantity="other">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, samamoodi %4$d päeval %5$s.</item>
+    </plurals>
+    <plurals name="advice_offset_stable_days">
+        <item quantity="one">%1$d päevast</item>
+        <item quantity="other">%1$d päevast</item>
+    </plurals>
     <string name="advice_cause_sights_1">Sihik pole selle laskemoona või kauguse jaoks sisse lastud.</string>
     <string name="advice_cause_sights_2">Sihik on pärast seadistamist nihkunud või teine laskemoon tabab mujale.</string>
     <string name="advice_try_sights">Sea sihikut nii, et grupp nihkuks umbes %1$d mm %2$s, ja lase siis uus grupp, enne kui sihikut uuesti puudutad.</string>
-    <string name="advice_offset_varies_summary">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, kuid mitte igal päeval samamoodi.</string>
-    <string name="advice_offset_few_days_summary">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, kuid liiga vähestel päevadel, et öelda, kas see on alati nii.</string>
+    <plurals name="advice_offset_varies_summary">
+        <item quantity="one">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, kuid mitte igal päeval samamoodi.</item>
+        <item quantity="other">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, kuid mitte igal päeval samamoodi.</item>
+    </plurals>
+    <plurals name="advice_offset_few_days_summary">
+        <item quantity="one">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, kuid liiga vähestel päevadel, et öelda, kas see on alati nii.</item>
+        <item quantity="other">Sinu grupp asub %3$d lasu põhjal %1$d mm %2$s, kuid liiga vähestel päevadel, et öelda, kas see on alati nii.</item>
+    </plurals>
     <string name="advice_cause_high_1">Peopesa lükkamine ette lasu vallandumise hetkel.</string>
     <string name="advice_cause_high_2">Ranne murdub lasul ülespoole.</string>
     <string name="advice_cause_high_3">Tabamuse otsimine ja relva liiga vara tõstmine.</string>
@@ -390,21 +462,33 @@
     <string name="advice_cause_side_2">Pöidla surve pidemele lükkab relva küljele.</string>
     <string name="advice_cause_side_3">Päästmine, mis ei toimu otse taha.</string>
     <string name="advice_try_side">Kontrolli, kus sõrm päästikut puudutab ja kui tugevalt pöial surub, seejärel tee kuivharjutusi ja jälgi sihikut.</string>
-    <string name="advice_stretch_vertical_summary">Sinu grupp on %2$d lasu põhjal umbes %1$d protsenti kõrgem kui lai.</string>
+    <plurals name="advice_stretch_vertical_summary">
+        <item quantity="one">Sinu grupp on %2$d lasu põhjal umbes %1$d protsenti kõrgem kui lai.</item>
+        <item quantity="other">Sinu grupp on %2$d lasu põhjal umbes %1$d protsenti kõrgem kui lai.</item>
+    </plurals>
     <string name="advice_cause_vertical_1">Hingamine: lask läheb iga kord erinevas hingamise faasis.</string>
     <string name="advice_cause_vertical_2">Sihtimispilt muutub kõrguses, kirn on pilus kõrgemal või madalamal.</string>
     <string name="advice_cause_vertical_3">Haardesurve, mis lasust lasku muutub.</string>
     <string name="advice_try_vertical">Peata hingamine igal lasul samas kohas ja kontrolli enne vajutamist kirna kõrgust pilus.</string>
-    <string name="advice_stretch_horizontal_summary">Sinu grupp on %2$d lasu põhjal umbes %1$d protsenti laiem kui kõrge.</string>
+    <plurals name="advice_stretch_horizontal_summary">
+        <item quantity="one">Sinu grupp on %2$d lasu põhjal umbes %1$d protsenti laiem kui kõrge.</item>
+        <item quantity="other">Sinu grupp on %2$d lasu põhjal umbes %1$d protsenti laiem kui kõrge.</item>
+    </plurals>
     <string name="advice_cause_horizontal_1">Päästmine, mis läheb küljele.</string>
     <string name="advice_cause_horizontal_2">Ranne liigub lasu ajal.</string>
     <string name="advice_cause_horizontal_3">Asend, mis pole märklaua suhtes õige.</string>
     <string name="advice_try_horizontal">Tee kuivharjutusi, sihik märgil, ja vaata, kas see libiseb päästiku vallandumisel küljele.</string>
-    <string name="advice_stretch_diagonal_summary">Sinu grupp on %2$d lasu põhjal diagonaalis umbes %1$d protsenti ühes suunas pikem kui teises.</string>
+    <plurals name="advice_stretch_diagonal_summary">
+        <item quantity="one">Sinu grupp on %2$d lasu põhjal diagonaalis umbes %1$d protsenti ühes suunas pikem kui teises.</item>
+        <item quantity="other">Sinu grupp on %2$d lasu põhjal diagonaalis umbes %1$d protsenti ühes suunas pikem kui teises.</item>
+    </plurals>
     <string name="advice_cause_diagonal_1">Haardesurve ja päästmine töötavad teineteisele vastu.</string>
     <string name="advice_cause_diagonal_2">Asend või käe asend, mis kallutab relva.</string>
     <string name="advice_try_diagonal">Kontrolli, et haare oleks igal lasul sama ja sihik enne vajutamist otse.</string>
-    <string name="advice_fliers_summary">%1$d seerias sinu %2$d seeriast läks üks lask ülejäänutest kõrvale, keskmiselt umbes %3$d mm kaugemale.</string>
+    <plurals name="advice_fliers_summary">
+        <item quantity="one">%1$d seerias sinu %2$d seeriast läks üks lask ülejäänutest kõrvale, keskmiselt umbes %3$d mm kaugemale.</item>
+        <item quantity="other">%1$d seerias sinu %2$d seeriast läks üks lask ülejäänutest kõrvale, keskmiselt umbes %3$d mm kaugemale.</item>
+    </plurals>
     <string name="advice_cause_fliers_1">Päästiku kontroll üksikul lasul.</string>
     <string name="advice_cause_fliers_2">Järelhoiu kaotamine.</string>
     <string name="advice_cause_fliers_3">Lasu vallandamine ilma seda välja kuulutamata.</string>
@@ -415,48 +499,93 @@
     <string name="advice_cause_wide_3">Laskmisega kiirustamine.</string>
     <string name="advice_try_wide">Kuivharjutus: hoia ja vajuta ilma laskmata ning puhka, kui hoid hakkab värisema.</string>
     <string name="advice_low_series_summary">Sinu viimane seeria andis %1$d punkti, viimase %3$d seeria keskmine on %2$d.</string>
-    <string name="advice_low_day_summary">%1$s oli sinu %2$d seeria keskmine %3$d, varasem keskmine on %4$d.</string>
+    <plurals name="advice_low_day_summary">
+        <item quantity="one">%1$s oli sinu %2$d seeria keskmine %3$d, varasem keskmine on %4$d.</item>
+        <item quantity="other">%1$s oli sinu %2$d seeria keskmine %3$d, varasem keskmine on %4$d.</item>
+    </plurals>
     <string name="advice_try_low_plain">Üks madal tulemus ütleb vähe: lase veel mõned, enne kui midagi muudad.</string>
     <string name="advice_try_low_explained">Alusta allolevast märkusest, selle asemel et kõike korraga muuta.</string>
     <string name="advice_low_note_offset">Sinu grupp on keskpunktist kõrval, mis võib olla osa põhjusest.</string>
     <string name="advice_low_note_stretched">Sinu grupp on ühes suunas välja venitatud, mis võib olla osa põhjusest.</string>
     <string name="advice_low_note_fliers">Seeriast kõrvale läinud üksik lask võib olla osa põhjusest.</string>
     <string name="advice_low_note_wide">Tavapärasest laiemad grupid võivad olla osa põhjusest.</string>
-    <string name="advice_trend_up_summary">Sinu punktid on %3$d nädalaga tõusnud umbes %1$d punkti, kokku %2$d seerias.</string>
+    <plurals name="advice_trend_up_summary">
+        <item quantity="one">Sinu punktid on %3$s tõusnud umbes %1$d punkti, kokku %2$s.</item>
+        <item quantity="other">Sinu punktid on %3$s tõusnud umbes %1$d punkti, kokku %2$s.</item>
+    </plurals>
+    <plurals name="advice_trend_series">
+        <item quantity="one">%1$d seerias</item>
+        <item quantity="other">%1$d seerias</item>
+    </plurals>
+    <plurals name="advice_trend_weeks">
+        <item quantity="one">%1$d nädalaga</item>
+        <item quantity="other">%1$d nädalaga</item>
+    </plurals>
     <string name="advice_try_trend_up">Jätka samamoodi ja pane kirja, mis muutus, et saaksid seda korrata.</string>
-    <string name="advice_trend_down_summary">Sinu punktid on %3$d nädalaga langenud umbes %1$d punkti, kokku %2$d seerias.</string>
+    <plurals name="advice_trend_down_summary">
+        <item quantity="one">Sinu punktid on %3$s langenud umbes %1$d punkti, kokku %2$s.</item>
+        <item quantity="other">Sinu punktid on %3$s langenud umbes %1$d punkti, kokku %2$s.</item>
+    </plurals>
     <string name="advice_cause_trend_1">Väsimus või vähem aega treenimiseks.</string>
     <string name="advice_cause_trend_2">Laskmisega kiirustamine.</string>
     <string name="advice_cause_trend_3">Relva, laskemoona või rutiini vahetus.</string>
     <string name="advice_try_trend_down">Lühemad treeningud koos pausidega ja mõni kuivlask, et põhitõed uuesti üles leida.</string>
-    <string name="advice_session_down_summary">%1$d pikemal päeval sinu %2$d-st andsid hilisemad seeriad vähem punkte kui esimesed: keskmiselt %4$d, esimestel %3$d.</string>
+    <plurals name="advice_session_down_summary">
+        <item quantity="one">%1$d pikemal päeval sinu %2$d-st andsid hilisemad seeriad vähem punkte kui esimesed: keskmiselt %4$d, esimestel %3$d.</item>
+        <item quantity="other">%1$d pikemal päeval sinu %2$d-st andsid hilisemad seeriad vähem punkte kui esimesed: keskmiselt %4$d, esimestel %3$d.</item>
+    </plurals>
     <string name="advice_cause_session_1">Käe, õla või silmade väsimus treeningu edenedes.</string>
     <string name="advice_cause_session_2">Keskendumine nõrgeneb, mistõttu laskudega kiirustatakse või neid hinnatakse halvemini.</string>
     <string name="advice_cause_session_3">Liiga vähe pause seeriate vahel.</string>
     <string name="advice_try_session_down">Lühemad treeningud või korralik paus iga paari seeria järel, et silmi ja kätt puhata.</string>
-    <string name="advice_session_up_summary">%1$d pikemal päeval sinu %2$d-st andsid hilisemad seeriad rohkem punkte kui esimesed: keskmiselt %4$d, esimestel %3$d.</string>
+    <plurals name="advice_session_up_summary">
+        <item quantity="one">%1$d pikemal päeval sinu %2$d-st andsid hilisemad seeriad rohkem punkte kui esimesed: keskmiselt %4$d, esimestel %3$d.</item>
+        <item quantity="other">%1$d pikemal päeval sinu %2$d-st andsid hilisemad seeriad rohkem punkte kui esimesed: keskmiselt %4$d, esimestel %3$d.</item>
+    </plurals>
     <string name="advice_try_session_up">Aeglane algus: alusta mõne kuivlasu või proovilasuga, enne kui esimene seeria arvesse läheb.</string>
     <string name="stats_help_insights">Analüüs</string>
     <string name="stats_help_insights_body">Analüüs vaatab sinu salvestatud seeriaid üks kaliiber korraga ja toob välja mustrid, milles ta on üsna kindel: ühele küljele jääv grupp, välja venitatud grupp, kõrvale minev lask või langevad või tõusvad punktid. Enne kui ta midagi ütleb, on vaja piisavalt palju laske. Iga märkus ütleb, mida numbrid näitavad, mis seda sageli põhjustab, ja ühe asja, mida proovida. See on vihje, mitte treener: põhjused on levinud, mitte otsus. Laskekäe saad valida ja Analüüsi välja lülitada seadetes.</string>
     <string name="stats_tab_insights">Analüüs</string>
-    <string name="stats_insights_need_more">Analüüs vajab umbes %1$d lasku; siin on sul %2$d.</string>
-    <string name="stats_insights_nothing">Nendes %1$d lasus %2$d seeriast ei paista midagi silma.</string>
+    <plurals name="stats_insights_need_more">
+        <item quantity="one">Analüüs vajab umbes %1$d lasku; siin on sul %2$d.</item>
+        <item quantity="other">Analüüs vajab umbes %1$d lasku; siin on sul %2$d.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing">
+        <item quantity="one">Selles %1$d lasus %2$s ei paista midagi silma.</item>
+        <item quantity="other">Nendes %1$d lasus %2$s ei paista midagi silma.</item>
+    </plurals>
+    <plurals name="stats_insights_nothing_series">
+        <item quantity="one">%1$d seeriast</item>
+        <item quantity="other">%1$d seeriast</item>
+    </plurals>
     <string name="stats_insights_numbers">Keskmine tabamispunkt %1$s, hajuvus %2$d mm, keskmine seeria %3$s.</string>
     <string name="stats_insights_legend">Kollane ellips hõlmab umbes 86 protsenti laskudest; nool kulgeb keskpunktist keskmise tabamispunktini. Puuduta märkust, et näha, millele see märklaual viitab.</string>
-    <string name="stats_insights_target_description">Analüüsi märklaud %1$d lasuga, ellips ja nool keskmise tabamispunktini</string>
+    <plurals name="stats_insights_target_description">
+        <item quantity="one">Analüüsi märklaud %1$d lasuga, ellips ja nool keskmise tabamispunktini</item>
+        <item quantity="other">Analüüsi märklaud %1$d lasuga, ellips ja nool keskmise tabamispunktini</item>
+    </plurals>
     <string name="stats_insights_no_caliber">Analüüs vaatab ühte kaliibrit korraga, aga nendel seeriatel kaliibrit pole. Määra neile ajaloos kaliiber, et analüüsi näha.</string>
-    <string name="stats_insights_uncalibered">%1$d kaliibrita seeriat jäetakse välja.</string>
+    <plurals name="stats_insights_uncalibered">
+        <item quantity="one">%1$d kaliibrita seeria jäetakse välja.</item>
+        <item quantity="other">%1$d kaliibrita seeriat jäetakse välja.</item>
+    </plurals>
     <string name="detail_vs_under">%1$d alla sinu keskmise %2$d</string>
     <string name="detail_vs_over">%1$d üle sinu keskmise %2$d</string>
     <string name="detail_vs_on">Sinu keskmisel tasemel %1$d</string>
-    <string name="detail_vs_best">Sinu parim viimase %1$d päeva jooksul</string>
+    <plurals name="detail_vs_best">
+        <item quantity="one">Sinu parim viimase %1$d päeva jooksul</item>
+        <item quantity="other">Sinu parim viimase %1$d päeva jooksul</item>
+    </plurals>
     <string name="detail_day_in_insights">Vaata seda päeva Analüüsis</string>
     <string name="sight_title">Sihiku korrektsioon</string>
     <string name="sight_up_mm">Üles %1$d mm</string>
     <string name="sight_down_mm">Alla %1$d mm</string>
     <string name="sight_left_mm">Vasakule %1$d mm</string>
     <string name="sight_right_mm">Paremale %1$d mm</string>
-    <string name="sight_clicks">%1$s: %2$d klõpsu</string>
+    <plurals name="sight_clicks">
+        <item quantity="one">%1$s: %2$d klõps</item>
+        <item quantity="other">%1$s: %2$d klõpsu</item>
+    </plurals>
     <string name="sight_one_click">%1$s: 1 klõps</string>
     <string name="sight_under_half_click">%1$s: alla poole klõpsu, jäta nii</string>
     <string name="sight_no_height">Kõrgus: muutusteta</string>
@@ -467,7 +596,10 @@
     <string name="sight_set_clicks">Sisesta klõpsu väärtus</string>
     <string name="sight_change_clicks">Muuda klõpsu väärtust</string>
     <string name="sight_adjusted_button">Seadistasin sihikut</string>
-    <string name="sight_adjusted_note">Sihikut seadistati %1$s: kõrvalekallet hinnatakse pärast seda lastud %2$d lasu põhjal.</string>
+    <plurals name="sight_adjusted_note">
+        <item quantity="one">Sihikut seadistati %1$s: kõrvalekallet hinnatakse pärast seda lastud %2$d lasu põhjal.</item>
+        <item quantity="other">Sihikut seadistati %1$s: kõrvalekallet hinnatakse pärast seda lastud %2$d lasu põhjal.</item>
+    </plurals>
     <string name="sight_adjusted_undo">Võta tagasi</string>
     <string name="sight_dialog_title">Klõpsu väärtus, %1$s</string>
     <string name="sight_dialog_help">Kui palju üks klõps sinu laskekaugusel tabamust märklaual nihutab. Tavaliselt on see kirjas sihiku juhendis; muidu loe ühe korrektsiooni klõpsud ja mõõda, kui palju grupp nihkus.</string>
