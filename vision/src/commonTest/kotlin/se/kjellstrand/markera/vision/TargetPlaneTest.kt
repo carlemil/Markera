@@ -124,6 +124,19 @@ class TargetPlaneTest {
         val (cx, cy) = plane.toMm(600.0, 520.0)
         assertEquals(ex, cx, 1e-6)
         assertEquals(ey, cy, 1e-6)
+        // Mirrored, the image origin lies past the line (x ~ 289.5): the guard follows the centre's side.
+        val leftCentre = CentreEstimate(310f, 500f, CentreMethod.MANUAL)
+        val leftExact = assertNotNull(TargetPlane.of(leftCentre, nearRing))
+        val leftPts = listOf(-100.0 to 0.0, 100.0 to 0.0, 0.0 to -100.0, 0.0 to 100.0).map { leftExact.toImage(it.first, it.second) }
+        val left = assertNotNull(
+            TargetPlane.fromCross(leftPts.map { it.first }.toDoubleArray(), leftPts.map { it.second }.toDoubleArray(), 100.0),
+        )
+        val (lx, ly) = left.toMm(400.0, 500.0)
+        val (lex, ley) = leftExact.toMm(400.0, 500.0)
+        assertEquals(lex, lx, 1e-6)
+        assertEquals(ley, ly, 1e-6)
+        val (px, py) = left.toMm(210.0, 500.0)
+        assertTrue(px.isNaN() && py.isNaN(), "past the vanishing line mapped to ($px, $py)")
     }
 
     @Test

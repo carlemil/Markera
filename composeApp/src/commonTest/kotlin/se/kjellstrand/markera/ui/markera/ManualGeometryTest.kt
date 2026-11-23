@@ -12,6 +12,7 @@ import se.kjellstrand.markera.series.HoleDto
 import se.kjellstrand.markera.series.restoreHole
 import se.kjellstrand.markera.series.scoreHoleAt
 import se.kjellstrand.markera.series.seriesJson
+import se.kjellstrand.markera.series.toHoleDto
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
 import se.kjellstrand.markera.vision.Detection
@@ -110,6 +111,16 @@ class ManualGeometryTest {
         val restored = listOf(hole.copy(detectedRing = 0, detectedInnerTen = false, detectedX = 790.0, detectedY = 500.0))
             .restoreHole(0, geometry)
         assertNull(restored.single().distanceMm)
+        // The scan's own save path: a detected hole past the line.
+        val scored = scoreHits(
+            listOf(Detection(785f, 495f, 795f, 505f, 0.9f)),
+            CentreEstimate(690f, 500f, CentreMethod.MANUAL),
+            FittedEllipse(500f, 500f, 200f, 200f, 0f),
+        ).single()
+        assertEquals(0, scored.ring)
+        val dto = scored.toHoleDto()
+        assertNull(dto.distanceMm)
+        assertTrue(seriesJson.encodeToString(HoleDto.serializer(), dto).isNotEmpty())
     }
 
     @Test
