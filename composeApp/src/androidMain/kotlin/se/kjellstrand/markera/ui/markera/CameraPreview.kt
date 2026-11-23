@@ -27,12 +27,13 @@ private const val TAG = "Markera"
 /**
  * Live camera preview, no per-frame inference. The caller owns the
  * [PreviewView] and the [imageCapture] it takes the full-resolution still from
- * when the user taps Scan.
+ * when the user taps Scan; [bindGate] reports when that capture is bound.
  */
 @Composable
 fun CameraPreview(
     previewView: PreviewView,
     imageCapture: ImageCapture,
+    bindGate: CameraBindGate,
     onError: (Throwable) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -40,8 +41,12 @@ fun CameraPreview(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
+        val session = bindGate.open()
         val providerFuture = ProcessCameraProvider.getInstance(context)
         providerFuture.addListener({
+            // Disposed before the provider was ready (e.g. Back right after opening the
+            // scan screen cold): binding now would keep the camera on behind Home.
+            if (!session.mayBind()) return@addListener
             try {
                 val provider = providerFuture.get()
                 val selector = ResolutionSelector.Builder()
@@ -67,6 +72,7 @@ fun CameraPreview(
                     .build()
                 provider.unbindAll()
                 provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, useCases)
+                session.bound()
             } catch (t: Throwable) {
                 Log.e(TAG, "CameraX bind failed", t)
                 onError(t)
@@ -74,10 +80,15 @@ fun CameraPreview(
         }, ContextCompat.getMainExecutor(context))
 
         onDispose {
-            try {
-                ProcessCameraProvider.getInstance(context).get().unbindAll()
-            } catch (_: Throwable) {
-                // best-effort cleanup
+            // The listener runs on the main thread too, so it either has not run yet (and
+            // will see the session disposed) or has bound, in which case the future is done
+            // and get() does not block.
+            if (session.dispose() && providerFuture.isDone) {
+                try {
+                    providerFuture.get().unbindAll()
+                } catch (_: Throwable) {
+                    // best-effort cleanup
+                }
             }
         }
     }
