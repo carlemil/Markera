@@ -155,13 +155,30 @@ class SeriesRepository(
         count
     }
 
+    /** Legacy outbox rows that cannot be decoded: left in the table for inspection, reported once
+     * and skipped for the rest of this process, so they never block refresh or sign-in. */
+    private val corruptOutbox = mutableSetOf<Long>()
+
     private fun adoptLegacyLocked() {
         for (row in q.allOutbox().executeAsList()) {
+            if (row.id in corruptOutbox) continue
+            // Parsed before the transaction: a corrupt row is skipped, the others are adopted.
+            // Only parse failures (SerializationException, NumberFormatException) count as corrupt;
+            // a failed photo write still throws and leaves the row for the next attempt.
+            val (old, owner) = try {
+                seriesJson.decodeFromString<SeriesRequest>(row.request) to row.user_id.toLong()
+            } catch (e: IllegalArgumentException) {
+                corruptOutbox += row.id
+                // Never the exception itself: its message can echo the row's JSON (free-text tag).
+                ErrorLog.report("legacy-outbox-corrupt",
+                    IllegalStateException("Legacy outbox row cannot be decoded (${e::class.simpleName})"),
+                    mapOf("outboxId" to row.id.toString()))
+                continue
+            }
             q.transaction {
                 // Older outbox rows may predate clientId. The server de-duplicates per user,
                 // so a per-device row id could collide with another phone's: use a fresh one.
                 // The row and outboxDone commit together, so a crash re-adopts from scratch.
-                val old = seriesJson.decodeFromString<SeriesRequest>(row.request)
                 val req = if (old.clientId == null) old.copy(clientId = newClientId()) else old
                 // The old drain skipped a photo without dimensions; 0x0 would only be refused.
                 val photo = row.image?.let { bytes ->
@@ -169,7 +186,7 @@ class SeriesRepository(
                     val h = row.image_height?.toInt() ?: return@let null
                     EncodedImage(bytes, w, h)
                 }
-                val id = keepLocalLocked(req, photo, row.user_id.toLong())
+                val id = keepLocalLocked(req, photo, owner)
                 if (row.series_id != null) q.localPosted(row.series_id, id)
                 q.outboxDone(row.id)
             }
@@ -370,10 +387,18 @@ class SeriesRepository(
             } catch (e: Exception) {
                 // A local defect (e.g. a missing photo file) must not stop the delta below
                 // or the rows after it; the row stays queued for an explicit retry.
-                ErrorLog.report("local-series-send", e)
+                reportLocalDefectOnce(row.local_id, row.reported, e)
             }
         }
         return null
+    }
+
+    /** Once per row, like a refusal: a missing photo file would otherwise be reported on every
+     * refresh. The row stays queued (Detail shows it as not uploaded) and is still retried. */
+    private fun reportLocalDefectOnce(localId: Long, reported: Long, e: Exception) {
+        if (reported != 0L) return
+        ErrorLog.report("local-series-send", e)
+        q.localReported(localId)
     }
 
     /** One write at a time, and never inside a refresh; a 401 signs out on the way. */

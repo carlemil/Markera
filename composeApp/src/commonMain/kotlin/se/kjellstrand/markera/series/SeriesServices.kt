@@ -43,7 +43,11 @@ class SeriesServices(
 }
 
 /** The cached series JPEGs under `cacheDir/series/`: `<id>.jpg` and its thumbnail `<id>.thumb.jpg`. */
-class FileImageCache(private val dir: Path, private val durable: Boolean = false) : ImageCache {
+class FileImageCache(
+    private val dir: Path,
+    private val durable: Boolean = false,
+    private val sync: FileSync = PlatformFileSync,
+) : ImageCache {
 
     private fun file(id: Long) = Path(dir, "$id.jpg")
     private fun thumb(id: Long) = Path(dir, "$id.thumb.jpg")
@@ -57,13 +61,17 @@ class FileImageCache(private val dir: Path, private val durable: Boolean = false
         SystemFileSystem.source(path).buffered().use { it.readByteArray() }
     }.getOrNull()
 
-    /** Through a temp file and a rename, so a write cut short never leaves a truncated JPEG that reads back as cached. */
+    /** Through a temp file and a rename, so a write cut short never leaves a truncated JPEG that reads back as cached.
+     * When [durable], the temp file is fsynced before the rename and the directory after it, so the
+     * SQLite row committed next cannot outlive its photo through a power cut (#29). */
     private fun write(path: Path, bytes: ByteArray) {
         val tmp = Path(dir, "${path.name}.tmp")
         runCatching {
             SystemFileSystem.createDirectories(dir)
             SystemFileSystem.sink(tmp).buffered().use { it.write(bytes) }
+            if (durable) sync.syncFile(tmp)
             SystemFileSystem.atomicMove(tmp, path)
+            if (durable) sync.syncDirectory(dir)
         }.onFailure {
             runCatching { SystemFileSystem.delete(tmp, mustExist = false) }
             if (durable) throw it

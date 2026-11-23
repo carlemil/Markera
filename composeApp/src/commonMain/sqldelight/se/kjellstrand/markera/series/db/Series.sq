@@ -95,6 +95,10 @@ UPDATE local_series SET server_id = ? WHERE local_id = ?;
 localFailure:
 UPDATE local_series SET state = ?, last_status = ?, reported = ? WHERE local_id = ?;
 
+-- A local defect (e.g. a missing photo file) has been sent to the error log; the state stays as it is.
+localReported:
+UPDATE local_series SET reported = 1 WHERE local_id = ?;
+
 editLocal:
 UPDATE local_series SET request = ? WHERE local_id = ?;
 
