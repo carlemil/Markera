@@ -880,6 +880,28 @@ class ApiTest {
         assertEquals(1, entries.getValue("negatives.csv").lines().count { it.endsWith(";deleted") } / ids.size)
     }
 
+    @Test fun `the default training export leaves out rejected series and approved only stays approved only`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("export-curation")
+        val (approved, rejected, open) = List(3) {
+            client.createSeries(auth.token).also { client.putImage(auth.token, it, jpeg(), query = "?width=100&height=100") }
+        }
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$approved?status=approved")
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$rejected?status=rejected")
+        suspend fun imagesIn(path: String): Set<String> {
+            val names = mutableSetOf<String>()
+            java.util.zip.ZipInputStream(client.admin(path).bodyAsBytes().inputStream()).use { zip ->
+                generateSequence { zip.nextEntry }.forEach { if (it.name.startsWith("images/")) names += it.name }
+            }
+            return names
+        }
+
+        assertEquals(setOf("images/$approved.jpg", "images/$open.jpg"), imagesIn("/admin/training-export.zip"))
+        assertEquals(setOf("images/$approved.jpg"), imagesIn("/admin/training-export.zip?approved=1"))
+        // A rejected series approved later is back in the default export.
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$rejected?status=approved")
+        assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg", "images/$open.jpg"), imagesIn("/admin/training-export.zip"))
+    }
+
     @Test
     fun geometryRoundTripsAndIsOptional() = apiTest { client ->
         val me = client.devAuth("me")
