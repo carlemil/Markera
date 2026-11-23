@@ -5,8 +5,11 @@ import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import se.kjellstrand.markera.series.Caliber
 import se.kjellstrand.markera.series.SeriesDto
@@ -47,8 +50,10 @@ internal const val DAY_MS = 24L * 60 * 60 * 1000
 /**
  * The `from..to` window for this preset, shared by Statistik and Historik so the two
  * screens can't drift: [customRange] (the date picker's UTC start-of-day millis pair)
- * only applies when this preset is [DatePreset.CUSTOM], and its end day runs through
- * its last millisecond.
+ * only applies when this preset is [DatePreset.CUSTOM]. Those millis only name calendar
+ * dates; the window runs from [zone]'s midnight on the first date through the last
+ * millisecond before [zone]'s midnight after the end date, the same local days Historik
+ * groups by and Insights cuts by.
  */
 @OptIn(ExperimentalTime::class)
 fun DatePreset.window(
@@ -57,11 +62,19 @@ fun DatePreset.window(
     zone: TimeZone = TimeZone.currentSystemDefault(),
 ): Pair<Instant?, Instant?> {
     val range = customRange.takeIf { this == DatePreset.CUSTOM }
-    val from = range?.let { Instant.fromEpochMilliseconds(it.first) }
-    val to = range?.let { Instant.fromEpochMilliseconds(it.second + DAY_MS - 1) }
+    val from = range?.let { pickedDate(it.first).atStartOfDayIn(zone) }
+    val to = range?.let {
+        val nextMidnight = pickedDate(it.second).plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone)
+        Instant.fromEpochMilliseconds(nextMidnight.toEpochMilliseconds() - 1)
+    }
     val (presetFrom, presetTo) = range(now, zone)
     return (from ?: presetFrom) to (to ?: presetTo)
 }
+
+/** The calendar date a date picker's UTC start-of-day millis stand for. */
+@OptIn(ExperimentalTime::class)
+private fun pickedDate(utcMillis: Long): LocalDate =
+    Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date
 
 @OptIn(ExperimentalTime::class)
 data class StatsFilter(
