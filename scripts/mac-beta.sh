@@ -15,4 +15,9 @@ MODEL=../composeApp/src/androidMain/assets/best.onnx
 if [ "$(wc -c 2>/dev/null < "$MODEL" || echo 0)" -lt 1000000 ]; then
     echo "Upload refused: $MODEL is missing or too small (copy best.onnx there first)" >&2; exit 1
 fi
+# Nor without the Sentry DSN (Android's checkReleaseInputs refuses the same): an empty one ships a build
+# that reports no crashes or errors at all. Only the upload checks it; simulator Release builds may go without.
+if ! grep -Eq '^[[:space:]]*MARKERA_SENTRY_DSN[[:space:]]*=[[:space:]]*[^[:space:]]' Config/Local.xcconfig 2>/dev/null; then
+    echo "Upload refused: MARKERA_SENTRY_DSN is empty in iosApp/Config/Local.xcconfig (see Local.xcconfig.example)" >&2; exit 1
+fi
 fastlane beta

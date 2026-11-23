@@ -99,7 +99,8 @@ be, and then the extraction silently produces nothing).
 every `assembleRelease`/`bundleRelease`/`publishRelease*`) fails unless `best.onnx` is in the
 assets (≥ 1 MB) and `markera.google.client.id` and `markera.sentry.dsn` are non-empty
 (`local.properties`, or `-P` overrides). Debug builds and `testDebugUnitTest` don't need them.
-On iOS, `mac-beta.sh` and `CONFIGURATION=Release mac-build.sh` refuse a missing model.
+On iOS, `mac-beta.sh` and `CONFIGURATION=Release mac-build.sh` refuse a missing model, and `mac-beta.sh`
+also refuses an empty `MARKERA_SENTRY_DSN` in `iosApp/Config/Local.xcconfig`.
 
 Instrumented (`androidTest`) tests don't accept `--tests`; select with the runner arg,
 and pin to one device with `ANDROID_SERIAL` (the task runs on every connected device,
@@ -360,7 +361,10 @@ backend's `/auth/apple/start?state=`, which mediates the whole OAuth flow and pa
 `POST /auth/apple/claim` (`state` = hex sha256 of a secret that stays on the device, so catching the
 `markera://auth/apple` deep link buys nothing; the claim also needs the one-time `nonce` that only that deep
 link carries, so an attacker who mails someone a start link for their own `state` cannot redeem it). Needs the five `APPLE_*`/`PUBLIC_URL` vars on the
-server; without them that route answers 503 and only Google works. No account linking — Apple and
+server; without them that route answers 503 and only Google works. Current apps ask (`return=https`) to come
+back through the verified App Link `$PUBLIC_URL/auth/apple/done`, which Android checks against
+`/.well-known/assetlinks.json`, built from the server's `ANDROID_CERT_SHA256` (Play app-signing, upload and
+debug key fingerprints, all three set in production); blank answers 404 and the done page's buttons are the fallback. No account linking — Apple and
 Google are separate users. Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple in
 `iosMain/series/SignIn.kt` with a dev-auth fallback when Info.plist `MarkeraDevAuth`
