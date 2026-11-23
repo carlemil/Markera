@@ -111,6 +111,16 @@ class TargetPlaneTest {
     }
 
     @Test
+    fun aHandBoxPastTheVanishingLineHasNoSizeAndAMissStaysAMiss() {
+        // holeBoxSizePx takes finite differences of toMm: past the line they are NaN, and it must say "no size",
+        // never hand a NaN box to the scan screen. A box with a real size there still scores a miss.
+        assertNull(holeBoxSizePx(790f, 500f, 4.5, nearCentre, nearRing))
+        val size = holeBoxSizePx(600f, 500f, 4.5, nearCentre, nearRing)
+        assertNotNull(size)
+        assertTrue(size.first.isFinite() && size.second.isFinite() && size.first > 0f && size.second > 0f)
+    }
+
+    @Test
     fun aCrossMapGuardsTheVanishingLineOnTheCentresSide() {
         // The same map rebuilt from its four probe points (fromCross fixes h33, not the centre's sign).
         val exact = assertNotNull(TargetPlane.of(nearCentre, nearRing))

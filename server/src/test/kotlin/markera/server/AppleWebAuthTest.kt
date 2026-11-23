@@ -327,6 +327,20 @@ class AppleWebAuthTest {
     }
 
     @Test
+    fun anHttpsReturnCallbackNeedsAStartToo() {
+        // The https-return suffix Apple carries back is not a way round the issued-state check.
+        var exchanges = 0
+        appleTest(identity = { exchanges++; Identity("apple-sub-1", null) }) { client ->
+            assertEquals(HttpStatusCode.BadRequest, client.rawCallback("$STATE$APPLE_HTTPS_STATE_SUFFIX").status)
+            assertEquals(0, exchanges)
+            // Started with return=https, its suffixed state is good for one callback.
+            assertEquals(HttpStatusCode.Found, client.callback("$STATE$APPLE_HTTPS_STATE_SUFFIX").status)
+            assertEquals(HttpStatusCode.BadRequest, client.rawCallback("$STATE$APPLE_HTTPS_STATE_SUFFIX").status)
+            assertEquals(1, exchanges)
+        }
+    }
+
+    @Test
     fun aStartedStateIsGoodForOneCallback() {
         var exchanges = 0
         appleTest(identity = { exchanges++; Identity("apple-sub-1", null) }) { client ->
