@@ -23,7 +23,8 @@ fun interface KeySetSource {
  * whichever key id is asked for: a key id missing from a set read within the interval is answered with
  * null straight away. The interval runs from the last read attempt (failed ones included), so a key the
  * provider adds is found on the first lookup once the interval has passed. A set older than [maxAge] is
- * read again even on a hit, so retired keys drop out. Cached lookups never wait for a read in progress.
+ * read again even on a hit, so retired keys drop out. Lookups of cached keys in a set younger than
+ * [maxAge] never wait for a read in progress.
  */
 class JwksKeySet(
     private val source: KeySetSource,
