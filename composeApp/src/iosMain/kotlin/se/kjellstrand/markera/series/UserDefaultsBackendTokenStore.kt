@@ -1,14 +1,23 @@
 package se.kjellstrand.markera.series
 
 import platform.Foundation.NSUserDefaults
+import se.kjellstrand.markera.diag.ErrorLog
 
-/** Persists the Markera backend login in `NSUserDefaults`. */
+/**
+ * Persists the Markera backend login and the device preferences. The session token is in
+ * the Keychain ([vault], issue #21); everything else, user id and provider included, is in
+ * `NSUserDefaults`.
+ */
 class UserDefaultsBackendTokenStore(
     private val defaults: NSUserDefaults = NSUserDefaults.standardUserDefaults,
+    private val vault: TokenVault = KeychainTokenVault(),
 ) : BackendTokenStore {
 
     private object Keys {
+        /** Only builds before issue #21 wrote it; [read] moves it to the Keychain. */
         const val TOKEN = "markera.backend.token"
+        /** Set once this install owns the Keychain item; wiped with the app on uninstall. */
+        const val KEYCHAIN_INSTALLED = "markera.backend.keychainInstalled"
         const val USER_ID = "markera.backend.userId"
         const val PROVIDER = "markera.backend.provider"
         const val CALIBER = "markera.backend.caliber"
@@ -83,25 +92,94 @@ class UserDefaultsBackendTokenStore(
     override suspend fun writeOpenDays(value: String) =
         defaults.setObject(value, Keys.OPEN_DAYS)
 
+    /**
+     * A Keychain item outlives an uninstall, NSUserDefaults does not. Without this
+     * install's flag, whatever the Keychain holds belongs to an earlier install: delete
+     * it, and set the flag only once that delete went through (else try again next time).
+     * An upgrade from a build that kept the token in defaults has an empty Keychain, so
+     * this deletes nothing there and the migration in [read] still runs.
+     * False = the Keychain may still hold an earlier install's token, so don't trust it.
+     */
+    private fun ensureInstalled(): Boolean {
+        if (defaults.boolForKey(Keys.KEYCHAIN_INSTALLED)) return true
+        val status = vault.delete()
+        if (status == 0) {
+            defaults.setBool(true, Keys.KEYCHAIN_INSTALLED)
+            return true
+        }
+        ErrorLog.report("token-keychain", KeychainError("delete leftover", status))
+        return false
+    }
+
     override suspend fun read(): BackendAuth? {
+        val token = (if (!ensureInstalled()) defaults.stringForKey(Keys.TOKEN) else readVault()) ?: return null
         return BackendAuth(
-            token = defaults.stringForKey(Keys.TOKEN) ?: return null,
+            token = token,
             // Stored as a string: NSUserDefaults integers can't express "absent".
             userId = defaults.stringForKey(Keys.USER_ID)?.toLongOrNull() ?: return null,
             provider = defaults.stringForKey(Keys.PROVIDER) ?: return null,
         )
     }
 
-    // NSUserDefaults rides along in iCloud/iTunes backups, unencrypted, and the bearer
-    // token with it. Moving it to the Keychain is deferred on the user's call (2026-09-19).
+    private fun readVault(): String? =
+        when (val stored = vault.read()) {
+            is VaultRead.Found -> stored.token.also {
+                // A copy left by an earlier migration whose cleanup never ran.
+                defaults.removeObjectForKey(Keys.TOKEN)
+            }
+            VaultRead.NotFound -> migrateLegacyToken()
+            is VaultRead.Failed -> {
+                // Unknown, e.g. still locked: only a pre-Keychain copy, if any; nothing deleted.
+                ErrorLog.report("token-keychain", KeychainError("read", stored.status))
+                defaults.stringForKey(Keys.TOKEN)
+            }
+        }
+
+    /**
+     * Builds before issue #21 kept the token in defaults, which ride along in iCloud/iTunes
+     * backups. Moved once: written to the Keychain, and removed from defaults only after
+     * that write succeeded. A failed write keeps using (and keeping) the defaults copy.
+     */
+    private fun migrateLegacyToken(): String? {
+        val legacy = defaults.stringForKey(Keys.TOKEN) ?: return null
+        val status = vault.write(legacy)
+        if (status == 0) {
+            defaults.removeObjectForKey(Keys.TOKEN)
+            ErrorLog.breadcrumb("signin", "token moved to the keychain")
+        } else {
+            ErrorLog.report("token-keychain", KeychainError("migrate", status))
+        }
+        return legacy
+    }
+
+    /**
+     * The token goes to the Keychain only; user id and provider stay in defaults (not
+     * secret, useless without the token, and wiped by an uninstall, so a leftover Keychain
+     * token can never pair with them). A failed Keychain write leaves this session in memory
+     * only: the next launch is signed out rather than holding a stale or backed-up token.
+     */
     override suspend fun write(auth: BackendAuth) {
-        defaults.setObject(auth.token, Keys.TOKEN)
-        defaults.setObject(auth.userId.toString(), Keys.USER_ID)
-        defaults.setObject(auth.provider, Keys.PROVIDER)
+        ensureInstalled()
+        // A new login supersedes any pre-Keychain copy.
+        defaults.removeObjectForKey(Keys.TOKEN)
+        val status = vault.write(auth.token)
+        if (status == 0) {
+            // The write replaced any leftover, so the item is this install's now.
+            defaults.setBool(true, Keys.KEYCHAIN_INSTALLED)
+            defaults.setObject(auth.userId.toString(), Keys.USER_ID)
+            defaults.setObject(auth.provider, Keys.PROVIDER)
+        } else {
+            ErrorLog.report("token-keychain", KeychainError("write", status))
+            vault.delete()
+            defaults.removeObjectForKey(Keys.USER_ID)
+            defaults.removeObjectForKey(Keys.PROVIDER)
+        }
     }
 
     override suspend fun clear() {
         // The login plus what names this user's tags; the caliber is a device preference.
+        val status = vault.delete()
+        if (status != 0) ErrorLog.report("token-keychain", KeychainError("delete", status))
         defaults.removeObjectForKey(Keys.TOKEN)
         defaults.removeObjectForKey(Keys.USER_ID)
         defaults.removeObjectForKey(Keys.PROVIDER)
@@ -109,3 +187,6 @@ class UserDefaultsBackendTokenStore(
         defaults.removeObjectForKey(Keys.HISTORY_FILTER)
     }
 }
+
+/** A Keychain failure for [ErrorLog]: the operation and its OSStatus, never the token. */
+class KeychainError(operation: String, status: Int) : Exception("keychain $operation failed: OSStatus $status")
