@@ -19,6 +19,14 @@ sh scripts/mac-sync.sh                     # HEAD + uncommitted files -> ~/sourc
 sh scripts/mac.sh 'bash scripts/mac-build.sh'  # xcodegen + xcodebuild + simctl install/launch
 ```
 
+The Mac clone is a mirror: each sync force-checks-out HEAD and cleans it. So
+`mac-sync.sh` refuses, listing the files, when anything there changed since the
+last sync (a hand fix, an untracked fastlane screenshot); gitignored files never
+count. Copy or commit those first, or run `FORCE=1 sh scripts/mac-sync.sh` to
+discard them. The first sync with this check (or after an interrupted one) has no
+record yet and compares against HEAD, so it may list the previous sync's copies;
+`FORCE=1` is safe then.
+
 `scripts/mac-build.sh` copies `Config/Local.xcconfig.example` to the gitignored
 `Config/Local.xcconfig` (developer team) on first use, writes the build log to
 `iosApp/build/xcodebuild.log` and launches `se.kjellstrand.markera` on the booted
