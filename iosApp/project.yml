@@ -56,8 +56,10 @@ targets:
         CFBundleLocalizations: [en, sv, ar, be, bg, cs, da, de, el, es, et, fa, fi, fr, he, hi, hr, hu, it, kk, ko, lt, lv, nb, nl, pl, pt-BR, ro, sk, sl, sr, th, tr, uk, vi, zh-Hans]
         NSCameraUsageDescription: Markera photographs the target to count the hits.
         NSPhotoLibraryUsageDescription: Markera can count the hits on a saved photo of the target.
+        # Plain HTTP to local hosts, for Debug's backend at http://127.0.0.1:8091 only:
+        # YES in Debug, NO in Release (settings.configs below), like MarkeraDevAuth.
         NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
+          NSAllowsLocalNetworking: $(MARKERA_ALLOWS_LOCAL_NETWORKING)
         MarkeraBackendUrl: $(MARKERA_BACKEND_URL)
         MarkeraDevAuth: $(MARKERA_DEV_AUTH)
         # From Local.xcconfig; empty leaves Sentry off.
@@ -86,9 +88,11 @@ targets:
         Debug:
           MARKERA_BACKEND_URL: http://127.0.0.1:8091
           MARKERA_DEV_AUTH: "YES"
+          MARKERA_ALLOWS_LOCAL_NETWORKING: "YES"
         Release:
           MARKERA_BACKEND_URL: https://markera.duckdns.org
           MARKERA_DEV_AUTH: "NO"
+          MARKERA_ALLOWS_LOCAL_NETWORKING: "NO"
     preBuildScripts:
       - name: Compile Kotlin framework
         basedOnDependencyAnalysis: false
