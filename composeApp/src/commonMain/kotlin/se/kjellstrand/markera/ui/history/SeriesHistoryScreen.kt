@@ -99,12 +99,16 @@ fun SeriesHistoryScreen(
     var exporting by remember { mutableStateOf(false) }
     val (signingIn, signIn) = rememberBackendSignIn(services)
     var showingHelp by remember { mutableStateOf(false) }
-    var filter by remember { mutableStateOf(HistoryFilter()) }
+    // Saveable, like the list's scroll: back from the Serie page the screen comes back as it
+    // was left, never first with the default filter and the list scrolled to the top.
+    var filter by rememberSaveable(stateSaver = HistoryFilterSaver) { mutableStateOf(HistoryFilter()) }
     // Guards against writing the still-default filter back before the saved one loaded.
-    var filterLoaded by remember { mutableStateOf(false) }
+    var filterLoaded by rememberSaveable { mutableStateOf(false) }
     // Which days are unfolded, and the same guard against wiping the stored set.
     var expanded by rememberSaveable { mutableStateOf(emptySet<String>()) }
-    var expandedLoaded by remember { mutableStateOf(false) }
+    var expandedLoaded by rememberSaveable { mutableStateOf(false) }
+    // The filter the list was last pulled to the top for; a restored screen already is.
+    var scrolledFor by rememberSaveable(stateSaver = HistoryFilterSaver) { mutableStateOf(filter) }
     var pickingDates by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -119,10 +123,14 @@ fun SeriesHistoryScreen(
     }
 
     LaunchedEffect(Unit) {
-        filter = decodeHistoryFilter(services.store.readHistoryFilter())
-        filterLoaded = true
-        expanded = decodeOpenDays(services.store.readOpenDays())
-        expandedLoaded = true
+        if (!filterLoaded) {
+            filter = decodeHistoryFilter(services.store.readHistoryFilter())
+            filterLoaded = true
+        }
+        if (!expandedLoaded) {
+            expanded = decodeOpenDays(services.store.readOpenDays())
+            expandedLoaded = true
+        }
     }
 
     fun onFilter(new: HistoryFilter) {
@@ -139,8 +147,14 @@ fun SeriesHistoryScreen(
 
     // A changed filter re-anchors the keyed list on whatever item was first visible;
     // pull it back to the newest series. Runs after the recomposition that swapped the
-    // list in: scrolling from onFilter hit the old list, and the key anchor won.
-    LaunchedEffect(filter) { listState.scrollToItem(0) }
+    // list in: scrolling from onFilter hit the old list, and the key anchor won. Only for a
+    // filter that changed: the first composition after Back keeps its restored position.
+    LaunchedEffect(filter) {
+        if (filter != scrolledFor) {
+            scrolledFor = filter
+            listState.scrollToItem(0)
+        }
+    }
 
     val shown = remember(series, filter) { series.filteredBy(filter, Clock.System.now()) }
     val days = remember(shown) { shown.groupedByDay() }

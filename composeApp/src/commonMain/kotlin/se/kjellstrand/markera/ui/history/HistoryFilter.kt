@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.ui.history
 
+import androidx.compose.runtime.saveable.Saver
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
@@ -188,3 +189,9 @@ fun decodeHistoryFilter(text: String?): HistoryFilter {
         HistoryFilter()
     }
 }
+
+/** [HistoryFilter] as saved UI state, in the same text [encode] persists it as. */
+val HistoryFilterSaver: Saver<HistoryFilter, String> = Saver(
+    save = { it.encode() },
+    restore = { decodeHistoryFilter(it) },
+)
