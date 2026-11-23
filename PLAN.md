@@ -19,6 +19,9 @@ This file keeps only the decisions still in force that are not spelled out in
   point the mock flavor at a local server with `DEV_AUTH=true` instead). The admin pages
   are HTTP Basic, user `admin`, password `ADMIN_PASSWORD`; unset = admin routes off. The
   server refuses to start on the `.env.example` placeholder and warns under 16 characters.
+  Wrong admin passwords are throttled per client address (429 + `Retry-After`), every response
+  carries `X-Frame-Options: SAMEORIGIN`, `Content-Security-Policy: frame-ancestors 'self'` and
+  `X-Content-Type-Options: nosniff`, and `ADMIN_LOCAL_NO_AUTH` refuses to start beside `PUBLIC_URL`.
 - **Calibers**: the label is both UI text and wire value, and it is stored in the
   production DB, so add and reorder built-ins freely but **never rename one**. The server
   checks only a label's shape (`CALIBER_SHAPE`), so a new or user-added caliber needs no

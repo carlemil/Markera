@@ -37,6 +37,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -45,11 +46,109 @@ class ApiTest {
     @Test fun `admin local no-auth opens the admin pages to a loopback caller only when set`() {
         assertTrue(isLoopback("127.0.0.1") && isLoopback("0:0:0:0:0:0:0:1") && isLoopback("::1"))
         assertFalse(isLoopback("10.0.0.5") || isLoopback("172.17.0.1") || isLoopback("192.168.1.2"))
+        // A browser always sends Host; the test client sends none unless told to.
         apiTest(adminPassword = ADMIN_PW, adminLocalNoAuth = true) { client ->
-            assertEquals(HttpStatusCode.OK, client.get("/admin").status)
+            assertEquals(HttpStatusCode.OK, client.get("/admin") { header(HttpHeaders.Host, "localhost:8080") }.status)
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin").status)
         }
         apiTest(adminPassword = ADMIN_PW) { client ->
-            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin").status)
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin") { header(HttpHeaders.Host, "localhost:8080") }.status)
+        }
+    }
+
+    @Test fun `admin local no-auth needs a local Host header and no forwarding proxy`() =
+        apiTest(adminPassword = ADMIN_PW, adminLocalNoAuth = true) { client ->
+            assertEquals(HttpStatusCode.OK, client.get("/admin") { header(HttpHeaders.Host, "127.0.0.1:8095") }.status)
+            assertEquals(HttpStatusCode.OK, client.get("/admin") { header(HttpHeaders.Host, "[::1]:8095") }.status)
+            assertEquals(HttpStatusCode.OK, client.get("/admin") { header(HttpHeaders.Host, "LOCALHOST") }.status)
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin") { header(HttpHeaders.Host, "example.org") }.status)
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin") { header(HttpHeaders.Host, "localhost.example.org") }.status)
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/admin") { header(HttpHeaders.XForwardedFor, "127.0.0.1") }.status)
+            // Falling back means the password still works.
+            assertEquals(HttpStatusCode.OK, client.get("/admin") {
+                header(HttpHeaders.Host, "example.org"); basicAuth("admin", ADMIN_PW)
+            }.status)
+        }
+
+    @Test fun `admin local no-auth refuses to start beside PUBLIC_URL or off loopback`() {
+        val local = Config(0, "x.db", null, null, false, adminPassword = ADMIN_PW, adminLocalNoAuth = true)
+        requireLocalNoAuthIsLocal(local, bindHost(local))
+        assertEquals("127.0.0.1", bindHost(local))
+        val public = assertFailsWith<IllegalArgumentException> {
+            requireLocalNoAuthIsLocal(local.copy(publicUrl = "https://example.org"), "127.0.0.1")
+        }
+        assertTrue(public.message!!.contains("PUBLIC_URL"), public.message)
+        val wide = assertFailsWith<IllegalArgumentException> { requireLocalNoAuthIsLocal(local, "0.0.0.0") }
+        assertTrue(wide.message!!.contains("loopback"), wide.message)
+        // Without the flag nothing is checked.
+        requireLocalNoAuthIsLocal(local.copy(adminLocalNoAuth = false, publicUrl = "https://example.org"), "0.0.0.0")
+    }
+
+    @Test fun `wrong admin passwords lock that address with 429 while others still sign in`() {
+        var now = 1_000_000L
+        val throttle = AdminLoginThrottle(clock = { now })
+        apiTest(adminPassword = ADMIN_PW, adminThrottle = throttle) { client ->
+            suspend fun login(ip: String, pw: String?) = client.get("/admin") {
+                header(HttpHeaders.XForwardedFor, "198.51.100.9, $ip")
+                if (pw != null) basicAuth("admin", pw)
+            }
+            // No credentials at all (a browser's first request) is not a wrong password.
+            repeat(10) { assertEquals(HttpStatusCode.Unauthorized, login("203.0.113.1", null).status) }
+            repeat(5) { assertEquals(HttpStatusCode.Unauthorized, login("203.0.113.1", "nope").status) }
+            val locked = login("203.0.113.1", ADMIN_PW)
+            assertEquals(HttpStatusCode.TooManyRequests, locked.status)
+            assertEquals((15 * 60).toString(), locked.headers[HttpHeaders.RetryAfter])
+            // Another address is unaffected, and its success does not unlock the first.
+            assertEquals(HttpStatusCode.OK, login("203.0.113.2", ADMIN_PW).status)
+            assertEquals(HttpStatusCode.TooManyRequests, login("203.0.113.1", ADMIN_PW).status)
+            // The lock lapses with its window; the next one is twice as long.
+            now += 15 * 60_000L
+            assertEquals(HttpStatusCode.OK, login("203.0.113.1", ADMIN_PW).status)
+            repeat(5) { login("203.0.113.3", "nope") }
+            now += 15 * 60_000L
+            repeat(5) { assertEquals(HttpStatusCode.Unauthorized, login("203.0.113.3", "nope").status) }
+            assertEquals((30 * 60).toString(), login("203.0.113.3", ADMIN_PW).headers[HttpHeaders.RetryAfter])
+            now += 15 * 60_000L
+            val still = login("203.0.113.3", ADMIN_PW)
+            assertEquals(HttpStatusCode.TooManyRequests, still.status)
+            assertEquals((15 * 60).toString(), still.headers[HttpHeaders.RetryAfter])
+        }
+    }
+
+    @Test fun `admin login throttle has a total cap and forgets quiet addresses`() {
+        var now = 0L
+        val throttle = AdminLoginThrottle(clock = { now }, globalLimit = 20, globalLockMs = 60_000L, maxTracked = 3)
+        repeat(19) { throttle.failure("192.0.2.$it") }
+        assertEquals(null, throttle.lockedFor("192.0.2.200"))
+        throttle.failure("192.0.2.19")
+        assertEquals(60_000L, throttle.lockedFor("192.0.2.200"))
+        now += 60_000L
+        assertEquals(null, throttle.lockedFor("192.0.2.200"))
+        now += 2 * 24 * 60 * 60_000L
+        throttle.failure("192.0.2.201")
+        assertTrue(throttle.trackedCount() <= 3, "tracked ${throttle.trackedCount()}")
+    }
+
+    @Test fun `client address uses the proxy's forwarded entry only behind a local or private peer`() {
+        assertTrue(isPrivateAddress("172.17.0.1") && isPrivateAddress("10.0.0.5") && isPrivateAddress("192.168.5.2"))
+        assertTrue(isPrivateAddress("fd00::1") && isPrivateAddress("127.0.0.1"))
+        assertFalse(isPrivateAddress("203.0.113.7") || isPrivateAddress("2001:db8::1") || isPrivateAddress("example.org"))
+        assertTrue(isLocalHostHeader("localhost:8080") && isLocalHostHeader("[::1]") && isLocalHostHeader("127.0.0.1"))
+        assertFalse(isLocalHostHeader(null) || isLocalHostHeader("") || isLocalHostHeader("10.0.0.1:80"))
+    }
+
+    @Test fun `security headers ride on admin pages API routes and errors`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val responses = listOf(
+            client.admin("/admin"),
+            client.get("/admin"),
+            client.get("/health"),
+            client.get("/series"),
+            client.get("/no-such-route"),
+        )
+        responses.forEach { r ->
+            assertEquals("SAMEORIGIN", r.headers["X-Frame-Options"], r.call.request.url.toString())
+            assertEquals("frame-ancestors 'self'", r.headers["Content-Security-Policy"])
+            assertEquals("nosniff", r.headers["X-Content-Type-Options"])
         }
     }
 
@@ -281,6 +380,7 @@ class ApiTest {
         contactEmail: String? = null,
         mailer: Mailer? = null,
         adminLocalNoAuth: Boolean = false,
+        adminThrottle: AdminLoginThrottle = AdminLoginThrottle(),
         block: suspend ApplicationTestBuilder.(HttpClient) -> Unit,
     ) =
         testApplication {
@@ -292,6 +392,7 @@ class ApiTest {
                         adminLocalNoAuth = adminLocalNoAuth),
                     Db(dbFile.path),
                     mailer = mailer,
+                    adminThrottle = adminThrottle,
                 )
             }
             val client = createClient { install(ClientContentNegotiation) { json() } }

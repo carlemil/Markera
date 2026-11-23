@@ -12,7 +12,13 @@ Ktor + SQLite backend for scanned series. Standalone Gradle build (not part of t
 Env vars: `PORT` (8080), `DB_PATH` (`./data/markera.db`), `IMAGES_DIR` (`<DB_PATH dir>/images`),
 `GOOGLE_CLIENT_ID`, `APPLE_BUNDLE_ID`, `DEV_AUTH` (`true` enables `POST /auth/dev`, never in production),
 `ADMIN_PASSWORD` (serves the read-only `/admin` pages — users → series → holes + image — behind HTTP Basic
-with user `admin` and this password; blank/unset leaves them unregistered),
+with user `admin` and this password; blank/unset leaves them unregistered. Wrong passwords are counted in memory
+per client address: five within 15 minutes answer 429 with `Retry-After` for 15 minutes, doubling on each repeat,
+and 100 in total within 15 minutes pause admin logins for 5 minutes. Behind the host proxy the address is the
+rightmost `X-Forwarded-For` entry, read only when the socket peer is loopback or private),
+`ADMIN_LOCAL_NO_AUTH` (`true` for a local copy only: binds 127.0.0.1 and skips the admin password for a loopback
+caller whose `Host` is `localhost`, `127.0.0.1` or `[::1]` and that sends no `X-Forwarded-For`; the server will not
+start with it beside `PUBLIC_URL`),
 `TZ` (the zone the admin pages show timestamps in; compose sets `Europe/Stockholm`).
 
 Suggestion box: `POST /suggestions` `{title, description, email?, platform?, appVersion?}` → 201 `{id}`. Open to
