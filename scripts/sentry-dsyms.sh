@@ -9,4 +9,7 @@ cd "$(dirname "$0")/.."
 mkdir -p build/dsym
 scp -q macmini:source/Markera/iosApp/build/ios/iosApp.app.dSYM.zip build/dsym/
 root=$(pwd -W 2>/dev/null || pwd)   # sentry-cli is a Windows binary under Git sh
-SENTRY_PROPERTIES="$root/sentry.properties" npx --yes @sentry/cli debug-files upload "$root/build/dsym/iosApp.app.dSYM.zip"
+# Pinned: npx runs this with the Sentry auth token, so it must not pull whatever is
+# newest on npm. Bump it by hand (`npm view @sentry/cli version`).
+SENTRY_CLI_VERSION=3.8.2
+SENTRY_PROPERTIES="$root/sentry.properties" npx --yes "@sentry/cli@$SENTRY_CLI_VERSION" debug-files upload "$root/build/dsym/iosApp.app.dSYM.zip"
