@@ -261,6 +261,11 @@ queued rows for every refresh; other 4xx keep refused rows, retry once per repos
 start and through Detail's Try again. Each row reports a refusal once. A 401 signs out without
 deleting the owned local request/photo. `refresh()` sends only the current account's queue in
 local-id order, then applies the server's `updatedAt` delta/tombstones to the server cache only.
+One failing row never blocks the rest or the delta (#17): a 5xx/4xx row stays and the next goes;
+a 429 stops the queue; the first IOException stops it too, the delta is tried anyway (offline,
+its failure is the refresh's result), and once that answers the rows after it are sent (an
+IOException there skips its row, a second ends the pass). Only a 401 aborts before the delta; a row failure alone
+leaves `refresh()` successful.
 Schema v4 retains the old outbox until restart-safe adoption moves each request and BLOB photo
 to the local store; a failed file write never deletes the outbox row.
 

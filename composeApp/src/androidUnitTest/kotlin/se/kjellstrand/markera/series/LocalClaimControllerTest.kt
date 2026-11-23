@@ -275,19 +275,20 @@ class LocalClaimControllerTest {
         assertEquals(listOf("claim-1"), f.posts.map { it.clientId }); assertTrue(f.snapshot().isEmpty())
     }
 
-    @Test fun thirdOfFiveFailingLeavesRemainingOwnedQueueWithStableClientIds() = scenario { f ->
+    // #17: the failing third row stays in the owned queue; the rows after it still go.
+    @Test fun thirdOfFiveFailingStaysQueuedWithStableClientIdWhileTheRestGo() = scenario { f ->
         (1L..5L).forEach { f.seed(it) }; f.signIn(); f.failPost = 3
         f.controller.add(); f.awaitChoiceFinished()
-        assertEquals(listOf("claim-1", "claim-2", "claim-3"), f.posts.map { it.clientId })
-        assertEquals(listOf("claim-3", "claim-4", "claim-5"), f.snapshot().map { it.client_id })
-        assertTrue(f.snapshot().all { it.owner_user_id == "42" }); assertEquals(2, f.successful.size)
+        assertEquals(listOf("claim-1", "claim-2", "claim-3", "claim-4", "claim-5"), f.posts.map { it.clientId })
+        assertEquals(listOf("claim-3"), f.snapshot().map { it.client_id })
+        assertTrue(f.snapshot().all { it.owner_user_id == "42" }); assertEquals(4, f.successful.size)
         assertEquals(42L, f.session.auth.value?.userId); assertNull(f.session.pendingAuth.value)
         assertFalse(f.controller.state.value is ClaimState.Ask)
-        assertEquals(setOf(3L, 4L, 5L), f.local.files.keys)
+        assertEquals(setOf(3L), f.local.files.keys)
         f.failPost = null; assertNull(f.repository.refresh())
-        assertEquals(listOf("claim-1", "claim-2", "claim-3", "claim-3", "claim-4", "claim-5"), f.posts.map { it.clientId })
+        assertEquals(listOf("claim-1", "claim-2", "claim-3", "claim-4", "claim-5", "claim-3"), f.posts.map { it.clientId })
         assertEquals(5, f.successful.size); assertTrue(f.snapshot().isEmpty())
-        assertEquals((1L..5L).map(f::request), f.successful.values.toList())
+        assertEquals((1L..5L).map(f::request).toSet(), f.successful.values.toSet())
     }
 
     @Test fun deleteConfirmationCountsOnlyOfferedRowsAndCancelChangesNothing() = scenario { f ->
