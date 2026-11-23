@@ -20,8 +20,22 @@ import kotlin.math.sqrt
 class TargetPlane private constructor(private val h: DoubleArray) {
     private val inv = invert3(h)
 
-    /** [x],[y] (image px) in target mm. */
-    fun toMm(x: Double, y: Double): Pair<Double, Double> = apply3(h, x, y)
+    /**
+     * The sign of [h]'s w at the target centre's image: w there is 1 / inv[8]. Points on the
+     * other side of the vanishing line (w = 0) have the other sign.
+     */
+    private val centreSide = if (inv[8] < 0.0) -1.0 else 1.0
+
+    /**
+     * [x],[y] (image px) in target mm; NaN for both when the point is on or past the
+     * vanishing line, on the far side from the centre. Such a point is no point of the
+     * target (the map would mirror it back onto the face), so it scores as a miss.
+     */
+    fun toMm(x: Double, y: Double): Pair<Double, Double> {
+        val w = h[6] * x + h[7] * y + h[8]
+        if (!(w * centreSide > 0.0)) return Double.NaN to Double.NaN
+        return apply3(h, x, y)
+    }
 
     /** [xMm],[yMm] (target mm) back in image px. */
     fun toImage(xMm: Double, yMm: Double): Pair<Double, Double> = apply3(inv, xMm, yMm)

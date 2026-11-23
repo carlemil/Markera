@@ -124,7 +124,7 @@ fun List<SeriesDto>.plotSeries(filter: StatsFilter, skipUnpositioned: Boolean = 
             val y = hole.y ?: return@mapNotNull null
             val (xMm, yMm) = targetOffsetMm(x.toFloat(), y.toFloat(), centre, ring)
             PlottedHit(xMm, yMm, hole.ring, hole.innerTen)
-        }
+        }.filter { it.xMm.isFinite() && it.yMm.isFinite() } // past the vanishing line: no target point
         at to PlottedSeries(series, hits, 0f, at)
     }.sortedBy { it.first }
     val last = kept.size - 1

@@ -19,6 +19,7 @@ import se.kjellstrand.markera.vision.INNER_RING_RADII_MM
 import se.kjellstrand.markera.vision.TARGET_BLACK_RING_RADIUS_MM
 import se.kjellstrand.markera.vision.TargetPlane
 import se.kjellstrand.markera.vision.fit67RingFromDigits
+import se.kjellstrand.markera.vision.plausibleGeometry
 import se.kjellstrand.markera.vision.ringOutline
 
 /**
@@ -50,6 +51,13 @@ data class GeometryDraft(
     val ring: FittedEllipse? by lazy { plane?.circleOutline(TARGET_BLACK_RING_RADIUS_MM) }
 
     val centre: CentreEstimate get() = CentreEstimate(centreX, centreY, CentreMethod.MANUAL)
+
+    /**
+     * The ring and centre pass the same shape checks as a found ring ([plausibleGeometry]); until
+     * they do, Done stays off. A centre dragged up to the ring would put the target's vanishing
+     * line on the face, and holes past it would score mirrored.
+     */
+    val usable: Boolean get() = ring?.let { plausibleGeometry(centre, it) } == true
 
     /** Point [i] (0..3 = left, right, top, bottom) moved to [x],[y]; a free centre follows. */
     fun withPoint(i: Int, x: Float, y: Float): GeometryDraft =

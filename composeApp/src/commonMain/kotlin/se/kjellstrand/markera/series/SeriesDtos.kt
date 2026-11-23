@@ -183,7 +183,7 @@ fun HitScore.toHoleDto(): HoleDto {
         y = centerYpx.toDouble(),
         ring = ring,
         innerTen = isInnerTen,
-        distanceMm = distanceMm,
+        distanceMm = distanceMm.takeIf { it.isFinite() },
         detectedRing = detected?.ring,
         detectedInnerTen = detected?.isInnerTen,
         detectedX = detected?.centerXpx?.toDouble(),
@@ -257,7 +257,7 @@ fun List<HoleDto>.nearestHoleIndex(x: Double, y: Double, maxDist: Double): Int =
 fun GeometryDto.scoreHoleAt(x: Double, y: Double, caliber: Caliber): HoleDto {
     val dist = distanceMm(x.toFloat(), y.toFloat(), centre(), ring())
     val (ring, innerTen) = scoreAt(dist, caliber.holeRadiusMm() ?: 0.0)
-    return HoleDto(x = x, y = y, ring = ring, innerTen = innerTen, distanceMm = dist)
+    return HoleDto(x = x, y = y, ring = ring, innerTen = innerTen, distanceMm = dist.takeIf { it.isFinite() })
 }
 
 /**
@@ -330,7 +330,7 @@ fun List<HoleDto>.restoreHole(index: Int, geometry: GeometryDto): List<HoleDto> 
                 ring = ring,
                 innerTen = hole.detectedInnerTen == true,
                 distanceMm = if (hx != null && hy != null) {
-                    distanceMm(hx.toFloat(), hy.toFloat(), geometry.centre(), geometry.ring())
+                    distanceMm(hx.toFloat(), hy.toFloat(), geometry.centre(), geometry.ring()).takeIf { it.isFinite() }
                 } else {
                     hole.distanceMm
                 },
