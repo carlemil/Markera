@@ -268,7 +268,7 @@ Sign-out, account deletion and account switch clear only `series`, `sync` and th
 cache. Local work survives. All sign-in providers go through the held-auth gate: the token is
 not persisted or published while rows saved signed out or for another account need a decision.
 The shared `LocalClaimController`/dialog offers Add, confirmed Delete, or Stay signed out;
-dismiss means Stay. Add transfers every offered row in one transaction before publishing auth,
+dismiss means Stay. Add transfers every counted row in one transaction before publishing auth,
 then refresh sends them. The gate counts and publishes under the store lock, and a save reads its owner
 under that lock, so a sign-in either counts a concurrent save or owns it; Add and Delete act on exactly
 the rows the dialog counted, and a row saved after the count keeps the login held for its own question. Partial failures stay in that account's queue. Own-account rows resume
