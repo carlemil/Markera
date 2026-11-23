@@ -149,8 +149,12 @@ fun SeriesDetailScreen(
 ) {
     // Looked up in the cache by id, so an edit made anywhere else shows here.
     val cached by services.repository.visibleSeries.collectAsState()
-    val series = cached.firstOrNull { it.id == initial.id } ?: initial
-    val (newerId, olderId) = neighbours(ids, series.id, cached.mapTo(mutableSetOf()) { it.id })
+    // A local series the server took meanwhile lives on under its server id; the page's own
+    // state is keyed on initial.id, so that switch keeps the photo, zoom and edits.
+    val acknowledged by services.repository.acknowledgedIds.collectAsState()
+    fun current(id: Long) = if (id < 0) acknowledged[-id] ?: id else id
+    val series = cached.firstOrNull { it.id == current(initial.id) } ?: initial
+    val (newerId, olderId) = neighbours(ids.map(::current), series.id, cached.mapTo(mutableSetOf()) { it.id })
     val newer = cached.firstOrNull { it.id == newerId }
     val older = cached.firstOrNull { it.id == olderId }
     val toast = LocalToast.current
@@ -158,27 +162,27 @@ fun SeriesDetailScreen(
     val scope = rememberCoroutineScope()
     // A plain State (not `by`), so the drag gesture — which is not recomposed —
     // reads and writes the current list.
-    val holes = remember(series.id) { mutableStateOf(series.holes) }
-    var photo by remember(series.id) { mutableStateOf<ImageBitmap?>(null) }
+    val holes = remember(initial.id) { mutableStateOf(series.holes) }
+    var photo by remember(initial.id) { mutableStateOf<ImageBitmap?>(null) }
     // Local like the holes; commit() below saves all three together. The recorder owns
     // the user's own calibers (the dialog adds and removes through it), so a custom
     // label resolves to its diameter here.
     val recorder = LocalSeriesRecorder.current
     val custom = customCalibers()
-    var caliber by remember(series.id) { mutableStateOf(Caliber.fromLabel(series.caliber, custom)) }
-    var pickingCaliber by remember(series.id) { mutableStateOf(false) }
+    var caliber by remember(initial.id) { mutableStateOf(Caliber.fromLabel(series.caliber, custom)) }
+    var pickingCaliber by remember(initial.id) { mutableStateOf(false) }
     // Deliberately not routed through SeriesRecorder — that one owns the
     // *pending scan*, not this series.
-    var tag by remember(series.id) { mutableStateOf(series.tag) }
-    var pickingTag by remember(series.id) { mutableStateOf(false) }
+    var tag by remember(initial.id) { mutableStateOf(series.tag) }
+    var pickingTag by remember(initial.id) { mutableStateOf(false) }
     // A score only ever comes from a position, so without geometry the holes
     // can't be edited at all.
     val geometry = series.geometry
     var confirmDelete by remember { mutableStateOf(false) }
-    var pendingDeleteIndex by remember(series.id) { mutableStateOf<Int?>(null) }
+    var pendingDeleteIndex by remember(initial.id) { mutableStateOf<Int?>(null) }
     var showingHelp by remember { mutableStateOf(false) }
     // The hole picked in the list or on the photo: its row is tinted and its marker ringed.
-    var selected by remember(series.id) { mutableStateOf<Int?>(null) }
+    var selected by remember(initial.id) { mutableStateOf<Int?>(null) }
     val auth by services.session.auth.collectAsState()
     // The quiet "against your average" lines; Insights off (Settings) hides them.
     val settings = LocalAppSettings.current
@@ -192,14 +196,14 @@ fun SeriesDetailScreen(
     val dayNote = remember(cached, series, insightsOn, sights) {
         if (insightsOn) dayFinding(series, cached, sights = sights) else null
     }
-    val zoomPan = rememberZoomPan(series.id)
+    val zoomPan = rememberZoomPan(initial.id)
     val savedText = stringResource(Res.string.detail_saved)
     val failedText = stringResource(Res.string.detail_save_failed)
     val undoText = stringResource(Res.string.undo)
     val deleteFailedText = stringResource(Res.string.history_delete_failed)
     val grabPx = with(LocalDensity.current) { GRAB_RADIUS.toPx() }
 
-    val edits = remember(series.id) { SeriesEdits(services.repository, series) }
+    val edits = remember(initial.id) { SeriesEdits(services.repository, series) }
     var undoJob by remember { mutableStateOf<Job?>(null) }
     fun restore(to: SeriesEdit) {
         holes.value = to.holes
@@ -246,8 +250,8 @@ fun SeriesDetailScreen(
     }
 
     // Tells a photo that will not come ("No photo") from one still loading (spinner).
-    var photoFailed by remember(series.id) { mutableStateOf(false) }
-    LaunchedEffect(series.id) {
+    var photoFailed by remember(initial.id) { mutableStateOf(false) }
+    LaunchedEffect(initial.id) {
         if (!series.hasImage) return@LaunchedEffect
         // Null is a failed download with nothing cached.
         val bytes = services.repository.image(series.id)

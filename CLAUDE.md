@@ -255,7 +255,10 @@ previous/next arrows step with `replace`, so Back still returns to the list.
 with `local_series`, newest first, also while signed out. Every screen, statistic and export reads `visibleSeries` instead: the same list without series lacking a complete photo (`hasCompletePhoto`: `hasImage` plus a frame size), filtered once per reload; `series` stays whole for the repository's own bookkeeping. Local DTOs use `id = -local_id` and
 a transient `LocalMark` (`UNCLAIMED`, `QUEUED`, `REFUSED`). Their JPEGs and thumbnails use
 `LocalImageStore` at durable `filesDir/local-series/`; synced images remain evictable at
-`cacheDir/series/`. Negative IDs route image, edits, deletion, statistics and export locally.
+`cacheDir/series/`. Negative IDs route image, edits, deletion, statistics and export locally,
+except that edits and deletion of a local id the server has acknowledged go to its server id
+(the row's `server_id`, or `acknowledgedIds`, kept in memory after the row is gone); the Serie
+page follows that id too.
 Deleted-hole provenance and the persisted clientId survive local edits.
 
 Every save first commits a local request and an atomic JPEG file. `send` serializes with refresh
