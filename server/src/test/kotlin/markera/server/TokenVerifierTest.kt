@@ -234,12 +234,63 @@ class TokenVerifierTest {
     }
 
     @Test
-    fun failedFetchCountsTowardTheIntervalAndKeepsKnownKeys() {
+    fun failedFetchKeepsKnownKeys() {
         verifier.identity(token())
         source.failing = true
         clock.advance(interval)
         repeat(5) { assertFailsWith<JWTVerificationException> { verifier.identity(token(kid = "missing-$it")) } }
         assertEquals(2, source.fetches)
         assertEquals("subject-123", verifier.identity(token()).subject)
+    }
+
+    /** Lookups of a key id that only a successful read can supply; returns the read count afterwards. */
+    private fun lookUpAfter(seconds: Long): Int {
+        clock.advance(Duration.ofSeconds(seconds))
+        runCatching { verifier.identity(token()) }
+        return source.fetches
+    }
+
+    @Test
+    fun failedFetchRetriesSoonerAndBacksOff() {
+        source.failing = true
+        assertEquals(1, lookUpAfter(0)) // first read fails
+        assertEquals(1, lookUpAfter(4)) // 4 s: still waiting
+        assertEquals(2, lookUpAfter(1)) // 5 s after the failure: retried, fails again
+        assertEquals(2, lookUpAfter(9)) // next wait is 10 s
+        assertEquals(3, lookUpAfter(1))
+        assertEquals(3, lookUpAfter(19)) // then 20 s
+        assertEquals(4, lookUpAfter(1))
+        assertEquals(4, lookUpAfter(39)) // then 40 s
+        assertEquals(5, lookUpAfter(1))
+        assertEquals(5, lookUpAfter(59)) // capped at the normal 60 s
+        assertEquals(6, lookUpAfter(1))
+        assertEquals(6, lookUpAfter(59))
+        assertEquals(7, lookUpAfter(1))
+    }
+
+    @Test
+    fun successfulFetchReturnsToTheNormalInterval() {
+        source.failing = true
+        assertEquals(1, lookUpAfter(0))
+        source.failing = false
+        assertEquals(2, lookUpAfter(5)) // retry succeeds and loads the key
+        // Unknown key ids now wait the full interval again.
+        clock.advance(Duration.ofSeconds(5))
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(kid = "missing")) }
+        assertEquals(2, source.fetches)
+        clock.advance(Duration.ofSeconds(54))
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(kid = "missing")) }
+        assertEquals(2, source.fetches)
+        clock.advance(Duration.ofSeconds(1))
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(kid = "missing")) }
+        assertEquals(3, source.fetches)
+        // A later failure starts the back-off again from 5 s.
+        source.failing = true
+        clock.advance(interval)
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(kid = "missing")) }
+        assertEquals(4, source.fetches)
+        clock.advance(Duration.ofSeconds(5))
+        assertFailsWith<JWTVerificationException> { verifier.identity(token(kid = "missing")) }
+        assertEquals(5, source.fetches)
     }
 }

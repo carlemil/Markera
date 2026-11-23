@@ -21,8 +21,10 @@ fun interface KeySetSource {
 /**
  * A provider's RSA signing keys by key id. The whole set is read at most once per [minRefreshInterval],
  * whichever key id is asked for: a key id missing from a set read within the interval is answered with
- * null straight away. The interval runs from the last read attempt (failed ones included), so a key the
- * provider adds is found on the first lookup once the interval has passed. A set older than [maxAge] is
+ * null straight away. The interval runs from the last read attempt, so a key the provider adds is found on
+ * the first lookup once the interval has passed. After a failed read the next one is allowed sooner
+ * ([initialRetryDelay], doubling while reads keep failing, up to the interval); a successful read
+ * returns to the full interval. A set older than [maxAge] is
  * read again even on a hit, so retired keys drop out. Lookups of cached keys in a set younger than
  * [maxAge] never wait for a read in progress.
  */
@@ -31,8 +33,13 @@ class JwksKeySet(
     private val minRefreshInterval: Duration = Duration.ofSeconds(60),
     private val maxAge: Duration = Duration.ofHours(24),
     private val clock: () -> Instant = Instant::now,
+    /** Wait after a failed read; it doubles while reads keep failing, up to [minRefreshInterval]. */
+    private val initialRetryDelay: Duration = Duration.ofSeconds(5),
 ) {
     @Volatile private var keys: Map<String, RSAPublicKey> = emptyMap()
+    // Both guarded by refreshLock.
+    private var nextReadAfter: Duration = minRefreshInterval
+    private var retryDelay: Duration? = null
     @Volatile private var lastAttempt: Instant? = null
     @Volatile private var lastSuccess: Instant? = null
     private val refreshLock = Any()
@@ -46,13 +53,19 @@ class JwksKeySet(
             if (fresh != null && !stale()) return fresh
             val last = lastAttempt
             val now = clock()
-            if (last == null || Duration.between(last, now) >= minRefreshInterval) {
+            if (last == null || Duration.between(last, now) >= nextReadAfter) {
                 lastAttempt = now
                 try {
                     keys = source.fetch().mapNotNull(::usable).toMap()
                     lastSuccess = now
+                    nextReadAfter = minRefreshInterval
+                    retryDelay = null
                 } catch (_: Exception) {
-                    // Keep the keys we have; the next read waits for the interval like any other.
+                    // Keep the keys we have and retry soon, doubling the wait while reads keep failing.
+                    val delay = retryDelay?.multipliedBy(2)?.coerceAtMost(minRefreshInterval)
+                        ?: initialRetryDelay.coerceAtMost(minRefreshInterval)
+                    retryDelay = delay
+                    nextReadAfter = delay
                 }
             }
             return keys[kid]
