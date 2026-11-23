@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.getPluralString
 import org.jetbrains.compose.resources.getString
@@ -119,7 +120,12 @@ fun MarkeraScreen(
     var pendingDeleteIndex by remember { mutableStateOf<Int?>(null) }
     // Any hand edit of a result makes Reset ask first. Cleared when the frame is left.
     var edited by remember { mutableStateOf(false) }
-    val onSetScore: (Int, Int) -> Unit = { index, pick ->
+    // A Save waiting for its local result (the JPEG encode and the write). The frame is frozen
+    // until it answers: a second Save or a Reset would leave it (and move an import on) twice,
+    // and an edit would replace the pending scan being saved.
+    var saving by remember { mutableStateOf(false) }
+    val onSetScore: (Int, Int) -> Unit = setScore@{ index, pick ->
+        if (saving) return@setScore
         edited = true
         scanController.setScore(viewModel, snapshotVm.snapshot, index, pick)
     }
@@ -141,17 +147,20 @@ fun MarkeraScreen(
     val haptics = LocalHapticFeedback.current
     val editing = remember(scanController) {
         HoleEditing(
-            add = { x, y, reach ->
+            add = add@{ x, y, reach ->
+                if (saving) return@add
                 // Read at tap time, so the remembered lambda sees the current caliber.
                 val caliber = recorder?.caliber?.value ?: Caliber.NONE
                 edited = true
                 scanController.addHit(viewModel, snapshotVm.snapshot, x, y, reach, caliber)
             },
-            move = { i, x, y ->
+            move = move@{ i, x, y ->
+                if (saving) return@move -1 // nothing moved
                 edited = true
                 scanController.moveHit(viewModel, snapshotVm.snapshot, i, x, y)
             },
-            remove = { i ->
+            remove = remove@{ i ->
+                if (saving) return@remove
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 edited = true
                 pendingDeleteIndex = i
@@ -159,22 +168,40 @@ fun MarkeraScreen(
         )
     }
 
-    val onResumeLive: () -> Unit = {
-        // Read the pickers before clearResults() wipes them.
+    val onResumeLive: () -> Unit = resume@{
+        if (saving) return@resume
+        // Saving is what leaves the frozen frame, with the edited scores; the commit runs
+        // before clearResults() wipes the pickers.
         val picks = uiState.topScores
         val scored = uiState.scores.isNotEmpty()
-        edited = false
-        placing = null
-        snapshotVm.clear()
-        viewModel.clearResults()
-        // Leaving the frozen frame is what saves the scan, with the edited scores.
-        recorder?.commit(picks)
-        frameSource.onResumeLive()
-        importQueue?.next(if (scored) ImportDecision.Save else ImportDecision.Skip)
+        val save = recorder?.commit(picks)
+        saving = true
+        coroutineScope.launch {
+            val decision = try {
+                // Without a recorder (previews) nothing is saved; the scan counts as it did.
+                if (recorder == null || save == null) {
+                    if (scored) ImportDecision.Save else ImportDecision.Skip
+                } else {
+                    afterSave(save.await(), recorder.retainedAfterFailure)
+                }
+            } finally {
+                saving = false
+            }
+            // Not kept on the phone, but retained: the frame and results stay for Save again,
+            // under the failure toast. An import stays on this image; Skip still moves on.
+            if (decision == null) return@launch
+            edited = false
+            placing = null
+            snapshotVm.clear()
+            viewModel.clearResults()
+            frameSource.onResumeLive()
+            importQueue?.next(decision)
+        }
     }
     // Detection went wrong (ring, centre, holes): drop the scan and start over, saving nothing.
     // In an import that is Skip: the next image.
-    val discard: () -> Unit = {
+    val discard: () -> Unit = discard@{
+        if (saving) return@discard
         edited = false
         placing = null
         snapshotVm.clear()
