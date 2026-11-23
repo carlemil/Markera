@@ -28,8 +28,12 @@ optional) and `PUBLIC_URL`. Missing any leaves `/auth/apple/{start,callback,clai
 `POST /auth/apple` (the native iOS token) keeps working off `APPLE_BUNDLE_ID` alone. The Services ID's
 *Primary App ID* must be the iOS bundle id, or Apple hands Android a different `sub` and the user lands on a
 second, empty account; its Return URL must be exactly `$PUBLIC_URL/auth/apple/callback`. Apple verifies the
-domain by fetching `/.well-known/apple-developer-domain-association.txt`, served from
-`src/main/resources/apple-developer-domain-association.txt` (404 while that file is absent).
+domain by fetching `/.well-known/apple-developer-domain-association.txt`. That file is whatever Apple
+issues for domain verification, if it asks for one, and is **not in git**: the server reads it from
+`APPLE_DOMAIN_ASSOCIATION_FILE`, by default `apple-developer-domain-association.txt` beside the database
+(in Docker, `/data/apple-developer-domain-association.txt` in the `markera-data` volume, e.g.
+`docker compose cp <file> markera-server:/data/`). It is re-read on every request, so no restart is needed,
+and the route answers 404 while the file is absent.
 
 API: `GET /health` (runs `SELECT 1`; 503 when the database does not answer), `POST /auth/{google,apple,dev}` → `{token, userId}`,
 `GET /auth/apple/start?state=` → 302 to Apple, `GET /auth/apple/callback` → 302 to
