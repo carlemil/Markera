@@ -29,6 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.saveable.SaveableStateHolder
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.navigationevent.NavigationEventInfo
@@ -48,7 +52,6 @@ import se.kjellstrand.markera.series.SeriesDto
 import se.kjellstrand.markera.series.SeriesRecorder
 import se.kjellstrand.markera.series.SeriesServices
 import se.kjellstrand.markera.series.LocalClaimController
-import se.kjellstrand.markera.series.encodeSeriesJpeg
 import se.kjellstrand.markera.series.rememberSignIn
 import se.kjellstrand.markera.series.BackendAuth
 import se.kjellstrand.markera.series.BackendSessionRepository
@@ -64,7 +67,7 @@ import se.kjellstrand.markera.ui.stats.insightsDayFor
 import se.kjellstrand.markera.ui.history.SeriesHistoryScreen
 import se.kjellstrand.markera.ui.markera.MarkeraScreen
 import se.kjellstrand.markera.ui.markera.rememberFrameSource
-import se.kjellstrand.markera.ui.markera.rememberTargetScanController
+import se.kjellstrand.markera.ui.markera.DeviceScanEngine
 import se.kjellstrand.markera.ui.settings.AppSettings
 import se.kjellstrand.markera.ui.settings.LocalAppSettings
 import se.kjellstrand.markera.ui.settings.LocalAppLocale
@@ -114,7 +117,9 @@ sealed interface Screen {
  * here, above the key, and the user stays on the Settings screen. So are the
  * heavy objects — the frame source, the scan controller (the single ONNX
  * session) and the series recorder — so a language change neither rebuilds
- * them nor cancels an in-flight save or drops the pending series.
+ * them nor cancels an in-flight save or drops the pending series. The stack,
+ * the controller and the recorder live in [AppViewModel], so an activity
+ * recreation keeps them too; the stack is also saved state, for process death.
  */
 @Composable
 fun MarkeraApp(app: AppServices) {
@@ -130,33 +135,23 @@ fun MarkeraApp(app: AppServices) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val stack = remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
+    // Survives a configuration change; only what it holds may outlive the activity.
+    val held = viewModel {
+        AppViewModel(app.series, app.scanStandIns?.engine?.invoke() ?: DeviceScanEngine(app.modelPath))
+    }
+    // The live stack after a configuration change, the saved text after process death.
+    val stack = rememberSaveable(saver = backStackSaver { held.stack }) {
+        held.stack ?: mutableStateOf<List<Screen>>(listOf(Screen.Home))
+    }
+    held.stack = stack
+    // Each entry's own saved UI state (History's scroll and filter) while a screen above it shows.
+    val entryStates = rememberSaveableStateHolder()
 
-    val seriesServices = app.series
     // The camera is always composed (it is a remembered platform resource); a UI test's stand-in replaces it.
     val deviceFrameSource = rememberFrameSource()
     val frameSource = app.scanStandIns?.frameSource ?: deviceFrameSource
-    val scanController = rememberTargetScanController(app.modelPath, app.scanStandIns?.engine)
-    // Auto-save: every scan the shared controller completes is offered to the
-    // recorder, whichever screen started it.
-    val recorder = remember {
-        SeriesRecorder(
-            repository = seriesServices.repository,
-            session = seriesServices.session,
-            readCaliber = seriesServices.store::readCaliber,
-            writeCaliber = seriesServices.store::writeCaliber,
-            readTag = seriesServices.store::readTag,
-            writeTag = seriesServices.store::writeTag,
-            encodeJpeg = ::encodeSeriesJpeg,
-            scope = scope,
-            readCustomCalibers = seriesServices.store::readCustomCalibers,
-            writeCustomCalibers = seriesServices.store::writeCustomCalibers,
-        ).also {
-            scanController.onSeriesDetected = it::onSeriesDetected
-            scanController.onScanStarted = it::clear
-        }
-    }
-    DisposableEffect(recorder) { onDispose { recorder.dispose() } }
+    val scanController = held.scanController
+    val recorder = held.recorder
 
     // The locale is process-wide and resources read it while composing: set it after a
     // commit, then key the tree on the language actually applied.
@@ -178,7 +173,7 @@ fun MarkeraApp(app: AppServices) {
         key(applied) {
             MarkeraTheme(dark) {
                 SystemBarsForTheme(dark)
-                AppNavHost(app, settings, stack, frameSource, scanController, recorder)
+                AppNavHost(app, settings, stack, entryStates, frameSource, scanController, recorder)
             }
         }
     }
@@ -196,6 +191,7 @@ fun AppNavHost(
     app: AppServices,
     settings: AppSettings,
     stackState: MutableState<List<Screen>>,
+    entryStates: SaveableStateHolder,
     frameSource: FrameSource,
     scanController: TargetScanController,
     recorder: SeriesRecorder,
@@ -268,10 +264,21 @@ fun AppNavHost(
 
     var stack by stackState
     val current = stack.last()
+    val currentKey = backStackKey(stack.lastIndex, current)
+    // A dropped entry's saved state goes with it, so the next screen at that depth starts fresh.
+    val forgetTop: () -> Unit = { entryStates.removeState(backStackKey(stack.lastIndex, stack.last())) }
     val push: (Screen) -> Unit = { stack = stack + it }
-    val pop: () -> Unit = { if (stack.size > 1) stack = stack.dropLast(1) }
+    val pop: () -> Unit = {
+        if (stack.size > 1) {
+            forgetTop()
+            stack = stack.dropLast(1)
+        }
+    }
     // Swaps the top entry, so stepping between series leaves one Back to the list.
-    val replace: (Screen) -> Unit = { stack = stack.dropLast(1) + it }
+    val replace: (Screen) -> Unit = {
+        forgetTop()
+        stack = stack.dropLast(1) + it
+    }
 
     NavigationBackHandler(
         state = rememberNavigationEventState(NavigationEventInfo.None),
@@ -302,6 +309,7 @@ fun AppNavHost(
         LocalSignInStandIn provides app.signInStandIn,
     ) {
     Box(Modifier.fillMaxSize()) {
+    entryStates.SaveableStateProvider(currentKey) {
     when (val screen = current) {
         Screen.Home -> HomeScreen(
             onFreeMarking = { push(Screen.FreeMarking) },
@@ -376,6 +384,7 @@ fun AppNavHost(
                 },
             )
         }
+    }
     }
     SnackbarHost(
         snackbarHostState,

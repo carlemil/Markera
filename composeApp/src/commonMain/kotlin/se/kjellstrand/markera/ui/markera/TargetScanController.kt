@@ -1,10 +1,7 @@
 package se.kjellstrand.markera.ui.markera
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
@@ -39,8 +36,8 @@ internal const val TAG = "Markera"
  * Owns the detectors (one ~40 MB ONNX session for the whole app) and the
  * synchronous re-entry guard, and runs the two-phase scan pipeline on demand.
  * Free marking and Import images drive one shared
- * instance, created with [rememberTargetScanController] above the navigation
- * so it is never rebuilt per screen.
+ * instance, held by [AppViewModel][se.kjellstrand.markera.ui.AppViewModel] above the
+ * navigation, so it is never rebuilt per screen and outlives an activity recreation.
  */
 @OptIn(ExperimentalAtomicApi::class)
 class TargetScanController(private val engine: ScanEngine) {
@@ -327,24 +324,4 @@ class TargetScanController(private val engine: ScanEngine) {
         }
         viewModel.onHolesDetected(detections, scores)
     }
-}
-
-/**
- * Creates the app's single [TargetScanController]. Call this once, above the
- * navigation, and pass the instance down — the ONNX session must not be
- * duplicated per screen, and must only close when the activity goes away
- * (never mid-scan on a screen switch).
- */
-@Composable
-fun rememberTargetScanController(
-    modelPath: String,
-    engine: (() -> ScanEngine)? = null,
-): TargetScanController {
-    val controller = remember {
-        TargetScanController(engine?.invoke() ?: DeviceScanEngine(modelPath))
-    }
-    DisposableEffect(controller) {
-        onDispose { controller.close() }
-    }
-    return controller
 }

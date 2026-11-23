@@ -2,6 +2,7 @@ package se.kjellstrand.markera
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.activity.compose.setContent
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.hasClickAction
@@ -359,8 +360,28 @@ class AppUiTest {
         val links = object : UriHandler {
             override fun openUri(uri: String) { opened += uri }
         }
-        rule.setContent { CompositionLocalProvider(LocalUriHandler provides links) { MarkeraApp(app) } }
+        val content = @androidx.compose.runtime.Composable {
+            CompositionLocalProvider(LocalUriHandler provides links) { MarkeraApp(app) }
+        }
+        this.content = content
+        rule.setContent(content)
         return services
+    }
+
+    /** What [launch] showed, for [recreate] to show again in the new activity. */
+    private var content: (@androidx.compose.runtime.Composable () -> Unit)? = null
+
+    /**
+     * Recreates the activity as a configuration change does (dark mode, language, a resize):
+     * view models are kept and saved state is restored. The test host sets its content by
+     * hand, so the new activity is given the same content again.
+     */
+    private fun recreate() {
+        rule.waitForIdle()
+        val again = checkNotNull(content) { "launch() first" }
+        rule.activityRule.scenario.recreate()
+        rule.activityRule.scenario.onActivity { it.setContent(content = again) }
+        rule.waitForIdle()
     }
 
     @After fun cleanUp() { root.deleteRecursively() }
@@ -2015,6 +2036,45 @@ class AppUiTest {
         chip("Filter")
         chip("1 yr")
         waitForButton(header(day(0)), "today's group again")
+    }
+
+    /** Back from the Serie page, History is where it was left: same scroll, no jump to the top. */
+    @Test fun historyKeepsItsScrollOnBackFromTheSeriePage() {
+        onServer = List(40) { i -> offsetSeries[0].copy(id = 700L + i, timestamp = noon(i)) }
+        launch(signedIn = true)
+        waitForText(homeMarker)
+        click(button("History"))
+        waitForButton(header(day(0)), "today's group")
+        rule.onNode(hasScrollToIndexAction()).performScrollToIndex(40)
+        waitForButton(header(day(39)), "the oldest day")
+        click(header(day(39)))
+        waitForButton(header(day(39)) and hasStateDescription("Expanded"), "the oldest day unfolded")
+        // Its card lands below the end the list was at: bring it in. Today's card is
+        // scrolled away, so the only photo composed is the oldest day's.
+        rule.onNode(hasScrollToIndexAction()).performScrollToIndex(41)
+        waitFor(thumbnail, "the oldest day's photo")
+        rule.onAllNodes(thumbnail, useUnmergedTree = true)[0].performClick()
+        waitFor(onSerie, "the Serie page")
+        pressBack()
+        waitForButton(header(day(39)) and hasStateDescription("Expanded"), "the oldest day, still in view")
+        rule.waitForIdle()
+        assertFalse("History jumped back to the top", rule.exists(header(day(0))))
+    }
+
+    /** An activity recreation keeps the back stack: the Serie page stays, and Back still walks it. */
+    @Test fun backStackSurvivesActivityRecreation() {
+        openNewestSeries()
+        waitForExact(date(serverSeries))
+        recreate()
+        waitFor(onSerie, "the Serie page after the recreation")
+        waitForExact(date(serverSeries))
+        pressBack()
+        // A day header is History's own; Home has a History button and a photo too.
+        waitForButton(header(today), "History")
+        recreate()
+        waitForButton(header(today), "History after the recreation")
+        pressBack()
+        waitForText(homeMarker)
     }
 
     /** Export zips what the filter shows: both CSVs (one row per series, one per hole) and each photo. */
