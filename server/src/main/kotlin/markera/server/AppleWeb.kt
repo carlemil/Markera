@@ -17,6 +17,9 @@ import java.time.Instant
 import java.util.Base64
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -42,11 +45,97 @@ data class AppleWebConfig(
     val redirectUri: String get() = "${publicUrl.trimEnd('/')}/auth/apple/callback"
 }
 
-/** Where the callback sends the browser so the app wakes up again. */
+/**
+ * Where the callback sends the browser so the app wakes up again — for app versions that predate the
+ * https return. Any app can register this scheme, so it may never reach Markera (issue #48).
+ */
 const val APPLE_DEEP_LINK = "markera://auth/apple"
+
+/**
+ * The https return: a verified Android App Link on [AppleWebConfig.publicUrl] (see `/.well-known/assetlinks.json`),
+ * which only Markera can open. When the app does not catch it, the browser loads it and gets [appleDonePage].
+ */
+const val APPLE_DONE_PATH = "/auth/apple/done"
 
 /** What the app sends as `state`: hex sha256 of its secret. Echoed into a `Location`, so it is validated. */
 val APPLE_STATE_SHAPE = Regex("[0-9a-f]{64}")
+
+/**
+ * How the browser gets back to the app after Apple. The app picks it at `/auth/apple/start` with
+ * `return=https`; Apple echoes nothing but `state` and `code` to the callback, so the choice rides inside
+ * the `state` sent to Apple as [APPLE_HTTPS_STATE_SUFFIX]. That keeps the server stateless (a restart
+ * between start and callback changes nothing) and makes both deploy orders safe: an old app never sends the
+ * parameter and keeps getting `markera://`, and a new app on an old server has it ignored and also gets
+ * `markera://`, which its kept custom-scheme intent-filter still catches. The suffix is stripped before the
+ * state is parked or echoed, so the claim and the app's own state check see exactly the hex they always did.
+ */
+enum class AppleReturnMode { CUSTOM_SCHEME, HTTPS }
+
+/** The `/auth/apple/start` query parameter (`return=https`) by which an app asks for the https return. */
+const val APPLE_RETURN_PARAM = "return"
+
+/** Appended to the `state` sent to Apple when the app asked for the https return. */
+const val APPLE_HTTPS_STATE_SUFFIX = "-https"
+
+/** The `state` Apple hands the callback: the app's hex hash, plus the suffix when it asked for https. */
+private val APPLE_CALLBACK_STATE_SHAPE = Regex("([0-9a-f]{64})($APPLE_HTTPS_STATE_SUFFIX)?")
+
+/** The app's `state` and return mode from the `state` Apple echoed, or null when it has neither shape. */
+fun parseAppleCallbackState(raw: String?): Pair<String, AppleReturnMode>? {
+    val match = raw?.let { APPLE_CALLBACK_STATE_SHAPE.matchEntire(it) } ?: return null
+    val mode = if (match.groupValues[2].isEmpty()) AppleReturnMode.CUSTOM_SCHEME else AppleReturnMode.HTTPS
+    return match.groupValues[1] to mode
+}
+
+/** The `state` to send Apple for the app's [state] and chosen [mode]. */
+fun appleStateForApple(state: String, mode: AppleReturnMode): String =
+    if (mode == AppleReturnMode.HTTPS) state + APPLE_HTTPS_STATE_SUFFIX else state
+
+/**
+ * Where the callback sends the browser: [query] (already-validated `state=…&nonce=…` or `state=…&error=…`)
+ * on the custom scheme, or on [APPLE_DONE_PATH] of the public origin.
+ */
+fun appleReturnUrl(config: AppleWebConfig, mode: AppleReturnMode, query: String): String = when (mode) {
+    AppleReturnMode.CUSTOM_SCHEME -> "$APPLE_DEEP_LINK?$query"
+    AppleReturnMode.HTTPS -> "${config.publicUrl.trimEnd('/')}$APPLE_DONE_PATH?$query"
+}
+
+/** A SHA-256 certificate fingerprint as `assetlinks.json` writes it: 32 upper-case hex pairs joined by `:`. */
+private val CERT_SHA256_SHAPE = Regex("[0-9A-F]{2}(:[0-9A-F]{2}){31}")
+
+/**
+ * `ANDROID_CERT_SHA256`: comma-separated fingerprints, trimmed and upper-cased. A malformed one fails startup
+ * rather than publishing a statement Android would silently never match.
+ */
+fun parseCertFingerprints(raw: String?): List<String> =
+    raw.orEmpty().split(',').map { it.trim().uppercase() }.filter { it.isNotEmpty() }.onEach {
+        require(CERT_SHA256_SHAPE.matches(it)) { "ANDROID_CERT_SHA256: not a SHA-256 fingerprint (AA:BB:…, 32 bytes): $it" }
+    }
+
+@Serializable
+private data class AssetLinkTarget(
+    val namespace: String,
+    @SerialName("package_name") val packageName: String,
+    @SerialName("sha256_cert_fingerprints") val fingerprints: List<String>,
+)
+
+@Serializable
+private data class AssetLinkStatement(val relation: List<String>, val target: AssetLinkTarget)
+
+/**
+ * The Digital Asset Links statement that lets Android verify the [APPLE_DONE_PATH] App Link for
+ * [packageName] signed with any of [fingerprints]: one per signing key in use (Play's app-signing key,
+ * plus the upload/debug key for builds installed outside Play).
+ */
+fun assetLinksJson(packageName: String, fingerprints: List<String>): String = Json.encodeToString(
+    ListSerializer(AssetLinkStatement.serializer()),
+    listOf(
+        AssetLinkStatement(
+            relation = listOf("delegate_permission/common.handle_all_urls"),
+            target = AssetLinkTarget("android_app", packageName, fingerprints),
+        )
+    )
+)
 
 fun appleAuthorizeUrl(config: AppleWebConfig, state: String): String = buildString {
     append("https://appleid.apple.com/auth/authorize?")
@@ -114,8 +203,8 @@ private fun List<Pair<String, String>>.formUrlEncode() =
  * Apple logins finished by the callback, waiting for the app to claim them. Claiming needs two halves
  * that no single party but the signing-in device holds:
  * - the secret behind `state`, which never left the device that started the flow (so an app that
- *   intercepts the `markera://` link cannot redeem it), and
- * - the nonce minted here, which travels only in that deep link to the browser that signed in (so
+ *   intercepts the return link cannot redeem it), and
+ * - the nonce minted here, which travels only in the return link to the browser that signed in (so
  *   whoever *chose* the state — an attacker who mailed the victim a start link — cannot redeem it).
  *
  * ponytail: in-memory, one container; a restart drops logins mid-flight — a 60 s window, so a table

@@ -296,7 +296,11 @@ The caliber chip sits beside the total in the shared `TotalBadge`. Sign-in is
 backend's `/auth/apple/start?state=`, which mediates the whole OAuth flow and parks the session for
 `POST /auth/apple/claim` (`state` = hex sha256 of a secret that stays on the device, so catching the
 `markera://auth/apple` deep link buys nothing; the claim also needs the one-time `nonce` that only that deep
-link carries, so an attacker who mails someone a start link for their own `state` cannot redeem it). Needs the five `APPLE_*`/`PUBLIC_URL` vars on the
+link carries, so an attacker who mails someone a start link for their own `state` cannot redeem it). The app sends
+`&return=https` and comes back through the verified App Link `https://<backend host>/auth/apple/done` (host from
+`markera.backend.url` via `manifestPlaceholders`; the server's `/.well-known/assetlinks.json` needs
+`ANDROID_CERT_SHA256`), so no other app can swallow the return; the mode rides in Apple's `state` as `-https`, old
+apps keep `markera://`, and `/auth/apple/done` itself is a fallback page with `intent://`/`markera://` buttons. Needs the five `APPLE_*`/`PUBLIC_URL` vars on the
 server; without them that route answers 503 and only Google works. No account linking — Apple and
 Google are separate users. Backend URL is
 the Gradle property `markera.backend.url` (BuildConfig). iOS: Sign in with Apple in

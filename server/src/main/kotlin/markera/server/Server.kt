@@ -58,6 +58,14 @@ data class Config(
      * it in production (Docker's port mapping needs 0.0.0.0, so the server would not even be reachable there).
      */
     val adminLocalNoAuth: Boolean = false,
+    /** `ANDROID_PACKAGE`: the app `/.well-known/assetlinks.json` vouches for, and the `/auth/apple/done` intent link opens. */
+    val androidPackage: String = DEFAULT_ANDROID_PACKAGE,
+    /**
+     * `ANDROID_CERT_SHA256`: the signing-certificate fingerprints `/.well-known/assetlinks.json` lists (Play's
+     * app-signing key, plus the upload/debug key). Empty answers that file with 404, so Android never verifies
+     * the App Link and Apple sign-in falls back to the `/auth/apple/done` page.
+     */
+    val androidCertSha256: List<String> = emptyList(),
 ) {
     companion object {
         fun defaultImagesDir(dbPath: String) = File(File(dbPath).absoluteFile.parentFile, "images").path
@@ -90,10 +98,14 @@ data class Config(
                 smtp = SmtpConfig.fromEnv(contactEmail),
                 publicUrl = System.getenv("PUBLIC_URL")?.ifBlank { null },
                 adminLocalNoAuth = System.getenv("ADMIN_LOCAL_NO_AUTH") == "true",
+                androidPackage = System.getenv("ANDROID_PACKAGE")?.ifBlank { null } ?: DEFAULT_ANDROID_PACKAGE,
+                androidCertSha256 = parseCertFingerprints(System.getenv("ANDROID_CERT_SHA256")),
             )
         }
     }
 }
+
+const val DEFAULT_ANDROID_PACKAGE = "se.kjellstrand.markera"
 
 // A ~3000² q90 target photo is ~2 MB; this is headroom for a bigger sensor.
 const val MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -287,6 +299,7 @@ fun Application.markeraModule(
 
         // Sign in with Apple from a browser (Android). The app only ever sees `state`, the sha256 of a
         // secret it keeps: any app can register `markera://`, but only the starter can claim the session.
+        // `return=https` (new apps) asks for the verified App Link return instead; see AppleReturnMode.
         get("/auth/apple/start") {
             val web = appleWeb ?: return@get appleWebUnavailable()
             val state = call.request.queryParameters["state"]
@@ -294,20 +307,22 @@ fun Application.markeraModule(
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("state must be a hex sha256"))
                 return@get
             }
-            call.respondRedirect(appleAuthorizeUrl(web, state))
+            // Anything but `https` (absent in old apps) keeps the custom scheme.
+            val mode = if (call.request.queryParameters[APPLE_RETURN_PARAM] == "https") AppleReturnMode.HTTPS
+            else AppleReturnMode.CUSTOM_SCHEME
+            call.respondRedirect(appleAuthorizeUrl(web, appleStateForApple(state, mode)))
         }
 
         // ponytail: GET only - Apple posts the callback only when scopes are requested, and we request none.
         get("/auth/apple/callback") {
-            if (appleWeb == null) return@get appleWebUnavailable()
-            val state = call.request.queryParameters["state"]
-            if (state == null || !APPLE_STATE_SHAPE.matches(state)) {
+            val web = appleWeb ?: return@get appleWebUnavailable()
+            val (state, mode) = parseAppleCallbackState(call.request.queryParameters["state"]) ?: run {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("state must be a hex sha256"))
                 return@get
             }
             // The user backed out at Apple's page; the app turns this into a silent cancel.
             if (call.request.queryParameters["error"] != null) {
-                call.respondRedirect("$APPLE_DEEP_LINK?state=$state&error=cancelled")
+                call.respondRedirect(appleReturnUrl(web, mode, "state=$state&error=cancelled"))
                 return@get
             }
             val code = call.request.queryParameters["code"]
@@ -327,7 +342,38 @@ fun Application.markeraModule(
             val userId = db.upsertUser("apple", identity.subject, identity.name)
             // The session itself is minted at claim time, so an unclaimed login leaves nothing behind.
             val nonce = pendingLogins.park(state, userId)
-            call.respondRedirect("$APPLE_DEEP_LINK?state=$state&nonce=$nonce")
+            call.respondRedirect(appleReturnUrl(web, mode, "state=$state&nonce=$nonce"))
+        }
+
+        // The https return, reached only when the verified App Link did not open the app: a page that hands
+        // the same parameters to the app by hand. Echoes them into HTML, so each is checked against its shape.
+        get(APPLE_DONE_PATH) {
+            val params = call.request.queryParameters
+            val state = params["state"]
+            val nonce = params["nonce"]
+            val error = params["error"]
+            val query = when {
+                state == null || !APPLE_STATE_SHAPE.matches(state) -> null
+                error == null && nonce != null && APPLE_STATE_SHAPE.matches(nonce) -> "state=$state&nonce=$nonce"
+                error == "cancelled" && nonce == null -> "state=$state&error=cancelled"
+                else -> null
+            }
+            if (query == null) {
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse("malformed sign-in return"))
+                return@get
+            }
+            // The nonce is half a login: keep it out of caches.
+            call.response.header(HttpHeaders.CacheControl, "no-store")
+            call.respondText(appleDonePage(query, config.androidPackage), ContentType.Text.Html)
+        }
+
+        // Digital Asset Links: lets Android verify the APPLE_DONE_PATH App Link for the app's signing keys.
+        get("/.well-known/assetlinks.json") {
+            if (config.androidCertSha256.isEmpty()) {
+                call.respond(HttpStatusCode.NotFound, ErrorResponse("ANDROID_CERT_SHA256 not configured"))
+            } else {
+                call.respondText(assetLinksJson(config.androidPackage, config.androidCertSha256), ContentType.Application.Json)
+            }
         }
 
         post("/auth/apple/claim") {

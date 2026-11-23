@@ -178,3 +178,26 @@ Complaints can be filed with Integritetsskyddsmyndigheten (IMY) in Sweden.</p>
 <p>The app is not directed at children under 13. Changes to this policy are published on this page.</p>""",
     )
 }
+
+/**
+ * `GET /auth/apple/done`, the https return of Sign in with Apple on Android, as the browser sees it when the
+ * verified App Link did not open Markera (verification not set up yet, or a browser that does not hand App
+ * Links over on a redirect). Offers the same parameters on an `intent://` link pinned to [androidPackage],
+ * which no other app can take, and on the plain `markera://` link as the last resort.
+ *
+ * [query] must already be validated (hex `state`, hex `nonce` or `error=cancelled`): it is echoed into the
+ * page, on an origin that also serves `/admin`. [androidPackage] comes from the server's own env.
+ */
+fun appleDonePage(query: String, androidPackage: String): String {
+    val intentLink = "intent://auth/apple?$query#Intent;scheme=markera;package=$androidPackage;end"
+    val schemeLink = "$APPLE_DEEP_LINK?$query"
+    fun attr(s: String) = s.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;")
+    return page(
+        "Markera – Sign in with Apple",
+        """<h1>Tillbaka till Markera / Back to Markera</h1>
+<p>Inloggningen med Apple är klar. Tryck på knappen för att gå tillbaka till appen.</p>
+<p>Signing in with Apple is done. Tap the button to go back to the app.</p>
+<p><a href="${attr(intentLink)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#9ccc65;color:#12160f;text-decoration:none;font-weight:600">Öppna Markera / Open Markera</a></p>
+<p>Fungerar inte knappen? / Button not working? <a href="${attr(schemeLink)}">markera://</a></p>""",
+    )
+}
