@@ -2122,6 +2122,28 @@ class ApiTest {
     }
 
     @Test
+    fun theAdminAuditViewsWorkAfterOldEditsArePruned() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val me = client.devAuth("audited")
+        val id = client.createSeries(me.token)
+        repeat(MAX_AUDIT_EDITS + 5) { i ->
+            assertEquals(HttpStatusCode.NoContent, client.put("/series/$id") {
+                bearerAuth(me.token); contentType(ContentType.Application.Json); setBody(series().copy(tag = "t$i"))
+            }.status)
+        }
+        val page = client.admin("/admin/series/$id")
+        assertEquals(HttpStatusCode.OK, page.status)
+        assertTrue("baseline, not an edit" in page.bodyAsText())
+        val review = client.admin("/admin/review")
+        assertEquals(HttpStatusCode.OK, review.status)
+        assertTrue("href=\"/admin/series/$id\"" in review.bodyAsText())
+        sql { st ->
+            st.executeQuery("SELECT COUNT(*) FROM series_audit WHERE series_id = $id AND baseline = 0").use {
+                it.next(); assertEquals(MAX_AUDIT_EDITS, it.getInt(1))
+            }
+        }
+    }
+
+    @Test
     fun aPutOverTheStoredRemovedHoleCapIs400() = apiTest(adminPassword = ADMIN_PW) { client ->
         val me = client.devAuth("remover")
         val id = client.createSeries(me.token)

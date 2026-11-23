@@ -231,7 +231,7 @@ user per hour (429 + Retry-After; the app PUTs on every tap and drag); a series 
 (a PUT adding more is 400, one adding none always saves; per request still 50 live + 200 removed, POST too);
 audit rows per series keep every baseline plus the newest 50 edits. `POST /series` also stops at
 `MAX_SERIES_PER_DAY_ALL` (default 2000) new series in 24 h for all users together, photo uploads at
-`MAX_PHOTO_MB_PER_DAY_ALL` (default 5120) per UTC day (both 429, a `clientId` retry still passes) and answer
+`MAX_PHOTO_MB_PER_DAY_ALL` (default 5120) per UTC day (both 429; a series retry with a stored `clientId` still passes) and answer
 507 while the images disk has under `MIN_FREE_DISK_MB` (default 2048) free; each cap logs one warning a day.
 The Apple web callback only exchanges a `state` that `/auth/apple/start` issued in the last 10 min (single use,
 400 otherwise), and start and callback each take 20 per client IP per 10 min. Suggestions: 5 per client IP per
