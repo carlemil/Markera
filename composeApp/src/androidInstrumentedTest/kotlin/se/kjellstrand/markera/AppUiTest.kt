@@ -2368,6 +2368,238 @@ class AppUiTest {
         assertEquals(kept, store.historyFilter)
     }
 
+    // ---- fixes without a test of their own until now (the integration coverage matrix, bucket B) ----
+
+    /**
+     * #3/#5: a Serie page opened on a series still only on the phone stays open while a refresh
+     * uploads it. The page still holds the local (negative) id; an edit and Delete must reach the
+     * series under its new server id, and the arrows must still find its neighbours.
+     */
+    @Test fun seriePageOfALocalSeriesFollowsItToTheServer() {
+        postAnswer = HttpStatusCode.ServiceUnavailable
+        val services = openScanAndDetect()
+        // An older series on the server (yesterday, folded in History), so the page has a neighbour.
+        onServer = listOf(serverSeries.copy(timestamp = noon(1)))
+        save()
+        rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.local == LocalMark.QUEUED } }
+        pressBack()
+        rule.onNodeWithText("History").performClick()
+        // Only today's group is unfolded: the one photo shown is the local series'.
+        waitFor(thumbnail, "the local series' photo in History")
+        rule.onAllNodes(thumbnail, useUnmergedTree = true)[0].performClick()
+        waitForText("Not uploaded")
+        waitForExact("40")
+        val next = hasContentDescription("Next series") and hasClickAction()
+        waitForButton(next, "the next arrow")
+
+        // The server takes it now; a refresh sends it while the page is open.
+        postAnswer = null
+        runBlocking { services.repository.refresh() }
+        rule.waitUntil(TIMEOUT_MS) { services.repository.acknowledgedIds.value.isNotEmpty() }
+        val serverId = services.repository.acknowledgedIds.value.values.single()
+        assertEquals(1, posted.size)
+        rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("Not uploaded", substring = true)) }
+        waitForButton(next, "the next arrow after the upload")
+        waitForExact("40")
+
+        // A score edit under the page's old id goes to the server series.
+        click(button("10"))
+        waitForText("Score")
+        click(inDialog(button("8")))
+        waitForExact("38")
+        val (putId, edit) = waitForPuts(1).last()
+        assertEquals(serverId, putId)
+        assertEquals(listOf(9, 8, 8, 7, 6), edit.holes.filterNot { it.deleted }.map { it.ring }.sortedDescending())
+
+        // And so does Delete.
+        rule.onAllNodes(hasContentDescription("Menu"), useUnmergedTree = true)[0].performClick()
+        click(button("Delete"))
+        waitForText("Delete the series?")
+        click(inDialog(button("Delete")))
+        rule.waitUntil(TIMEOUT_MS) { "DELETE /series/$serverId" in requests }
+        waitForExact("History")
+        assertTrue("Nothing may be sent under the local id: $requests", requests.none { it.contains("/series/-") })
+        assertTrue(serverId in gone)
+    }
+
+    /**
+     * #7: a picked date range is the phone's own days, not UTC ones. In New York, a series shot at
+     * 21:00 on day D is already D+1 in UTC, and one shot at 21:00 the day before is D in UTC; picking
+     * D must list the first and not the second.
+     */
+    @Test fun historyCustomRangeIsThePhonesOwnDays() {
+        val before = java.util.TimeZone.getDefault()
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"))
+        try {
+            // Not the class's [zone] or [localDay]: those were read before the zone was set.
+            val ny = TimeZone.of("America/New_York")
+            val todayNy = kotlin.time.Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds()).toLocalDateTime(ny).date
+            val d = todayNy.minus(3, DateTimeUnit.DAY)
+            val dayBefore = todayNy.minus(4, DateTimeUnit.DAY)
+            fun ninePm(date: LocalDate) = LocalDateTime(date, LocalTime(21, 0)).toInstant(ny).toString()
+            onServer = listOf(
+                offsetSeries[0].copy(id = 801, timestamp = ninePm(d)),
+                offsetSeries[1].copy(id = 802, timestamp = ninePm(dayBefore)),
+            )
+            // The date picker's millis: UTC midnight of the picked date, as historyShowsTheSavedFilter seeds it.
+            val picked = d.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+            val filter = HistoryFilter(preset = DatePreset.CUSTOM, customRange = picked to picked)
+            launch(signedIn = true, store = MemoryStore(null, historyFilter = filter.encode()))
+            waitForText(homeMarker)
+            click(button("History"))
+            waitOn(onHistory, "History")
+            waitForDays(d.toString())
+            waitForButton(button("Clear filters"), "the range still applied")
+            assertFalse("The day before must be filtered out", rule.exists(header(dayBefore.toString())))
+        } finally {
+            java.util.TimeZone.setDefault(before)
+        }
+    }
+
+    /** Whether the first node [matcher] finds is enabled (a disabled button carries Disabled). */
+    private fun enabled(matcher: SemanticsMatcher) =
+        rule.onAllNodes(matcher).fetchSemanticsNodes().firstOrNull()?.config?.contains(SemanticsProperties.Disabled) == false
+
+    /**
+     * #32: placing the ring by hand, Done stays off while the centre sits on the ring (the target's
+     * vanishing line would cross the face) and comes back when it is moved home; the save then works.
+     */
+    @Test fun handPlacedCentreOnTheRingTurnsDoneOff() {
+        onServer = emptyList()
+        // No digits read: no centre, no ring, so the scan offers to place them by hand.
+        launch(signedIn = true, scanEngine = FakeScanEngine(readsDigits = false))
+        click(button("Mark"))
+        click(button("Detect"))
+        waitForText("so nothing was scored")
+        click(button("Mark manually"))
+        waitForText("Drag the four dots")
+        val done = button("Done")
+        waitForButton(done, "Done")
+        rule.waitUntil(TIMEOUT_MS) { enabled(done) }
+        rule.onAllNodes(done)[0].assertIsEnabled()
+
+        // The draft is a circle about the frame's middle, 35% of its side in radius. The centre cross
+        // is dragged diagonally (away from the four dots) right onto that circle.
+        val c = FakeTarget.SIZE / 2f
+        val onto = FakeTarget.SIZE * 0.35f / kotlin.math.sqrt(2f)
+        var slopImagePx = 0f
+        rule.onNodeWithTag(SCAN_VIEWPORT_TAG).performTouchInput {
+            val s = width / FakeTarget.SIZE.toFloat()
+            slopImagePx = viewConfiguration.touchSlop / s
+            down(Offset(c * s, c * s))
+            repeat(20) { moveBy(Offset(onto * s / 20f, onto * s / 20f)) }
+            up()
+        }
+        rule.waitUntil(TIMEOUT_MS) { rule.exists(done) && !enabled(done) }
+        rule.onAllNodes(done)[0].assertIsNotEnabled()
+
+        // Back again: grabbed where it landed (the drag gives up the touch slop, or not; either is
+        // well within the grab radius), moved by the same vector back to the middle.
+        val landed = c + onto - slopImagePx / kotlin.math.sqrt(2f) / 2f
+        rule.onNodeWithTag(SCAN_VIEWPORT_TAG).performTouchInput {
+            val s = width / FakeTarget.SIZE.toFloat()
+            down(Offset(landed * s, landed * s))
+            repeat(20) { moveBy(Offset(-onto * s / 20f, -onto * s / 20f)) }
+            up()
+        }
+        rule.waitUntil(TIMEOUT_MS) { enabled(done) }
+        rule.onAllNodes(done)[0].assertIsEnabled()
+
+        click(done)
+        // The five holes the scan found are scored against the placed ring; the scan saves as usual.
+        waitForButton(button("Save"), "Save after placing")
+        save()
+        waitForExact("Saved")
+        val sent = waitForPosts(1).single()
+        assertTrue("The placed geometry is saved", sent.geometry != null)
+        assertEquals(5, sent.holes.filterNot { it.deleted }.size)
+    }
+
+    /** #37: with one hole per series, Tavla's pair-based rows (pairwise, group size, mean radius) read "–", not 0 mm. */
+    @Test fun statsTargetShowsDashesForOneHoleSeries() {
+        val now = Clock.System.now()
+        onServer = (0..2).map { i ->
+            serverSeries.copy(id = 820L + i, timestamp = (now - (i + 1).hours).toString(), holes = listOf(serverSeries.holes[i]))
+        }
+        openStatistics()
+        waitForDescribed("Target with 3 hits from 3 series")
+        waitForExact("Group size")
+        val dash = hasText("–")
+        try {
+            rule.waitUntil(TIMEOUT_MS) { rule.onAllNodes(dash, useUnmergedTree = true).fetchSemanticsNodes().size == 3 }
+        } catch (e: Throwable) {
+            throw AssertionError(
+                "Expected three \"–\" rows, saw ${rule.onAllNodes(dash, useUnmergedTree = true).fetchSemanticsNodes().size}; " +
+                    rule.onAllNodes(isRoot(), useUnmergedTree = true).printToString(),
+                e,
+            )
+        }
+    }
+
+    /**
+     * #26: a series saved while the claim dialog is open is not taken by an Add that counted only the
+     * others. Add claims the two it counted and asks again about the new one; Delete then removes only
+     * that one, and exactly the two counted series are posted.
+     */
+    @Test fun claimAsksAgainAboutASeriesSavedWhileTheDialogIsOpen() {
+        onServer = emptyList()
+        val store = MemoryStore(null)
+        val services = launch(signedIn = false, store = store)
+        keepLocal(services, 10)
+        keepLocal(services, 11)
+        waitForText("2 series only on this phone")
+        runBlocking { services.session.signInDev("ui-test") }
+        waitForText("Series on this device")
+        waitForText("another account: 2.")
+        // Saved while the question is open: not one the dialog counted.
+        runBlocking {
+            services.repository.keepLocal(
+                SeriesRequest(
+                    timestamp = (Clock.System.now() - 5.minutes).toString(),
+                    caliber = "9mm",
+                    holes = serverSeries.holes,
+                    geometry = GEOMETRY,
+                ),
+                EncodedImage(jpeg, 1000, 1000),
+                null,
+            )
+        }
+        rule.waitUntil(TIMEOUT_MS) { localSeries(services).size == 3 }
+        click(inDialog(button("Add to account")))
+        waitForText("another account: 1.")
+        assertEquals("The login stays held while the new series waits for its answer", null, store.auth)
+        assertEquals(0, posted.size)
+
+        click(inDialog(button("Delete from device")))
+        waitForText("Delete 1 series and its photo")
+        click(inDialog(button("Delete from device")))
+        rule.waitUntil(TIMEOUT_MS) { store.auth?.token == TOKEN }
+        waitForPosts(2)
+        rule.waitUntil(TIMEOUT_MS) { localSeries(services).isEmpty() }
+        rule.waitForIdle()
+        assertEquals(listOf("22lr", "22lr"), posted.map { it.caliber })
+    }
+
+    /** #38: picked in the app, Polish resolves Home's local count with its one, few and many forms. */
+    @Test fun polishLocalCountUsesItsPluralForms() {
+        onServer = emptyList()
+        val store = MemoryStore(null)
+        val services = launch(signedIn = false, store = store)
+        waitForText("Mark")
+        openSettings()
+        pickLanguage("Polski")
+        rule.waitUntil(TIMEOUT_MS) { store.language == "pl" }
+        pressBack()
+        keepLocal(services, 2)
+        waitForText("1 seria tylko w tym telefonie")
+        keepLocal(services, 3)
+        waitForText("2 serie tylko w tym telefonie")
+        keepLocal(services, 4)
+        keepLocal(services, 5)
+        keepLocal(services, 6)
+        waitForText("5 serii tylko w tym telefonie")
+    }
+
     private companion object {
         const val TOKEN = "ui-test-token"
         const val USER = 7L
