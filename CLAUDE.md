@@ -185,7 +185,10 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    homography from the four probes, or from the ellipse + the centre's polar line
    for old series; the drawn rings use the same map), converts px→mm against
    the fixed target spec (black 6/7 edge = 100 mm, rings every 25 mm, inner-X ≤ 12.5 mm),
-   and assigns a ring with edge gauging. Results pre-fill the editable pickers.
+   and assigns a ring with edge gauging: the hole's radius is read from its box in
+   target mm at the photo's local scale there (the map's Jacobian, so a tilted
+   photo's foreshortened side doesn't shrink it), and a hand-placed hole's box is
+   the inverse (`holeBoxSizePx`). Results pre-fill the editable pickers.
 
 **Invariant:** the centre is *always* the digit-row intersection, never the ellipse
 centre — the ellipse only provides scale/shape. The README's "Approaches" section

@@ -7,7 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import se.kjellstrand.markera.ui.markera.SCORE_PICKER_INNER_TEN
-import se.kjellstrand.markera.ui.markera.holeSidePx
+import se.kjellstrand.markera.ui.markera.holeBoxPx
 import se.kjellstrand.markera.ui.markera.manualDetection
 import se.kjellstrand.markera.vision.CentreEstimate
 import se.kjellstrand.markera.vision.CentreMethod
@@ -262,7 +262,7 @@ class SeriesDtosTest {
                 val x = 100.0 + dx
                 // As addHit builds it: a box of the caliber's side, scored by scoreHits.
                 val box = assertNotNull(
-                    manualDetection(x.toFloat(), 100f, emptyList(), 0f, caliber.holeSidePx(ring)),
+                    manualDetection(x.toFloat(), 100f, emptyList(), 0f, caliber.holeBoxPx(x.toFloat(), 100f, centre, ring)),
                 )
                 val scan = scoreHits(listOf(box), centre, ring).single()
                 val detail = geometry.scoreHoleAt(x, 100.0, caliber)

@@ -1,5 +1,6 @@
 package se.kjellstrand.markera.vision
 
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -91,12 +92,15 @@ fun targetOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllip
  * `TARGET_BLACK_RING_RADIUS_MM / semiMajor`, rotate back. It ignores how
  * perspective slides each ring's centre, so it is only the fallback.
  */
-internal fun affineOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Pair<Double, Double> {
+internal fun affineOffsetMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse): Pair<Double, Double> =
+    affineOffsetMm(x.toDouble(), y.toDouble(), centre, ring)
+
+private fun affineOffsetMm(x: Double, y: Double, centre: CentreEstimate, ring: FittedEllipse): Pair<Double, Double> {
     val theta = ring.rotationRad.toDouble()
     val cosT = cos(theta)
     val sinT = sin(theta)
-    val dx = (x - centre.x).toDouble()
-    val dy = (y - centre.y).toDouble()
+    val dx = x - centre.x
+    val dy = y - centre.y
     val xR = dx * cosT + dy * sinT
     val yR = -dx * sinT + dy * cosT
     val yC = yR * (ring.semiMajor / ring.semiMinor).toDouble()
@@ -129,12 +133,86 @@ fun distanceMm(x: Float, y: Float, centre: CentreEstimate, ring: FittedEllipse):
 }
 
 /**
+ * The photo's local scale at one point: how a small round hole in the target
+ * plane shows up in the image. Built once per scan ([TargetPlane] when there is
+ * one, else the affine fallback) so every hole is measured through the same map
+ * as its centre distance.
+ */
+private class HoleGauge(private val centre: CentreEstimate, private val ring: FittedEllipse) {
+    private val plane = TargetPlane.of(centre, ring)
+
+    private fun toMm(x: Double, y: Double): Pair<Double, Double> =
+        plane?.toMm(x, y) ?: affineOffsetMm(x, y, centre, ring)
+
+    /**
+     * The image half-extents per mm of hole radius at [x],[y]: (half box width,
+     * half box height) of the image of a 1 mm circle there. A target-plane circle
+     * of radius r maps, locally, through the Jacobian A = d(image)/d(mm) to an
+     * ellipse whose axis-aligned box has half-width r·|row 1 of A| and
+     * half-height r·|row 2 of A|. A is the inverse of d(mm)/d(image), taken by
+     * central differences over [stepPx] (the map is smooth on a hole's scale).
+     */
+    fun halfExtentPerMm(x: Double, y: Double, stepPx: Double): Pair<Double, Double>? {
+        val h = stepPx.coerceAtLeast(1.0)
+        val (xr, yr) = toMm(x + h, y)
+        val (xl, yl) = toMm(x - h, y)
+        val (xd, yd) = toMm(x, y + h)
+        val (xu, yu) = toMm(x, y - h)
+        // J = d(mm)/d(image px).
+        val j11 = (xr - xl) / (2 * h)
+        val j21 = (yr - yl) / (2 * h)
+        val j12 = (xd - xu) / (2 * h)
+        val j22 = (yd - yu) / (2 * h)
+        val det = j11 * j22 - j12 * j21
+        if (!det.isFinite() || det == 0.0) return null
+        // A = J⁻¹ = [[j22, -j12], [-j21, j11]] / det.
+        val perMmX = hypot(j22, j12) / abs(det)
+        val perMmY = hypot(j21, j11) / abs(det)
+        return perMmX to perMmY
+    }
+}
+
+/**
+ * The radius in target mm of the round hole whose image box is [d], gauged
+ * where it sits ([HoleGauge.halfExtentPerMm]): the box width and height each
+ * give one estimate (half-width over the px-per-mm across, half-height over
+ * the px-per-mm down), and their mean is the radius. On a frontal photo that is
+ * the old `(w + h) / 4 · mmPerPx`; on a tilted one the foreshortened side is no
+ * longer read at the major axis' scale, and perspective's change of scale
+ * across the target is included.
+ */
+private fun HoleGauge.radiusMm(d: Detection): Double {
+    val halfW = (d.right - d.left) / 2.0
+    val halfH = (d.bottom - d.top) / 2.0
+    if (halfW <= 0.0 && halfH <= 0.0) return 0.0
+    val (perX, perY) = halfExtentPerMm(
+        (d.left + d.right) / 2.0, (d.top + d.bottom) / 2.0, maxOf(halfW, halfH),
+    ) ?: return 0.0
+    return (halfW / perX + halfH / perY) / 2.0
+}
+
+/**
+ * The image box (width, height, px) of a round hole of [radiusMm] centred at
+ * [x],[y] (image px): the inverse of the radius [scoreHits] reads from a box,
+ * so a hand-placed hole of a caliber's size scores that caliber's radius on any
+ * photo. Null for a degenerate ring.
+ */
+fun holeBoxSizePx(x: Float, y: Float, radiusMm: Double, centre: CentreEstimate, ring: FittedEllipse): Pair<Float, Float>? {
+    if (ring.semiMajor <= 0f || ring.semiMinor <= 0f) return null
+    val gauge = HoleGauge(centre, ring)
+    // Step about the size of the hole, as scoring will use for this box.
+    val step = radiusMm * ring.semiMajor / TARGET_BLACK_RING_RADIUS_MM
+    val (perX, perY) = gauge.halfExtentPerMm(x.toDouble(), y.toDouble(), step) ?: return null
+    return (2 * radiusMm * perX).toFloat() to (2 * radiusMm * perY).toFloat()
+}
+
+/**
  * Score each detected hole in the frontal target plane recovered from the
- * 6/7 [ring] ellipse. Hole offsets are taken from the digit-row [centre],
- * rotated so the ellipse major axis aligns with +x, then the minor-axis
- * component is stretched by `semiMajor / semiMinor` so the ellipse becomes
- * the original circle; distances convert to mm via `mmPerPx` derived from
- * `semiMajor`. Each hole is edge-gauged by its box radius through [scoreAt].
+ * 6/7 [ring] ellipse and the digit-row [centre] ([targetOffsetMm], full
+ * perspective through [TargetPlane]). Each hole is edge-gauged through
+ * [scoreAt] by its radius in target mm, read from its box with the photo's
+ * local scale at that hole ([HoleGauge]), so a tilted photo's foreshortened
+ * side does not shrink it.
  *
  * Returned inner-X first, then highest ring, then nearest — so hit `i` maps
  * straight onto score picker `i`.
@@ -145,12 +223,12 @@ fun scoreHits(
     ring: FittedEllipse,
 ): List<HitScore> {
     if (detections.isEmpty() || ring.semiMajor <= 0f || ring.semiMinor <= 0f) return emptyList()
-    val mmPerPx = TARGET_BLACK_RING_RADIUS_MM / ring.semiMajor
+    val gauge = HoleGauge(centre, ring)
     return detections.map { d ->
         val cx = (d.left + d.right) / 2f
         val cy = (d.top + d.bottom) / 2f
         val distMm = distanceMm(cx, cy, centre, ring)
-        val holeRadiusMm = ((d.right - d.left) + (d.bottom - d.top)) / 4.0 * mmPerPx
+        val holeRadiusMm = gauge.radiusMm(d)
         val (ring, innerTen) = scoreAt(distMm, holeRadiusMm)
         HitScore(
             centerXpx = cx,
