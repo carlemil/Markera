@@ -163,12 +163,17 @@ fun GeometryPlacer(
         modifier = modifier.pointerInput(imageWidth, imageHeight) {
             if (imageWidth <= 0 || imageHeight <= 0) return@pointerInput
             var grip: Grip = Grip.All
+            // The draft as this drag has left it: several moves can arrive before the next
+            // recomposition updates [current], and each must build on the one before, or all
+            // but the last are lost.
+            var dragged: GeometryDraft = current
             detectDragGestures(
                 onDragStart = { start ->
                     val scale = min(size.width.toFloat() / imageWidth, size.height.toFloat() / imageHeight)
                     val ox = (size.width - imageWidth * scale) / 2f
                     val oy = (size.height - imageHeight * scale) / 2f
                     val d = current
+                    dragged = d
                     fun dist(x: Float, y: Float) = hypot(start.x - (x * scale + ox), start.y - (y * scale + oy))
                     // The nearest handle within reach wins; the centre counts as one.
                     val candidates = (0 until 4).map { Grip.Point(it) to dist(d.xs[it], d.ys[it]) } +
@@ -180,16 +185,15 @@ fun GeometryPlacer(
                 val scale = min(size.width.toFloat() / imageWidth, size.height.toFloat() / imageHeight)
                 val dx = drag.x / scale
                 val dy = drag.y / scale
-                val d = current
+                val d = dragged
                 fun cx(x: Float) = x.coerceIn(0f, imageWidth.toFloat())
                 fun cy(y: Float) = y.coerceIn(0f, imageHeight.toFloat())
-                change(
-                    when (val g = grip) {
-                        is Grip.Point -> d.withPoint(g.i, cx(d.xs[g.i] + dx), cy(d.ys[g.i] + dy))
-                        Grip.Centre -> d.withCentre(cx(d.centreX + dx), cy(d.centreY + dy))
-                        Grip.All -> d.movedBy(dx, dy)
-                    },
-                )
+                dragged = when (val g = grip) {
+                    is Grip.Point -> d.withPoint(g.i, cx(d.xs[g.i] + dx), cy(d.ys[g.i] + dy))
+                    Grip.Centre -> d.withCentre(cx(d.centreX + dx), cy(d.centreY + dy))
+                    Grip.All -> d.movedBy(dx, dy)
+                }
+                change(dragged)
             }
         },
     ) {
