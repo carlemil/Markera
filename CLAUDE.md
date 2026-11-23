@@ -242,8 +242,10 @@ merges the picker values into the pending request via `withPicks` — so a `Hole
 detector said (null for a hand-placed or typed-in hole) — then
 saves it: caliber `-` still opens the chooser; otherwise the recorder encodes the frame and
 writes the request and JPEG to durable local storage before any HTTP. Signed-out saves return
-`SavedOnPhone`; signed-in saves send the same persisted `clientId`. Encoding errors are reported
-and still keep the series metadata, as before. A rescan `clear()`s only the pending scan; a
+`SavedOnPhone`; signed-in saves send the same persisted `clientId`. An encoding error fails the
+save like a storage failure (#4; it used to keep the metadata without a photo, which `visibleSeries`
+then hid everywhere): `Failed` toast, `commit` false, the scan stays pending for Save again, and auto
+import sends the image to review. A rescan `clear()`s only the pending scan; a
 committed save survives the next scan. Feedback is one toast (`AppNavHost`).
 **False positives.** A `HoleDto` also stores the detector's box (`detectedW/H/Conf`, from `HitScore.boxW/boxH/conf`). A detection the user long-presses away on the scan screen goes into `MarkeraUiState.removedDetections` (emptied by a rescan/`clearResults`), is passed with `onSeriesDetected`, and `commit` appends it after `withPicks` as `HoleDto(deleted = true)` (the cache never holds it; the server keeps it, like the detail screen's deleted holes; the admin editor's removals do the same, and `replaceSeries` drops a stored deleted copy again when that detection is live in a later PUT, i.e. an Undo). `GET /admin/training-export.zip` (`server/.../TrainingExport.kt`, all users' non-deleted series with a photo, except those rejected in `/admin/curate`; `?approved=1` takes only approved ones) is the next training round's data: `images/<id>.jpg`, `labels/<id>.txt` (YOLO, confirmed holes, classes `Hole 0..10`, `Hole X`), `negatives.csv` (`image;cx;cy;w;h;conf;reason`: deleted / moved more than a diameter / scored 0 by hand), `nudges.csv` (moved less than a diameter) and `data.yaml`; a hole without a stored box gets a caliber-sized one. The privacy page says saved photos and holes may be used to improve hole detection.
 The history screen (`ui/history/`) lists series with thumbnails.

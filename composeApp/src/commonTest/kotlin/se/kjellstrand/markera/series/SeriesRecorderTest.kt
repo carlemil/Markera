@@ -65,9 +65,10 @@ class SeriesRecorderTest {
         storedTag: String? = null,
         status: HttpStatusCode = HttpStatusCode.Created,
         imageStatus: HttpStatusCode = HttpStatusCode.NoContent,
-        // The pre-image tests below count series requests only; their default
-        // encoder fails, so nothing is uploaded unless a test asks for it.
-        encodeJpeg: suspend (PlatformImage) -> EncodedImage = { error("no encoder") },
+        // Every save now uploads its photo too (#4: a failed encode fails the save; these
+        // tests used to default to a failing encoder that saved without one), so the
+        // tests below count and read series POSTs only, never the image uploads.
+        encodeJpeg: suspend (PlatformImage) -> EncodedImage = { encoded },
         // Held until completed: the first series POST, so a test can act while it is in flight.
         gate: CompletableDeferred<Unit>? = null,
         // What the first series POST answers instead of [status].
@@ -220,7 +221,7 @@ class SeriesRecorderTest {
         assertTrue(written.isEmpty())
     }
 
-    private val sentBody: String get() = (recorded.last().body as TextContent).text
+    private val sentBody: String get() = (seriesPosts.last().body as TextContent).text
 
     private val seriesPosts get() = recorded.filter { it.method == HttpMethod.Post && it.url.encodedPath == "/series" }
 
@@ -256,12 +257,12 @@ class SeriesRecorderTest {
         recorder.selectCaliber(Caliber.MM9)
 
         assertEquals(SaveStatus.Pending, recorder.status.value)
-        assertEquals(1, recorded.size)
+        assertEquals(1, seriesPosts.size)
 
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
-        assertEquals(2, recorded.size)
+        assertEquals(2, seriesPosts.size)
         assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
     }
 
@@ -278,7 +279,7 @@ class SeriesRecorderTest {
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.LR22), recorder.awaitDone())
-        assertEquals("http://host:8090/series", recorded.single().url.toString())
+        assertEquals("http://host:8090/series", seriesPosts.single().url.toString())
         assertTrue(""""caliber":"22lr"""" in sentBody, sentBody)
     }
 
@@ -291,7 +292,7 @@ class SeriesRecorderTest {
         recorder.commit(noPicks)
 
         assertEquals(SaveStatus.Saved(Caliber.MM9), recorder.awaitDone())
-        assertEquals(1, recorded.size)
+        assertEquals(1, seriesPosts.size)
         assertEquals(1, Regex("distanceMm").findAll(sentBody).count(), sentBody)
         assertTrue(""""ring":6""" in sentBody, sentBody)
     }
@@ -334,7 +335,7 @@ class SeriesRecorderTest {
         assertFalse(recorder.caliberDialogOpen.value)
         assertEquals(Caliber.MM9, recorder.caliber.value)
         assertEquals(listOf(Caliber.MM9), written)
-        assertEquals("http://host:8090/series", recorded.single().url.toString())
+        assertEquals("http://host:8090/series", seriesPosts.single().url.toString())
         assertTrue(""""caliber":"9mm"""" in sentBody, sentBody)
         assertEquals(2, Regex("distanceMm").findAll(sentBody).count(), sentBody)
     }
@@ -621,7 +622,8 @@ class SeriesRecorderTest {
         recorder.commit(noPicks)
         gate.complete(Unit)
 
-        awaitRequests(2)
+        // Not awaitRequests(2): the first POST's photo upload would satisfy it.
+        runBlocking { withTimeout(5_000) { while (seriesPosts.size < 2) delay(10) } }
         runBlocking { withTimeout(5_000) { repository.series.first { it.size == 2 } } }
         assertEquals(2, clientIds().toSet().size)
     }
@@ -721,6 +723,28 @@ class SeriesRecorderTest {
         // Save again once storage works: the same pending scan is kept.
         fail = false
         assertTrue(withTimeout(5_000) { recorder.commit(noPicks).await() })
+    }
+
+    /**
+     * #4: a series saved without its photo is hidden on every screen (visibleSeries keeps only
+     * series with a complete photo), so a failed encode must not be reported as saved.
+     */
+    @Test
+    fun aFailedPhotoEncodeIsAFailedSaveAndTheScanIsRetained() = runBlocking<Unit> {
+        var fail = true
+        val recorder = recorder(
+            signedIn = false,
+            stored = Caliber.LR22,
+            encodeJpeg = { if (fail) error("encode failed") else encoded },
+        )
+        recorder.onSeriesDetected(scores, image, null)
+        assertFalse(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        assertIs<SaveStatus.Failed>(recorder.awaitDone())
+        assertTrue(repository.series.value.isEmpty(), "nothing kept without its photo")
+        // Save again once encoding works: the same pending scan is saved, and shown.
+        fail = false
+        assertTrue(withTimeout(5_000) { recorder.commit(noPicks).await() })
+        assertEquals(1, withTimeout(5_000) { repository.visibleSeries.first { it.isNotEmpty() } }.size)
     }
 
     @Test
