@@ -23,6 +23,12 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 private const val TAG = "Markera"
 
 /**
+ * How long a scan waits for ImageCapture to be (re)bound, e.g. right after resuming
+ * live from a frozen frame, before giving up with no frame.
+ */
+private const val BIND_TIMEOUT_MS = 3_000L
+
+/**
  * [FrameSource] backed by a live CameraX preview. [capture] takes a still at the
  * sensor's full resolution through the [ImageCapture] bound next to the preview
  * (the 1:1 viewport crops it to exactly what the square preview shows), so
@@ -33,6 +39,8 @@ private class CameraFrameSource(
     private val previewView: PreviewView,
     private val imageCapture: ImageCapture,
 ) : FrameSource {
+    private val bindGate = CameraBindGate()
+
     override val requiresCameraPermission = true
 
     @Composable
@@ -40,12 +48,24 @@ private class CameraFrameSource(
         CameraPreview(
             previewView = previewView,
             imageCapture = imageCapture,
+            bindGate = bindGate,
             onError = onError,
             modifier = modifier,
         )
     }
 
-    override suspend fun capture(): Bitmap? = try {
+    override suspend fun capture(): Bitmap? {
+        // A frozen frame unbinds the camera and resuming rebinds it asynchronously; a
+        // takePicture before that fails, and the screen-bitmap fallback would score and
+        // store the target at about half resolution. Wait for the bind instead.
+        if (!bindGate.awaitBound(BIND_TIMEOUT_MS)) {
+            Log.w(TAG, "ImageCapture not bound after ${BIND_TIMEOUT_MS} ms, no frame")
+            return null
+        }
+        return captureBound()
+    }
+
+    private suspend fun captureBound(): Bitmap? = try {
         takePicture()
     } catch (e: CancellationException) {
         throw e
