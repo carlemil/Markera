@@ -777,7 +777,7 @@ const tbl = document.querySelector('table'), tb = tbl.tBodies[0];
 const shot = document.querySelector('.shot'), img = shot ? shot.querySelector('img') : null;
 const placeable = !!(shot && S.imageWidth && S.imageHeight);
 const sc = (ring, x) => x ? 'X' : String(ring);
-const num = v => v == null ? '' : String(Math.round(v));
+const num = v => v == null ? '' : isFinite(v) ? String(Math.round(v)) : 'off';
 // pos() on the server: the position now, then the detector's in brackets once the hole was moved. Numbers only.
 const pos = (now, det) => num(now) + (det != null && now != null && now !== det ? ' <span class="was">(' + num(det) + ')</span>' : '');
 const total = () => document.getElementById('total').textContent =
@@ -805,6 +805,8 @@ function distanceMm(h) {
     const k11 = a11 - 2 * v1 * -amx + v1 * v1 * l3, k12 = a12 - v2 * -amx - v1 * -amy + v1 * v2 * l3;
     const k22 = a22 - 2 * v2 * -amy + v2 * v2 * l3, f = -l3;
     const w = v1 * dx + v2 * dy + 1, px = dx / w, py = dy / w;
+    // w is 1 at the centre; on or past the vanishing line the point is off the target (the app's toMm gives NaN).
+    if (w <= 1e-9) return Infinity;
     const q = (k11 * px * px + 2 * k12 * px * py + k22 * py * py) / f;
     if (f > 0 && q >= 0) return Math.sqrt(q) * 100;
   }
