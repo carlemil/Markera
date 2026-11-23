@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Forkaste endringene?</string>
     <string name="markera_reset_message">De redigerte poengene forkastes, og ingenting lagres.</string>
     <string name="markera_reset_confirm">Forkast</string>
+    <string name="markera_leave_title">Gå ut uten å lagre?</string>
+    <string name="markera_leave_message">Denne skanningen er ikke lagret. Går du ut, forsvinner den.</string>
+    <string name="markera_leave_import_message">Denne skanningen er ikke lagret. Går du ut, forsvinner den og resten av importen.</string>
+    <string name="markera_leave_confirm">Gå ut</string>
     <string name="markera_hint">Rett kameraet mot skiven og trykk for å telle treffene.</string>
     <string name="markera_analyzing">Analyserer treff…</string>
     <string name="markera_detect_holes">Finn hull</string>

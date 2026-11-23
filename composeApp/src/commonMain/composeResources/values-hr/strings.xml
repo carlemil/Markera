@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Odbaciti promjene?</string>
     <string name="markera_reset_message">Uređeni bodovi se odbacuju i ništa se ne sprema.</string>
     <string name="markera_reset_confirm">Odbaci</string>
+    <string name="markera_leave_title">Izaći bez spremanja?</string>
+    <string name="markera_leave_message">Ovo skeniranje nije spremljeno. Izlaskom se odbacuje.</string>
+    <string name="markera_leave_import_message">Ovo skeniranje nije spremljeno. Izlaskom se odbacuje zajedno s ostatkom uvoza.</string>
+    <string name="markera_leave_confirm">Izađi</string>
     <string name="markera_hint">Usmjerite kameru prema meti i dodirnite za brojanje pogodaka.</string>
     <string name="markera_analyzing">Analiziram pogotke…</string>
     <string name="markera_detect_holes">Prepoznaj pogotke</string>

@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Hylätäänkö muutokset?</string>
     <string name="markera_reset_message">Muokatut pisteet hylätään, eikä mitään tallenneta.</string>
     <string name="markera_reset_confirm">Hylkää</string>
+    <string name="markera_leave_title">Poistutaanko tallentamatta?</string>
+    <string name="markera_leave_message">Tätä skannausta ei ole tallennettu. Se katoaa, jos poistut.</string>
+    <string name="markera_leave_import_message">Tätä skannausta ei ole tallennettu. Se ja muu tuonti katoavat, jos poistut.</string>
+    <string name="markera_leave_confirm">Poistu</string>
     <string name="markera_hint">Suuntaa kamera tauluun ja laske osumat napauttamalla.</string>
     <string name="markera_analyzing">Analysoidaan osumia…</string>
     <string name="markera_detect_holes">Tunnista reiät</string>

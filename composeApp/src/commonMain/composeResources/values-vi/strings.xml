@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Bỏ các thay đổi?</string>
     <string name="markera_reset_message">Các điểm đã sửa sẽ bị bỏ và không có gì được lưu.</string>
     <string name="markera_reset_confirm">Bỏ</string>
+    <string name="markera_leave_title">Thoát mà không lưu?</string>
+    <string name="markera_leave_message">Lần quét này chưa được lưu. Thoát sẽ bỏ nó.</string>
+    <string name="markera_leave_import_message">Lần quét này chưa được lưu. Thoát sẽ bỏ nó và phần còn lại của lần nhập.</string>
+    <string name="markera_leave_confirm">Thoát</string>
     <string name="markera_hint">Hướng camera vào bia và chạm để đếm phát bắn.</string>
     <string name="markera_analyzing">Đang phân tích phát bắn…</string>
     <string name="markera_detect_holes">Nhận diện lỗ đạn</string>

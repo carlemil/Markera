@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Atmest izmaiņas?</string>
     <string name="markera_reset_message">Rediģētie punkti tiek atmesti, un nekas netiek saglabāts.</string>
     <string name="markera_reset_confirm">Atmest</string>
+    <string name="markera_leave_title">Iziet bez saglabāšanas?</string>
+    <string name="markera_leave_message">Šī skenēšana nav saglabāta. Izejot tā tiks zaudēta.</string>
+    <string name="markera_leave_import_message">Šī skenēšana nav saglabāta. Izejot tiks zaudēta tā un pārējā importēšana.</string>
+    <string name="markera_leave_confirm">Iziet</string>
     <string name="markera_hint">Pavērsiet kameru pret mērķi un pieskarieties, lai saskaitītu trāpījumus.</string>
     <string name="markera_analyzing">Analizē trāpījumus…</string>
     <string name="markera_detect_holes">Atpazīt caurumus</string>

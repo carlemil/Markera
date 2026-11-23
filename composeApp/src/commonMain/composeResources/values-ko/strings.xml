@@ -16,6 +16,10 @@
     <string name="markera_reset_title">변경 사항을 버릴까요?</string>
     <string name="markera_reset_message">수정한 점수는 버려지고 아무것도 저장되지 않습니다.</string>
     <string name="markera_reset_confirm">버리기</string>
+    <string name="markera_leave_title">저장하지 않고 나갈까요?</string>
+    <string name="markera_leave_message">이 스캔은 저장되지 않았습니다. 나가면 사라집니다.</string>
+    <string name="markera_leave_import_message">이 스캔은 저장되지 않았습니다. 나가면 이 스캔과 나머지 가져오기가 사라집니다.</string>
+    <string name="markera_leave_confirm">나가기</string>
     <string name="markera_hint">카메라를 표적에 맞추고 탭하면 탄흔을 셉니다.</string>
     <string name="markera_analyzing">탄흔 분석 중…</string>
     <string name="markera_detect_holes">탄흔 감지</string>

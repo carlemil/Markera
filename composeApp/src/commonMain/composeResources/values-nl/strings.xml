@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Wijzigingen weggooien?</string>
     <string name="markera_reset_message">De aangepaste scores vervallen en er wordt niets opgeslagen.</string>
     <string name="markera_reset_confirm">Weggooien</string>
+    <string name="markera_leave_title">Verlaten zonder opslaan?</string>
+    <string name="markera_leave_message">Deze scan is niet opgeslagen. Als je weggaat, gaat hij verloren.</string>
+    <string name="markera_leave_import_message">Deze scan is niet opgeslagen. Als je weggaat, gaan hij en de rest van de import verloren.</string>
+    <string name="markera_leave_confirm">Verlaten</string>
     <string name="markera_hint">Richt de camera op de kaart en tik om de treffers te tellen.</string>
     <string name="markera_analyzing">Treffers analyseren…</string>
     <string name="markera_detect_holes">Gaten herkennen</string>

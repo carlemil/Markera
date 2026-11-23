@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Atmesti pakeitimus?</string>
     <string name="markera_reset_message">Redaguoti taškai atmetami ir niekas neišsaugoma.</string>
     <string name="markera_reset_confirm">Atmesti</string>
+    <string name="markera_leave_title">Išeiti neišsaugojus?</string>
+    <string name="markera_leave_message">Šis nuskaitymas neišsaugotas. Išėjus jis bus prarastas.</string>
+    <string name="markera_leave_import_message">Šis nuskaitymas neišsaugotas. Išėjus bus prarastas jis ir likęs importas.</string>
+    <string name="markera_leave_confirm">Išeiti</string>
     <string name="markera_hint">Nukreipkite kamerą į taikinį ir palieskite, kad suskaičiuotumėte pataikymus.</string>
     <string name="markera_analyzing">Analizuojami pataikymai…</string>
     <string name="markera_detect_holes">Atpažinti skyles</string>

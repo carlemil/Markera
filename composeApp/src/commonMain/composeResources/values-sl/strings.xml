@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Zavrzi spremembe?</string>
     <string name="markera_reset_message">Urejene vrednosti se zavržejo in nič se ne shrani.</string>
     <string name="markera_reset_confirm">Zavrzi</string>
+    <string name="markera_leave_title">Zapustim brez shranjevanja?</string>
+    <string name="markera_leave_message">To skeniranje ni shranjeno. Če zapustite, se izgubi.</string>
+    <string name="markera_leave_import_message">To skeniranje ni shranjeno. Če zapustite, se izgubi skupaj s preostankom uvoza.</string>
+    <string name="markera_leave_confirm">Zapusti</string>
     <string name="markera_hint">Usmerite kamero v tarčo in tapnite, da preštejete zadetke.</string>
     <string name="markera_analyzing">Analiziram zadetke …</string>
     <string name="markera_detect_holes">Zaznaj luknje</string>

@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Kas loobuda muudatustest?</string>
     <string name="markera_reset_message">Muudetud punktid visatakse ära ja midagi ei salvestata.</string>
     <string name="markera_reset_confirm">Loobu</string>
+    <string name="markera_leave_title">Lahkuda salvestamata?</string>
+    <string name="markera_leave_message">See skannimine pole salvestatud. Lahkudes see kaob.</string>
+    <string name="markera_leave_import_message">See skannimine pole salvestatud. Lahkudes kaovad see ja ülejäänud import.</string>
+    <string name="markera_leave_confirm">Lahku</string>
     <string name="markera_hint">Suuna kaamera märklehele ja puuduta, et tabamused kokku lugeda.</string>
     <string name="markera_analyzing">Analüüsin tabamusi…</string>
     <string name="markera_detect_holes">Tuvasta augud</string>

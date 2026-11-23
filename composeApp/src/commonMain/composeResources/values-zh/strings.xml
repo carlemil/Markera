@@ -16,6 +16,10 @@
     <string name="markera_reset_title">放弃修改？</string>
     <string name="markera_reset_message">修改过的分数将被丢弃，不会保存任何内容。</string>
     <string name="markera_reset_confirm">放弃</string>
+    <string name="markera_leave_title">不保存就离开？</string>
+    <string name="markera_leave_message">此次扫描尚未保存。离开后将丢弃。</string>
+    <string name="markera_leave_import_message">此次扫描尚未保存。离开后将丢弃它以及剩余的导入。</string>
+    <string name="markera_leave_confirm">离开</string>
     <string name="markera_hint">将相机对准靶纸，点按即可计算弹孔。</string>
     <string name="markera_analyzing">正在分析弹孔…</string>
     <string name="markera_detect_holes">识别弹孔</string>

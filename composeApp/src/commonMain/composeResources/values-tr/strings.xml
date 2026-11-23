@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Değişiklikler silinsin mi?</string>
     <string name="markera_reset_message">Düzenlenen puanlar silinir ve hiçbir şey kaydedilmez.</string>
     <string name="markera_reset_confirm">Sil</string>
+    <string name="markera_leave_title">Kaydetmeden çıkılsın mı?</string>
+    <string name="markera_leave_message">Bu tarama kaydedilmedi. Çıkarsanız silinir.</string>
+    <string name="markera_leave_import_message">Bu tarama kaydedilmedi. Çıkarsanız bu tarama ve içe aktarmanın geri kalanı silinir.</string>
+    <string name="markera_leave_confirm">Çık</string>
     <string name="markera_hint">Kamerayı hedefe doğrultun ve isabetleri saymak için dokunun.</string>
     <string name="markera_analyzing">İsabetler inceleniyor…</string>
     <string name="markera_detect_holes">Delikleri algıla</string>

@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Απόρριψη των αλλαγών;</string>
     <string name="markera_reset_message">Οι βαθμοί που αλλάξατε απορρίπτονται και δεν αποθηκεύεται τίποτα.</string>
     <string name="markera_reset_confirm">Απόρριψη</string>
+    <string name="markera_leave_title">Έξοδος χωρίς αποθήκευση;</string>
+    <string name="markera_leave_message">Αυτή η σάρωση δεν έχει αποθηκευτεί. Αν βγείτε, θα χαθεί.</string>
+    <string name="markera_leave_import_message">Αυτή η σάρωση δεν έχει αποθηκευτεί. Αν βγείτε, θα χαθεί μαζί με την υπόλοιπη εισαγωγή.</string>
+    <string name="markera_leave_confirm">Έξοδος</string>
     <string name="markera_hint">Στρέψτε την κάμερα στον στόχο και πατήστε για να μετρήσετε τις βολές.</string>
     <string name="markera_analyzing">Ανάλυση βολών…</string>
     <string name="markera_detect_holes">Ανίχνευση τρυπών</string>

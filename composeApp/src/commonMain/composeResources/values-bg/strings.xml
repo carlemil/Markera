@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Да се отхвърлят ли промените?</string>
     <string name="markera_reset_message">Редактираните точки се отхвърлят и нищо не се запазва.</string>
     <string name="markera_reset_confirm">Отхвърли</string>
+    <string name="markera_leave_title">Изход без запазване?</string>
+    <string name="markera_leave_message">Това сканиране не е запазено. Ако излезете, то ще бъде загубено.</string>
+    <string name="markera_leave_import_message">Това сканиране не е запазено. Ако излезете, ще бъдат загубени то и останалата част от импорта.</string>
+    <string name="markera_leave_confirm">Изход</string>
     <string name="markera_hint">Насочете камерата към мишената и докоснете, за да преброите попаденията.</string>
     <string name="markera_analyzing">Анализиране на попаденията…</string>
     <string name="markera_detect_holes">Разпознавай пробойни</string>

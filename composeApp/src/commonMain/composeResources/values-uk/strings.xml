@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Скасувати зміни?</string>
     <string name="markera_reset_message">Змінені очки буде відкинуто, нічого не збережеться.</string>
     <string name="markera_reset_confirm">Скасувати зміни</string>
+    <string name="markera_leave_title">Вийти без збереження?</string>
+    <string name="markera_leave_message">Це сканування не збережено. Якщо вийти, воно зникне.</string>
+    <string name="markera_leave_import_message">Це сканування не збережено. Якщо вийти, зникне воно й решта імпорту.</string>
+    <string name="markera_leave_confirm">Вийти</string>
     <string name="markera_hint">Наведіть камеру на мішень і торкніться, щоб порахувати влучання.</string>
     <string name="markera_analyzing">Аналіз влучань…</string>
     <string name="markera_detect_holes">Розпізнавати пробоїни</string>

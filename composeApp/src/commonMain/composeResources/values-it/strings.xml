@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Annullare le modifiche?</string>
     <string name="markera_reset_message">I punteggi modificati vengono scartati e non viene salvato nulla.</string>
     <string name="markera_reset_confirm">Scarta</string>
+    <string name="markera_leave_title">Uscire senza salvare?</string>
+    <string name="markera_leave_message">Questa scansione non è salvata. Uscendo andrà persa.</string>
+    <string name="markera_leave_import_message">Questa scansione non è salvata. Uscendo andranno persi lei e il resto dell’importazione.</string>
+    <string name="markera_leave_confirm">Esci</string>
     <string name="markera_hint">Inquadra il bersaglio e tocca per contare i colpi.</string>
     <string name="markera_analyzing">Analisi dei colpi…</string>
     <string name="markera_detect_holes">Rileva fori</string>

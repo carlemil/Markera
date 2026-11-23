@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Адмяніць змены?</string>
     <string name="markera_reset_message">Выпраўленыя балы будуць адкінуты, і нічога не захаваецца.</string>
     <string name="markera_reset_confirm">Адкінуць</string>
+    <string name="markera_leave_title">Выйсці без захавання?</string>
+    <string name="markera_leave_message">Гэта сканаванне не захавана. Калі выйсці, яно знікне.</string>
+    <string name="markera_leave_import_message">Гэта сканаванне не захавана. Калі выйсці, знікне яно і астатні імпарт.</string>
+    <string name="markera_leave_confirm">Выйсці</string>
     <string name="markera_hint">Навядзіце камеру на мішэнь і націсніце, каб падлічыць пападанні.</string>
     <string name="markera_analyzing">Аналіз пападанняў…</string>
     <string name="markera_detect_holes">Шукаць прабоіны</string>

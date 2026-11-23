@@ -16,6 +16,10 @@
     <string name="markera_reset_title">تجاهل التغييرات؟</string>
     <string name="markera_reset_message">ستُحذف النقاط المعدّلة ولن يُحفظ شيء.</string>
     <string name="markera_reset_confirm">تجاهل</string>
+    <string name="markera_leave_title">المغادرة دون حفظ؟</string>
+    <string name="markera_leave_message">هذا المسح غير محفوظ. المغادرة تحذفه.</string>
+    <string name="markera_leave_import_message">هذا المسح غير محفوظ. المغادرة تحذفه مع بقية الاستيراد.</string>
+    <string name="markera_leave_confirm">مغادرة</string>
     <string name="markera_hint">وجّه الكاميرا نحو الهدف واضغط لعدّ الإصابات.</string>
     <string name="markera_analyzing">جارٍ تحليل الإصابات…</string>
     <string name="markera_detect_holes">اكتشاف الثقوب</string>

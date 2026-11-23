@@ -16,6 +16,10 @@
     <string name="markera_reset_title">बदलाव छोड़ दें?</string>
     <string name="markera_reset_message">बदले गए स्कोर हटा दिए जाएँगे और कुछ भी सहेजा नहीं जाएगा।</string>
     <string name="markera_reset_confirm">छोड़ें</string>
+    <string name="markera_leave_title">सहेजे बिना बाहर जाएँ?</string>
+    <string name="markera_leave_message">यह स्कैन सहेजा नहीं गया है। बाहर जाने पर यह हट जाएगा।</string>
+    <string name="markera_leave_import_message">यह स्कैन सहेजा नहीं गया है। बाहर जाने पर यह और बाकी आयात हट जाएगा।</string>
+    <string name="markera_leave_confirm">बाहर जाएँ</string>
     <string name="markera_hint">कैमरा टारगेट की ओर करें और हिट गिनने के लिए टैप करें।</string>
     <string name="markera_analyzing">हिट का विश्लेषण हो रहा है…</string>
     <string name="markera_detect_holes">छेद पहचानें</string>

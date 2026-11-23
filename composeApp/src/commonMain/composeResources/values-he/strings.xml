@@ -16,6 +16,10 @@
     <string name="markera_reset_title">לבטל את השינויים?</string>
     <string name="markera_reset_message">הניקוד הערוך יימחק ושום דבר לא יישמר.</string>
     <string name="markera_reset_confirm">ביטול השינויים</string>
+    <string name="markera_leave_title">לצאת בלי לשמור?</string>
+    <string name="markera_leave_message">הסריקה הזו לא נשמרה. יציאה תמחק אותה.</string>
+    <string name="markera_leave_import_message">הסריקה הזו לא נשמרה. יציאה תמחק אותה ואת שאר הייבוא.</string>
+    <string name="markera_leave_confirm">יציאה</string>
     <string name="markera_hint">יש לכוון את המצלמה אל המטרה ולהקיש כדי לספור את הפגיעות.</string>
     <string name="markera_analyzing">מנתח פגיעות…</string>
     <string name="markera_detect_holes">זיהוי חורים</string>

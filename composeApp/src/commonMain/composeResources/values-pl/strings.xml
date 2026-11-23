@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Odrzucić zmiany?</string>
     <string name="markera_reset_message">Zmienione wartości zostaną odrzucone i nic nie zostanie zapisane.</string>
     <string name="markera_reset_confirm">Odrzuć</string>
+    <string name="markera_leave_title">Wyjść bez zapisywania?</string>
+    <string name="markera_leave_message">To skanowanie nie jest zapisane. Wyjście je odrzuci.</string>
+    <string name="markera_leave_import_message">To skanowanie nie jest zapisane. Wyjście odrzuci je i resztę importu.</string>
+    <string name="markera_leave_confirm">Wyjdź</string>
     <string name="markera_hint">Skieruj aparat na tarczę i stuknij, aby policzyć trafienia.</string>
     <string name="markera_analyzing">Analizowanie trafień…</string>
     <string name="markera_detect_holes">Rozpoznawaj przestrzeliny</string>

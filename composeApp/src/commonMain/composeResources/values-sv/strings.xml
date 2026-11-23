@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Släng ändringarna?</string>
     <string name="markera_reset_message">De ändrade poängen slängs och inget sparas.</string>
     <string name="markera_reset_confirm">Släng</string>
+    <string name="markera_leave_title">Lämna utan att spara?</string>
+    <string name="markera_leave_message">Den här skanningen är inte sparad. Lämnar du försvinner den.</string>
+    <string name="markera_leave_import_message">Den här skanningen är inte sparad. Lämnar du försvinner den och resten av importen.</string>
+    <string name="markera_leave_confirm">Lämna</string>
     <string name="markera_hint">Rikta kameran mot tavlan och tryck för att räkna träffarna.</string>
     <string name="markera_analyzing">Analyserar träffar…</string>
     <string name="markera_detect_holes">Detektera hål</string>

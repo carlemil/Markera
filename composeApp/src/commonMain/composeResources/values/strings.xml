@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Discard your changes?</string>
     <string name="markera_reset_message">The edited scores are dropped and nothing is saved.</string>
     <string name="markera_reset_confirm">Discard</string>
+    <string name="markera_leave_title">Leave without saving?</string>
+    <string name="markera_leave_message">This scan is not saved. Leaving drops it.</string>
+    <string name="markera_leave_import_message">This scan is not saved. Leaving drops it and the rest of the import.</string>
+    <string name="markera_leave_confirm">Leave</string>
     <string name="markera_hint">Point the camera at the target and tap to count the hits.</string>
     <string name="markera_analyzing">Analysing hits…</string>
     <string name="markera_detect_holes">Detect holes</string>

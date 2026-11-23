@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Änderungen verwerfen?</string>
     <string name="markera_reset_message">Die bearbeiteten Werte werden verworfen und nichts wird gespeichert.</string>
     <string name="markera_reset_confirm">Verwerfen</string>
+    <string name="markera_leave_title">Ohne Speichern verlassen?</string>
+    <string name="markera_leave_message">Dieser Scan ist nicht gespeichert. Beim Verlassen geht er verloren.</string>
+    <string name="markera_leave_import_message">Dieser Scan ist nicht gespeichert. Beim Verlassen gehen er und der Rest des Imports verloren.</string>
+    <string name="markera_leave_confirm">Verlassen</string>
     <string name="markera_hint">Richte die Kamera auf die Scheibe und tippe, um die Treffer zu zählen.</string>
     <string name="markera_analyzing">Treffer werden analysiert…</string>
     <string name="markera_detect_holes">Löcher erkennen</string>

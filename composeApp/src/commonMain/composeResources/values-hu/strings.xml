@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Elveted a módosításokat?</string>
     <string name="markera_reset_message">A módosított értékek elvesznek, és semmi sem lesz mentve.</string>
     <string name="markera_reset_confirm">Elvetés</string>
+    <string name="markera_leave_title">Kilép mentés nélkül?</string>
+    <string name="markera_leave_message">Ez a beolvasás nincs mentve. Kilépéskor elvész.</string>
+    <string name="markera_leave_import_message">Ez a beolvasás nincs mentve. Kilépéskor elvész az importálás többi részével együtt.</string>
+    <string name="markera_leave_confirm">Kilépés</string>
     <string name="markera_hint">Irányítsd a kamerát a céltáblára, és koppints a találatok megszámolásához.</string>
     <string name="markera_analyzing">Találatok elemzése…</string>
     <string name="markera_detect_holes">Lövésnyomok felismerése</string>

@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Renunți la modificări?</string>
     <string name="markera_reset_message">Punctajele editate se pierd și nu se salvează nimic.</string>
     <string name="markera_reset_confirm">Renunță</string>
+    <string name="markera_leave_title">Ieșiți fără a salva?</string>
+    <string name="markera_leave_message">Această scanare nu este salvată. Dacă ieșiți, se pierde.</string>
+    <string name="markera_leave_import_message">Această scanare nu este salvată. Dacă ieșiți, se pierd ea și restul importului.</string>
+    <string name="markera_leave_confirm">Ieșire</string>
     <string name="markera_hint">Îndreaptă camera spre țintă și atinge pentru a număra loviturile.</string>
     <string name="markera_analyzing">Se analizează loviturile…</string>
     <string name="markera_detect_holes">Detectează găurile</string>

@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Өзгерістерден бас тартасыз ба?</string>
     <string name="markera_reset_message">Өзгертілген ұпайлар алынып тасталады, ештеңе сақталмайды.</string>
     <string name="markera_reset_confirm">Бас тарту</string>
+    <string name="markera_leave_title">Сақтамай шығасыз ба?</string>
+    <string name="markera_leave_message">Бұл сканерлеу сақталмаған. Шықсаңыз, ол жойылады.</string>
+    <string name="markera_leave_import_message">Бұл сканерлеу сақталмаған. Шықсаңыз, ол және импорттың қалғаны жойылады.</string>
+    <string name="markera_leave_confirm">Шығу</string>
     <string name="markera_hint">Камераны нысанаға бағыттап, тиюлерді санау үшін түртіңіз.</string>
     <string name="markera_analyzing">Тиюлер талдануда…</string>
     <string name="markera_detect_holes">Тесіктерді анықтау</string>

@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Abandonner vos modifications ?</string>
     <string name="markera_reset_message">Les points modifiés sont abandonnés et rien n’est enregistré.</string>
     <string name="markera_reset_confirm">Abandonner</string>
+    <string name="markera_leave_title">Quitter sans enregistrer ?</string>
+    <string name="markera_leave_message">Ce scan n’est pas enregistré. En quittant, il est perdu.</string>
+    <string name="markera_leave_import_message">Ce scan n’est pas enregistré. En quittant, il est perdu avec le reste de l’import.</string>
+    <string name="markera_leave_confirm">Quitter</string>
     <string name="markera_hint">Visez la cible avec l’appareil photo et touchez pour compter les impacts.</string>
     <string name="markera_analyzing">Analyse des impacts…</string>
     <string name="markera_detect_holes">Détecter les trous</string>

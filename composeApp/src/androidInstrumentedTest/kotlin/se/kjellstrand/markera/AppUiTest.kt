@@ -1137,6 +1137,20 @@ class AppUiTest {
         assertEquals(0, posted.size)
     }
 
+    /** Back on an unsaved scan asks first, from the system key and the top bar alike: Cancel keeps it, Leave goes Home. */
+    @Test fun backOnAnUnsavedScanAsksFirst() {
+        openScanAndDetect()
+        pressBack()
+        waitForText("Leave without saving?")
+        click(inDialog(button("Cancel")))
+        waitForExact("40")
+        topBarBack()
+        waitForText("Leave without saving?")
+        click(inDialog(button("Leave")))
+        waitForExact("Mark")
+        assertEquals("Leaving saves nothing", 0, posted.size)
+    }
+
     // ---- Import images: the dialog, manual and auto ----
 
     /** The sources the stand-in picker was asked for, in order. */

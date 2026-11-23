@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Zahodit změny?</string>
     <string name="markera_reset_message">Upravené hodnoty se zahodí a nic se neuloží.</string>
     <string name="markera_reset_confirm">Zahodit</string>
+    <string name="markera_leave_title">Odejít bez uložení?</string>
+    <string name="markera_leave_message">Toto skenování není uložené. Odchodem se zahodí.</string>
+    <string name="markera_leave_import_message">Toto skenování není uložené. Odchodem se zahodí i zbytek importu.</string>
+    <string name="markera_leave_confirm">Odejít</string>
     <string name="markera_hint">Namiř fotoaparát na terč a klepnutím spočítej zásahy.</string>
     <string name="markera_analyzing">Analyzuji zásahy…</string>
     <string name="markera_detect_holes">Rozpoznat zásahy</string>

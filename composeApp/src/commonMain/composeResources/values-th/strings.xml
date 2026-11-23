@@ -16,6 +16,10 @@
     <string name="markera_reset_title">ยกเลิกการแก้ไขหรือไม่</string>
     <string name="markera_reset_message">คะแนนที่แก้ไขจะถูกทิ้งและไม่มีการบันทึกใดๆ</string>
     <string name="markera_reset_confirm">ทิ้ง</string>
+    <string name="markera_leave_title">ออกโดยไม่บันทึกหรือไม่</string>
+    <string name="markera_leave_message">การสแกนนี้ยังไม่ได้บันทึก หากออก การสแกนจะหายไป</string>
+    <string name="markera_leave_import_message">การสแกนนี้ยังไม่ได้บันทึก หากออก การสแกนนี้และการนำเข้าที่เหลือจะหายไป</string>
+    <string name="markera_leave_confirm">ออก</string>
     <string name="markera_hint">เล็งกล้องไปที่เป้าแล้วแตะเพื่อนับรอยกระสุน</string>
     <string name="markera_analyzing">กำลังวิเคราะห์รอยกระสุน…</string>
     <string name="markera_detect_holes">ตรวจจับรอยกระสุน</string>

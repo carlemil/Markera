@@ -59,6 +59,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -216,6 +219,15 @@ fun MarkeraScreen(
     // Hand edits are work: throwing them away asks first.
     var confirmingReset by remember { mutableStateOf(false) }
     val onReset: () -> Unit = { if (edited) confirmingReset = true else discard() }
+    // A scan on screen that is not saved yet (scored, edited, or a ring being placed by hand):
+    // leaving drops it, so Back (the top bar's and the system's) asks first. An auto import
+    // never stops on a result, so it has nothing of the user's to lose.
+    // Read only where it is used (the lambda, and the scope below that already redraws with the
+    // scan): a read here would recompose the whole screen with every scan state change.
+    var confirmingLeave by remember { mutableStateOf(false) }
+    fun unsavedScan() = snapshotVm.snapshot != null && importQueue?.auto != true &&
+        (uiState.scores.isNotEmpty() || edited || placing != null)
+    val guardedBack: (() -> Unit)? = onBack?.let { back -> { if (unsavedScan()) confirmingLeave = true else back() } }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Box(
@@ -229,6 +241,11 @@ fun MarkeraScreen(
             CameraPermissionPrompt(onGrantClick = permission.request)
         } else {
             val isFrozen = snapshotVm.snapshot != null
+            NavigationBackHandler(
+                state = rememberNavigationEventState(NavigationEventInfo.None),
+                isBackEnabled = onBack != null && unsavedScan(),
+                onBackCompleted = { confirmingLeave = true },
+            )
             // An auto import never stops at the results: they are not the user's to act on.
             val processing = uiState.phase != ScanPhase.IDLE || importQueue?.auto == true
             Column(modifier = Modifier.fillMaxSize()) {
@@ -236,7 +253,7 @@ fun MarkeraScreen(
                     title = importQueue?.let {
                         stringResource(Res.string.import_progress, minOf(it.index + 1, it.items.size), it.items.size)
                     } ?: stringResource(Res.string.home_free_marking),
-                    onBack = onBack,
+                    onBack = guardedBack,
                     menuItems = listOfNotNull(
                         MenuItem(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(Res.string.help)) { showingHelp = true },
                         // Developer tool: no entry point in release builds, and with it off the
@@ -316,6 +333,31 @@ fun MarkeraScreen(
             }
         }
     }
+    }
+
+    if (confirmingLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmingLeave = false },
+            title = { Text(stringResource(Res.string.markera_leave_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (importQueue != null) Res.string.markera_leave_import_message else Res.string.markera_leave_message,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingLeave = false
+                    onBack?.invoke()
+                }) { Text(stringResource(Res.string.markera_leave_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingLeave = false }) {
+                    Text(stringResource(Res.string.history_delete_cancel))
+                }
+            },
+        )
     }
 
     if (confirmingReset) {

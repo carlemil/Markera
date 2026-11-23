@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Kassér dine ændringer?</string>
     <string name="markera_reset_message">De redigerede point kasseres, og intet gemmes.</string>
     <string name="markera_reset_confirm">Kassér</string>
+    <string name="markera_leave_title">Forlad uden at gemme?</string>
+    <string name="markera_leave_message">Denne scanning er ikke gemt. Forlader du, forsvinder den.</string>
+    <string name="markera_leave_import_message">Denne scanning er ikke gemt. Forlader du, forsvinder den og resten af importen.</string>
+    <string name="markera_leave_confirm">Forlad</string>
     <string name="markera_hint">Ret kameraet mod skiven, og tryk for at tælle skuddene.</string>
     <string name="markera_analyzing">Analyserer skud…</string>
     <string name="markera_detect_holes">Find huller</string>

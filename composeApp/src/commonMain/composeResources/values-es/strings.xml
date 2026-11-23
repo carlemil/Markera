@@ -16,6 +16,10 @@
     <string name="markera_reset_title">¿Descartar los cambios?</string>
     <string name="markera_reset_message">Se descartan las puntuaciones editadas y no se guarda nada.</string>
     <string name="markera_reset_confirm">Descartar</string>
+    <string name="markera_leave_title">¿Salir sin guardar?</string>
+    <string name="markera_leave_message">Este escaneo no está guardado. Si sales, se descarta.</string>
+    <string name="markera_leave_import_message">Este escaneo no está guardado. Si sales, se descartan este y el resto de la importación.</string>
+    <string name="markera_leave_confirm">Salir</string>
     <string name="markera_hint">Apunta la cámara al blanco y toca para contar los impactos.</string>
     <string name="markera_analyzing">Analizando impactos…</string>
     <string name="markera_detect_holes">Detectar impactos</string>

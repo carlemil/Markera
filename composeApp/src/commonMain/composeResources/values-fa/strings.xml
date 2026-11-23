@@ -16,6 +16,10 @@
     <string name="markera_reset_title">تغییرات کنار گذاشته شوند؟</string>
     <string name="markera_reset_message">امتیازهای ویرایش‌شده حذف می‌شوند و چیزی ذخیره نمی‌شود.</string>
     <string name="markera_reset_confirm">کنار گذاشتن</string>
+    <string name="markera_leave_title">بدون ذخیره خارج می‌شوید؟</string>
+    <string name="markera_leave_message">این اسکن ذخیره نشده است. با خروج از بین می‌رود.</string>
+    <string name="markera_leave_import_message">این اسکن ذخیره نشده است. با خروج، این اسکن و بقیهٔ واردسازی از بین می‌روند.</string>
+    <string name="markera_leave_confirm">خروج</string>
     <string name="markera_hint">دوربین را رو به سیبل بگیرید و برای شمردن اصابت‌ها ضربه بزنید.</string>
     <string name="markera_analyzing">در حال تحلیل اصابت‌ها…</string>
     <string name="markera_detect_holes">تشخیص سوراخ‌ها</string>

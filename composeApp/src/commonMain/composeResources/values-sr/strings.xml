@@ -16,6 +16,10 @@
     <string name="markera_reset_title">Одбацити измене?</string>
     <string name="markera_reset_message">Измењени резултати се одбацују и ништа се не чува.</string>
     <string name="markera_reset_confirm">Одбаци</string>
+    <string name="markera_leave_title">Изаћи без чувања?</string>
+    <string name="markera_leave_message">Ово скенирање није сачувано. Изласком се одбацује.</string>
+    <string name="markera_leave_import_message">Ово скенирање није сачувано. Изласком се одбацује заједно са остатком увоза.</string>
+    <string name="markera_leave_confirm">Изађи</string>
     <string name="markera_hint">Усмерите камеру ка мети и додирните да пребројите погодке.</string>
     <string name="markera_analyzing">Анализа погодака…</string>
     <string name="markera_detect_holes">Препознај рупе</string>
