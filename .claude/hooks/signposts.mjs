@@ -69,6 +69,24 @@ for (const [name, lang] of Object.entries(LANGS)) for (const e of lang.ext) BY_E
 export const signpostPath = file => path.join(path.dirname(file), '.' + path.basename(file) + '.h');
 const isSignpost = file => /^\..+\.h$/.test(path.basename(file));
 
+/** True only for a file this script wrote: its first line is render()'s header for that source's name. A
+ *  hidden `.X.h` that merely matches the name pattern (a real C header, someone's notes) is never deleted. */
+function isGenerated(signpost) {
+  let fd;
+  try {
+    fd = fs.openSync(signpost, 'r');
+    const buf = Buffer.alloc(512);
+    const first = buf.toString('utf8', 0, fs.readSync(fd, buf, 0, buf.length, 0)).split(/\r?\n/)[0];
+    const source = path.basename(signpost).slice(1, -2);
+    return first.startsWith(`# ${source}: `) && / lines · signposts · sha1 [0-9a-f]+$/.test(first);
+  } catch { return false; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {} }
+}
+
+/** Deletes a signpost whose source is gone, but only one this script generated. */
+function removeOrphan(signpost) {
+  if (isGenerated(signpost)) try { fs.unlinkSync(signpost); } catch {}
+}
+
 function wanted(file) {
   if (isSignpost(file) || !BY_EXT.has(path.extname(file).toLowerCase())) return false;
   const rel = path.relative(ROOT, file);
@@ -176,7 +194,7 @@ export function render(file, text) {
 export function update(file) {
   const out = signpostPath(file);
   let st;
-  try { st = fs.statSync(file); } catch { try { fs.unlinkSync(out); } catch {} return false; }
+  try { st = fs.statSync(file); } catch { removeOrphan(out); return false; }
   if (!st.isFile() || st.size > MAX_BYTES) return false;
   const next = render(file, fs.readFileSync(file, 'utf8'));
   let prev = null;
@@ -200,14 +218,14 @@ function sync() {
       if (!sp || sp.mtimeMs < fs.statSync(f).mtimeMs) update(f);
     } catch {}
   }
-  // Orphans: a signpost whose source was deleted or renamed.
+  // Orphans: a signpost whose source was deleted or renamed (only files carrying our header).
   for (const d of dirs) {
     let names = [];
     try { names = fs.readdirSync(d); } catch { continue; }
     for (const n of names) {
       if (!isSignpost(n)) continue;
       const src = path.join(d, n.slice(1, -2));
-      if (!fs.existsSync(src)) try { fs.unlinkSync(path.join(d, n)); } catch {}
+      if (!fs.existsSync(src)) removeOrphan(path.join(d, n));
     }
   }
 }
