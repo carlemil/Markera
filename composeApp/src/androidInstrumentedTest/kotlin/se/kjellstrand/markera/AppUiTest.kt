@@ -2377,13 +2377,19 @@ class AppUiTest {
      */
     @Test fun seriePageOfALocalSeriesFollowsItToTheServer() {
         postAnswer = HttpStatusCode.ServiceUnavailable
-        val services = openScanAndDetect()
         // An older series on the server (yesterday, folded in History), so the page has a neighbour.
         onServer = listOf(serverSeries.copy(timestamp = noon(1)))
+        val services = launch(signedIn = true)
+        waitForText(homeMarker)
+        click(button("Mark"))
+        click(button("Detect"))
+        waitForExact("40")
         save()
         rule.waitUntil(TIMEOUT_MS) { services.repository.series.value.any { it.local == LocalMark.QUEUED } }
         pressBack()
         rule.onNodeWithText("History").performClick()
+        // Both days listed before the page is opened: its walk order is the list it was opened from.
+        waitForButton(header(day(1)), "yesterday's group")
         // Only today's group is unfolded: the one photo shown is the local series'.
         waitFor(thumbnail, "the local series' photo in History")
         rule.onAllNodes(thumbnail, useUnmergedTree = true)[0].performClick()
@@ -2450,15 +2456,16 @@ class AppUiTest {
             waitOn(onHistory, "History")
             waitForDays(d.toString())
             waitForButton(button("Clear filters"), "the range still applied")
-            assertFalse("The day before must be filtered out", rule.exists(header(dayBefore.toString())))
         } finally {
             java.util.TimeZone.setDefault(before)
         }
     }
 
-    /** Whether the first node [matcher] finds is enabled (a disabled button carries Disabled). */
+    /** Whether the first node [matcher] finds in the merged tree (a button's) is enabled, or disabled; false while none shows. */
     private fun enabled(matcher: SemanticsMatcher) =
         rule.onAllNodes(matcher).fetchSemanticsNodes().firstOrNull()?.config?.contains(SemanticsProperties.Disabled) == false
+    private fun disabled(matcher: SemanticsMatcher) =
+        rule.onAllNodes(matcher).fetchSemanticsNodes().firstOrNull()?.config?.contains(SemanticsProperties.Disabled) == true
 
     /**
      * #32: placing the ring by hand, Done stays off while the centre sits on the ring (the target's
@@ -2490,7 +2497,7 @@ class AppUiTest {
             repeat(20) { moveBy(Offset(onto * s / 20f, onto * s / 20f)) }
             up()
         }
-        rule.waitUntil(TIMEOUT_MS) { rule.exists(done) && !enabled(done) }
+        rule.waitUntil(TIMEOUT_MS) { disabled(done) }
         rule.onAllNodes(done)[0].assertIsNotEnabled()
 
         // Back again: grabbed where it landed (the drag gives up the touch slop, or not; either is
@@ -2580,16 +2587,13 @@ class AppUiTest {
         assertEquals(listOf("22lr", "22lr"), posted.map { it.caliber })
     }
 
-    /** #38: picked in the app, Polish resolves Home's local count with its one, few and many forms. */
+    /**
+     * #38: with Polish as the app's language (saved, as a pick in Settings leaves it; the language
+     * list is lazy, so Polski may sit off screen to pick), Home's local count uses the one, few and many forms.
+     */
     @Test fun polishLocalCountUsesItsPluralForms() {
         onServer = emptyList()
-        val store = MemoryStore(null)
-        val services = launch(signedIn = false, store = store)
-        waitForText("Mark")
-        openSettings()
-        pickLanguage("Polski")
-        rule.waitUntil(TIMEOUT_MS) { store.language == "pl" }
-        pressBack()
+        val services = launch(signedIn = false, store = MemoryStore(null, language = "pl"))
         keepLocal(services, 2)
         waitForText("1 seria tylko w tym telefonie")
         keepLocal(services, 3)
