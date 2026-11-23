@@ -184,7 +184,7 @@ class SeriesRepository(
                     offLock { api.postSeriesImage(id, bytes, posted.image_width!!.toInt(), posted.image_height!!.toInt()) }
                 } catch (e: SeriesApiException) {
                     // The series is gone on the server (deleted elsewhere): nothing to upload the photo to.
-                    if (e.status == 404) { forgetPhotoPendingLocked(id); reload() }
+                    if (e.status == 404) { forgetPhotoPendingLocked(id, row.owner_user_id!!); reload() }
                     throw e
                 }
                 images.write(id, bytes)
@@ -500,9 +500,8 @@ class SeriesRepository(
         }
     }
 
-    /** The current account's photo-pending row for a series the server no longer has, its JPEG, and the cached copy. */
-    private fun forgetPhotoPendingLocked(serverId: Long) {
-        val owner = session.auth.value?.userId?.toString() ?: return
+    /** [owner]'s photo-pending row for a series the server no longer has, its JPEG, and the cached copy. */
+    private fun forgetPhotoPendingLocked(serverId: Long, owner: String) {
         q.selectLocal().executeAsList().filter { it.server_id == serverId && it.owner_user_id == owner }
             .forEach { deleteLocalLocked(it.local_id) }
         q.deleteById(serverId)
@@ -528,7 +527,7 @@ class SeriesRepository(
         q.transaction {
             changed.forEach { if (it.deleted) q.deleteById(it.id) else insert(it) }
         }
-        changed.filter { it.deleted }.forEach { images.delete(it.id); forgetPhotoPendingLocked(it.id) }
+        changed.filter { it.deleted }.forEach { images.delete(it.id); forgetPhotoPendingLocked(it.id, user) }
         stamp(changed, user)
     }
 

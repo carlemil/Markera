@@ -75,9 +75,15 @@ class SignOutCleanupTest {
         val pending = f.photoPending(503)
         val unsent = f.repo.keepLocal(request().copy(clientId = "unsent"), EncodedImage(jpeg, 4, 4), owner = 17L)
 
+        f.cache.write(41, byteArrayOf(4, 1))
+
         f.api.deleteAccount(); f.session.signOut(); f.repo.clearDeletedAccount(17L)
 
         f.assertGone(pending)
+        // And the synced cache goes, as with clear().
+        assertTrue(f.db.seriesQueries.selectAll().executeAsList().isEmpty())
+        assertNull(f.db.seriesQueries.lastSync().executeAsOneOrNull())
+        assertNull(f.cache.read(41))
         // Never sent: still the user's own work, offered to the next account.
         assertNotNull(f.db.seriesQueries.localById(unsent).executeAsOneOrNull())
         assertContentEquals(jpeg, f.localImages.read(unsent))
