@@ -97,6 +97,14 @@ if [ -n "$(git diff --name-only --no-renames --diff-filter=D HEAD)" ]; then
     git diff -z --name-only --no-renames --diff-filter=D HEAD |
         ssh "$host" "cd $dir && xargs -0 rm -f --"
 fi
+# The UI-test gate record (gitignored, so neither the push nor the tar above carries it): the Mac's
+# upload lanes check it against the Mac's HEAD (scripts/ui-gate.sh). No record here, none there.
+# Ignored, so it does not enter the snapshot below.
+if [ -f .ui-test-pass ]; then
+    ssh "$host" "cat > $dir/.ui-test-pass" < .ui-test-pass
+else
+    ssh "$host" "rm -f $dir/.ui-test-pass"
+fi
 # Record what the Mac tree looks like now, for the next sync's check.
 ssh "$host" "cd $dir && sh -s" <<EOF
 set -e

@@ -18,6 +18,14 @@ Specialized for the **Markera** repo:
 
 Perform the steps in order. Stop and report if any step fails or a prerequisite is missing.
 
+**UI-test gate (CLAUDE.md, "Release rule").** Every store upload (Play `publish*`, `mac-beta.sh`,
+`mac-metadata.sh`, fastlane `beta`/`metadata`/`release`/`submit`/`reupload`) refuses unless
+`.ui-test-pass` at the repo root names the current HEAD and the working tree is clean. A passing,
+whole-class AppUiTest run on the phone on a clean tree writes that record. So the order is:
+edit everything (version, notes, metadata, screenshots), **commit**, run AppUiTest on the phone, then
+upload. Any commit after the test run (even a typo fix) needs a new run. Never use the override
+(`-Pmarkera.skipUiGate=true` / `SKIP_UI_GATE=1`) unless the user explicitly asks for an emergency upload.
+
 ---
 
 ## Step 1 — Check prerequisites
@@ -175,7 +183,54 @@ Rules:
 
 ---
 
-## Step 4 — Build the signed AAB
+## Step 4 — iOS version and notes
+
+Only when `iosApp/` exists. Keep `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
+`iosApp/project.yml` equal to the Android versionName / versionCode, and copy the release
+notes to `iosApp/fastlane/metadata/{en-US,en-GB,sv}/release_notes.txt` (en-US from the en-US
+notes, en-GB from en-GB, sv from sv-SE).
+
+When the UI changed, retake the screenshots in **both** languages now (Settings → language), so they
+are part of the commit: Play via `python store/crop_screenshots.py <en-US|sv-SE> <screencaps>...`
+(writes `store/screenshots/<locale>/` and the listing's graphics), and on the simulator
+`iosApp/fastlane/screenshots/{en-US,sv}/*.png` (same four screens as `store/screenshots/`).
+en-GB has no screenshots; both stores fall back to en-US.
+
+---
+
+## Step 5 — Commit the release
+
+Commit everything the release ships **before** testing and uploading (the gate needs a clean tree
+whose HEAD is the tested commit):
+
+```
+git add composeApp/build.gradle.kts
+git add composeApp/src/main/play/release-notes/ iosApp/project.yml iosApp/fastlane/metadata/*/release_notes.txt
+git add store/ iosApp/fastlane/screenshots/      # only when the screenshots were retaken
+git commit -m "Bump version to <newVersionName> (build <newVersionCode>)"
+git status --short                                # must print nothing
+```
+
+End the commit message with the project's standard co-author trailer if one is in use.
+
+---
+
+## Step 6 — UI tests on the phone (the gate)
+
+With the phone connected over wifi adb (see `/deploy`), upright or auto-rotate off:
+
+```powershell
+$env:ANDROID_SERIAL="<phone serial>"; .\gradlew.bat :composeApp:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=se.kjellstrand.markera.AppUiTest"
+```
+
+It must end with `UI gate: AppUiTest passed (<n> tests) on <sha>` and `.ui-test-pass` must hold
+`git rev-parse HEAD`. A failure blocks the release: fix it, commit, rerun. (While iterating, run only
+the failing methods with `…AppUiTest#method`; those runs never write the record, so finish with the
+whole class.)
+
+---
+
+## Step 7 — Build the signed AAB
 
 ```
 ./gradlew :composeApp:bundleRelease --no-daemon
@@ -190,26 +245,25 @@ composeApp/build/outputs/bundle/release/composeApp-release.aab
 
 ---
 
-## Step 5 — Upload to Google Play internal test track
+## Step 8 — Upload to Google Play internal test track
 
 ```
 ./gradlew :composeApp:publishReleaseBundle --no-daemon
 ```
 
+`checkUiTestGate` runs first; if it refuses, go back to Step 5/6 rather than overriding it.
 Wait for it to complete. If it fails, show the error output and stop.
 
 ---
 
-## Step 5b — iOS (App Store)
+## Step 8b — iOS (App Store)
 
-Only when `iosApp/` exists. Keep `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
-`iosApp/project.yml` equal to the Android versionName / versionCode, and copy the release
-notes to `iosApp/fastlane/metadata/{en-US,en-GB,sv}/release_notes.txt` (en-US from the en-US
-notes, en-GB from en-GB, sv from sv-SE). Then run the archive + TestFlight
-upload yourself (signing uses the build keychain from `iosApp/fastlane/.env`):
+Only when `iosApp/` exists. Mirror the commit (and the gate record) to the Mac, then run the
+archive + TestFlight upload yourself (signing uses the build keychain from `iosApp/fastlane/.env`):
 
 ```
-sh scripts/mac.sh 'bash scripts/mac-beta.sh'     # archive + TestFlight
+sh scripts/mac-sync.sh                        # pushes HEAD and copies .ui-test-pass
+sh scripts/mac.sh 'bash scripts/mac-beta.sh'  # archive + TestFlight (gated, here and on the Mac)
 sh scripts/sentry-dsyms.sh                    # that archive's dSYMs -> Sentry (needs sentry.properties)
 ```
 
@@ -220,33 +274,23 @@ shows the new number), push the listing and submit:
 sh scripts/mac.sh 'cd iosApp && export LC_ALL=en_US.UTF-8 && fastlane release'
 ```
 
-When the UI changed, retake the screenshots in **both** languages first (Settings → language):
-Play via `python store/crop_screenshots.py <en-US|sv-SE> <screencaps>...` (writes
-`store/screenshots/<locale>/` and the listing's graphics), and on the simulator
-`iosApp/fastlane/screenshots/{en-US,sv}/*.png` (same four screens as `store/screenshots/`).
-en-GB has no screenshots; both stores fall back to en-US.
-
 ---
 
-## Step 6 — Commit and tag the release
+## Step 9 — Tag the release
 
 ```
-git add composeApp/build.gradle.kts
-git add composeApp/src/main/play/release-notes/ iosApp/project.yml iosApp/fastlane/metadata/*/release_notes.txt
-git commit -m "Bump version to <newVersionName> (build <newVersionCode>)"
 git tag v<newVersionName>
 ```
 
-End the commit message with the project's standard co-author trailer if one is in use.
-
 ---
 
-## Step 7 — Summary
+## Step 10 — Summary
 
 Report:
 - Previous version → New version (e.g. `1.0.0 (1) → 1.1.0 (2)`)
 - Git tag created (e.g. `v1.1.0`)
+- The commit the UI tests passed on (from `.ui-test-pass`)
 - Upload status (success/failure)
 - The release notes that were published
 - Reminder to promote the build from the internal test track in Google Play Console when ready
-- Reminder to push the tag with `git push origin v<newVersionName>`
+- Reminder to push the commit and tag with `git push origin master v<newVersionName>`

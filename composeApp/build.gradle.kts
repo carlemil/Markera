@@ -238,6 +238,9 @@ play {
     defaultToAppBundles.set(true)
 }
 
+// No Play upload unless AppUiTest passed on the phone for exactly HEAD (issue #15; see the script).
+apply(from = rootProject.file("gradle/ui-test-gate.gradle.kts"))
+
 dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.android)
     androidTestImplementation(libs.androidx.junit)
