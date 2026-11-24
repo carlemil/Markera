@@ -338,7 +338,7 @@ fun Route.adminRoutes(
         val rows = db.exportBatches().joinToString("") { b ->
             val link = if (b.format == ExportFormat.LEGACY) "exported before tracking, nothing to download"
                 else """<a href="/admin/training-exports/${b.id}.zip">download</a>"""
-            row(b.id, esc(b.at), b.format.wire, if (b.approved) "approved" else "all but rejected", b.count, link)
+            row(b.id, esc(b.at), b.format.wire, when { b.format == ExportFormat.LEGACY -> "–"; b.approved -> "approved"; else -> "all but rejected" }, b.count, link)
         }
         respondHtml(page("Training exports",
             """<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/curate">approve series for training</a></div>""" +
