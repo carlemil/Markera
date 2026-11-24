@@ -186,7 +186,9 @@ fun Route.adminRoutes(
         val series = (if (training) db.trainingSeries(seriesId) else db.getSeries(seriesId, includeDeleted = true))
             ?: return@get notFound("Unknown series")
         val userId = db.seriesOwner(seriesId, includeDeleted = true)
-        val holes = series.holes.mapIndexed { i, h -> holeRow(i, h, readOnly = h.deleted || series.deleted) }.joinToString("")
+        val holes = series.holes.mapIndexed { i, h ->
+            holeRow(i, h, readOnly = h.deleted || series.deleted, revert = training && !series.deleted)
+        }.joinToString("")
         val hasImage = imageFile(images, seriesId).isFile
         val photo = if (!hasImage) "" else {
             """<div class="zoom"><div class="shot"${holeSizeAttrs(series)}><img src="/admin/series/$seriesId/image">""" +
@@ -577,13 +579,21 @@ private fun geometrySvg(series: Series): String {
  * [readOnly] row (a deleted hole, or any hole of a deleted series) is greyed: shown for the record, never edited
  * or re-saved.
  */
-private fun holeRow(i: Int, h: Hole, readOnly: Boolean = h.deleted) =
+private fun holeRow(i: Int, h: Hole, readOnly: Boolean = h.deleted, revert: Boolean = false) =
     """<tr data-i="$i"${if (readOnly) """ class="gone"""" else ""}><td>${holeLabel(i)}</td>""" +
         """<td>${pos(h.x, h.detectedX)}</td><td>${pos(h.y, h.detectedY)}</td>""" +
         """<td${if (overridden(h)) """ class="dim"""" else ""}>${detectedScore(h)}</td>""" +
         """<td>${if (readOnly) score(h.ring, h.innerTen) else manualSelect(h)}</td>""" +
         """<td>${num(h.distanceMm)}</td><td>${kind(h)}</td>""" +
-        """<td>${if (readOnly) "" else """<button class="del">Delete</button>"""}</td></tr>"""
+        """<td>${if (readOnly) "" else """<button class="del">Delete</button>"""}""" +
+        (if (revert && h.detectedRing != null) revertButton(enabled = kind(h).isNotEmpty()) else "") + "</td></tr>"
+
+/**
+ * Curate's per-hole Revert: back to exactly what the detector found (its spot and score, not deleted), forgetting
+ * every delete, move and rescore, the user's in the app and the admin's alike. A hand-placed hole has nothing to go back to.
+ */
+private fun revertButton(enabled: Boolean) =
+    """ <button class="rev" title="Back to the detector's spot and score"${if (enabled) "" else " disabled"}>Revert</button>"""
 
 /**
  * The hole's name in the table and on its marker: a..z, then aa, ab, ... by its index in the series (deleted
@@ -927,6 +937,8 @@ function refresh(i) {
   r.cells[3].classList.toggle('dim', r.querySelector('select.manual').value !== '');
   r.cells[5].textContent = num(h.distanceMm);
   r.cells[6].textContent = kind(h);
+  const rv = r.querySelector('.rev');
+  if (rv) rv.disabled = !kind(h) && !h.removed && !h.deleted;
   if (m) {
     m.style.left = (h.x / S.imageWidth * 100) + '%';
     m.style.top = (h.y / S.imageHeight * 100) + '%';
@@ -1002,7 +1014,9 @@ const setRemoved = (i, removed) => {
   const detected = h.detectedRing != null;
   tr.hidden = removed && !detected;
   tr.classList.toggle('gone', removed && detected);
-  tr.querySelectorAll('select,button').forEach(c => c.disabled = removed);
+  tr.querySelectorAll('select,button:not(.rev)').forEach(c => c.disabled = removed);
+  const rv = tr.querySelector('.rev');
+  if (rv && removed) rv.disabled = false;
   if (m) {
     m.hidden = removed && !detected;
     m.classList.toggle('gone', removed && detected);
@@ -1021,6 +1035,42 @@ tbl.addEventListener('click', e => {
   setRemoved(i, true);
 });
 undo.onclick = () => { if (undone.length) setRemoved(undone.pop(), false); };
+
+// Curate's Revert: the hole goes back to exactly what the detector found, its spot and score, not deleted, whoever
+// changed it (the user in the app, or here). A deleted row was read-only, so the row is rebuilt as an editable one,
+// with the empty "detected score" option chosen. Sent live, it replaces the stored deleted copy on the server.
+function revert(i) {
+  const h = S.holes[i];
+  if (h.detectedRing == null) return;
+  if (h.detectedX != null && h.detectedY != null) { h.x = h.detectedX; h.y = h.detectedY; }
+  h.ring = h.detectedRing;
+  h.innerTen = h.detectedInnerTen === true;
+  const d = distanceMm(h);
+  if (d != null) h.distanceMm = d;
+  h.deleted = false;
+  h.removed = false;
+  for (let k = undone.length - 1; k >= 0; k--) if (String(undone[k]) === String(i)) undone.splice(k, 1);
+  undo.disabled = undone.length === 0;
+  const tr = document.getElementById('row').content.firstElementChild.cloneNode(true);
+  tr.dataset.i = i;
+  const s = tr.querySelector('select.manual');
+  s.insertBefore(new Option('', ''), s.firstChild);
+  s.value = '';
+  tr.cells[3].textContent = sc(h.detectedRing, h.detectedInnerTen === true);
+  const rv = document.createElement('button');
+  rv.className = 'rev';
+  rv.title = "Back to the detector's spot and score";
+  rv.textContent = 'Revert';
+  tr.cells[7].append(' ', rv);
+  tb.querySelector('tr[data-i="' + i + '"]').replaceWith(tr);
+  const m = mark(i);
+  if (m) { m.hidden = false; m.classList.remove('gone'); }
+  refresh(i);
+  save();
+}
+tbl.addEventListener('click', e => {
+  if (e.target.classList.contains('rev')) revert(e.target.closest('tr').dataset.i);
+});
 
 // Pointing at a hole's row lights up its marker on the photo, and pointing at a marker lights up its row.
 function highlight(i) {

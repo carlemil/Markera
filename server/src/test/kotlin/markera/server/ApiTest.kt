@@ -357,6 +357,19 @@ class ApiTest {
         assertTrue(copyLabels.startsWith("0 "), copyLabels)
         assertEquals(2, negatives.lines().count { it.startsWith("images/$id.jpg;") && it.endsWith(";deleted") }, negatives)
 
+        // Every detected row has a Revert in curate, live while it differs from the detection; the user's own page has none.
+        assertEquals(3, Regex("""<button class="rev"[^>]*>""").findAll(copyPage).count(), copyPage)
+        assertFalse(Regex("""<button class="rev"[^>]*disabled""").containsMatchIn(copyPage), copyPage)
+        assertFalse("class=\"rev\"" in client.admin("/admin/series/$id").bodyAsText())
+        // What the editor sends after reverting all three: each live at its detection. The stored deletions go.
+        val reverted = series().copy(holes = listOf(live, falsePositive, appDeleted.copy(ring = 7, deleted = false)))
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Put, "/admin/series/$id/training", reverted).status)
+        val revertedPage = client.admin("/admin/series/$id?embed=1&training=1").bodyAsText()
+        assertEquals(3, Regex("""<button class="rev"[^>]*disabled""").findAll(revertedPage).count(), revertedPage)
+        val (revertedLabels, revertedNegatives) = labels()
+        assertEquals(3, revertedLabels.trim().lines().size, revertedLabels)
+        assertEquals(0, revertedNegatives.lines().count { it.startsWith("images/$id.jpg;") }, revertedNegatives)
+
         // Back to the user's version.
         assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Delete, "/admin/series/$id/training").status)
         assertEquals(userLabels, labels().first)
