@@ -322,10 +322,7 @@ class ApiTest {
         val id = client.createSeries(auth.token, series().copy(holes = listOf(live, falsePositive, appDeleted)))
         client.putImage(auth.token, id, jpeg(), query = "?width=1000&height=500")
         suspend fun labels(): Pair<String, String> {
-            val entries = mutableMapOf<String, String>()
-            java.util.zip.ZipInputStream(client.admin("/admin/training-export.zip").bodyAsBytes().inputStream()).use { zip ->
-                generateSequence { zip.nextEntry }.forEach { entries[it.name] = String(zip.readBytes(), Charsets.ISO_8859_1) }
-            }
+            val entries = client.exportAllAgain()
             return entries.getValue("labels/$id.txt") to entries.getValue("negatives.csv")
         }
         val (userLabels, _) = labels()
@@ -411,6 +408,32 @@ class ApiTest {
         }
 
     private suspend fun HttpClient.admin(path: String) = get(path) { basicAuth("admin", ADMIN_PW) }
+
+    /** Makes a new training export batch ([query] e.g. "?approved=1&format=cvat"); its id, or null when nothing was new. */
+    private suspend fun HttpClient.exportNew(query: String = ""): Long? {
+        val r = adminWrite(HttpMethod.Post, "/admin/training-exports$query")
+        assertEquals(HttpStatusCode.OK, r.status, r.bodyAsText())
+        val id = kotlinx.serialization.json.Json.parseToJsonElement(r.bodyAsText()).jsonObject.getValue("id")
+        return if (id is kotlinx.serialization.json.JsonNull) null else id.jsonPrimitive.long
+    }
+
+    /** A zip's entries by name, read as [charset] text. */
+    private suspend fun HttpClient.zipEntries(path: String, charset: java.nio.charset.Charset = Charsets.ISO_8859_1): Map<String, String> {
+        val r = admin(path)
+        assertEquals(HttpStatusCode.OK, r.status, path)
+        val entries = mutableMapOf<String, String>()
+        java.util.zip.ZipInputStream(r.bodyAsBytes().inputStream()).use { zip ->
+            generateSequence { zip.nextEntry }.forEach { entries[it.name] = String(zip.readBytes(), charset) }
+        }
+        return entries
+    }
+
+    /** A fresh export of everything, as if nothing had been exported yet: for tests about the export's content. */
+    private suspend fun HttpClient.exportAllAgain(query: String = ""): Map<String, String> {
+        sql { it.executeUpdate("DELETE FROM exported_series") }
+        val id = exportNew(query) ?: return emptyMap()
+        return zipEntries("/admin/training-exports/$id.zip", if ("cvat" in query) Charsets.UTF_8 else Charsets.ISO_8859_1)
+    }
 
     /** `updated_at` comes from the OS clock, whose granularity is ~16 ms on Windows: wait out a tick so the
      *  next write is provably later. */
@@ -975,15 +998,14 @@ class ApiTest {
         client.putImage(a.token, gone, jpeg(), query = "?width=1000&height=500")
         client.delete("/series/$gone") { bearerAuth(a.token) }
 
-        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/training-export.zip").status)
-        assertTrue("/admin/training-export.zip" in client.admin("/admin").bodyAsText())
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/training-exports").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/admin/training-exports") { header("X-Admin", "1") }.status)
+        assertEquals(HttpStatusCode.Forbidden, client.adminWrite(HttpMethod.Post, "/admin/training-exports", xAdmin = false).status)
+        assertTrue("/admin/training-exports" in client.admin("/admin").bodyAsText())
 
-        val response = client.admin("/admin/training-export.zip")
-        assertEquals(HttpStatusCode.OK, response.status)
-        val entries = mutableMapOf<String, String>()
-        java.util.zip.ZipInputStream(response.bodyAsBytes().inputStream()).use { zip ->
-            generateSequence { zip.nextEntry }.forEach { entries[it.name] = String(zip.readBytes(), Charsets.ISO_8859_1) }
-        }
+        val batch = client.exportNew()!!
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/training-exports/$batch.zip").status)
+        val entries = client.zipEntries("/admin/training-exports/$batch.zip")
         // Both users' photos, no soft-deleted series.
         assertEquals(
             (ids.flatMap { listOf("images/$it.jpg", "labels/$it.txt") } + listOf("data.yaml", "negatives.csv", "nudges.csv")).toSet(),
@@ -992,14 +1014,12 @@ class ApiTest {
         assertEquals(1, entries.getValue("negatives.csv").lines().count { it.endsWith(";deleted") } / ids.size)
 
         // ?format=cvat: the same photos with one annotations.xml, behind the same login.
-        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/training-export.zip?format=cvat").status)
-        val cvat = client.admin("/admin/training-export.zip?format=cvat")
+        sql { it.executeUpdate("DELETE FROM exported_series") }
+        val cvatBatch = client.exportNew("?format=cvat")!!
+        val cvat = client.admin("/admin/training-exports/$cvatBatch.zip")
         assertEquals(HttpStatusCode.OK, cvat.status)
-        assertTrue("markera-cvat.zip" in cvat.headers[HttpHeaders.ContentDisposition].orEmpty())
-        val cvatEntries = mutableMapOf<String, String>()
-        java.util.zip.ZipInputStream(cvat.bodyAsBytes().inputStream()).use { zip ->
-            generateSequence { zip.nextEntry }.forEach { cvatEntries[it.name] = String(zip.readBytes(), Charsets.UTF_8) }
-        }
+        assertTrue("markera-cvat-batch-$cvatBatch.zip" in cvat.headers[HttpHeaders.ContentDisposition].orEmpty())
+        val cvatEntries = client.zipEntries("/admin/training-exports/$cvatBatch.zip", Charsets.UTF_8)
         assertEquals((ids.map { "images/$it.jpg" } + "annotations.xml").toSet(), cvatEntries.keys)
         val xml = cvatEntries.getValue("annotations.xml")
         ids.forEach { assertTrue("name=\"$it.jpg\" width=\"1000\" height=\"500\"" in xml, xml) }
@@ -1013,19 +1033,63 @@ class ApiTest {
         }
         client.adminWrite(HttpMethod.Post, "/admin/curate/$approved?status=approved")
         client.adminWrite(HttpMethod.Post, "/admin/curate/$rejected?status=rejected")
-        suspend fun imagesIn(path: String): Set<String> {
-            val names = mutableSetOf<String>()
-            java.util.zip.ZipInputStream(client.admin(path).bodyAsBytes().inputStream()).use { zip ->
-                generateSequence { zip.nextEntry }.forEach { if (it.name.startsWith("images/")) names += it.name }
-            }
-            return names
-        }
+        suspend fun imagesIn(query: String) = client.exportAllAgain(query).keys.filter { it.startsWith("images/") }.toSet()
 
-        assertEquals(setOf("images/$approved.jpg", "images/$open.jpg"), imagesIn("/admin/training-export.zip"))
-        assertEquals(setOf("images/$approved.jpg"), imagesIn("/admin/training-export.zip?approved=1"))
+        assertEquals(setOf("images/$approved.jpg", "images/$open.jpg"), imagesIn(""))
+        assertEquals(setOf("images/$approved.jpg"), imagesIn("?approved=1"))
         // A rejected series approved later is back in the default export.
         client.adminWrite(HttpMethod.Post, "/admin/curate/$rejected?status=approved")
-        assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg", "images/$open.jpg"), imagesIn("/admin/training-export.zip"))
+        assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg", "images/$open.jpg"), imagesIn(""))
+    }
+
+    @Test fun `a series is exported once and a batch downloads again exactly as it went out`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("export-once")
+        val hole = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, 20.0, 20.0, 0.7)
+        val (first, second, legacy) = List(3) {
+            client.createSeries(auth.token, series().copy(holes = listOf(hole)))
+                .also { client.putImage(auth.token, it, jpeg(), query = "?width=1000&height=500") }
+        }
+        listOf(first, second, legacy).forEach { client.adminWrite(HttpMethod.Post, "/admin/curate/$it?status=approved") }
+
+        // Exported before tracking: recorded once, unknown ids and repeats skipped, nothing to download.
+        val legacyPost = client.post("/admin/training-exports/legacy") {
+            basicAuth("admin", ADMIN_PW); header("X-Admin", "1"); setBody("$legacy, 99999\n$legacy")
+        }
+        val legacyBatch = kotlinx.serialization.json.Json.parseToJsonElement(legacyPost.bodyAsText()).jsonObject
+        assertEquals(1, legacyBatch.getValue("count").jsonPrimitive.int)
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/training-exports/${legacyBatch.getValue("id").jsonPrimitive.long}.zip").status)
+        assertEquals(HttpStatusCode.Forbidden, client.post("/admin/training-exports/legacy") { basicAuth("admin", ADMIN_PW); setBody("$first") }.status)
+
+        val batch = client.exportNew("?approved=1&format=cvat")!!
+        val before = client.zipEntries("/admin/training-exports/$batch.zip", Charsets.UTF_8)
+        assertEquals(setOf("images/$first.jpg", "images/$second.jpg", "annotations.xml"), before.keys)
+
+        // Already exported, in any format: nothing new, whatever was asked for.
+        assertEquals(null, client.exportNew("?approved=1&format=cvat"))
+        assertEquals(null, client.exportNew("?approved=1"))
+        assertEquals(null, client.exportNew())
+
+        // The user moves the hole afterwards: the batch still downloads the holes as they were exported.
+        client.put("/series/$first") {
+            bearerAuth(auth.token); contentType(ContentType.Application.Json)
+            setBody(series().copy(holes = listOf(hole.copy(x = 400.0))))
+        }
+        assertEquals(before, client.zipEntries("/admin/training-exports/$batch.zip", Charsets.UTF_8))
+
+        // A new series goes into the next batch on its own.
+        val third = client.createSeries(auth.token, series().copy(holes = listOf(hole)))
+        client.putImage(auth.token, third, jpeg(), query = "?width=1000&height=500")
+        val next = client.exportNew()!!
+        assertEquals(setOf("images/$third.jpg"), client.zipEntries("/admin/training-exports/$next.zip").keys.filter { it.startsWith("images/") }.toSet())
+        val page = client.admin("/admin/training-exports").bodyAsText()
+        assertTrue("/admin/training-exports/$batch.zip" in page && "/admin/training-exports/$next.zip" in page, page)
+        assertTrue("exported before tracking" in page, page)
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/training-exports/12345.zip").status)
+
+        // Deleting the account takes its frozen copies too.
+        client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
+        sql { st -> st.executeQuery("SELECT COUNT(*) FROM exported_series").use { it.next(); assertEquals(0, it.getInt(1)) } }
+        assertEquals(emptySet(), client.zipEntries("/admin/training-exports/$batch.zip", Charsets.UTF_8).keys.filter { it.startsWith("images/") }.toSet())
     }
 
     @Test

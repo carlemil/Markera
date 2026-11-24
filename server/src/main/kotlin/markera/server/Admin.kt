@@ -3,6 +3,7 @@ package markera.server
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
@@ -68,9 +69,7 @@ fun Route.adminRoutes(
             page(
                 "Users",
                 counts + """<div><a href="/admin/suggestions">suggestions ($suggestions)</a></div>""" +
-                    """<div><a href="/admin/training-export.zip">training export, all but rejected (zip)</a> &middot; """ +
-                    """<a href="/admin/training-export.zip?approved=1">approved only (zip)</a> &middot; """ +
-                    """<a href="/admin/training-export.zip?approved=1&amp;format=cvat">approved, for CVAT (zip)</a></div>""" +
+                    """<div><a href="/admin/training-exports">training exports</a></div>""" +
                     """<div><a href="/admin/curate">approve series for training</a></div>""" +
                     """<div><a href="/admin/review">review changed series</a></div>""" +
                     """<div><label><input type="checkbox" id="hide-empty"> hide users with 0 series</label></div>""" +
@@ -104,7 +103,7 @@ fun Route.adminRoutes(
             "?${query}&amp;offset=${offset.toLong() + 50}".takeIf { matches.size > 50 }, "next",
         )
         respondHtml(page("Review changed series", """<div><a href="/admin">&larr; users</a></div>""" +
-            """<div><a href="/admin/training-export.zip">training export, all but rejected (zip)</a></div>""" +
+            """<div><a href="/admin/training-exports">training exports</a></div>""" +
             """<div><a href="?deleted=${if (deleted) 0 else 1}">${if (deleted) "Live only" else "Include deleted series"}</a></div>""" +
             "<p>Tracking starts with this server version. Initial saves and first photo attachments are baselines, not edits. " +
             "Existing hole signals are inferred; historical metadata/photo edits and their authors cannot be reconstructed. " +
@@ -329,22 +328,62 @@ fun Route.adminRoutes(
         call.respond(HttpStatusCode.NoContent)
     }
 
-    // Every user's photos with the confirmed holes as YOLO labels, plus the false positives (see TrainingExport.kt).
-    // ?format=cvat: the same photos with a CVAT for images 1.1 annotations.xml (hole and false_positive ellipses).
-    get("/admin/training-export.zip") {
+    // Training exports (see TrainingExport.kt). A series goes out once: each export takes only series no earlier one
+    // took, freezes them as they are, and is a numbered batch that can be downloaded again exactly as it went out.
+    // Making a batch is a guarded POST; downloading one is a plain GET that changes nothing.
+    get("/admin/training-exports") {
         if (unauthorized(password, localNoAuth, throttle)) return@get
+        val taken = db.exportedSeriesIds()
+        fun fresh(approved: Boolean) = exportCandidates(db, images, approved, taken).size
+        val rows = db.exportBatches().joinToString("") { b ->
+            val link = if (b.format == ExportFormat.LEGACY) "exported before tracking, nothing to download"
+                else """<a href="/admin/training-exports/${b.id}.zip">download</a>"""
+            row(b.id, esc(b.at), b.format.wire, if (b.approved) "approved" else "all but rejected", b.count, link)
+        }
+        respondHtml(page("Training exports",
+            """<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/curate">approve series for training</a></div>""" +
+                "<p>A series is exported once. Each export below takes only series no earlier export took, and keeps " +
+                "them as they were, so downloading a batch again gives the same holes even if they changed since.</p>" +
+                """<div class="bar"><button data-q="approved=1&amp;format=cvat">New export: approved, for CVAT (${fresh(true)})</button> """ +
+                """<button data-q="approved=1">New export: approved, YOLO (${fresh(true)})</button> """ +
+                """<button data-q="">New export: all but rejected, YOLO (${fresh(false)})</button> <span id="xmsg"></span></div>""" +
+                (if (rows.isEmpty()) "<p>No exports yet.</p>"
+                    else table(listOf("batch", "exported", "format", "series from", "series", ""), rows)) +
+                "<script>$EXPORTS_JS</script>"))
+    }
+
+    // ?approved=1: only what /admin/curate approved, else every live series it has not rejected; ?format=cvat: a CVAT
+    // for images 1.1 annotations.xml instead of YOLO labels. Answers {id, count}; id null when nothing new is left.
+    post("/admin/training-exports") {
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
         val approved = call.request.queryParameters["approved"] == "1"
-        val cvat = call.request.queryParameters["format"] == "cvat"
-        val name = "markera-" + (if (cvat) "cvat" else "training") + (if (approved) "-approved" else "") + ".zip"
+        val format = if (call.request.queryParameters["format"] == "cvat") ExportFormat.CVAT else ExportFormat.YOLO
+        val made = db.recordExport(format, approved, exportCandidates(db, images, approved, db.exportedSeriesIds()))
+        respondJson(buildJsonObject { put("id", made?.first); put("count", made?.second?.size ?: 0) }.toString())
+    }
+
+    get("/admin/training-exports/{file}") {
+        if (unauthorized(password, localNoAuth, throttle)) return@get
+        val id = call.parameters["file"]?.removeSuffix(".zip")?.toLongOrNull() ?: return@get notFound("Unknown export")
+        val batch = db.exportBatch(id) ?: return@get notFound("Unknown export")
+        if (batch.format == ExportFormat.LEGACY) return@get notFound("Exported before tracking: nothing stored to download")
+        val cvat = batch.format == ExportFormat.CVAT
+        val name = "markera-" + (if (cvat) "cvat" else "training") + (if (batch.approved) "-approved" else "") + "-batch-$id.zip"
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"$name\"")
+        val series = db.frozenExport(id).asSequence()
         call.respondOutputStream(ContentType.Application.Zip) {
-            // ?approved=1: only what /admin/curate approved; otherwise every live series it has not rejected.
-            val ids = if (approved) db.approvedSeriesIds() else db.trainingSeriesIds()
-            // The admin's training copy where there is one, else the user's own version.
-            val series = ids.asSequence().mapNotNull { db.trainingSeries(it) }
             if (cvat) writeCvatZip(this, series) { imageFile(images, it) }
             else writeTrainingZip(this, series) { imageFile(images, it) }
         }
+    }
+
+    // Series exported before tracking began: ids separated by anything that is not a digit. Answers {id, count}.
+    // No form for it on the page: it is a one-off, for the exports made before this server version.
+    post("/admin/training-exports/legacy") {
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
+        val ids = Regex("\\d+").findAll(call.receiveText()).mapNotNull { it.value.toLongOrNull() }.toList()
+        val made = db.recordLegacyExport(ids)
+        respondJson(buildJsonObject { put("id", made?.first); put("count", made?.second ?: 0) }.toString())
     }
 
     // Approve series for training one at a time: a random unreviewed one in the editor, the verdicts on the side.
@@ -668,6 +707,16 @@ private suspend fun RoutingContext.notFound(what: String) =
 private suspend fun RoutingContext.respondHtml(html: String) = call.respondText(html, ContentType.Text.Html)
 
 private suspend fun RoutingContext.respondJson(json: String) = call.respondText(json, ContentType.Application.Json)
+
+/**
+ * What a new training export would take: approved series (or every live one not rejected) that no export took yet,
+ * as the admin's training copy where there is one, and only those the export can write (classifiable, with a photo).
+ */
+internal fun exportCandidates(db: Db, images: File, approved: Boolean, taken: Set<Long>): List<Series> =
+    (if (approved) db.approvedSeriesIds() else db.trainingSeriesIds())
+        .filter { it !in taken }
+        .mapNotNull { db.trainingSeries(it) }
+        .filter { classifySeries(it) != null && imageFile(images, it.id).isFile }
 
 private fun esc(value: String) = value
     .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
@@ -1526,10 +1575,34 @@ kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
 <button id="skip">Skip <kbd>S</kbd></button><span id="current"></span><span id="remaining"></span><span id="cmsg"></span></div>
 <label class="ovrow">Overlay transparency <input type="range" id="ov" min="0" max="100" step="5" value="0"><span id="ovv">0%</span></label>
 <label class="ovrow"><input type="checkbox" id="corr"> Only series with moved or deleted holes</label>
-<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a> &middot; <a href="/admin/training-export.zip?approved=1&amp;format=cvat">for CVAT (zip)</a></div>
+<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-exports">training exports</a></div>
 <div class="curate"><aside id="dock"><div id="side"><div id="counts"></div><ul id="history"></ul></div></aside><main>
 <p id="none" hidden>Every series with a photo has a verdict<span id="nonecorr" hidden> among those with moved or deleted holes</span>. Pick one on the left to change it.</p>
 <iframe id="frame" title="series editor"></iframe></main></div>"""
+
+/**
+ * The training-exports page: a "New export" button makes the batch (POST, X-Admin) and then downloads it; the page
+ * reloads so the table shows it. No dollar sign anywhere: Kotlin would eat it.
+ */
+private const val EXPORTS_JS = """
+const xmsg = document.getElementById('xmsg');
+let exporting = false;
+document.querySelectorAll('button[data-q]').forEach(b => b.onclick = () => {
+  if (exporting) return;
+  exporting = true;
+  xmsg.textContent = '· exporting...';
+  const q = b.dataset.q;
+  fetch('/admin/training-exports' + (q ? '?' + q : ''), {method: 'POST', credentials: 'include', headers: {'X-Admin': '1'}})
+    .then(r => { if (!r.ok) return r.text().then(t => { throw new Error(r.status + ' ' + t); }); return r.json(); })
+    .then(j => {
+      if (j.id == null) { xmsg.textContent = '· nothing new to export'; exporting = false; return; }
+      xmsg.textContent = '· batch ' + j.id + ': ' + j.count + ' series, downloading';
+      location.href = '/admin/training-exports/' + j.id + '.zip';
+      setTimeout(() => location.reload(), 1500);
+    })
+    .catch(e => { xmsg.textContent = '· ' + (e.message || e); exporting = false; });
+});
+"""
 
 /**
  * The curate page. Edits happen in the embedded editor and save as usual; a verdict waits for them

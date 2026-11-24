@@ -166,6 +166,18 @@ class Db(dbPath: String) : AutoCloseable {
                 series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
                 request TEXT NOT NULL,
                 at TEXT NOT NULL)""")
+            // Training exports: a series goes out once. Each export is a batch; every series in it keeps the exact
+            // version that went out (a Series as JSON), so a lost download can be fetched again as it was even after
+            // the holes changed. A legacy batch records series exported before tracking, with nothing frozen.
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS export_batches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                at TEXT NOT NULL,
+                format TEXT NOT NULL CHECK (format IN ('yolo', 'cvat', 'legacy')),
+                approved INTEGER NOT NULL)""")
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS exported_series (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                batch_id INTEGER NOT NULL REFERENCES export_batches(id),
+                frozen TEXT)""")
             // Databases created before typed/manual holes: x/y/distance_mm were NOT NULL and there were no
             // detected_* columns. SQLite cannot drop NOT NULL, so rebuild; the column check makes it idempotent.
             val holeColumns = st.executeQuery("PRAGMA table_info(holes)").use { rs ->
@@ -520,6 +532,80 @@ class Db(dbPath: String) : AutoCloseable {
                 "WHERE s.deleted_at IS NULL AND c.status = 'approved' ORDER BY s.id"
         ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
     }
+
+    /** Series some training export already took: never exported again. */
+    @Synchronized
+    fun exportedSeriesIds(): Set<Long> = conn.createStatement().use { st ->
+        st.executeQuery("SELECT series_id FROM exported_series").use { rs -> buildSet { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
+    /**
+     * Records a new export batch of [series] (each frozen as it goes out), skipping any another export took in the
+     * meantime. Returns the batch id and the series it holds; no batch when none is left.
+     */
+    @Synchronized
+    fun recordExport(format: ExportFormat, approved: Boolean, series: List<Series>): Pair<Long, List<Series>>? = transaction {
+        val taken = exportedSeriesIds()
+        val fresh = series.filter { it.id !in taken }
+        if (fresh.isEmpty()) return@transaction null
+        val batch = newBatch(format, approved)
+        conn.prepareStatement("INSERT INTO exported_series(series_id, batch_id, frozen) VALUES (?, ?, ?)").use { st ->
+            for (s in fresh) {
+                st.setLong(1, s.id); st.setLong(2, batch); st.setString(3, trainingJson.encodeToString(s)); st.executeUpdate()
+            }
+        }
+        batch to fresh
+    }
+
+    /** Marks [ids] as exported before tracking began (nothing frozen); unknown or already exported ids are skipped. */
+    @Synchronized
+    fun recordLegacyExport(ids: Collection<Long>): Pair<Long, Int>? = transaction {
+        val taken = exportedSeriesIds()
+        val known = ids.distinct().filter { it !in taken && getSeries(it, includeDeleted = true) != null }
+        if (known.isEmpty()) return@transaction null
+        val batch = newBatch(ExportFormat.LEGACY, approved = false)
+        conn.prepareStatement("INSERT INTO exported_series(series_id, batch_id) VALUES (?, ?)").use { st ->
+            for (id in known) { st.setLong(1, id); st.setLong(2, batch); st.executeUpdate() }
+        }
+        batch to known.size
+    }
+
+    private fun newBatch(format: ExportFormat, approved: Boolean): Long =
+        conn.prepareStatement("INSERT INTO export_batches(at, format, approved) VALUES (?, ?, ?)", java.sql.Statement.RETURN_GENERATED_KEYS).use {
+            it.setString(1, auditTime.format(java.time.Instant.now()))
+            it.setString(2, format.wire); it.setInt(3, if (approved) 1 else 0)
+            it.executeUpdate()
+            it.generatedKeys.use { rs -> rs.next(); rs.getLong(1) }
+        }
+
+    /** Every export batch, the newest first, with how many series it still holds. */
+    @Synchronized
+    fun exportBatches(): List<ExportBatch> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT b.id, b.at, b.format, b.approved, COUNT(e.series_id) AS n FROM export_batches b " +
+                "LEFT JOIN exported_series e ON e.batch_id = b.id GROUP BY b.id ORDER BY b.id DESC"
+        ).use { rs -> buildList { while (rs.next()) add(exportBatch(rs)) } }
+    }
+
+    @Synchronized
+    fun exportBatch(id: Long): ExportBatch? = conn.prepareStatement(
+        "SELECT b.id, b.at, b.format, b.approved, COUNT(e.series_id) AS n FROM export_batches b " +
+            "LEFT JOIN exported_series e ON e.batch_id = b.id WHERE b.id = ? GROUP BY b.id"
+    ).use { st -> st.setLong(1, id); st.executeQuery().use { rs -> if (rs.next()) exportBatch(rs) else null } }
+
+    /** The series of batch [id] exactly as they went out, oldest id first (a legacy batch has none frozen). */
+    @Synchronized
+    fun frozenExport(id: Long): List<Series> = conn.prepareStatement(
+        "SELECT frozen FROM exported_series WHERE batch_id = ? AND frozen IS NOT NULL ORDER BY series_id"
+    ).use { st ->
+        st.setLong(1, id)
+        st.executeQuery().use { rs -> buildList { while (rs.next()) add(trainingJson.decodeFromString<Series>(rs.getString(1))) } }
+    }
+
+    private fun exportBatch(rs: java.sql.ResultSet) = ExportBatch(
+        rs.getLong("id"), rs.getString("at"), ExportFormat.entries.first { it.wire == rs.getString("format") },
+        rs.getInt("approved") != 0, rs.getInt("n"),
+    )
 
     /** Approves or rejects [seriesId] for training; a later verdict replaces the earlier one. */
     @Synchronized
@@ -946,6 +1032,7 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM series_photo_baseline WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_curation WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_training WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM exported_series WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
         // They may carry the user's e-mail address: gone with the account, like everything else of theirs.
@@ -1165,3 +1252,9 @@ private fun ResultSet.intOrNull(index: Int) = getInt(index).takeIf { !wasNull() 
 enum class CurationStatus(val wire: String) { APPROVED("approved"), REJECTED("rejected") }
 
 data class Curation(val seriesId: Long, val status: CurationStatus, val at: String, val deleted: Boolean = false)
+
+/** What a training export batch was written as; LEGACY = exported before tracking, nothing frozen to fetch again. */
+enum class ExportFormat(val wire: String) { YOLO("yolo"), CVAT("cvat"), LEGACY("legacy") }
+
+/** A training export batch and how many series it holds. */
+data class ExportBatch(val id: Long, val at: String, val format: ExportFormat, val approved: Boolean, val count: Int)
