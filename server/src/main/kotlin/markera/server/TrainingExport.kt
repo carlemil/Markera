@@ -14,13 +14,21 @@ import kotlin.math.min
  * The next training round's data, built from what the users confirmed. A YOLO zip (images, one label file per
  * image holding the confirmed holes, data.yaml) plus two sidecars the training scripts decide how to use:
  * negatives.csv (detections the user removed or dragged away: false positives) and nudges.csv (detections the
- * user only moved a little: localisation errors, the confirmed hole is the label).
+ * user only moved a little: localisation errors, the confirmed hole is the label). Or, `format=cvat`, the same
+ * photos with a CVAT for images 1.1 `annotations.xml` ([cvatXml]) for review in CVAT.
+ *
+ * One model class, `hole`: the score is not something a hole's crop shows. A false positive gets no class; its
+ * spot is left unlabelled on a photo whose real holes are all labelled, which teaches the model it is background.
  *
  * Everything here is pure; the route in Admin.kt supplies the series and the photo files.
  */
 
-/** YOLO class names, index = the label's class: `Hole 0` .. `Hole 10`, then `Hole X` (the inner ten). */
-val TRAINING_CLASSES: List<String> = (0..10).map { "Hole $it" } + "Hole X"
+/** YOLO class names, index = the label's class. */
+val TRAINING_CLASSES: List<String> = listOf("hole")
+
+/** CVAT's labels: the class, plus `false_positive` to review the removed detections (dropped when training). */
+const val CVAT_HOLE_LABEL = "hole"
+const val CVAT_FALSE_POSITIVE_LABEL = "false_positive"
 
 /** A box in the photo's own fractions: centre and size, all 0..1. */
 data class ExportBox(val cx: Double, val cy: Double, val w: Double, val h: Double)
@@ -56,7 +64,7 @@ private const val BLACK_RING_RADIUS_MM = 100.0
  * Sorts every hole of [series] into a label, a false positive or a nudge, in the photo's fractions. Null when
  * the series has no frame size, since a pixel position then cannot be placed on the photo.
  *
- * - A confirmed hole with a position is a label (class = its confirmed score), boxed by the detector's own box
+ * - A confirmed hole with a position is a label (class 0, `hole`), boxed by the detector's own box
  *   when it was stored, else by a caliber-sized square.
  * - A detection removed by the user ([Hole.deleted]), dragged more than one hole diameter, or scored 0 by hand
  *   is a false positive at the detector's position. A dragged one is also a label where it now sits.
@@ -115,7 +123,7 @@ fun classifySeries(series: Series): SeriesTraining? {
             continue
         }
         val confirmed = box(x, y, h.detectedW, h.detectedH) ?: continue
-        labels += PositiveLabel(if (h.innerTen) TRAINING_CLASSES.lastIndex else h.ring.coerceIn(0, 10), confirmed)
+        labels += PositiveLabel(0, confirmed)
         if (detectedBox != null && dx != null && dy != null && (x != dx || y != dy)) {
             val diameter = h.detectedW?.let { w -> h.detectedH?.let { (w + it) / 2 } } ?: fallbackSide
             if (hypot(x - dx, y - dy) > diameter) {
@@ -210,5 +218,59 @@ fun writeTrainingZip(out: OutputStream, series: Sequence<Series>, image: (Long) 
         entry("negatives.csv", negativesCsv(written).toByteArray())
         entry("nudges.csv", nudgesCsv(written).toByteArray())
         entry("data.yaml", dataYaml().toByteArray())
+    }
+}
+
+/** The photo's pixel size, needed to turn [ExportBox] fractions back into CVAT's pixels. */
+data class CvatImage(val training: SeriesTraining, val width: Int, val height: Int)
+
+private fun xmlAttr(s: String) = s.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+private fun px(v: Double) = String.format(Locale.ROOT, "%.2f", v)
+
+/**
+ * CVAT for images 1.1: labels `hole` and `false_positive` (ellipses), one `<image name="<id>.jpg">` per series,
+ * a `hole` ellipse per confirmed hole and a `false_positive` ellipse per removed or dragged-away detection, both
+ * in the photo's pixels (the box's half sides are the radii).
+ */
+fun cvatXml(images: List<CvatImage>): String = buildString {
+    append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<annotations>\n  <version>1.1</version>\n")
+    append("  <meta>\n    <task>\n      <name>markera</name>\n      <size>${images.size}</size>\n      <labels>\n")
+    for (label in listOf(CVAT_HOLE_LABEL, CVAT_FALSE_POSITIVE_LABEL)) {
+        append("        <label>\n          <name>$label</name>\n          <type>ellipse</type>\n")
+        append("          <attributes>\n          </attributes>\n        </label>\n")
+    }
+    append("      </labels>\n    </task>\n  </meta>\n")
+    images.forEachIndexed { index, img ->
+        val t = img.training
+        append("  <image id=\"$index\" name=\"${xmlAttr("${t.seriesId}.jpg")}\" width=\"${img.width}\" height=\"${img.height}\">\n")
+        fun ellipse(label: String, b: ExportBox) {
+            append("    <ellipse label=\"${xmlAttr(label)}\" source=\"manual\" occluded=\"0\" ")
+            append("cx=\"${px(b.cx * img.width)}\" cy=\"${px(b.cy * img.height)}\" ")
+            append("rx=\"${px(b.w * img.width / 2)}\" ry=\"${px(b.h * img.height / 2)}\" rotation=\"0.00\" z_order=\"0\">\n")
+            append("    </ellipse>\n")
+        }
+        for (l in t.labels) ellipse(CVAT_HOLE_LABEL, l.box)
+        for (n in t.negatives) ellipse(CVAT_FALSE_POSITIVE_LABEL, n.box)
+        append("  </image>\n")
+    }
+    append("</annotations>\n")
+}
+
+/** Streams the CVAT zip: `images/<id>.jpg` and `annotations.xml`, for the series [writeTrainingZip] would take. */
+fun writeCvatZip(out: OutputStream, series: Sequence<Series>, image: (Long) -> File?) {
+    val written = mutableListOf<CvatImage>()
+    ZipOutputStream(out).use { zip ->
+        for (s in series) {
+            val training = classifySeries(s) ?: continue
+            val file = image(s.id)?.takeIf { it.isFile } ?: continue
+            for (line in training.rejected) log.warn("cvat export, series {}: {}", s.id, line)
+            zip.putNextEntry(ZipEntry("images/${s.id}.jpg"))
+            file.inputStream().use { it.copyTo(zip) }
+            zip.closeEntry()
+            written += CvatImage(training, s.imageWidth!!, s.imageHeight!!)
+        }
+        zip.putNextEntry(ZipEntry("annotations.xml"))
+        zip.write(cvatXml(written).toByteArray())
+        zip.closeEntry()
     }
 }

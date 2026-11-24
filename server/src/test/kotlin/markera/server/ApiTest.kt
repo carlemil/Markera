@@ -348,9 +348,10 @@ class ApiTest {
 
         // Training reads the copy: the rescored hole, and both deletions as negatives once each.
         val (copyLabels, negatives) = labels()
-        assertTrue(userLabels.startsWith("9 "), userLabels)
-        assertTrue(copyLabels.startsWith("5 "), copyLabels)
-        assertEquals(1, copyLabels.trim().lines().size)
+        // One class, so the copy shows as one hole fewer (the removed 6), not as the rescore.
+        assertEquals(2, userLabels.trim().lines().size, userLabels)
+        assertEquals(1, copyLabels.trim().lines().size, copyLabels)
+        assertTrue(copyLabels.startsWith("0 "), copyLabels)
         assertEquals(2, negatives.lines().count { it.startsWith("images/$id.jpg;") && it.endsWith(";deleted") }, negatives)
 
         // Back to the user's version.
@@ -983,6 +984,20 @@ class ApiTest {
             entries.keys,
         )
         assertEquals(1, entries.getValue("negatives.csv").lines().count { it.endsWith(";deleted") } / ids.size)
+
+        // ?format=cvat: the same photos with one annotations.xml, behind the same login.
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/training-export.zip?format=cvat").status)
+        val cvat = client.admin("/admin/training-export.zip?format=cvat")
+        assertEquals(HttpStatusCode.OK, cvat.status)
+        assertTrue("markera-cvat.zip" in cvat.headers[HttpHeaders.ContentDisposition].orEmpty())
+        val cvatEntries = mutableMapOf<String, String>()
+        java.util.zip.ZipInputStream(cvat.bodyAsBytes().inputStream()).use { zip ->
+            generateSequence { zip.nextEntry }.forEach { cvatEntries[it.name] = String(zip.readBytes(), Charsets.UTF_8) }
+        }
+        assertEquals((ids.map { "images/$it.jpg" } + "annotations.xml").toSet(), cvatEntries.keys)
+        val xml = cvatEntries.getValue("annotations.xml")
+        ids.forEach { assertTrue("name=\"$it.jpg\" width=\"1000\" height=\"500\"" in xml, xml) }
+        assertTrue("label=\"false_positive\"" in xml && "label=\"hole\"" in xml, xml)
     }
 
     @Test fun `the default training export leaves out rejected series and approved only stays approved only`() = apiTest(adminPassword = ADMIN_PW) { client ->

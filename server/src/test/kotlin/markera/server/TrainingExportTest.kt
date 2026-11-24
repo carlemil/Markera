@@ -27,19 +27,19 @@ class TrainingExportTest {
     @Test
     fun anUntouchedDetectionIsALabelBoxedByTheDetectorsOwnBox() {
         val s = classifySeries(series(detected(100.0, 50.0, ring = 9)))!!
-        assertEquals(listOf(PositiveLabel(9, ExportBox(0.1, 0.1, 0.02, 0.04))), s.labels)
+        assertEquals(listOf(PositiveLabel(0, ExportBox(0.1, 0.1, 0.02, 0.04))), s.labels)
         assertTrue(s.negatives.isEmpty() && s.nudges.isEmpty())
     }
 
     @Test
-    fun anInnerTenIsTheLastClassAndAHandPlacedHoleFallsBackToACaliberSizedBox() {
+    fun anInnerTenIsAHoleLikeAnyOtherAndAHandPlacedHoleFallsBackToACaliberSizedBox() {
         val inner = Hole(500.0, 250.0, 10, true, 1.0)
         val s = classifySeries(series(inner, Hole(null, null, 8, false, null)))!!
         // 9.02 mm * 200 px / 100 mm = 18.04 px; a typed hole has no position and so no label.
         assertEquals(1, s.labels.size)
-        assertEquals(11, s.labels.single().classIndex)
+        assertEquals(0, s.labels.single().classIndex)
         assertEquals(0.01804, s.labels.single().box.w, 1e-9)
-        assertEquals("Hole X", TRAINING_CLASSES[11])
+        assertEquals(listOf("hole"), TRAINING_CLASSES)
     }
 
     @Test
@@ -160,7 +160,7 @@ class TrainingExportTest {
         )
         assertEquals(listOf<Byte>(-1, -40, 1, 2, 3), entries.getValue("images/7.jpg").toList())
         assertEquals(
-            "9 0.100000 0.100000 0.020000 0.040000\n9 0.300000 0.100000 0.020000 0.040000\n",
+            "0 0.100000 0.100000 0.020000 0.040000\n0 0.300000 0.100000 0.020000 0.040000\n",
             String(entries.getValue("labels/7.txt")),
         )
         assertEquals(
@@ -171,6 +171,55 @@ class TrainingExportTest {
         )
         assertEquals(NUDGES_HEADER + "\n", String(entries.getValue("nudges.csv")))
         val yaml = String(entries.getValue("data.yaml"))
-        assertTrue("nc: 12" in yaml && "  0: Hole 0\n" in yaml && "  11: Hole X\n" in yaml, yaml)
+        assertTrue("nc: 1\n" in yaml && "  0: hole\n" in yaml, yaml)
+    }
+
+    @Test
+    fun theCvatZipHoldsThePhotosAndEllipsesInPixelsAndSkipsWhatHasNoPhoto() {
+        val photo = File.createTempFile("markera-photo", ".jpg").also { it.deleteOnExit() }
+        photo.writeBytes(byteArrayOf(-1, -40, 1, 2, 3))
+        val withPhoto = series(
+            detected(100.0, 50.0, ring = 9),
+            detected(300.0, 50.0, atX = 200.0, atY = 50.0),
+            detected(400.0, 100.0, deleted = true),
+        )
+        val without = withPhoto.copy(id = 8)
+        val noFrame = withPhoto.copy(id = 9, imageWidth = null)
+
+        val out = ByteArrayOutputStream()
+        writeCvatZip(out, sequenceOf(withPhoto, without, noFrame)) { id -> photo.takeIf { id != 8L } }
+
+        val entries = mutableMapOf<String, ByteArray>()
+        ZipInputStream(ByteArrayInputStream(out.toByteArray())).use { zip ->
+            generateSequence { zip.nextEntry }.forEach { entries[it.name] = zip.readBytes() }
+        }
+        assertEquals(setOf("images/7.jpg", "annotations.xml"), entries.keys)
+        val xml = String(entries.getValue("annotations.xml"))
+        assertTrue("<version>1.1</version>" in xml, xml)
+        assertTrue("<name>hole</name>" in xml && "<name>false_positive</name>" in xml, xml)
+        assertTrue("<image id=\"0\" name=\"7.jpg\" width=\"1000\" height=\"500\">" in xml, xml)
+        val ellipses = Regex("<ellipse label=\"([a-z_]+)\"[^>]* cx=\"([0-9.]+)\" cy=\"([0-9.]+)\" rx=\"([0-9.]+)\" ry=\"([0-9.]+)\"")
+            .findAll(xml).map { it.groupValues.drop(1) }.toList()
+        assertEquals(
+            listOf(
+                listOf("hole", "100.00", "50.00", "10.00", "10.00"),
+                listOf("hole", "300.00", "50.00", "10.00", "10.00"),
+                listOf("false_positive", "200.00", "50.00", "10.00", "10.00"),
+                listOf("false_positive", "400.00", "100.00", "10.00", "10.00"),
+            ),
+            ellipses,
+        )
+        // Well-formed: a real XML parser reads it back.
+        val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            .parse(ByteArrayInputStream(entries.getValue("annotations.xml")))
+        assertEquals(4, doc.getElementsByTagName("ellipse").length)
+    }
+
+    @Test
+    fun anEmptyCvatExportIsStillAValidFile() {
+        val xml = cvatXml(emptyList())
+        val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            .parse(ByteArrayInputStream(xml.toByteArray()))
+        assertEquals(0, doc.getElementsByTagName("image").length)
     }
 }

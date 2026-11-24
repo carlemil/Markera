@@ -69,7 +69,8 @@ fun Route.adminRoutes(
                 "Users",
                 counts + """<div><a href="/admin/suggestions">suggestions ($suggestions)</a></div>""" +
                     """<div><a href="/admin/training-export.zip">training export, all but rejected (zip)</a> &middot; """ +
-                    """<a href="/admin/training-export.zip?approved=1">approved only (zip)</a></div>""" +
+                    """<a href="/admin/training-export.zip?approved=1">approved only (zip)</a> &middot; """ +
+                    """<a href="/admin/training-export.zip?approved=1&amp;format=cvat">approved, for CVAT (zip)</a></div>""" +
                     """<div><a href="/admin/curate">approve series for training</a></div>""" +
                     """<div><a href="/admin/review">review changed series</a></div>""" +
                     """<div><label><input type="checkbox" id="hide-empty"> hide users with 0 series</label></div>""" +
@@ -329,15 +330,20 @@ fun Route.adminRoutes(
     }
 
     // Every user's photos with the confirmed holes as YOLO labels, plus the false positives (see TrainingExport.kt).
+    // ?format=cvat: the same photos with a CVAT for images 1.1 annotations.xml (hole and false_positive ellipses).
     get("/admin/training-export.zip") {
         if (unauthorized(password, localNoAuth, throttle)) return@get
-        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"markera-training.zip\"")
+        val approved = call.request.queryParameters["approved"] == "1"
+        val cvat = call.request.queryParameters["format"] == "cvat"
+        val name = "markera-" + (if (cvat) "cvat" else "training") + (if (approved) "-approved" else "") + ".zip"
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"$name\"")
         call.respondOutputStream(ContentType.Application.Zip) {
             // ?approved=1: only what /admin/curate approved; otherwise every live series it has not rejected.
-            val ids = if (call.request.queryParameters["approved"] == "1") db.approvedSeriesIds() else db.trainingSeriesIds()
+            val ids = if (approved) db.approvedSeriesIds() else db.trainingSeriesIds()
             // The admin's training copy where there is one, else the user's own version.
             val series = ids.asSequence().mapNotNull { db.trainingSeries(it) }
-            writeTrainingZip(this, series) { imageFile(images, it) }
+            if (cvat) writeCvatZip(this, series) { imageFile(images, it) }
+            else writeTrainingZip(this, series) { imageFile(images, it) }
         }
     }
 
@@ -1515,7 +1521,7 @@ kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
 <button id="skip">Skip <kbd>S</kbd></button><span id="current"></span><span id="remaining"></span><span id="cmsg"></span></div>
 <label class="ovrow">Overlay transparency <input type="range" id="ov" min="0" max="100" step="5" value="0"><span id="ovv">0%</span></label>
 <label class="ovrow"><input type="checkbox" id="corr"> Only series with moved or deleted holes</label>
-<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a></div>
+<div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-export.zip?approved=1">training export, approved only (zip)</a> &middot; <a href="/admin/training-export.zip?approved=1&amp;format=cvat">for CVAT (zip)</a></div>
 <div class="curate"><aside id="dock"><div id="side"><div id="counts"></div><ul id="history"></ul></div></aside><main>
 <p id="none" hidden>Every series with a photo has a verdict<span id="nonecorr" hidden> among those with moved or deleted holes</span>. Pick one on the left to change it.</p>
 <iframe id="frame" title="series editor"></iframe></main></div>"""
