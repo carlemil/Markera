@@ -354,14 +354,18 @@ fun Route.adminRoutes(
     }
 
     // A random live series with a photo and no verdict yet ([exclude] is the one being skipped), and how many are left.
-    // ?corrected=1: only series where the user moved or deleted a detected hole.
+    // ?corrected=1: only series where the user moved or deleted a detected hole. `unclassified` counts every live
+    // series with a photo and no verdict, whatever the filter: the counts box beside approved/rejected.
     get("/admin/curate/next") {
         if (unauthorized(password, localNoAuth, throttle)) return@get
         val exclude = call.request.queryParameters["exclude"]?.toLongOrNull()
         val corrected = if (call.request.queryParameters["corrected"] == "1") db.seriesWithCorrectedDetections() else null
-        val open = db.uncuratedSeriesIds().filter { (corrected == null || it in corrected) && imageFile(images, it).isFile }
+        val unclassified = db.uncuratedSeriesIds().filter { imageFile(images, it).isFile }
+        val open = if (corrected == null) unclassified else unclassified.filter { it in corrected }
         val pick = open.filter { it != exclude }.randomOrNull() ?: open.firstOrNull()
-        respondJson(buildJsonObject { put("id", pick); put("remaining", open.size) }.toString())
+        respondJson(buildJsonObject {
+            put("id", pick); put("remaining", open.size); put("unclassified", unclassified.size)
+        }.toString())
     }
 
     get("/admin/curate/history") {
@@ -1014,11 +1018,12 @@ if (placeable) {
     if (grip) { moveGrip(grip, at(e)); return; }
     if (!drag) return;
     const i = drag.dataset.i, h = S.holes[i], p = at(e);
-    // Back within a quarter of the marker (at least 6 px on screen) of where the detector put it: snap onto that
+    // Back within a tenth of the marker (at least 2.4 px on screen) of where the detector put it: snap onto that
     // exact spot, so the hole is the detector's own again, no longer "moved", with no ghost and its own colour.
+    // (Was a quarter / 6 px; cut to 40% so a small deliberate nudge is not pulled back.)
     if (h.detectedX != null && h.detectedY != null) {
       const perPx = S.imageWidth / img.getBoundingClientRect().width;
-      const snap = Math.max(6, drag.getBoundingClientRect().width / 4) * perPx;
+      const snap = Math.max(2.4, drag.getBoundingClientRect().width / 10) * perPx;
       if (Math.hypot(p[0] - h.detectedX, p[1] - h.detectedY) <= snap) { p[0] = h.detectedX; p[1] = h.detectedY; }
     }
     h.x = p[0];
@@ -1554,7 +1559,18 @@ function show(id, status) {
   markActive();
 }
 
-function remaining(n) { document.getElementById('remaining').textContent = '· ' + n + ' left'; }
+// The counts box: approved and rejected from the history, unclassified from /next (every series, whatever the filter).
+let approvedN = 0, rejectedN = 0, unclassifiedN = null;
+function renderCounts() {
+  counts.textContent = approvedN + ' approved, ' + rejectedN + ' rejected' +
+    (unclassifiedN == null ? '' : ', ' + unclassifiedN + ' unclassified');
+}
+
+function remaining(j) {
+  document.getElementById('remaining').textContent = '· ' + j.remaining + ' left';
+  unclassifiedN = j.unclassified;
+  renderCounts();
+}
 
 // "Only series with moved or deleted holes": the random pick and the count come from that subset; remembered per browser.
 const corr = document.getElementById('corr');
@@ -1569,7 +1585,7 @@ function applyCorr() { document.getElementById('nonecorr').hidden = !corr.checke
 applyCorr();
 
 function next(exclude) {
-  return get(nextUrl(exclude)).then(j => { remaining(j.remaining); show(j.id, null); });
+  return get(nextUrl(exclude)).then(j => { remaining(j); show(j.id, null); });
 }
 
 // A random pick is replaced by one from the new subset; a series opened from the list stays, only the count changes.
@@ -1577,7 +1593,7 @@ corr.onchange = () => {
   try { localStorage.curateCorrected = corr.checked ? '1' : '0'; } catch (e) {}
   applyCorr();
   const fromList = current != null && document.getElementById('skip').disabled;
-  (fromList ? get(nextUrl()).then(j => remaining(j.remaining)) : next()).catch(fail);
+  (fromList ? get(nextUrl()).then(remaining) : next()).catch(fail);
 };
 
 function loadHistory() {
@@ -1595,7 +1611,9 @@ function loadHistory() {
       li.append(b, '#' + c.id + '  ' + c.at);
       hist.appendChild(li);
     });
-    counts.textContent = ok + ' approved, ' + (list.length - ok) + ' rejected';
+    approvedN = ok;
+    rejectedN = list.length - ok;
+    renderCounts();
     markActive();
   });
 }
@@ -1686,6 +1704,6 @@ loadHistory().then(() => {
   if (start == null) return next();
   const li = hist.querySelector('li[data-id="' + Number(start) + '"]');
   show(Number(start), li ? li.dataset.status : null);
-  return get(nextUrl()).then(j => remaining(j.remaining));
+  return get(nextUrl()).then(remaining);
 }).catch(fail);
 """

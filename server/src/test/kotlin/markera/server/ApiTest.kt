@@ -248,6 +248,8 @@ class ApiTest {
         assertTrue(client.admin("/admin").bodyAsText().contains("href=\"/admin/curate\""))
         val open = pick()
         assertEquals(2, open["remaining"]!!.jsonPrimitive.int)
+        assertEquals(2, open["unclassified"]!!.jsonPrimitive.int)
+        assertTrue(client.admin("/admin/curate").bodyAsText().contains("unclassified"))
         assertTrue(open["id"]!!.jsonPrimitive.long in setOf(first, second))
         // Skipping one of two always offers the other.
         assertEquals(second, pick("?exclude=$first")["id"]!!.jsonPrimitive.long)
@@ -296,6 +298,9 @@ class ApiTest {
 
         assertEquals(4, pick("")["remaining"]!!.jsonPrimitive.int)
         assertEquals(2, pick("?corrected=1")["remaining"]!!.jsonPrimitive.int)
+        // The unclassified count ignores the filter: every series with a photo and no verdict.
+        assertEquals(4, pick("")["unclassified"]!!.jsonPrimitive.int)
+        assertEquals(4, pick("?corrected=1")["unclassified"]!!.jsonPrimitive.int)
         assertTrue(pick("?corrected=1")["id"]!!.jsonPrimitive.long in setOf(moved, deleted))
         assertEquals(deleted, pick("?corrected=1&exclude=$moved")["id"]!!.jsonPrimitive.long)
         assertTrue(client.admin("/admin/curate").bodyAsText().contains("Only series with moved or deleted holes"))
@@ -304,6 +309,7 @@ class ApiTest {
         client.adminWrite(HttpMethod.Post, "/admin/curate/$deleted?status=rejected")
         val done = pick("?corrected=1")
         assertEquals(0, done["remaining"]!!.jsonPrimitive.int)
+        assertEquals(2, done["unclassified"]!!.jsonPrimitive.int)
         // movedNoPhoto has no photo, so it is never offered either way.
         assertEquals(kotlinx.serialization.json.JsonNull, done["id"])
     }
