@@ -394,19 +394,30 @@ fun Route.adminRoutes(
         respondHtml(page("Approve series for training", CURATE_BODY + "<script>$CURATE_JS</script>"))
     }
 
-    // A random live series with a photo and no verdict yet ([exclude] is the one being skipped), and how many are left.
-    // ?corrected=1: only series where the user moved or deleted a detected hole. `unclassified` counts every live
-    // series with a photo and no verdict, whatever the filter: the counts box beside approved/rejected.
+    // A random live series with a photo, no verdict yet and never skipped ([exclude] is the one on screen), and how
+    // many are left. ?corrected=1: only series where the user moved or deleted a detected hole. `unclassified` counts
+    // every live series with a photo, no verdict and no skip, whatever the filter; `skipped` the skipped ones with a
+    // photo and no verdict: the counts box beside approved/rejected.
     get("/admin/curate/next") {
         if (unauthorized(password, localNoAuth, throttle)) return@get
         val exclude = call.request.queryParameters["exclude"]?.toLongOrNull()
         val corrected = if (call.request.queryParameters["corrected"] == "1") db.seriesWithCorrectedDetections() else null
-        val unclassified = db.uncuratedSeriesIds().filter { imageFile(images, it).isFile }
+        val skipped = db.skippedCurationIds()
+        val (skippedOpen, unclassified) = db.uncuratedSeriesIds().filter { imageFile(images, it).isFile }.partition { it in skipped }
         val open = if (corrected == null) unclassified else unclassified.filter { it in corrected }
         val pick = open.filter { it != exclude }.randomOrNull() ?: open.firstOrNull()
         respondJson(buildJsonObject {
-            put("id", pick); put("remaining", open.size); put("unclassified", unclassified.size)
+            put("id", pick); put("remaining", open.size); put("unclassified", unclassified.size); put("skipped", skippedOpen.size)
         }.toString())
+    }
+
+    // Skip: the series is never offered by /admin/curate/next again (it stays without a verdict).
+    post("/admin/curate/{id}/skip") {
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
+        db.skipCuration(seriesId)
+        call.respond(HttpStatusCode.NoContent)
     }
 
     get("/admin/curate/history") {
@@ -1627,7 +1638,7 @@ kbd{border:1px solid #35402c;border-radius:3px;padding:0 4px;font-size:12px}
 <label class="ovrow"><input type="checkbox" id="corr"> Only series with moved or deleted holes</label>
 <div><a href="/admin">&larr; users</a> &middot; <a href="/admin/training-exports">training exports</a></div>
 <div class="curate"><aside id="dock"><div id="side"><div id="counts"></div><ul id="history"></ul></div></aside><main>
-<p id="none" hidden>Every series with a photo has a verdict<span id="nonecorr" hidden> among those with moved or deleted holes</span>. Pick one on the left to change it.</p>
+<p id="none" hidden>Every series with a photo has a verdict or was skipped<span id="nonecorr" hidden> among those with moved or deleted holes</span>. Pick one on the left to change its verdict.</p>
 <iframe id="frame" title="series editor"></iframe></main></div>"""
 
 /**
@@ -1683,15 +1694,16 @@ function show(id, status) {
 }
 
 // The counts box: approved and rejected from the history, unclassified from /next (every series, whatever the filter).
-let approvedN = 0, rejectedN = 0, unclassifiedN = null;
+let approvedN = 0, rejectedN = 0, unclassifiedN = null, skippedN = 0;
 function renderCounts() {
   counts.textContent = approvedN + ' approved, ' + rejectedN + ' rejected' +
-    (unclassifiedN == null ? '' : ', ' + unclassifiedN + ' unclassified');
+    (unclassifiedN == null ? '' : ', ' + unclassifiedN + ' unclassified') + (skippedN ? ', ' + skippedN + ' skipped' : '');
 }
 
 function remaining(j) {
   document.getElementById('remaining').textContent = '· ' + j.remaining + ' left';
   unclassifiedN = j.unclassified;
+  skippedN = j.skipped || 0;
   renderCounts();
 }
 
@@ -1769,9 +1781,19 @@ function verdict(status) {
     .finally(() => busy = false);
 }
 
+// Skip is for good: stored on the server, so the random pick never offers that series again.
 function skip() {
   if (current == null || busy || document.getElementById('skip').disabled) return;
-  next(current).catch(fail);
+  busy = true;
+  const id = current;
+  idle().then(() => fetch('/admin/curate/' + id + '/skip', {method: 'POST', credentials: 'include', headers: {'X-Admin': '1'}}))
+    .then(r => {
+      if (r.status !== 204) return r.text().then(t => { throw new Error(r.status + ' ' + t); });
+      msg.textContent = '· #' + id + ' skipped';
+      return next(id);
+    })
+    .catch(fail)
+    .finally(() => busy = false);
 }
 
 document.getElementById('approve').onclick = () => verdict('approved');

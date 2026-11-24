@@ -283,6 +283,38 @@ class ApiTest {
         sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_curation").use { it.next(); assertEquals(0, it.getInt(1)) } }
     }
 
+    @Test fun `a skipped series is never offered by curate again`() = apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("curate-skip")
+        val (a, b) = List(2) { client.createSeries(auth.token, series()).also { client.putImage(auth.token, it, jpeg(), query = "?width=1000&height=500") } }
+        suspend fun pick() =
+            kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/curate/next").bodyAsText()).jsonObject
+
+        assertEquals(HttpStatusCode.Forbidden, client.adminWrite(HttpMethod.Post, "/admin/curate/$a/skip", xAdmin = false).status)
+        assertEquals(HttpStatusCode.NotFound, client.adminWrite(HttpMethod.Post, "/admin/curate/999/skip").status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/curate/$a/skip").status)
+        // Twice is fine.
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/curate/$a/skip").status)
+        repeat(10) { assertEquals(b, pick()["id"]!!.jsonPrimitive.long) }
+        assertEquals(1, pick()["remaining"]!!.jsonPrimitive.int)
+        assertEquals(1, pick()["unclassified"]!!.jsonPrimitive.int)
+        assertEquals(1, pick()["skipped"]!!.jsonPrimitive.int)
+        // Even when b is excluded (on screen), a is not offered.
+        assertEquals(b, kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/curate/next?exclude=$b").bodyAsText())
+            .jsonObject["id"]!!.jsonPrimitive.long)
+
+        // Skipping is no verdict: the default export still takes it.
+        assertTrue("images/$a.jpg" in client.exportAllAgain().keys)
+
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$b/skip")
+        assertEquals(kotlinx.serialization.json.JsonNull, pick()["id"])
+        // A verdict given later (through ?id=) counts as usual and clears the skip.
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$a?status=approved")
+        assertEquals(1, pick()["skipped"]!!.jsonPrimitive.int)
+
+        client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
+        sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_curation_skipped").use { it.next(); assertEquals(0, it.getInt(1)) } }
+    }
+
     @Test fun `curate can pick only series with moved or deleted detections`() = apiTest(adminPassword = ADMIN_PW) { client ->
         val auth = client.devAuth("curate-corrected")
         val kept = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, 20.0, 20.0, 0.7)

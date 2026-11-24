@@ -160,6 +160,11 @@ class Db(dbPath: String) : AutoCloseable {
                 series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
                 status TEXT NOT NULL CHECK (status IN ('approved', 'rejected')),
                 at TEXT NOT NULL)""")
+            // Series the admin skipped in /admin/curate: never offered there again. No verdict, so the exports still
+            // treat them as not reviewed; a later approve or reject (through ?id=) drops the row.
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_curation_skipped (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                at TEXT NOT NULL)""")
             // The admin's own copy of a series for training (edits made in /admin/curate), a SeriesRequest as JSON.
             // The user's series is never touched by it; no row = the training data is the user's version.
             st.executeUpdate("""CREATE TABLE IF NOT EXISTS series_training (
@@ -617,6 +622,20 @@ class Db(dbPath: String) : AutoCloseable {
             it.setLong(1, seriesId); it.setString(2, status.wire); it.setString(3, auditTime.format(java.time.Instant.now())) // fixed width, so text order is time order
             it.executeUpdate()
         }
+        execute("DELETE FROM series_curation_skipped WHERE series_id = ?", seriesId)
+    }
+
+    /** Skips [seriesId] in /admin/curate for good: its random pick never offers it again. */
+    @Synchronized
+    fun skipCuration(seriesId: Long) {
+        conn.prepareStatement("INSERT OR IGNORE INTO series_curation_skipped(series_id, at) VALUES (?, ?)").use {
+            it.setLong(1, seriesId); it.setString(2, auditTime.format(java.time.Instant.now())); it.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun skippedCurationIds(): Set<Long> = conn.createStatement().use { st ->
+        st.executeQuery("SELECT series_id FROM series_curation_skipped").use { rs -> buildSet { while (rs.next()) add(rs.getLong(1)) } }
     }
 
     @Synchronized
@@ -1031,6 +1050,7 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM series_audit WHERE owner_id = ?", userId)
         execute("DELETE FROM series_photo_baseline WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_curation WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM series_curation_skipped WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_training WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM exported_series WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
