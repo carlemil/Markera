@@ -1,6 +1,6 @@
 ---
-name: release
-description: Bump minor version and deploy Markera to the Google Play internal test track. Invoke as /release [liveVersion]. Specialized for this repo — :composeApp module, English + Swedish release notes.
+name: markera-release
+description: Bump minor version and deploy Markera to the Google Play internal test track. Invoke as /markera-release [liveVersion]. Specialized for this repo — :composeApp module, English + Swedish release notes.
 user_invocable: true
 ---
 
@@ -135,16 +135,11 @@ Show the user the old and new version strings before continuing.
 
 **If `<liveVersion>` was provided:** use `v<liveVersion>` as the baseline tag. Verify it exists with `git tag -l v<liveVersion>`. If it doesn't, warn and ask whether to create it on a specific commit or fall back.
 
-**Otherwise, use git tags.** Releases are tagged `v<version>`. Find the most recent:
-```
-git describe --tags --abbrev=0 --match "v*" 2>/dev/null
-```
-
-**Verification (when no argument was given): cross-check with Google Play.** Fetch the listing and extract the live version:
+**Otherwise, use the version live on Google Play.** Every internal build is tagged too, so the newest tag is usually not what users have. Fetch the listing and extract the live version:
 ```
 curl -s "https://play.google.com/store/apps/details?id=se.kjellstrand.markera&hl=en-US" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | sort -u
 ```
-If the Play version differs from the latest git tag, tell the user and ask which to use as the baseline. (Note: the app may not be published yet — if the listing 404s, just use git tags.)
+Use `v<that version>` as the baseline and check the tag exists. If the fetch fails or is ambiguous, ask the user which version is live.
 
 **Fallback:** if no tags exist, find the previous "Bump version" commit:
 ```

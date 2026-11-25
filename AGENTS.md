@@ -40,7 +40,7 @@ instructions, adapting Claude-specific tool names to the available tools:
 
 - Deploy to the phone (wifi adb): `.claude/skills/deploy/SKILL.md`
 - Detection evaluation and mosaic: `.claude/skills/eval/SKILL.md`
-- Android/iOS release: `.claude/skills/release/SKILL.md`
+- Android/iOS release: `.claude/skills/markera-release/SKILL.md`
 
 The project release skill is specialized for Markera. Also consult the global
 `C:/Users/ce/.claude/skills/release/SKILL.md` for release lessons, especially the

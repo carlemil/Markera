@@ -25,7 +25,7 @@ rebase — each clone enables those once with `git config core.hooksPath .githoo
 ./gradlew :composeApp:installDebug
 
 ./gradlew :composeApp:testDebugUnitTest # JVM unit tests
-./gradlew :vision:jvmTest              # fast pure geometry/scoring tests (80)
+./gradlew :vision:jvmTest              # fast pure geometry/scoring tests
 # single test class:
 ./gradlew :vision:jvmTest --tests "se.kjellstrand.markera.vision.HitScoringTest"
 ```
@@ -135,7 +135,7 @@ at `D:/ml/holes/dataset/images/train` (the default `mosaic.images`).
 
 Project skills exist for the routine workflows: `/deploy` (build + adb install/launch on
 the Pixel 11 Pro XL over wifi adb; never an emulator, and pin `ANDROID_SERIAL` to the phone
-for `connectedDebugAndroidTest`, with it upright or auto-rotate off), `/eval` (detection-quality mosaic), `/release` (version bump + Play
+for `connectedDebugAndroidTest`, with it upright or auto-rotate off), `/eval` (detection-quality mosaic), `/markera-release` (version bump + Play
 internal track).
 
 ### iOS (simulator on the Mac mini)
@@ -159,7 +159,7 @@ too (xcodegen bundles it from there). Kotlin/Native rejects test names containin
 
 ### Model asset (required to build/run)
 
-`best.onnx` (a YOLOv8 export, ~40 MB, fp16 body with fp32 inputs/outputs — the
+`best.onnx` (an Ultralytics YOLO11m export, ~40 MB, fp16 body with fp32 inputs/outputs — the
 iOS ORT API has no fp16 tensors; `scripts/cast_model_io.py` makes one from an fp16
 export) is **not** committed. Place it at
 `composeApp/src/androidMain/assets/best.onnx` before building; the model runs at
@@ -189,7 +189,7 @@ wherever no camera exists. That same frame is what gets stored.
 Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
 `MarkeraScreen`):
 
-1. **Holes** — `HoleDetector` (ONNX YOLOv8; Android runs ORT directly, iOS hands the
+1. **Holes** — `HoleDetector` (ONNX YOLO; Android runs ORT directly, iOS hands the
    letterboxed tensor to the Swift `OrtHoleModel` through the `HoleModel` protocol) →
    `Detection` boxes.
 2. **Centre** — `DigitDetector` (ML Kit OCR on Android, Vision `VNRecognizeTextRequest`
@@ -282,8 +282,8 @@ detector said (null for a hand-placed or typed-in hole) — then
 saves it: caliber `-` still opens the chooser; otherwise the recorder encodes the frame and
 writes the request and JPEG to durable local storage before any HTTP. Signed-out saves return
 `SavedOnPhone`; signed-in saves send the same persisted `clientId`. An encoding error fails the
-save like a storage failure (#4; it used to keep the metadata without a photo, which `visibleSeries`
-then hid everywhere): `Failed` toast, `commit` false, the scan stays pending for Save again, and auto
+save like a storage failure (a series without its photo would be hidden everywhere by `visibleSeries`):
+`Failed` toast, `commit` false, the scan stays pending for Save again, and auto
 import sends the image to review. A rescan `clear()`s only the pending scan; a
 committed save survives the next scan. A save that fails locally leaves the scan retained
 (`SeriesRecorder.retainedAfterFailure`), and the scan screen keeps the frozen frame and results so
@@ -313,7 +313,7 @@ queued rows for every refresh; other 4xx keep refused rows, retry once per repos
 start and through Detail's Try again. Each row reports a refusal once. A 401 signs out without
 deleting the owned local request/photo. `refresh()` sends only the current account's queue in
 local-id order, then applies the server's `updatedAt` delta/tombstones to the server cache only.
-One failing row never blocks the rest or the delta (#17): a 5xx/4xx row stays and the next goes;
+One failing row never blocks the rest or the delta: a 5xx/4xx row stays and the next goes;
 a 429 stops the queue; the first IOException stops it too, the delta is tried anyway (offline,
 its failure is the refresh's result), and once that answers the rows after it are sent (an
 IOException there skips its row, a second ends the pass). Only a 401 aborts before the delta; a row failure alone
