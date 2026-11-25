@@ -302,8 +302,8 @@ class ApiTest {
         assertEquals(b, kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/curate/next?exclude=$b").bodyAsText())
             .jsonObject["id"]!!.jsonPrimitive.long)
 
-        // Skipping is no verdict: the default export still takes it.
-        assertTrue("images/$a.jpg" in client.exportAllAgain().keys)
+        // A skipped series is not exported until it is approved.
+        assertFalse("images/$a.jpg" in client.exportAllAgain().keys)
 
         client.adminWrite(HttpMethod.Post, "/admin/curate/$b/skip")
         assertEquals(kotlinx.serialization.json.JsonNull, pick()["id"])
@@ -353,11 +353,8 @@ class ApiTest {
         val appDeleted = Hole(300.0, 80.0, 0, false, 10.0, 7, false, 300.0, 80.0, 20.0, 20.0, 0.4, deleted = true)
         val id = client.createSeries(auth.token, series().copy(holes = listOf(live, falsePositive, appDeleted)))
         client.putImage(auth.token, id, jpeg(), query = "?width=1000&height=500")
-        suspend fun labels(): Pair<String, String> {
-            val entries = client.exportAllAgain()
-            return entries.getValue("labels/$id.txt") to entries.getValue("negatives.csv")
-        }
-        val (userLabels, _) = labels()
+        suspend fun labels(): String = client.exportAllAgain().getValue("labels/$id.txt")
+        val userLabels = labels()
 
         // What the curate editor sends: the 9 rescored to 5, the 6 removed (a false positive), the app's own deletion left out.
         val edit = series().copy(holes = listOf(live.copy(ring = 5), falsePositive.copy(deleted = true)), tag = "admin-only")
@@ -381,13 +378,12 @@ class ApiTest {
         assertTrue(copyPage.contains("id=\"reset\""))
         assertTrue(client.admin("/admin/series/$id").bodyAsText().contains("edited training copy"))
 
-        // Training reads the copy: the rescored hole, and both deletions as negatives once each.
-        val (copyLabels, negatives) = labels()
+        // Training reads the copy: the rescored hole only, neither deletion.
+        val copyLabels = labels()
         // One class, so the copy shows as one hole fewer (the removed 6), not as the rescore.
         assertEquals(2, userLabels.trim().lines().size, userLabels)
         assertEquals(1, copyLabels.trim().lines().size, copyLabels)
         assertTrue(copyLabels.startsWith("0 "), copyLabels)
-        assertEquals(2, negatives.lines().count { it.startsWith("images/$id.jpg;") && it.endsWith(";deleted") }, negatives)
 
         // Every detected row has a Revert in curate, live while it differs from the detection; the user's own page has none.
         assertEquals(3, Regex("""<button class="rev"[^>]*>""").findAll(copyPage).count(), copyPage)
@@ -398,13 +394,12 @@ class ApiTest {
         assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Put, "/admin/series/$id/training", reverted).status)
         val revertedPage = client.admin("/admin/series/$id?embed=1&training=1").bodyAsText()
         assertEquals(3, Regex("""<button class="rev"[^>]*disabled""").findAll(revertedPage).count(), revertedPage)
-        val (revertedLabels, revertedNegatives) = labels()
+        val revertedLabels = labels()
         assertEquals(3, revertedLabels.trim().lines().size, revertedLabels)
-        assertEquals(0, revertedNegatives.lines().count { it.startsWith("images/$id.jpg;") }, revertedNegatives)
 
         // Back to the user's version.
         assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Delete, "/admin/series/$id/training").status)
-        assertEquals(userLabels, labels().first)
+        assertEquals(userLabels, labels())
         assertFalse(client.admin("/admin/series/$id?embed=1&training=1").bodyAsText().contains("id=\"reset\""))
 
         client.adminWrite(HttpMethod.Put, "/admin/series/$id/training", edit)
@@ -1053,10 +1048,9 @@ class ApiTest {
         val entries = client.zipEntries("/admin/training-exports/$batch.zip")
         // Both users' photos, no soft-deleted series.
         assertEquals(
-            (ids.flatMap { listOf("images/$it.jpg", "labels/$it.txt") } + listOf("data.yaml", "negatives.csv", "nudges.csv")).toSet(),
+            (ids.flatMap { listOf("images/$it.jpg", "labels/$it.txt") } + "data.yaml").toSet(),
             entries.keys,
         )
-        assertEquals(1, entries.getValue("negatives.csv").lines().count { it.endsWith(";deleted") } / ids.size)
 
         // ?format=cvat: the same photos with one annotations.xml, behind the same login.
         sql { it.executeUpdate("DELETE FROM exported_series") }
@@ -1068,7 +1062,7 @@ class ApiTest {
         assertEquals((ids.map { "images/$it.jpg" } + "annotations.xml").toSet(), cvatEntries.keys)
         val xml = cvatEntries.getValue("annotations.xml")
         ids.forEach { assertTrue("name=\"$it.jpg\" width=\"1000\" height=\"500\"" in xml, xml) }
-        assertTrue("label=\"false_positive\"" in xml && "label=\"hole\"" in xml, xml)
+        assertTrue("label=\"false_positive\"" !in xml && "label=\"hole\"" in xml, xml)
     }
 
     @Test fun `the default training export leaves out rejected series and approved only stays approved only`() = apiTest(adminPassword = ADMIN_PW) { client ->
@@ -1084,6 +1078,12 @@ class ApiTest {
         assertEquals(setOf("images/$approved.jpg"), imagesIn("?approved=1"))
         // A rejected series approved later is back in the default export.
         client.adminWrite(HttpMethod.Post, "/admin/curate/$rejected?status=approved")
+        assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg", "images/$open.jpg"), imagesIn(""))
+        // A skipped series waits for approval: in neither export until then, in both once approved.
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/curate/$open/skip").status)
+        assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg"), imagesIn(""))
+        assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg"), imagesIn("?approved=1"))
+        client.adminWrite(HttpMethod.Post, "/admin/curate/$open?status=approved")
         assertEquals(setOf("images/$approved.jpg", "images/$rejected.jpg", "images/$open.jpg"), imagesIn(""))
     }
 

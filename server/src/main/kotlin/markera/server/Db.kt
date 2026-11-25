@@ -496,14 +496,16 @@ class Db(dbPath: String) : AutoCloseable {
     }
 
     /**
-     * Ids of every series that is not soft-deleted and not rejected in /admin/curate, any user's, oldest first: the
-     * default training export's input (approved and not yet reviewed series both count).
+     * Ids of every series that is not soft-deleted, rejected or skipped in /admin/curate, any user's, oldest first:
+     * the default training export's input (approved and not yet reviewed series both count; a skipped one waits until
+     * it is approved, which clears the skip).
      */
     @Synchronized
     fun trainingSeriesIds(): List<Long> = conn.createStatement().use { st ->
         st.executeQuery(
             "SELECT id FROM series WHERE deleted_at IS NULL " +
-                "AND id NOT IN (SELECT series_id FROM series_curation WHERE status = 'rejected') ORDER BY id"
+                "AND id NOT IN (SELECT series_id FROM series_curation WHERE status = 'rejected') " +
+                "AND id NOT IN (SELECT series_id FROM series_curation_skipped) ORDER BY id"
         ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
     }
 

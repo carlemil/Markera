@@ -28,7 +28,6 @@ class TrainingExportTest {
     fun anUntouchedDetectionIsALabelBoxedByTheDetectorsOwnBox() {
         val s = classifySeries(series(detected(100.0, 50.0, ring = 9)))!!
         assertEquals(listOf(PositiveLabel(0, ExportBox(0.1, 0.1, 0.02, 0.04))), s.labels)
-        assertTrue(s.negatives.isEmpty() && s.nudges.isEmpty())
     }
 
     @Test
@@ -43,45 +42,32 @@ class TrainingExportTest {
     }
 
     @Test
-    fun aDeletedDetectionIsAFalsePositiveAtTheDetectorsPositionNotALabel() {
-        val s = classifySeries(series(detected(100.0, 50.0, deleted = true, conf = 0.3)))!!
-        assertTrue(s.labels.isEmpty())
-        assertEquals(listOf(NegativeBox(ExportBox(0.1, 0.1, 0.02, 0.04), 0.3, "deleted")), s.negatives)
-    }
-
-    @Test
-    fun aDetectionDraggedMoreThanADiameterIsBothAFalsePositiveAndALabel() {
-        // 20 px box dragged 100 px: the old spot is a false positive, the new one a hole the model missed.
-        val s = classifySeries(series(detected(300.0, 50.0, atX = 200.0, atY = 50.0)))!!
+    fun aDeletedDetectionIsNotExported() {
+        val s = classifySeries(series(detected(100.0, 50.0, deleted = true, conf = 0.3), detected(300.0, 50.0)))!!
         assertEquals(listOf(ExportBox(0.3, 0.1, 0.02, 0.04)), s.labels.map { it.box })
-        assertEquals(listOf(NegativeBox(ExportBox(0.2, 0.1, 0.02, 0.04), 0.8, "moved")), s.negatives)
-        assertTrue(s.nudges.isEmpty())
     }
 
     @Test
-    fun aSmallDragIsANudgeNotAFalsePositive() {
-        val s = classifySeries(series(detected(205.0, 50.0, atX = 200.0, atY = 50.0)))!!
-        assertTrue(s.negatives.isEmpty())
-        assertEquals(1, s.labels.size)
-        assertEquals(listOf(NudgedBox(ExportBox(0.2, 0.1, 0.02, 0.04), s.labels.single().box, 0.8)), s.nudges)
+    fun aDraggedDetectionIsOnlyALabelWhereItNowSits() {
+        // Far (100 px with a 20 px box) or near (5 px): only the last position, never the detector's.
+        val far = classifySeries(series(detected(300.0, 50.0, atX = 200.0, atY = 50.0)))!!
+        assertEquals(listOf(ExportBox(0.3, 0.1, 0.02, 0.04)), far.labels.map { it.box })
+        val near = classifySeries(series(detected(205.0, 50.0, atX = 200.0, atY = 50.0)))!!
+        assertEquals(listOf(ExportBox(0.205, 0.1, 0.02, 0.04)), near.labels.map { it.box })
     }
 
     @Test
-    fun aDetectionScoredZeroByHandIsAFalsePositive() {
+    fun aDetectionScoredZeroByHandIsNotAHole() {
         val s = classifySeries(series(detected(100.0, 50.0).copy(ring = 0)))!!
         assertTrue(s.labels.isEmpty())
-        assertEquals(listOf("zeroed"), s.negatives.map { it.reason })
     }
 
     @Test
-    fun anOldSeriesWithoutABoxUsesTheCaliberSizeAndNoConfidence() {
-        val old = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0, deleted = true)
-        val s = classifySeries(series(old))!!
-        assertNull(s.negatives.single().conf)
-        assertEquals(0.01804, s.negatives.single().box.w, 1e-9)
+    fun anOldHoleWithoutABoxUsesTheCaliberSize() {
+        val old = Hole(100.0, 50.0, 9, false, 10.0, 9, false, 100.0, 50.0)
+        assertEquals(0.01804, classifySeries(series(old))!!.labels.single().box.w, 1e-9)
         // No geometry either: 3% of the frame width.
-        val bare = classifySeries(series(old, geometry = null))!!
-        assertEquals(0.03, bare.negatives.single().box.w, 1e-9)
+        assertEquals(0.03, classifySeries(series(old, geometry = null))!!.labels.single().box.w, 1e-9)
     }
 
     @Test
@@ -96,7 +82,6 @@ class TrainingExportTest {
             series(detected(-50.0, 250.0), detected(1100.0, 250.0, deleted = true), detected(100.0, 600.0).copy(ring = 0)),
         )!!
         assertTrue(s.labels.isEmpty(), s.labels.toString())
-        assertTrue(s.negatives.isEmpty(), s.negatives.toString())
     }
 
     /** Issue #41: rows stored before validation may still hold such boxes; they are reported, never clipped. */
@@ -115,20 +100,8 @@ class TrainingExportTest {
         assertEquals(0.01804, s.labels[0].box.w, 1e-9)
         assertEquals(0.03608, s.labels[1].box.h, 1e-9)
         assertEquals(ExportBox(0.7, 0.1, 0.02, 0.04), s.labels[2].box)
-        val negative = s.negatives.single()
-        assertEquals("deleted", negative.reason)
-        assertEquals(0.01804, negative.box.w, 1e-9)
-        assertNull(negative.conf)
         assertEquals(4, s.rejected.size, s.rejected.toString())
         assertTrue(s.rejected.all { it.startsWith("hole ") }, s.rejected.toString())
-    }
-
-    @Test
-    fun aRejectedBoxDoesNotDecideWhetherADragWasFar() {
-        // Dragged 100 px with a stored 5000 px box: the bad size must not swallow the drag into a nudge.
-        val s = classifySeries(series(detected(300.0, 50.0, atX = 200.0, atY = 50.0, w = 5000.0, h = 5000.0)))!!
-        assertEquals(listOf("moved"), s.negatives.map { it.reason })
-        assertTrue(s.nudges.isEmpty())
     }
 
     @Test
@@ -155,7 +128,7 @@ class TrainingExportTest {
             generateSequence { zip.nextEntry }.forEach { entries[it.name] = zip.readBytes() }
         }
         assertEquals(
-            setOf("images/7.jpg", "labels/7.txt", "negatives.csv", "nudges.csv", "data.yaml"),
+            setOf("images/7.jpg", "labels/7.txt", "data.yaml"),
             entries.keys,
         )
         assertEquals(listOf<Byte>(-1, -40, 1, 2, 3), entries.getValue("images/7.jpg").toList())
@@ -163,13 +136,6 @@ class TrainingExportTest {
             "0 0.100000 0.100000 0.020000 0.040000\n0 0.300000 0.100000 0.020000 0.040000\n",
             String(entries.getValue("labels/7.txt")),
         )
-        assertEquals(
-            "image;cx;cy;w;h;conf;reason\n" +
-                "images/7.jpg;0.200000;0.100000;0.020000;0.040000;0.800000;moved\n" +
-                "images/7.jpg;0.400000;0.200000;0.020000;0.040000;0.800000;deleted\n",
-            String(entries.getValue("negatives.csv")),
-        )
-        assertEquals(NUDGES_HEADER + "\n", String(entries.getValue("nudges.csv")))
         val yaml = String(entries.getValue("data.yaml"))
         assertTrue("nc: 1\n" in yaml && "  0: hole\n" in yaml, yaml)
     }
@@ -196,7 +162,7 @@ class TrainingExportTest {
         assertEquals(setOf("images/7.jpg", "annotations.xml"), entries.keys)
         val xml = String(entries.getValue("annotations.xml"))
         assertTrue("<version>1.1</version>" in xml, xml)
-        assertTrue("<name>hole</name>" in xml && "<name>false_positive</name>" in xml, xml)
+        assertTrue("<name>hole</name>" in xml && "false_positive" !in xml, xml)
         assertTrue("<image id=\"0\" name=\"7.jpg\" width=\"1000\" height=\"500\">" in xml, xml)
         val ellipses = Regex("<ellipse label=\"([a-z_]+)\"[^>]* cx=\"([0-9.]+)\" cy=\"([0-9.]+)\" rx=\"([0-9.]+)\" ry=\"([0-9.]+)\"")
             .findAll(xml).map { it.groupValues.drop(1) }.toList()
@@ -204,15 +170,13 @@ class TrainingExportTest {
             listOf(
                 listOf("hole", "100.00", "50.00", "10.00", "10.00"),
                 listOf("hole", "300.00", "50.00", "10.00", "10.00"),
-                listOf("false_positive", "200.00", "50.00", "10.00", "10.00"),
-                listOf("false_positive", "400.00", "100.00", "10.00", "10.00"),
             ),
             ellipses,
         )
         // Well-formed: a real XML parser reads it back.
         val doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder()
             .parse(ByteArrayInputStream(entries.getValue("annotations.xml")))
-        assertEquals(4, doc.getElementsByTagName("ellipse").length)
+        assertEquals(2, doc.getElementsByTagName("ellipse").length)
     }
 
     @Test

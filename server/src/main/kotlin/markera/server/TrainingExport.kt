@@ -6,19 +6,17 @@ import java.io.OutputStream
 import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
 /*
- * The next training round's data, built from what the users confirmed. A YOLO zip (images, one label file per
- * image holding the confirmed holes, data.yaml) plus two sidecars the training scripts decide how to use:
- * negatives.csv (detections the user removed or dragged away: false positives) and nudges.csv (detections the
- * user only moved a little: localisation errors, the confirmed hole is the label). Or, `format=cvat`, the same
- * photos with a CVAT for images 1.1 `annotations.xml` ([cvatXml]) for review in CVAT.
+ * The next training round's data, built from what the users confirmed: only the real holes, each where it finally
+ * sits. A YOLO zip (images, one label file per image holding the confirmed holes, data.yaml), or, `format=cvat`, the
+ * same photos with a CVAT for images 1.1 `annotations.xml` ([cvatXml]) for review in CVAT.
  *
- * One model class, `hole`: the score is not something a hole's crop shows. A false positive gets no class; its
- * spot is left unlabelled on a photo whose real holes are all labelled, which teaches the model it is background.
+ * One model class, `hole`: the score is not something a hole's crop shows. A removed detection is not exported at
+ * all; its spot is left unlabelled on a photo whose real holes are all labelled, which teaches the model it is
+ * background.
  *
  * Everything here is pure; the route in Admin.kt supplies the series and the photo files.
  */
@@ -26,26 +24,17 @@ import kotlin.math.min
 /** YOLO class names, index = the label's class. */
 val TRAINING_CLASSES: List<String> = listOf("hole")
 
-/** CVAT's labels: the class, plus `false_positive` to review the removed detections (dropped when training). */
+/** CVAT's one label, the class. */
 const val CVAT_HOLE_LABEL = "hole"
-const val CVAT_FALSE_POSITIVE_LABEL = "false_positive"
 
 /** A box in the photo's own fractions: centre and size, all 0..1. */
 data class ExportBox(val cx: Double, val cy: Double, val w: Double, val h: Double)
 
 data class PositiveLabel(val classIndex: Int, val box: ExportBox)
 
-/** A false positive: where the detector put a "hole" that is none. [conf] is null for series saved before the box was kept. */
-data class NegativeBox(val box: ExportBox, val conf: Double?, val reason: String)
-
-/** A detection dragged less than a hole diameter: the label is [confirmed], [detected] is what the model had. */
-data class NudgedBox(val detected: ExportBox, val confirmed: ExportBox, val conf: Double?)
-
 data class SeriesTraining(
     val seriesId: Long,
     val labels: List<PositiveLabel>,
-    val negatives: List<NegativeBox>,
-    val nudges: List<NudgedBox>,
     /** One line per hole whose stored box or confidence could not be one and was set aside (see [classifySeries]). */
     val rejected: List<String> = emptyList(),
 )
@@ -61,14 +50,12 @@ internal const val DEFAULT_DIAMETER_MM = 7.92
 private const val BLACK_RING_RADIUS_MM = 100.0
 
 /**
- * Sorts every hole of [series] into a label, a false positive or a nudge, in the photo's fractions. Null when
- * the series has no frame size, since a pixel position then cannot be placed on the photo.
+ * The labels of [series], in the photo's fractions. Null when the series has no frame size, since a pixel position
+ * then cannot be placed on the photo.
  *
- * - A confirmed hole with a position is a label (class 0, `hole`), boxed by the detector's own box
- *   when it was stored, else by a caliber-sized square.
- * - A detection removed by the user ([Hole.deleted]), dragged more than one hole diameter, or scored 0 by hand
- *   is a false positive at the detector's position. A dragged one is also a label where it now sits.
- * - A detection dragged less than a diameter is a [NudgedBox].
+ * - A confirmed hole with a position is a label (class 0, `hole`) at its last position (where the user dragged it,
+ *   if they did), boxed by the detector's own box when it was stored, else by a caliber-sized square.
+ * - A removed hole ([Hole.deleted]) and a detection the user scored 0 by hand are not holes: no label.
  *
  * A stored box with a side that is not positive or is larger than the frame, or a confidence outside 0..1, is
  * treated as never stored (the caliber-sized box, no confidence) and listed in [SeriesTraining.rejected],
@@ -96,8 +83,6 @@ fun classifySeries(series: Series): SeriesTraining? {
     }
 
     val labels = mutableListOf<PositiveLabel>()
-    val negatives = mutableListOf<NegativeBox>()
-    val nudges = mutableListOf<NudgedBox>()
     val rejected = mutableListOf<String>()
     for ((index, stored) in series.holes.withIndex()) {
         val h = plausibleBox(stored, width, height)
@@ -105,35 +90,14 @@ fun classifySeries(series: Series): SeriesTraining? {
             rejected += "hole $index: box ${stored.detectedW} x ${stored.detectedH} conf ${stored.detectedConf} " +
                 "in a $width x $height frame set aside"
         }
-        val dx = h.detectedX
-        val dy = h.detectedY
-        val detectedBox = if (dx != null && dy != null) box(dx, dy, h.detectedW, h.detectedH) else null
-        if (h.deleted) {
-            // A legacy deleted copy without a detected position still has the position it was removed from.
-            val at = detectedBox ?: if (h.x != null && h.y != null) box(h.x, h.y, h.detectedW, h.detectedH) else null
-            if (at != null && h.detectedRing != null) negatives += NegativeBox(at, h.detectedConf, "deleted")
-            continue
-        }
-        val x = h.x
-        val y = h.y
-        if (x == null || y == null) continue
-        if (dx != null && dy != null && h.ring == 0 && !h.innerTen && h.detectedRing != 0) {
-            // The user scored the detection 0: not a hole.
-            if (detectedBox != null) negatives += NegativeBox(detectedBox, h.detectedConf, "zeroed")
-            continue
-        }
-        val confirmed = box(x, y, h.detectedW, h.detectedH) ?: continue
-        labels += PositiveLabel(0, confirmed)
-        if (detectedBox != null && dx != null && dy != null && (x != dx || y != dy)) {
-            val diameter = h.detectedW?.let { w -> h.detectedH?.let { (w + it) / 2 } } ?: fallbackSide
-            if (hypot(x - dx, y - dy) > diameter) {
-                negatives += NegativeBox(detectedBox, h.detectedConf, "moved")
-            } else {
-                nudges += NudgedBox(detectedBox, confirmed, h.detectedConf)
-            }
-        }
+        if (h.deleted) continue
+        val x = h.x ?: continue
+        val y = h.y ?: continue
+        // The user scored the detection 0: not a hole.
+        if (h.detectedX != null && h.detectedY != null && h.ring == 0 && !h.innerTen && h.detectedRing != 0) continue
+        labels += PositiveLabel(0, box(x, y, h.detectedW, h.detectedH) ?: continue)
     }
-    return SeriesTraining(series.id, labels, negatives, nudges, rejected)
+    return SeriesTraining(series.id, labels, rejected)
 }
 
 /** [hole] without a stored box that cannot fit a [width] x [height] frame, and without a confidence outside 0..1. */
@@ -166,39 +130,18 @@ private fun f(v: Double) = String.format(Locale.ROOT, "%.6f", v)
 fun yoloLabels(labels: List<PositiveLabel>): String =
     labels.joinToString("") { "${it.classIndex} ${f(it.box.cx)} ${f(it.box.cy)} ${f(it.box.w)} ${f(it.box.h)}\n" }
 
-const val NEGATIVES_HEADER = "image;cx;cy;w;h;conf;reason"
-const val NUDGES_HEADER = "image;detected_cx;detected_cy;cx;cy;w;h;conf"
-
-fun negativesCsv(all: List<SeriesTraining>): String = buildString {
-    append(NEGATIVES_HEADER).append('\n')
-    for (s in all) for (n in s.negatives) {
-        append("images/${s.seriesId}.jpg;${f(n.box.cx)};${f(n.box.cy)};${f(n.box.w)};${f(n.box.h)};")
-        append(n.conf?.let { f(it) }.orEmpty()).append(';').append(n.reason).append('\n')
-    }
-}
-
-fun nudgesCsv(all: List<SeriesTraining>): String = buildString {
-    append(NUDGES_HEADER).append('\n')
-    for (s in all) for (n in s.nudges) {
-        append("images/${s.seriesId}.jpg;${f(n.detected.cx)};${f(n.detected.cy)};")
-        append("${f(n.confirmed.cx)};${f(n.confirmed.cy)};${f(n.confirmed.w)};${f(n.confirmed.h)};")
-        append(n.conf?.let { f(it) }.orEmpty()).append('\n')
-    }
-}
-
 fun dataYaml(): String = buildString {
     append("path: .\ntrain: images\nval: images\nnc: ${TRAINING_CLASSES.size}\nnames:\n")
     TRAINING_CLASSES.forEachIndexed { i, name -> append("  $i: $name\n") }
 }
 
 /**
- * Streams the zip: `images/<id>.jpg`, `labels/<id>.txt`, `negatives.csv`, `nudges.csv` and `data.yaml`. A series
+ * Streams the zip: `images/<id>.jpg`, `labels/<id>.txt` and `data.yaml`. A series
  * is in it when it is classifiable and [image] finds its photo.
  */
 private val log = LoggerFactory.getLogger("markera.server.TrainingExport")
 
 fun writeTrainingZip(out: OutputStream, series: Sequence<Series>, image: (Long) -> File?) {
-    val written = mutableListOf<SeriesTraining>()
     ZipOutputStream(out).use { zip ->
         fun entry(name: String, bytes: ByteArray) {
             zip.putNextEntry(ZipEntry(name))
@@ -213,10 +156,7 @@ fun writeTrainingZip(out: OutputStream, series: Sequence<Series>, image: (Long) 
             file.inputStream().use { it.copyTo(zip) }
             zip.closeEntry()
             entry("labels/${s.id}.txt", yoloLabels(training.labels).toByteArray())
-            written += training
         }
-        entry("negatives.csv", negativesCsv(written).toByteArray())
-        entry("nudges.csv", nudgesCsv(written).toByteArray())
         entry("data.yaml", dataYaml().toByteArray())
     }
 }
@@ -228,14 +168,13 @@ private fun xmlAttr(s: String) = s.replace("&", "&amp;").replace("\"", "&quot;")
 private fun px(v: Double) = String.format(Locale.ROOT, "%.2f", v)
 
 /**
- * CVAT for images 1.1: labels `hole` and `false_positive` (ellipses), one `<image name="<id>.jpg">` per series,
- * a `hole` ellipse per confirmed hole and a `false_positive` ellipse per removed or dragged-away detection, both
- * in the photo's pixels (the box's half sides are the radii).
+ * CVAT for images 1.1: the label `hole` (ellipses), one `<image name="<id>.jpg">` per series and a `hole` ellipse
+ * per confirmed hole, in the photo's pixels (the box's half sides are the radii).
  */
 fun cvatXml(images: List<CvatImage>): String = buildString {
     append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<annotations>\n  <version>1.1</version>\n")
     append("  <meta>\n    <task>\n      <name>markera</name>\n      <size>${images.size}</size>\n      <labels>\n")
-    for (label in listOf(CVAT_HOLE_LABEL, CVAT_FALSE_POSITIVE_LABEL)) {
+    for (label in listOf(CVAT_HOLE_LABEL)) {
         append("        <label>\n          <name>$label</name>\n          <type>ellipse</type>\n")
         append("          <attributes>\n          </attributes>\n        </label>\n")
     }
@@ -250,7 +189,6 @@ fun cvatXml(images: List<CvatImage>): String = buildString {
             append("    </ellipse>\n")
         }
         for (l in t.labels) ellipse(CVAT_HOLE_LABEL, l.box)
-        for (n in t.negatives) ellipse(CVAT_FALSE_POSITIVE_LABEL, n.box)
         append("  </image>\n")
     }
     append("</annotations>\n")
