@@ -71,6 +71,7 @@ fun Route.adminRoutes(
                 counts + """<div><a href="/admin/suggestions">suggestions ($suggestions)</a></div>""" +
                     """<div><a href="/admin/training-exports">training exports</a></div>""" +
                     """<div><a href="/admin/curate">approve series for training</a></div>""" +
+                    """<div><a href="/admin/ring-labels">label rings and centres</a></div>""" +
                     """<div><a href="/admin/review">review changed series</a></div>""" +
                     """<div><label><input type="checkbox" id="hide-empty"> hide users with 0 series</label></div>""" +
                     usersTable(listOf("id", "provider", "subject", "name", "series", "last used"), rows) +
@@ -176,6 +177,9 @@ fun Route.adminRoutes(
     get("/admin/series/{id}") {
         if (unauthorized(password, localNoAuth, throttle)) return@get
         val seriesId = pathId()
+        // Inside /admin/ring-labels' frame: the ring and centre only, saved by that page into ring_labels.
+        if (call.request.queryParameters["ring"] == "1") return@get respondHtml(ringEditor(db, images, seriesId) ?: return@get notFound(
+            "Unknown series, or no photo with a frame size"))
         // Inside /admin/curate's frame: just the editor, no navigation or audit trail around it.
         val embed = call.request.queryParameters["embed"] == "1"
         // ?training=1 (curate): the admin's training copy, edited apart from the user's series, which stays untouched.
@@ -442,6 +446,86 @@ fun Route.adminRoutes(
         call.respond(HttpStatusCode.NoContent)
     }
 
+    // The ring/centre ground truth: a random series in the editor's ring mode, Save stores the hand-corrected 6/7 ring
+    // and centre in ring_labels only (never the series), Skip moves on. Curate's twin.
+    get("/admin/ring-labels") {
+        if (unauthorized(password, localNoAuth, throttle)) return@get
+        val exportable = db.ringLabels().count { !it.deleted && imageFile(images, it.seriesId).isFile }
+        respondHtml(page("Ring and centre labels", "<style>$CURATE_LIST_CSS</style>" +
+            RING_BODY.replace("{EXPORT}", """<a class="button" id="export" href="/admin/ring-labels/export.zip">""" +
+                "Export the labelled set ($exportable)</a>") + "<script>$RING_JS</script>"))
+    }
+
+    // A random live series with a photo and frame size, no label and never skipped ([exclude] is the one on screen),
+    // and the counts: `remaining` (what the pick draws from), `labelled`, `skipped` (with a photo, no label).
+    get("/admin/ring-labels/next") {
+        if (unauthorized(password, localNoAuth, throttle)) return@get
+        val exclude = call.request.queryParameters["exclude"]?.toLongOrNull()
+        val skipped = db.skippedRingLabelIds()
+        val (skippedOpen, open) = db.unlabelledRingSeriesIds().filter { imageFile(images, it).isFile }.partition { it in skipped }
+        val pick = open.filter { it != exclude }.randomOrNull() ?: open.firstOrNull()
+        respondJson(buildJsonObject {
+            put("id", pick); put("remaining", open.size); put("skipped", skippedOpen.size)
+            put("labelled", db.ringLabels().count { !it.deleted })
+        }.toString())
+    }
+
+    get("/admin/ring-labels/history") {
+        if (unauthorized(password, localNoAuth, throttle)) return@get
+        respondJson(buildJsonArray {
+            db.ringLabels().forEach { l ->
+                add(buildJsonObject { put("id", l.seriesId); put("at", time(l.at)); put("deleted", l.deleted) })
+            }
+        }.toString())
+    }
+
+    // The labelled set, live series with a photo only: images/<id>.jpg and one labels.json (every RingLabel).
+    get("/admin/ring-labels/export.zip") {
+        if (unauthorized(password, localNoAuth, throttle)) return@get
+        val labels = db.ringLabels().filter { !it.deleted && imageFile(images, it.seriesId).isFile }.sortedBy { it.seriesId }
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"markera-ring-labels.zip\"")
+        call.respondOutputStream(ContentType.Application.Zip) {
+            java.util.zip.ZipOutputStream(this).use { zip ->
+                for (l in labels) {
+                    zip.putNextEntry(java.util.zip.ZipEntry("images/${l.seriesId}.jpg"))
+                    imageFile(images, l.seriesId).inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
+                zip.putNextEntry(java.util.zip.ZipEntry("labels.json"))
+                zip.write(ringLabelJson.encodeToString(labels).toByteArray())
+                zip.closeEntry()
+                zip.putNextEntry(java.util.zip.ZipEntry("README.md"))
+                zip.write(RING_EXPORT_README.toByteArray())
+                zip.closeEntry()
+            }
+        }
+    }
+
+    // Skip: never offered by /admin/ring-labels/next again (no label is stored).
+    post("/admin/ring-labels/{id}/skip") {
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
+        db.skipRingLabel(seriesId)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // Save: the body is the corrected Geometry (the editor's own, in the stored frame's pixels). Saving again
+    // replaces the correction; the detector side stays as the first save found it.
+    post("/admin/ring-labels/{id}") {
+        if (unauthorized(password, localNoAuth, throttle) || notFromPage()) return@post
+        val seriesId = pathId()
+        if (db.seriesOwner(seriesId, includeDeleted = true) == null) return@post notFound("Unknown series")
+        val geometry = runCatching { ringLabelJson.decodeFromString<Geometry>(call.receiveText()) }.getOrNull()
+            ?.takeIf(::plausibleGeometry)
+            ?: return@post call.respondText("body must be a ring and centre with finite numbers and positive semi-axes",
+                status = HttpStatusCode.BadRequest)
+        if (!db.setRingLabel(seriesId, geometry)) {
+            return@post call.respondText("series has no frame size", status = HttpStatusCode.BadRequest)
+        }
+        call.respond(HttpStatusCode.NoContent)
+    }
+
     get("/admin/series/{id}/image") {
         if (unauthorized(password, localNoAuth, throttle)) return@get
         val file = imageFile(images, pathId())
@@ -494,6 +578,51 @@ private fun RoutingContext.localNoAuthCaller(): Boolean =
 
 internal fun isLoopback(address: String): Boolean =
     address == "127.0.0.1" || address == "::1" || address == "0:0:0:0:0:0:0:1" || address == "localhost"
+
+private val ringLabelJson = Json { encodeDefaults = true; prettyPrint = true }
+
+/**
+ * The editor in ring mode, for /admin/ring-labels' frame: the photo with the ring and centre handles (the editor's
+ * own `initRing`/`drawRing`), no holes and no saving of its own (the outer page reads `ringGeometry()` and POSTs
+ * it). It starts from the stored label when there is one, else from the series' ring. Null for an unknown or
+ * soft-deleted series, or one without a photo and frame size.
+ */
+private fun ringEditor(db: Db, images: File, seriesId: Long): String? {
+    val series = db.getSeries(seriesId) ?: return null
+    if (series.imageWidth == null || series.imageHeight == null || !imageFile(images, seriesId).isFile) return null
+    val label = db.ringLabel(seriesId)
+    val shown = series.copy(holes = emptyList(), geometry = label?.corrected ?: series.geometry, hasImage = true)
+    val status = label?.let { "Labelled ${time(it.at)}" } ?: "Not labelled yet"
+    val start = when {
+        label != null -> "Showing the saved correction."
+        series.geometry != null -> "Showing the series' own ring."
+        else -> "The series has no ring: drag the dots onto the edge of the black before saving."
+    }
+    return page(
+        "Series $seriesId",
+        "<style>body>h1{display:none}$CURATE_LINE_CSS</style>" +
+            """<div class="cols embed"><div class="left"><h1>Series $seriesId</h1>""" +
+            "<div>${time(series.timestamp)} &middot; ${esc(series.caliber)}</div>" +
+            """<p class="note">$status. $start</p>""" +
+            // Stubs for what the editor script expects of the full page (hole table, caliber, tag, total, Undo).
+            """<table hidden><tbody></tbody></table><input type="hidden" id="caliber" value="${esc(series.caliber)}">""" +
+            """<input type="hidden" id="tag" value=""><span id="total" hidden></span><button id="undo" hidden disabled></button>""" +
+            """<p><span id="msg"></span></p>""" +
+            """<style>$CURATE_LIST_CSS</style><div id="curate-slot"></div>""" +
+            """</div><div><div class="zoom"><div class="shot"${holeSizeAttrs(shown)}><img src="/admin/series/$seriesId/image">""" +
+            """${geometrySvg(shown)}</div></div>""" +
+            RING_NOTE.replace(" Holes whose score matches the ring are re-scored as it moves; a score set by hand stays.", "") +
+            "</div></div>" +
+            "<script>$ZOOM_JS</script>" +
+            """<script type="application/json" id="series" data-put="" data-ring="1">${blob(shown)}</script>""" +
+            "<script>$EDITOR_JS</script>",
+    )
+}
+
+/** A ring label worth storing: every number finite, both semi-axes positive. */
+private fun plausibleGeometry(g: Geometry): Boolean =
+    listOf(g.centreX, g.centreY, g.ringCx, g.ringCy, g.ringSemiMajor, g.ringSemiMinor, g.ringRotationRad).all { it.isFinite() } &&
+        g.ringSemiMajor > 0 && g.ringSemiMinor > 0
 
 /**
  * Every write needs `X-Admin: 1`. The browser's cached Basic credentials ride along on any cross-site form post,
@@ -888,6 +1017,10 @@ private const val EDITOR_JS = """
 const S = JSON.parse(document.getElementById('series').textContent);
 // Where edits go: the user's series, or (curate) the admin's separate training copy.
 const PUT_URL = document.getElementById('series').dataset.put;
+// /admin/ring-labels' frame: the ring and centre only. No holes are added and nothing is saved from here; the outer
+// page reads ringGeometry() and stores it apart from the series.
+const RING_ONLY = document.getElementById('series').dataset.ring === '1';
+window.ringGeometry = () => S.geometry;
 const tbl = document.querySelector('table'), tb = tbl.tBodies[0];
 const shot = document.querySelector('.shot'), img = shot ? shot.querySelector('img') : null;
 const placeable = !!(shot && S.imageWidth && S.imageHeight);
@@ -1156,7 +1289,7 @@ if (placeable) {
     if (swallow) { swallow = false; return; }
     // Nor is a drag that missed every handle: only a click that stayed put adds a hole.
     if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
-    if (e.target.closest('.hit,.handle')) return;
+    if (e.target.closest('.hit,.handle') || RING_ONLY) return;
     const p = at(e);
     addHole(p[0], p[1]);
   });
@@ -1389,6 +1522,8 @@ let queue = Promise.resolve();
 window.editorIdle = () => queue;
 function save() {
   const msg = document.getElementById('msg');
+  // Ring mode: the outer page's Save stores the ring; here a move only says it is not stored yet.
+  if (RING_ONLY) { msg.textContent = 'moved, not saved'; window.ringDirty = true; return; }
   msg.textContent = 'saving...';
   // Snapshotted now, not when the PUT finally goes: it is this edit's state.
   const body = JSON.stringify({timestamp: S.timestamp, caliber: document.getElementById('caliber').value,

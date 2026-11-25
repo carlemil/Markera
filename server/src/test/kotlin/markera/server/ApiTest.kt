@@ -407,6 +407,130 @@ class ApiTest {
         sql { st -> st.executeQuery("SELECT COUNT(*) FROM series_training").use { it.next(); assertEquals(0, it.getInt(1)) } }
     }
 
+    @Test fun `ring labels pick unlabelled series with a photo, skip for good and store apart from the series`() =
+        apiTest(adminPassword = ADMIN_PW) { client ->
+        val auth = client.devAuth("ring-labels")
+        val detector = Geometry(500.0, 480.0, 505.0, 478.0, 300.0, 280.0, 0.1)
+        val (a, b, c) = List(3) { client.createSeries(auth.token, series().copy(geometry = detector)) }
+        val noFrame = client.createSeries(auth.token)
+        val noPhoto = client.createSeries(auth.token)
+        listOf(a, b, c).forEach { client.putImage(auth.token, it, jpeg(), query = "?width=1000&height=1000") }
+        client.putImage(auth.token, noFrame, jpeg())
+        suspend fun pick(query: String = "") =
+            kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/ring-labels/next$query").bodyAsText()).jsonObject
+        suspend fun saveLabel(id: Long, body: String, xAdmin: Boolean = true) = client.request("/admin/ring-labels/$id") {
+            method = HttpMethod.Post; basicAuth("admin", ADMIN_PW)
+            if (xAdmin) header("X-Admin", "1")
+            setBody(TextContent(body, ContentType.Application.Json))
+        }
+        val corrected = Geometry(510.0, 470.0, 512.0, 471.0, 310.0, 290.0, 0.2)
+        val correctedJson = kotlinx.serialization.json.Json.encodeToString(Geometry.serializer(), corrected)
+
+        // Guards: the password on every route, X-Admin on the writes.
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/ring-labels").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/admin/ring-labels/next").status)
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/admin/ring-labels/$a") { header("X-Admin", "1") }.status)
+        assertEquals(HttpStatusCode.Forbidden, saveLabel(a, correctedJson, xAdmin = false).status)
+        assertEquals(HttpStatusCode.Forbidden, client.adminWrite(HttpMethod.Post, "/admin/ring-labels/$a/skip", xAdmin = false).status)
+        assertTrue(client.admin("/admin").bodyAsText().contains("href=\"/admin/ring-labels\""))
+        assertTrue(client.admin("/admin/ring-labels").bodyAsText().contains("Skip"))
+
+        // Only series with a photo and a frame size are offered.
+        assertEquals(3, pick()["remaining"]!!.jsonPrimitive.int)
+        repeat(10) { assertTrue(pick()["id"]!!.jsonPrimitive.long in setOf(a, b, c)) }
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/series/$noPhoto?embed=1&ring=1").status)
+        assertEquals(HttpStatusCode.NotFound, client.admin("/admin/series/$noFrame?embed=1&ring=1").status)
+        val editor = client.admin("/admin/series/$a?embed=1&ring=1").bodyAsText()
+        assertTrue(editor.contains("data-ring=\"1\"") && editor.contains("Not labelled yet"))
+
+        // The admin had already moved a's ring on its own page: the label's detector side is still the app's first save.
+        client.adminWrite(HttpMethod.Put, "/admin/series/$a",
+            series().copy(geometry = Geometry(1.0, 2.0, 3.0, 4.0, 50.0, 40.0, 0.0)))
+        fun seriesState(): String = sql { st ->
+            val series = st.executeQuery("SELECT * FROM series ORDER BY id").use { rs ->
+                buildList { while (rs.next()) add((1..rs.metaData.columnCount).joinToString("|") { rs.getString(it).orEmpty() }) }
+            }
+            val holes = st.executeQuery("SELECT * FROM holes ORDER BY id").use { rs ->
+                buildList { while (rs.next()) add((1..rs.metaData.columnCount).joinToString("|") { rs.getString(it).orEmpty() }) }
+            }
+            val audit = st.executeQuery("SELECT COUNT(*) FROM series_audit").use { it.next(); it.getInt(1) }
+            "$series $holes $audit"
+        }
+        val before = seriesState()
+
+        // Bad bodies: not a ring, a zero axis, a non-number.
+        assertEquals(HttpStatusCode.BadRequest, saveLabel(a, "null").status)
+        assertEquals(HttpStatusCode.BadRequest, saveLabel(a, correctedJson.replace("\"ringSemiMinor\":290.0", "\"ringSemiMinor\":0.0")).status)
+        assertEquals(HttpStatusCode.BadRequest, saveLabel(a, "{\"centreX\":1}").status)
+        assertEquals(HttpStatusCode.NotFound, saveLabel(999, correctedJson).status)
+        assertEquals(HttpStatusCode.NoContent, saveLabel(a, correctedJson).status)
+        // Saving writes ring_labels only: the series (updated_at included), its holes and the audit trail are untouched.
+        assertEquals(before, seriesState())
+        assertTrue(client.admin("/admin/series/$a?embed=1&ring=1").bodyAsText().contains("Labelled"))
+
+        val saved = sql { st ->
+            st.executeQuery("SELECT detected, detected_from, corrected, image_width, first_at, at FROM ring_labels WHERE series_id = $a").use { rs ->
+                assertTrue(rs.next()); List(6) { rs.getString(it + 1) }
+            }
+        }
+        val decode = { s: String -> kotlinx.serialization.json.Json.decodeFromString(Geometry.serializer(), s) }
+        assertEquals(detector, decode(saved[0]))
+        assertEquals("created", saved[1])
+        assertEquals(corrected, decode(saved[2]))
+        assertEquals("1000", saved[3])
+
+        // A second save replaces the correction only; the detector side and the first time stay.
+        tick()
+        val again = corrected.copy(centreX = 520.0)
+        assertEquals(HttpStatusCode.NoContent,
+            saveLabel(a, kotlinx.serialization.json.Json.encodeToString(Geometry.serializer(), again)).status)
+        sql { st ->
+            st.executeQuery("SELECT detected, corrected, first_at, at, (SELECT COUNT(*) FROM ring_labels) FROM ring_labels WHERE series_id = $a").use { rs ->
+                rs.next()
+                assertEquals(detector, decode(rs.getString(1)))
+                assertEquals(again, decode(rs.getString(2)))
+                assertEquals(saved[4], rs.getString(3))
+                assertTrue(rs.getString(4) > saved[5])
+                assertEquals(1, rs.getInt(5))
+            }
+        }
+        // The editor reopens on the saved correction, not the series' ring.
+        assertTrue(client.admin("/admin/series/$a?embed=1&ring=1").bodyAsText().contains("\"centreX\":520.0"))
+
+        // A labelled series and a skipped one are never offered again.
+        assertEquals(HttpStatusCode.NotFound, client.adminWrite(HttpMethod.Post, "/admin/ring-labels/999/skip").status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/ring-labels/$b/skip").status)
+        assertEquals(HttpStatusCode.NoContent, client.adminWrite(HttpMethod.Post, "/admin/ring-labels/$b/skip").status)
+        repeat(10) { assertEquals(c, pick()["id"]!!.jsonPrimitive.long) }
+        assertEquals(c, pick("?exclude=$c")["id"]!!.jsonPrimitive.long)
+        val counts = pick()
+        assertEquals(1, counts["remaining"]!!.jsonPrimitive.int)
+        assertEquals(1, counts["labelled"]!!.jsonPrimitive.int)
+        assertEquals(1, counts["skipped"]!!.jsonPrimitive.int)
+        val history = kotlinx.serialization.json.Json.parseToJsonElement(client.admin("/admin/ring-labels/history").bodyAsText()).jsonArray
+        assertEquals(listOf(a), history.map { it.jsonObject["id"]!!.jsonPrimitive.long })
+        // Saving a skipped one (opened through ?id=) labels it and clears the skip.
+        saveLabel(b, correctedJson)
+        assertEquals(0, pick()["skipped"]!!.jsonPrimitive.int)
+        assertEquals(2, pick()["labelled"]!!.jsonPrimitive.int)
+
+        // The export: each labelled photo and one labels.json with both sides.
+        val zip = client.zipEntries("/admin/ring-labels/export.zip", Charsets.UTF_8)
+        assertEquals(setOf("images/$a.jpg", "images/$b.jpg", "labels.json", "README.md"), zip.keys)
+        assertTrue(client.admin("/admin/ring-labels").bodyAsText().contains("Export the labelled set (2)"))
+        val labels = kotlinx.serialization.json.Json.parseToJsonElement(zip.getValue("labels.json")).jsonArray
+        assertEquals(listOf(a, b), labels.map { it.jsonObject["seriesId"]!!.jsonPrimitive.long })
+        assertEquals(520.0, labels[0].jsonObject["corrected"]!!.jsonObject["centreX"]!!.jsonPrimitive.content.toDouble())
+        assertEquals(500.0, labels[0].jsonObject["detected"]!!.jsonObject["centreX"]!!.jsonPrimitive.content.toDouble())
+
+        client.adminWrite(HttpMethod.Delete, "/admin/users/${auth.userId}")
+        sql { st ->
+            st.executeQuery("SELECT (SELECT COUNT(*) FROM ring_labels) + (SELECT COUNT(*) FROM ring_labels_skipped)").use {
+                it.next(); assertEquals(0, it.getInt(1))
+            }
+        }
+    }
+
     private lateinit var imagesDir: File
     private lateinit var dbFile: File
 

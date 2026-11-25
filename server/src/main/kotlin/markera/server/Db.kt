@@ -171,6 +171,22 @@ class Db(dbPath: String) : AutoCloseable {
                 series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
                 request TEXT NOT NULL,
                 at TEXT NOT NULL)""")
+            // The ring/centre ground truth (/admin/ring-labels): the admin's hand-corrected 6/7 ring and centre of a
+            // series, beside the geometry the series had before, so detector error can be measured. Apart from the
+            // series on purpose: nothing the app reads ever changes. Geometry is JSON, in the stored frame's pixels.
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS ring_labels (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                detected TEXT,
+                detected_from TEXT NOT NULL,
+                corrected TEXT NOT NULL,
+                image_width INTEGER NOT NULL,
+                image_height INTEGER NOT NULL,
+                first_at TEXT NOT NULL,
+                at TEXT NOT NULL)""")
+            // Series skipped in /admin/ring-labels: never offered there again; a later save drops the row.
+            st.executeUpdate("""CREATE TABLE IF NOT EXISTS ring_labels_skipped (
+                series_id INTEGER PRIMARY KEY REFERENCES series(id) ON DELETE CASCADE,
+                at TEXT NOT NULL)""")
             // Training exports: a series goes out once. Each export is a batch; every series in it keeps the exact
             // version that went out (a Series as JSON), so a lost download can be fetched again as it was even after
             // the holes changed. A legacy batch records series exported before tracking, with nothing frozen.
@@ -705,6 +721,97 @@ class Db(dbPath: String) : AutoCloseable {
         )
     }
 
+    /**
+     * Stores the admin's [corrected] ring and centre for [seriesId] in `ring_labels` only. The first save snapshots
+     * the geometry the series had before anyone corrected it here ([firstGeometry]); a later save replaces only the
+     * correction and its time, so the detector side never drifts. Clears a skip. Returns false for an unknown series
+     * or one without a frame size (the correction's pixels would mean nothing).
+     */
+    @Synchronized
+    fun setRingLabel(seriesId: Long, corrected: Geometry): Boolean = transaction {
+        val series = getSeries(seriesId, includeDeleted = true) ?: return@transaction false
+        val width = series.imageWidth ?: return@transaction false
+        val height = series.imageHeight ?: return@transaction false
+        val (detected, from) = firstGeometry(series)
+        val now = auditTime.format(java.time.Instant.now())
+        conn.prepareStatement(
+            "INSERT INTO ring_labels(series_id, detected, detected_from, corrected, image_width, image_height, first_at, at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON CONFLICT(series_id) DO UPDATE SET corrected = excluded.corrected, at = excluded.at"
+        ).use {
+            it.setLong(1, seriesId); it.setString(2, detected?.let { g -> trainingJson.encodeToString(g) }); it.setString(3, from)
+            it.setString(4, trainingJson.encodeToString(corrected)); it.setInt(5, width); it.setInt(6, height)
+            it.setString(7, now); it.setString(8, now)
+            it.executeUpdate()
+        }
+        execute("DELETE FROM ring_labels_skipped WHERE series_id = ?", seriesId)
+        true
+    }
+
+    /**
+     * The geometry [series] had before any later edit, and where it came from: `created` (the app's first save, its
+     * audit baseline), `baseline` (the oldest tracked state, for series older than the tracking) or `current` (no audit
+     * row at all). The app scored with it; on the phone that is the detector's ring unless the user placed it by hand.
+     */
+    private fun firstGeometry(series: Series): Pair<Geometry?, String> {
+        val oldest = conn.prepareStatement(
+            "SELECT operation, after_state FROM series_audit WHERE series_id = ? AND baseline = 1 ORDER BY id LIMIT 1"
+        ).use { st ->
+            st.setLong(1, series.id)
+            st.executeQuery().use { rs -> if (rs.next()) rs.getString(1) to rs.getString(2) else null }
+        } ?: return series.geometry to "current"
+        val element = kotlinx.serialization.json.Json.parseToJsonElement(oldest.second)
+            .let { (it as kotlinx.serialization.json.JsonObject)["geometry"] }
+        val geometry = element?.takeIf { it !is kotlinx.serialization.json.JsonNull }
+            ?.let { trainingJson.decodeFromJsonElement(Geometry.serializer(), it) }
+        return geometry to (if (oldest.first == "created baseline") "created" else "baseline")
+    }
+
+    @Synchronized
+    fun ringLabel(seriesId: Long): RingLabel? = conn.prepareStatement("$RING_LABEL_SELECT WHERE l.series_id = ?").use { st ->
+        st.setLong(1, seriesId)
+        st.executeQuery().use { rs -> if (rs.next()) ringLabel(rs) else null }
+    }
+
+    /** Every ring label, the latest save first (labels of soft-deleted series included, flagged). */
+    @Synchronized
+    fun ringLabels(): List<RingLabel> = conn.createStatement().use { st ->
+        st.executeQuery("$RING_LABEL_SELECT ORDER BY l.at DESC, l.series_id DESC").use { rs ->
+            buildList { while (rs.next()) add(ringLabel(rs)) }
+        }
+    }
+
+    /** Live series with a frame size and no ring label yet, oldest first: what /admin/ring-labels picks from. */
+    @Synchronized
+    fun unlabelledRingSeriesIds(): List<Long> = conn.createStatement().use { st ->
+        st.executeQuery(
+            "SELECT id FROM series WHERE deleted_at IS NULL AND image_width IS NOT NULL AND image_height IS NOT NULL " +
+                "AND id NOT IN (SELECT series_id FROM ring_labels) ORDER BY id"
+        ).use { rs -> buildList { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
+    /** Skips [seriesId] in /admin/ring-labels for good. */
+    @Synchronized
+    fun skipRingLabel(seriesId: Long) {
+        conn.prepareStatement("INSERT OR IGNORE INTO ring_labels_skipped(series_id, at) VALUES (?, ?)").use {
+            it.setLong(1, seriesId); it.setString(2, auditTime.format(java.time.Instant.now())); it.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun skippedRingLabelIds(): Set<Long> = conn.createStatement().use { st ->
+        st.executeQuery("SELECT series_id FROM ring_labels_skipped").use { rs -> buildSet { while (rs.next()) add(rs.getLong(1)) } }
+    }
+
+    private fun ringLabel(rs: java.sql.ResultSet) = RingLabel(
+        seriesId = rs.getLong("series_id"),
+        imageWidth = rs.getInt("image_width"), imageHeight = rs.getInt("image_height"),
+        detected = rs.getString("detected")?.let { trainingJson.decodeFromString<Geometry>(it) },
+        detectedFrom = rs.getString("detected_from"),
+        corrected = trainingJson.decodeFromString<Geometry>(rs.getString("corrected")),
+        firstAt = rs.getString("first_at"), at = rs.getString("at"), deleted = rs.getInt("gone") != 0,
+    )
+
     private fun curation(rs: java.sql.ResultSet) = Curation(
         rs.getLong("series_id"), CurationStatus.entries.first { it.wire == rs.getString("status") }, rs.getString("at"),
     )
@@ -1055,6 +1162,8 @@ class Db(dbPath: String) : AutoCloseable {
         execute("DELETE FROM series_curation_skipped WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series_training WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM exported_series WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM ring_labels WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
+        execute("DELETE FROM ring_labels_skipped WHERE series_id IN (SELECT id FROM series WHERE user_id = ?)", userId)
         execute("DELETE FROM series WHERE user_id = ?", userId)
         execute("DELETE FROM sessions WHERE user_id = ?", userId)
         // They may carry the user's e-mail address: gone with the account, like everything else of theirs.
@@ -1280,3 +1389,25 @@ enum class ExportFormat(val wire: String) { YOLO("yolo"), CVAT("cvat"), LEGACY("
 
 /** A training export batch and how many series it holds. */
 data class ExportBatch(val id: Long, val at: String, val format: ExportFormat, val approved: Boolean, val count: Int)
+
+/**
+ * One hand-corrected ring and centre (/admin/ring-labels), in the pixels of the stored frame ([imageWidth] x
+ * [imageHeight]). [detected] is what the series had before (null: no ring), [detectedFrom] where that came from
+ * (`created`, `baseline` or `current`, see `Db.setRingLabel`). [firstAt] is the first save, [at] the latest.
+ */
+@kotlinx.serialization.Serializable
+data class RingLabel(
+    val seriesId: Long,
+    val imageWidth: Int,
+    val imageHeight: Int,
+    val detected: Geometry?,
+    val detectedFrom: String,
+    val corrected: Geometry,
+    val firstAt: String,
+    val at: String,
+    val deleted: Boolean = false,
+)
+
+private const val RING_LABEL_SELECT =
+    "SELECT l.series_id, l.detected, l.detected_from, l.corrected, l.image_width, l.image_height, l.first_at, l.at, " +
+        "s.deleted_at IS NOT NULL AS gone FROM ring_labels l JOIN series s ON s.id = l.series_id"
