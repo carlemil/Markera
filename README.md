@@ -28,7 +28,7 @@ to CSV, Excel, etc.
 
 For each captured frame the app:
 
-1. **Detects the bullet holes** — a YOLOv8 ONNX model.
+1. **Detects the bullet holes** — a YOLO11 ONNX model, trained on hand-approved user series.
 2. **Finds the centre** — OCRs the ring digits and intersects the 6–9 digit rows.
 3. **Locates the 6/7 ring** — four probe disks, started where the digits predict
    the boundary, and settle on the black→white rim. They are the images of four
@@ -186,7 +186,7 @@ only as the fallback when no plane can be built (centre outside the ellipse).
 The app is a `:composeApp` KMP module with `commonMain`, `androidMain`,
 and `iosMain` source sets, plus a `:vision` KMP library holding the pure
 geometry/scoring pipeline and a small `:eval` module used to evaluate the
-hole-detection model. Hole detection runs a YOLOv8 ONNX model on the **default
+hole-detection model. Hole detection runs a YOLO11 ONNX model on the **default
 CPU execution provider** — XNNPACK's fp16 path caused intermittent native
 crashes in `OrtSession.run` on-device and was slower on the test hardware.
 Detection is guarded against concurrent runs (the native inference can't be
