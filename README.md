@@ -36,7 +36,10 @@ For each captured frame the app:
    (a homography), and the 6/7 ellipse is that map's image of the 100 mm circle.
    There is no fallback: if that ellipse is implausible the scan shows no ring
    and no scores.
-4. **Scores each hole** — undoes the perspective through the homography, measures the
+4. **Refines centre and ring** — fits the full perspective map to the black's
+   outer edge and the thin white lines inside it, centre free. When the photo
+   does not back the fit, the digit centre and probe ring stay.
+5. **Scores each hole** — undoes the perspective through the homography, measures the
    distance from the centre in mm against the target spec, and assigns a ring
    with edge gauging. Every hole pre-fills a score picker (five boxes a row, more holes wrap), each hole is
    labelled with its value, and the series total is shown.
@@ -155,6 +158,25 @@ pin down, so interior pasters, other printed rings and the paper edge don't
 compete. In the first on-phone run, every probe landed on the rim in 40 of 42
 scans. **Status — in use**, with no fallback: an implausible probe ellipse means
 no ring.
+
+### Centre and ring from the black's edge and white lines — works, in use
+
+Starting from the digit centre and the probe ring, 720 rays go out from the
+centre in target mm. On each one the strongest dark-to-light step near 100 mm is
+the black's edge, and the brightest point near 12.5, 25, 50 and 75 mm is one of
+the thin white lines printed in the black. A robust least-squares fit of the
+full homography puts every point on its circle, with the centre free, in four
+rounds. The outer rings (1-5) are left out on purpose: most targets are a centre
+patch glued onto a separate backing sheet, which sits about 4 mm off the black's
+centre and is printed about 1.6 % smaller, so fitting them made the 6/7 ring worse.
+
+**Why it works:** the white lines are crisp, many and concentric with the black,
+so they pin the centre far better than six to nine OCR digit boxes. On the
+hand-labelled photos (`/admin/ring-labels`) the mean centre error fell from 0.80
+to 0.20 mm and the worst from 2.06 to 0.35 mm, and it converges from starts up
+to about 6 mm off (the digit centre is within 2.6 mm on 90 % of photos).
+**Status — in use**, falling back to the digit centre and probe ring when the
+fit is poorly supported.
 
 ### Automatic scoring from the geometry — works, in use
 

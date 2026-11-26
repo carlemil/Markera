@@ -24,7 +24,7 @@ tasks.withType<Test>().configureEach {
     // Forward the -Dmosaic.* command-line properties into the forked test JVM
     // (Gradle does not propagate -D system properties to test workers). Uses
     // providers so it stays configuration-cache friendly.
-    for (key in listOf("mosaic.seed", "mosaic.images", "mosaic.model")) {
+    for (key in listOf("mosaic.seed", "mosaic.images", "mosaic.model", "ringlabels.dir")) {
         val value = providers.systemProperty(key)
         if (value.isPresent) systemProperty(key, value.get())
     }

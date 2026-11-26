@@ -201,6 +201,16 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    fallback: an implausible ellipse (checks include a size check against the
    `fit67RingFromDigits` median-radius seed) means no ring, so no scores — the user
    rescans or places holes by hand. This `FittedEllipse` supplies scale + perspective.
+   Then `refineGeometry` (`RingRefine.kt`) refits centre and ring together: 720 rays from
+   the current map find the black's outer edge and the thin white lines inside it (12.5,
+   25, 50, 75 mm), and a robust (soft-L1) Levenberg-Marquardt fit of the full homography,
+   centre free, puts each point on its circle (four rounds, sigma-1.5 px blur over the
+   target's box only). It falls back to the digit centre and probe ring when the photo does
+   not back it (under 40 % of the possible points, under 70 % within 1 mm after the fit, a
+   centre moved over 8 mm, or `plausibleGeometry` fails); never for hand-placed geometry.
+   On the hand labels (`/admin/ring-labels`) it took the mean centre error from 0.80 to
+   0.20 mm; `:eval:test`'s `RingRefineLabelsTest` re-checks that against
+   `D:/ml/ringexp/data` (skipped when absent).
 4. **Score** — `scoreHits` un-projects each hole through `TargetPlane` (a full
    homography from the four probes, or from the ellipse + the centre's polar line
    for old series; the drawn rings use the same map), converts px→mm against
@@ -210,11 +220,11 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    photo's foreshortened side doesn't shrink it), and a hand-placed hole's box is
    the inverse (`holeBoxSizePx`). Results pre-fill the editable pickers.
 
-**Invariant:** the centre is *always* the digit-row intersection, never the ellipse
-centre — the ellipse only provides scale/shape. The README's "Approaches" section
+**Invariant:** the centre starts as the digit-row intersection and only the edge-and-lines
+refinement may move it; it is never the ellipse centre (which a tilted photo shifts). The README's "Approaches" section
 records the earlier ring methods (their code was removed).
 
-`:vision` owns ten pure Kotlin production files and six common test suites.
+`:vision` owns eleven pure Kotlin production files and seven common test suites.
 Run `:vision:jvmTest` for fast iteration, `:vision:testDebugUnitTest` for Android
 coverage and `:vision:iosSimulatorArm64Test` on the Mac. The app exports its
 vision dependency in the static framework so Swift-facing types remain available.

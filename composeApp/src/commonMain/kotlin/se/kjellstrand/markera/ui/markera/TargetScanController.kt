@@ -27,6 +27,7 @@ import se.kjellstrand.markera.vision.estimateCentre
 import se.kjellstrand.markera.vision.fit67Ring
 import se.kjellstrand.markera.vision.height
 import se.kjellstrand.markera.vision.postProcess
+import se.kjellstrand.markera.vision.refineGeometry
 import se.kjellstrand.markera.vision.scoreHits
 import se.kjellstrand.markera.vision.width
 
@@ -262,15 +263,29 @@ class TargetScanController(private val engine: ScanEngine) {
         val ocrStarted = TimeSource.Monotonic.markNow()
         val digits = engine.digits(snapshot)
         ErrorLog.breadcrumb("scan", "digit OCR: ${digits.size} digits ${ocrStarted.elapsedNow()}")
-        val centre = estimateCentre(digits, snapshot.width, snapshot.height)
-        val ring = if (centre.method != CentreMethod.NONE) {
+        val digitCentre = estimateCentre(digits, snapshot.width, snapshot.height)
+        var centre = digitCentre
+        val ring = if (digitCentre.method != CentreMethod.NONE) {
             val gray = withContext(Dispatchers.Default) { snapshot.toGrayscale() }
             val ringStarted = TimeSource.Monotonic.markNow()
             val fit = withContext(Dispatchers.Default) {
-                fit67Ring(gray, snapshot.width, snapshot.height, digits, centre)
+                fit67Ring(gray, snapshot.width, snapshot.height, digits, digitCentre)
             }
             ErrorLog.breadcrumb("scan", "ring ${if (fit != null) "found" else "none"} ${ringStarted.elapsedNow()}")
-            fit
+            // Then the black's edge and the white lines inside it pin the centre and ring down
+            // tighter; when the photo doesn't back that, the digit centre and probe ring stay.
+            fit?.let { probeRing ->
+                val refineStarted = TimeSource.Monotonic.markNow()
+                val refined = withContext(Dispatchers.Default) {
+                    refineGeometry(gray, snapshot.width, snapshot.height, digitCentre, probeRing)
+                }
+                ErrorLog.breadcrumb(
+                    "scan",
+                    "ring refine ${refined?.let { "moved centre ${(it.centreMoveMm * 100).toInt() / 100.0} mm, inliers ${(it.inlierShare * 100).toInt()}%" } ?: "kept"} ${refineStarted.elapsedNow()}",
+                )
+                if (refined != null) centre = refined.centre
+                refined?.ring ?: probeRing
+            }
         } else {
             null
         }

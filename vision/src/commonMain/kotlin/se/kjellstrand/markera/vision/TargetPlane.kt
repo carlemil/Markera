@@ -20,6 +20,12 @@ import kotlin.math.sqrt
 class TargetPlane private constructor(private val h: DoubleArray) {
     private val inv = invert3(h)
 
+    /** A copy of the photo-px -> target-mm matrix, row-major. */
+    internal val matrix: DoubleArray get() = h.copyOf()
+
+    /** The target centre's image (the image of the origin). */
+    internal fun centreImage(): Pair<Double, Double> = inv[2] / inv[8] to inv[5] / inv[8]
+
     /**
      * The sign of [h]'s w at the target centre's image: w there is 1 / inv[8]. Points on the
      * other side of the vanishing line (w = 0) have the other sign.
@@ -48,8 +54,16 @@ class TargetPlane private constructor(private val h: DoubleArray) {
     }
 
     companion object {
+        /** The map with matrix [h] (row-major, photo px -> target mm); null when it is singular. */
+        internal fun fromMatrix(h: DoubleArray): TargetPlane? {
+            val det = h[0] * (h[4] * h[8] - h[5] * h[7]) - h[1] * (h[3] * h[8] - h[5] * h[6]) +
+                h[2] * (h[3] * h[7] - h[4] * h[6])
+            if (!det.isFinite() || det == 0.0 || h.any { !it.isFinite() }) return null
+            return TargetPlane(h.copyOf())
+        }
+
         /**
-         * The map from the 6/7 [ring] and the digit [centre]; null when they can't
+         * The map from the 6/7 [ring] and the [centre]; null when they can't
          * be a circle and its centre (centre outside the ellipse, degenerate ellipse).
          * The rotation about the centre is free (a circle has none of its own); the
          * symmetric stretch keeps the photo's own up, as the affine model did.
