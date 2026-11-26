@@ -1,4 +1,5 @@
 Nytt i 1.17.0:
+• Mitten och 6/7-ringen passas nu mot tavlans vita linjer, för exaktare poäng.
 • Bakåt på en osparad skanning frågar innan den släpps.
 • Misslyckas sparandet finns bilden och resultatet kvar, så du kan spara igen.
 • En skanning klarar byte av mörkt läge eller språk.
