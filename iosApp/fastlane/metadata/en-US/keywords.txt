@@ -1,1 +1,1 @@
-precision,shooting,target,score,hits,pistol,range,marking,series,statistics
+precision,shooting,target,score,hits,pistol,range,marking,series,statistics,sight,group

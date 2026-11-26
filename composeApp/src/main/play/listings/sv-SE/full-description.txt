@@ -1,18 +1,25 @@
-Markera räknar poängen på en precisionstavla från ett foto. Rikta kameran mot tavlan, tryck på Markera, och appen hittar hålen, ringarna och centrum och sätter poäng på varje träff. Rätta ett värde med ett tryck om detektionen missar, lägg till en missad träff direkt på bilden, eller flytta och ta bort träffar med fingret.
+Markera räknar poängen på en precisionstavla från ett foto. Rikta kameran mot tavlan och tryck på Markera: appen hittar hålen, läser ringsiffrorna, passar centrum och ringarna mot tavlans egna linjer och sätter poäng på varje träff, inre tior som X. Rätta ett värde med ett tryck, lägg till en missad träff direkt på bilden, eller flytta och ta bort träffar med fingret.
 
-Logga in med Google så sparas varje serie med tid, kaliber, tagg och bild. Bläddra i historiken, öppna en serie för att justera träffarna i efterhand, och följ hur träffbilden utvecklas i statistiken.
+Varje serie sparas på telefonen med bild, tid, kaliber och tagg. Inget konto behövs. Logga in med Google eller Apple så finns serierna på ditt konto och syns även på en annan telefon.
+
+Importera bilder
+Räkna poäng på foton du redan har: välj många bilder på en gång från galleriet eller dina filer. Autoimport sparar varje bild som ger poäng och visar resten efteråt. Datumet då fotot togs blir seriens tid.
+
+Analys
+Markera läser dina träffar per kaliber och berättar vad den ser, med råd om vad du kan prova: en grupp som ligger fel, en utdragen grupp, avvikande skott, en bred grupp, en svag serie eller dag, en trend över veckorna och om du blir bättre eller sämre under ett pass. När gruppen ligger fel dag efter dag visar siktkorrigeringen hur långt du ska flytta bakre siktet, i millimeter, och i klick när du har angett siktets klickvärde. Det starkaste nya fyndet visas på startsidan.
 
 Statistik
-Välj kaliber, tagg, period och antal skott per serie, och se alla träffar från de valda serierna på en ritad tavla. Äldre och nyare serier får olika färg, och under tavlan visas medelavstånd till centrum, avstånd mellan träffar, gruppstorlek, medel- och medianträffläge, medelpoäng, andel tior samt bästa och sämsta serie.
+Välj kaliber, tagg och period och se alla träffar på en ritad tavla, färgade från äldre till nyare, med gruppstorlek, spridning, medel- och medianträffpunkt och medelpoäng. Trend visar valfritt mått över tid, per kaliber om du vill. Drift visar hur träffpunkten flyttar sig från dag till dag.
 
 Funktioner
-• Automatisk poängräkning från kamerabilden
+• Automatisk poängräkning från kameran eller importerade bilder
 • Manuell rättning: ändra poäng, lägg till, flytta och ta bort träffar
-• Kaliber per serie (24 vanliga kalibrar)
-• Taggar per serie, till exempel träning eller tävling
-• Historik med bilder och redigering i efterhand
-• Statistik över träffbild och mått över tid
+• 24 vanliga kalibrar, eller lägg till egna, och taggar som träning eller tävling
+• Historik med bilder, filter och redigering i efterhand
+• Statistik: Tavla, Trend, Drift och Analys
+• Siktesjustering i millimeter och klick
+• Export av serierna som CSV-filer med bilder
+• Mörkt och ljust tema
 • På 36 språk: svenska, engelska, arabiska, belarusiska, bulgariska, danska, estniska, finska, franska, grekiska, hebreiska, hindi, italienska, kazakiska, kinesiska (förenklad), koreanska, kroatiska, lettiska, litauiska, nederländska, norska, persiska, polska, portugisiska (Brasilien), rumänska, serbiska, slovakiska, slovenska, spanska, thai, tjeckiska, turkiska, tyska, ukrainska, ungerska och vietnamesiska
-• Radera enskilda serier eller hela kontot när du vill
-
-Skanning fungerar utan inloggning. Inloggning behövs bara för att spara serier och se historik och statistik.
+• En förslagslåda direkt i appen
+• Ta bort enskilda serier eller hela kontot när du vill
