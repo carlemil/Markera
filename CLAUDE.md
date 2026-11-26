@@ -204,8 +204,11 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    Then `refineGeometry` (`RingRefine.kt`) refits centre and ring together: 720 rays from
    the current map find the black's outer edge and the thin white lines inside it (12.5,
    25, 50, 75 mm), and a robust (soft-L1) Levenberg-Marquardt fit of the full homography,
-   centre free, puts each point on its circle (four rounds, sigma-1.5 px blur over the
-   target's box only). It falls back to the digit centre and probe ring when the photo does
+   centre free, puts each point on its circle (four rounds, rays every 2° then 0.5° for the
+   last; a sigma-1.5 px blur computed lazily for just the pixels the rays read, cached at
+   16 bits). It runs beside the hole model, after the probe ring is published (so the spinner
+   starts at once); the holes are scored against the refined geometry, which is published again
+   just before them. It falls back to the digit centre and probe ring when the photo does
    not back it (under 40 % of the possible points, under 70 % within 1 mm after the fit, a
    centre moved over 8 mm, or `plausibleGeometry` fails); never for hand-placed geometry.
    On the hand labels (`/admin/ring-labels`) it took the mean centre error from 0.80 to

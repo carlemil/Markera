@@ -29,6 +29,9 @@ private val WHITE_LINES_MM = doubleArrayOf(12.5, 25.0, 50.0, 75.0)
 private const val R67 = TARGET_BLACK_RING_RADIUS_MM
 private const val ITERATIONS = 4
 private const val RAY_STEP_DEG = 0.5
+
+/** The first rounds only need to get close: a quarter of the rays, so a quarter of the reads. */
+private const val COARSE_RAY_STEP_DEG = 2.0
 private const val RADIUS_FROM_MM = 5.0
 private const val RADIUS_TO_MM = 112.0
 private const val RADIUS_STEP_MM = 0.2
@@ -48,7 +51,8 @@ private const val MAX_CENTRE_MOVE_MM = 8.0
  * too few of them on their ring after the fit, a centre moved more than 8 mm, or an implausible
  * result); the caller then keeps what it had.
  *
- * Each of four rounds samples 720 rays out from the current map's centre in target mm and keeps,
+ * Each of four rounds samples rays out from the current map's centre in target mm (every 2° for the
+ * first three, every 0.5° for the last) and keeps,
  * per ray, the strongest dark-to-light step within 6 mm of the 100 mm edge and the brightest
  * point within 6 mm of each white line (when it stands 25 grey levels over the window's median),
  * each to a sub-sample by a parabola. The map is then fitted so each point lies on its ring
@@ -70,8 +74,9 @@ fun refineGeometry(
     var h = start.matrix
     var points: EdgePoints? = null
     repeat(ITERATIONS) {
-        val pts = edgePoints(image, h) ?: return null
-        if (pts.size < MIN_POINT_SHARE * rayCount() * (1 + WHITE_LINES_MM.size)) return null
+        val step = if (it < ITERATIONS - 1) COARSE_RAY_STEP_DEG else RAY_STEP_DEG
+        val pts = edgePoints(image, h, step) ?: return null
+        if (pts.size < MIN_POINT_SHARE * rayCount(step) * (1 + WHITE_LINES_MM.size)) return null
         h = fitHomography(h, pts) ?: return null
         points = pts
     }
@@ -93,22 +98,75 @@ fun refineGeometry(
     return RefinedGeometry(refinedCentre, refinedRing, pts.size, inlierShare, move)
 }
 
-private fun rayCount(): Int = (360.0 / RAY_STEP_DEG).toInt()
+private fun rayCount(stepDeg: Double): Int = (360.0 / stepDeg).toInt()
 
 /** Edge points: image position and the target radius (mm) they belong on. */
 private class EdgePoints(val x: DoubleArray, val y: DoubleArray, val r: DoubleArray, val size: Int)
 
 /**
- * The photo blurred (Gaussian, sigma 1.5 px) over the target's bounding box only, as floats;
- * samples outside the box or the image are NaN.
+ * The photo blurred (Gaussian, sigma 1.5 px) over the target's bounding box, computed lazily: a
+ * pixel is blurred (rows, then columns, each pass kept) the first time a ray reads it, so only the
+ * bands around the rings cost anything. Samples outside the box or the image are NaN.
  */
 private class BlurredRegion(
-    private val data: FloatArray,
+    private val gray: ByteArray,
+    private val width: Int,
+    private val height: Int,
     private val x0: Int,
     private val y0: Int,
     private val w: Int,
     private val h: Int,
 ) {
+    private val radius = ceil(3 * BLUR_SIGMA_PX).toInt()
+    private val kernel = DoubleArray(2 * radius + 1) {
+        exp(-((it - radius) * (it - radius)) / (2 * BLUR_SIGMA_PX * BLUR_SIGMA_PX))
+    }.let { k -> val sum = k.sum(); DoubleArray(k.size) { k[it] / sum } }
+
+    /**
+     * Row-blurred and fully blurred pixels of the box in 1/128 grey levels (16 bits, half a float's
+     * memory: this runs beside the hole model), [UNSET] until first needed.
+     */
+    private val rows = ShortArray(w * h).also { it.fill(UNSET) }
+    private val blurred = ShortArray(w * h).also { it.fill(UNSET) }
+
+    private fun rowBlurred(x: Int, y: Int): Float {
+        val i = y * w + x
+        val cached = rows[i]
+        if (cached != UNSET) return cached / SCALE
+        val src = (y0 + y) * width
+        var acc = 0.0
+        for (k in -radius..radius) {
+            val sx = (x0 + x + k).coerceIn(0, width - 1)
+            acc += kernel[k + radius] * (gray[src + sx].toInt() and 0xFF)
+        }
+        return pack(acc).also { rows[i] = it } / SCALE
+    }
+
+    private fun pixel(x: Int, y: Int): Float {
+        val i = y * w + x
+        val cached = blurred[i]
+        if (cached != UNSET) return cached / SCALE
+        var acc = 0.0
+        for (k in -radius..radius) {
+            // Columns clamp at the image's edge, as the rows do (the box may stop short of it).
+            val sy = (y0 + y + k).coerceIn(0, height - 1) - y0
+            acc += kernel[k + radius] * rowBlurredAt(x, sy)
+        }
+        return pack(acc).also { blurred[i] = it } / SCALE
+    }
+
+    /** A row-blurred pixel that may lie above or below the box: computed directly, uncached. */
+    private fun rowBlurredAt(x: Int, y: Int): Float {
+        if (y in 0 until h) return rowBlurred(x, y)
+        val src = (y0 + y) * width
+        var acc = 0.0
+        for (k in -radius..radius) {
+            val sx = (x0 + x + k).coerceIn(0, width - 1)
+            acc += kernel[k + radius] * (gray[src + sx].toInt() and 0xFF)
+        }
+        return acc.toFloat()
+    }
+
     /** Bilinear sample at image px ([x], [y]); NaN off the region. */
     fun sample(x: Double, y: Double): Double {
         val fx = x - x0
@@ -118,13 +176,17 @@ private class BlurredRegion(
         val iy = min(floor(fy).toInt(), h - 2)
         val tx = fx - ix
         val ty = fy - iy
-        val i = iy * w + ix
-        val top = data[i] * (1 - tx) + data[i + 1] * tx
-        val bottom = data[i + w] * (1 - tx) + data[i + w + 1] * tx
+        val top = pixel(ix, iy) * (1 - tx) + pixel(ix + 1, iy) * tx
+        val bottom = pixel(ix, iy + 1) * (1 - tx) + pixel(ix + 1, iy + 1) * tx
         return top * (1 - ty) + bottom * ty
     }
 
     companion object {
+        private const val UNSET: Short = -1
+        private const val SCALE = 128f
+
+        private fun pack(grey: Double): Short = (grey * SCALE + 0.5).toInt().coerceIn(0, 255 * 128).toShort()
+
         fun around(gray: ByteArray, width: Int, height: Int, plane: TargetPlane): BlurredRegion? {
             val outline = plane.circleOutline(RADIUS_TO_MM + 3.0) ?: return null
             val c = cos(outline.rotationRad.toDouble())
@@ -138,48 +200,22 @@ private class BlurredRegion(
             val x1 = min(width - 1, ceil(outline.cx + halfW).toInt())
             val y1 = min(height - 1, ceil(outline.cy + halfH).toInt())
             if (x1 - x0 < 8 || y1 - y0 < 8) return null
-            val w = x1 - x0 + 1
-            val h = y1 - y0 + 1
-            val radius = ceil(3 * BLUR_SIGMA_PX).toInt()
-            val kernel = DoubleArray(2 * radius + 1) { exp(-((it - radius) * (it - radius)) / (2 * BLUR_SIGMA_PX * BLUR_SIGMA_PX)) }
-            val sum = kernel.sum()
-            for (k in kernel.indices) kernel[k] /= sum
-            // Rows, reading the image (clamped at its borders), then columns.
-            val rows = FloatArray(w * h)
-            for (y in 0 until h) {
-                val src = (y0 + y) * width
-                for (x in 0 until w) {
-                    var acc = 0.0
-                    for (k in -radius..radius) {
-                        val sx = (x0 + x + k).coerceIn(0, width - 1)
-                        acc += kernel[k + radius] * (gray[src + sx].toInt() and 0xFF)
-                    }
-                    rows[y * w + x] = acc.toFloat()
-                }
-            }
-            val out = FloatArray(w * h)
-            for (y in 0 until h) {
-                for (x in 0 until w) {
-                    var acc = 0.0
-                    for (k in -radius..radius) {
-                        val sy = (y + k).coerceIn(0, h - 1)
-                        acc += kernel[k + radius] * rows[sy * w + x]
-                    }
-                    out[y * w + x] = acc.toFloat()
-                }
-            }
-            return BlurredRegion(out, x0, y0, w, h)
+            return BlurredRegion(gray, width, height, x0, y0, x1 - x0 + 1, y1 - y0 + 1)
         }
     }
 }
 
 /** The rays' edge points under map [h]; null when the map cannot be inverted. */
-private fun edgePoints(image: BlurredRegion, h: DoubleArray): EdgePoints? {
+private fun edgePoints(image: BlurredRegion, h: DoubleArray, stepDeg: Double): EdgePoints? {
     val inv = invert(h) ?: return null
     val n = ((RADIUS_TO_MM - RADIUS_FROM_MM) / RADIUS_STEP_MM).toInt()
     val radii = DoubleArray(n) { RADIUS_FROM_MM + it * RADIUS_STEP_MM }
     val values = DoubleArray(n)
-    val rays = rayCount()
+    // Only the windows around the edge and the lines are read (plus a neighbour each side).
+    val edgeWindow = window(radii, R67, WINDOW_MM)
+    val lineWindows = WHITE_LINES_MM.toList().mapNotNull { line -> window(radii, line, min(WINDOW_MM, line * 0.3))?.let { line to it } }
+    val windows = listOfNotNull(edgeWindow) + lineWindows.map { it.second }
+    val rays = rayCount(stepDeg)
     val cap = rays * (1 + WHITE_LINES_MM.size)
     val xs = DoubleArray(cap)
     val ys = DoubleArray(cap)
@@ -193,15 +229,21 @@ private fun edgePoints(image: BlurredRegion, h: DoubleArray): EdgePoints? {
         count++
     }
     for (ray in 0 until rays) {
-        val angle = ray * RAY_STEP_DEG * PI / 180.0
+        val angle = ray * stepDeg * PI / 180.0
         val c = cos(angle)
         val s = sin(angle)
-        for (k in 0 until n) {
-            val (ix, iy) = apply(inv, radii[k] * c, radii[k] * s)
-            values[k] = image.sample(ix, iy)
+        values.fill(Double.NaN)
+        for ((from, to) in windows) {
+            for (k in max(0, from - 1)..min(n - 1, to + 1)) {
+                if (!values[k].isNaN()) continue
+                val u = radii[k] * c
+                val v = radii[k] * s
+                val w = inv[6] * u + inv[7] * v + inv[8]
+                values[k] = image.sample((inv[0] * u + inv[1] * v + inv[2]) / w, (inv[3] * u + inv[4] * v + inv[5]) / w)
+            }
         }
         // The black's outer edge: the steepest rise, dark to light.
-        window(radii, R67, WINDOW_MM)?.let { (from, to) ->
+        edgeWindow?.let { (from, to) ->
             var best = -1
             var bestRise = Double.NEGATIVE_INFINITY
             for (k in from..to) {
@@ -217,8 +259,8 @@ private fun edgePoints(image: BlurredRegion, h: DoubleArray): EdgePoints? {
             }
         }
         // Each white line: the brightest sample, clearly over the window's median.
-        for (line in WHITE_LINES_MM) {
-            val (from, to) = window(radii, line, min(WINDOW_MM, line * 0.3)) ?: continue
+        for ((line, range) in lineWindows) {
+            val (from, to) = range
             var best = -1
             var bestValue = Double.NEGATIVE_INFINITY
             var off = false
@@ -244,7 +286,7 @@ private fun edgePoints(image: BlurredRegion, h: DoubleArray): EdgePoints? {
     return EdgePoints(xs, ys, rs, count)
 }
 
-/** Indices of [radii] strictly inside [centre] ± [half]; null when any sample there was off the photo. */
+/** First and last index of [radii] strictly inside [centre] ± [half]; null when there is none. */
 private fun window(radii: DoubleArray, centre: Double, half: Double): Pair<Int, Int>? {
     var from = -1
     var to = -1

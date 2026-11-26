@@ -9,6 +9,8 @@ import kotlin.time.TimeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.kjellstrand.markera.diag.ErrorLog
@@ -264,39 +266,51 @@ class TargetScanController(private val engine: ScanEngine) {
         val digits = engine.digits(snapshot)
         ErrorLog.breadcrumb("scan", "digit OCR: ${digits.size} digits ${ocrStarted.elapsedNow()}")
         val digitCentre = estimateCentre(digits, snapshot.width, snapshot.height)
-        var centre = digitCentre
-        val ring = if (digitCentre.method != CentreMethod.NONE) {
-            val gray = withContext(Dispatchers.Default) { snapshot.toGrayscale() }
+        val gray = if (digitCentre.method != CentreMethod.NONE) {
+            withContext(Dispatchers.Default) { snapshot.toGrayscale() }
+        } else {
+            null
+        }
+        val probeRing = gray?.let {
             val ringStarted = TimeSource.Monotonic.markNow()
             val fit = withContext(Dispatchers.Default) {
-                fit67Ring(gray, snapshot.width, snapshot.height, digits, digitCentre)
+                fit67Ring(it, snapshot.width, snapshot.height, digits, digitCentre)
             }
             ErrorLog.breadcrumb("scan", "ring ${if (fit != null) "found" else "none"} ${ringStarted.elapsedNow()}")
-            // Then the black's edge and the white lines inside it pin the centre and ring down
-            // tighter; when the photo doesn't back that, the digit centre and probe ring stay.
-            fit?.let { probeRing ->
+            fit
+        }
+        // Publish the geometry and switch the spinner on: it now orbits
+        // the detected centre, sized to the ring, while the holes run.
+        viewModel.onGeometryReady(digits, digitCentre, probeRing, snapshot.width, snapshot.height)
+
+        // Meanwhile the black's edge and the white lines inside it pin the centre and ring down
+        // tighter, alongside the hole model; when the photo doesn't back that, the digit centre and
+        // probe ring stay. The holes are scored against whichever geometry this settles on.
+        val refining = if (gray != null && probeRing != null) {
+            // A child of this pass, so cancelling the pass cancels it too.
+            CoroutineScope(currentCoroutineContext()).async(Dispatchers.Default) {
                 val refineStarted = TimeSource.Monotonic.markNow()
-                val refined = withContext(Dispatchers.Default) {
-                    refineGeometry(gray, snapshot.width, snapshot.height, digitCentre, probeRing)
+                refineGeometry(gray, snapshot.width, snapshot.height, digitCentre, probeRing).also { refined ->
+                    ErrorLog.breadcrumb(
+                        "scan",
+                        "ring refine ${refined?.let { "moved centre ${(it.centreMoveMm * 100).toInt() / 100.0} mm, inliers ${(it.inlierShare * 100).toInt()}%" } ?: "kept"} ${refineStarted.elapsedNow()}",
+                    )
                 }
-                ErrorLog.breadcrumb(
-                    "scan",
-                    "ring refine ${refined?.let { "moved centre ${(it.centreMoveMm * 100).toInt() / 100.0} mm, inliers ${(it.inlierShare * 100).toInt()}%" } ?: "kept"} ${refineStarted.elapsedNow()}",
-                )
-                if (refined != null) centre = refined.centre
-                refined?.ring ?: probeRing
             }
         } else {
             null
         }
-        // Publish the geometry and switch the spinner on: it now orbits
-        // the detected centre, sized to the ring, while the holes run.
-        viewModel.onGeometryReady(digits, centre, ring, snapshot.width, snapshot.height)
+        suspend fun settledGeometry(): Pair<CentreEstimate, FittedEllipse?> {
+            val refined = refining?.await() ?: return digitCentre to probeRing
+            viewModel.onGeometryReady(digits, refined.centre, refined.ring, snapshot.width, snapshot.height)
+            return refined.centre to refined.ring
+        }
 
         // Detection off: stop after the geometry. Publishing empty holes is
         // what returns the phase to IDLE, which is what makes the frozen frame
         // editable — so hand-placed holes score against the ring just found.
         if (!detectHoles) {
+            settledGeometry()
             ErrorLog.breadcrumb("scan", "holes skipped (detection off)")
             viewModel.onHolesDetected(emptyList(), emptyList())
             return
@@ -314,7 +328,8 @@ class TargetScanController(private val engine: ScanEngine) {
         val raws = engine.holes(input)
         ErrorLog.breadcrumb("scan", "hole detection: ${raws.size} raw boxes ${holesStarted.elapsedNow()}")
         val detections = postProcess(raws, engine.inputSize, snapshot.width, snapshot.height)
-        // Score each hole against the digit centre and the 6/7 ring.
+        val (centre, ring) = settledGeometry()
+        // Score each hole against the (refined) centre and 6/7 ring.
         val scores = if (centre.method != CentreMethod.NONE && ring != null) {
             scoreHits(detections, centre, ring)
         } else {
