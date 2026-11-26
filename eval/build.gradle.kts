@@ -12,7 +12,7 @@ kotlin {
 dependencies {
     implementation(project(":vision"))
     // Desktop ONNX Runtime (bundles the win-x64 native libs).
-    implementation("com.microsoft.onnxruntime:onnxruntime:1.19.2")
+    implementation("com.microsoft.onnxruntime:onnxruntime:1.32.0")
     testImplementation("junit:junit:4.13.2")
 }
 
