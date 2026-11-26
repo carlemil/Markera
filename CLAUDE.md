@@ -206,13 +206,18 @@ Per frozen frame, run in two phases (`ScanPhase` GEOMETRY → HOLES, driven from
    25, 50, 75 mm), and a robust (soft-L1) Levenberg-Marquardt fit of the full homography,
    centre free, puts each point on its circle (four rounds, rays every 2° then 0.5° for the
    last; a sigma-1.5 px blur computed lazily for just the pixels the rays read, cached at
-   16 bits). It runs beside the hole model, after the probe ring is published (so the spinner
+   16 bits). The centre is that map's; the 6/7 ring is then refitted to the black's edge alone
+   (`refitRing`: three passes, each sampling the edge every 0.5° through the refined centre and
+   the current ring and fitting a plain least-squares ellipse, `fitEllipse`; a pass with too few
+   points or an implausible ellipse keeps the ring it had), since the homography spreads its
+   error over the white lines too. It runs beside the hole model, after the probe ring is published (so the spinner
    starts at once); the holes are scored against the refined geometry, which is published again
    just before them. It falls back to the digit centre and probe ring when the photo does
    not back it (under 40 % of the possible points, under 70 % within 1 mm after the fit, a
    centre moved over 8 mm, or `plausibleGeometry` fails); never for hand-placed geometry.
-   On the hand labels (`/admin/ring-labels`) it took the mean centre error from 0.80 to
-   0.20 mm; `:eval:test`'s `RingRefineLabelsTest` re-checks that against
+   On the 27 hand labels (`/admin/ring-labels`) it took the mean centre error from 0.99 to
+   0.20 mm and the mean worst 6/7-ring gap to 0.66 mm (0.82 without the edge refit);
+   `:eval:test`'s `RingRefineLabelsTest` re-checks both against
    `D:/ml/ringexp/data` (skipped when absent).
 4. **Score** — `scoreHits` un-projects each hole through `TargetPlane` (a full
    homography from the four probes, or from the ellipse + the centre's polar line

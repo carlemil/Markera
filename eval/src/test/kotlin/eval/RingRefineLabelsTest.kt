@@ -56,6 +56,7 @@ class RingRefineLabelsTest {
         assumeTrue("no ring labels at $dir", tsv.isFile)
         val before = mutableListOf<Double>()
         val after = mutableListOf<Double>()
+        val ringAfter = mutableListOf<Double>()
         for (line in tsv.readLines().filter { it.isNotBlank() }) {
             val f = line.split('\t')
             val id = f[0]
@@ -79,12 +80,16 @@ class RingRefineLabelsTest {
             )
             before += c0
             after += c1
+            ringAfter += r1
             assertTrue("$id: refinement refused", refined != null)
             assertTrue("$id: centre still %.2f mm off".format(c1), c1 < 0.6)
             assertTrue("$id: ring still %.2f mm off".format(r1), r1 < 2.0)
         }
         assumeTrue("no labelled photos", after.isNotEmpty())
         println("[ringlabels] mean centre error %.2f -> %.2f mm over %d photos".format(before.average(), after.average(), after.size))
+        println("[ringlabels] mean ring max %.2f mm".format(ringAfter.average()))
         assertTrue("mean centre error ${after.average()}", after.average() < 0.35)
+        // With the edge-only ring refit 0.66 mm on the 27 labels, 0.82 mm without it.
+        assertTrue("mean ring max ${ringAfter.average()}", ringAfter.average() < 0.75)
     }
 }

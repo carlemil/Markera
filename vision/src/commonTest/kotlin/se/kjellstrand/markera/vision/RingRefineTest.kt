@@ -71,6 +71,40 @@ class RingRefineTest {
     }
 
     @Test
+    fun theRefinedRingLiesOnTheBlacksEdge() {
+        val (centre, ring) = start(2.0, 3.0, 1.04f)
+        val refined = assertNotNull(refineGeometry(photo, size, size, centre, ring))
+        val pxPerMm = truthRing.semiMajor / 100.0
+        for ((got, want) in listOf(
+            refined.ring.cx to truthRing.cx, refined.ring.cy to truthRing.cy,
+            refined.ring.semiMajor to truthRing.semiMajor, refined.ring.semiMinor to truthRing.semiMinor,
+        )) {
+            assertTrue(abs(got - want) / pxPerMm < 0.15, "ring $got vs $want")
+        }
+    }
+
+    @Test
+    fun fitEllipseRecoversAnEllipseFromItsPoints() {
+        val truth = FittedEllipse(cx = 640f, cy = 410f, semiMajor = 300f, semiMinor = 220f, rotationRad = 0.6f)
+        val c = cos(truth.rotationRad.toDouble())
+        val s = sin(truth.rotationRad.toDouble())
+        val n = 200
+        val xs = DoubleArray(n)
+        val ys = DoubleArray(n)
+        for (i in 0 until n) {
+            val t = 2 * PI * i / n
+            val a = truth.semiMajor * cos(t)
+            val b = truth.semiMinor * sin(t)
+            xs[i] = truth.cx + a * c - b * s
+            ys[i] = truth.cy + a * s + b * c
+        }
+        val fit = assertNotNull(fitEllipse(xs, ys))
+        assertTrue(abs(fit.cx - truth.cx) < 0.01 && abs(fit.cy - truth.cy) < 0.01, "centre ${fit.cx},${fit.cy}")
+        assertTrue(abs(fit.semiMajor - truth.semiMajor) < 0.01 && abs(fit.semiMinor - truth.semiMinor) < 0.01, "axes")
+        assertTrue(abs(fit.rotationRad - truth.rotationRad) < 1e-4, "rotation ${fit.rotationRad}")
+    }
+
+    @Test
     fun aPhotoWithoutTheTargetKeepsTheOldGeometry() {
         val (centre, ring) = start(0.0, 0.0, 1f)
         assertNull(refineGeometry(ByteArray(size * size) { 120 }, size, size, centre, ring))

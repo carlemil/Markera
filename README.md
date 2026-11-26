@@ -37,7 +37,8 @@ For each captured frame the app:
    There is no fallback: if that ellipse is implausible the scan shows no ring
    and no scores.
 4. **Refines centre and ring** — fits the full perspective map to the black's
-   outer edge and the thin white lines inside it, centre free. When the photo
+   outer edge and the thin white lines inside it, centre free, then refits the
+   6/7 ellipse to the black's edge alone around that centre. When the photo
    does not back the fit, the digit centre and probe ring stay.
 5. **Scores each hole** — undoes the perspective through the homography, measures the
    distance from the centre in mm against the target spec, and assigns a ring
@@ -169,11 +170,16 @@ full homography puts every point on its circle, with the centre free, in four
 rounds. The outer rings (1-5) are left out on purpose: most targets are a centre
 patch glued onto a separate backing sheet, which sits about 4 mm off the black's
 centre and is printed about 1.6 % smaller, so fitting them made the 6/7 ring worse.
+The centre is that fit's; the 6/7 ring is then refitted to the black's edge alone
+(three passes of a plain least-squares ellipse through edge points sampled around
+the refined centre), because the single map spreads its error over the white lines
+and leaves the ring a little off the edge.
 
 **Why it works:** the white lines are crisp, many and concentric with the black,
 so they pin the centre far better than six to nine OCR digit boxes. On the
-hand-labelled photos (`/admin/ring-labels`) the mean centre error fell from 0.80
-to 0.20 mm and the worst from 2.06 to 0.35 mm, and it converges from starts up
+27 hand-labelled photos (`/admin/ring-labels`) the mean centre error fell from 0.99
+to 0.20 mm and the worst from 5.35 to 0.47 mm; the edge refit took the mean worst
+6/7-ring gap from 0.82 to 0.66 mm. It converges from starts up
 to about 6 mm off (the digit centre is within 2.6 mm on 90 % of photos).
 **Status — in use**, falling back to the digit centre and probe ring when the
 fit is poorly supported.

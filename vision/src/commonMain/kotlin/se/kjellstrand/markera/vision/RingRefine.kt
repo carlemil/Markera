@@ -38,6 +38,7 @@ private const val RADIUS_STEP_MM = 0.2
 private const val WINDOW_MM = 6.0
 private const val BLUR_SIGMA_PX = 1.5
 private const val SOFT_L1_SCALE_MM = 0.5
+private const val EDGE_REFITS = 3
 
 /** Below these the photo did not back the fit, and the unrefined geometry stays. */
 private const val MIN_POINT_SHARE = 0.4
@@ -56,8 +57,10 @@ private const val MAX_CENTRE_MOVE_MM = 8.0
  * per ray, the strongest dark-to-light step within 6 mm of the 100 mm edge and the brightest
  * point within 6 mm of each white line (when it stands 25 grey levels over the window's median),
  * each to a sub-sample by a parabola. The map is then fitted so each point lies on its ring
- * (robust soft-L1, 0.5 mm). On hand-labelled photos it brought the mean centre error from
- * 0.80 mm (digit rows) to 0.20 mm, and it converges from starts up to about 6 mm off.
+ * (robust soft-L1, 0.5 mm). The centre is that map's; the 6/7 ring is then refitted to the black's
+ * edge alone around it ([refitRing]). On 27 hand-labelled photos the mean centre error was 0.21 mm
+ * and the mean ring gap 0.28 mm (the stored geometry: 0.61 mm ring), and it converges from starts
+ * up to about 6 mm off.
  *
  * [gray] is the photo's luma, [width] x [height], row-major.
  */
@@ -95,7 +98,66 @@ fun refineGeometry(
     val (ox, oy) = apply(h, centre.x.toDouble(), centre.y.toDouble())
     val move = hypot(ox, oy)
     if (inlierShare < MIN_INLIER_SHARE || !(move <= MAX_CENTRE_MOVE_MM)) return null
-    return RefinedGeometry(refinedCentre, refinedRing, pts.size, inlierShare, move)
+    return RefinedGeometry(refinedCentre, refitRing(image, refinedCentre, refinedRing), pts.size, inlierShare, move)
+}
+
+/**
+ * The 6/7 ring refitted to the black's edge alone, around the refined [centre]: [EDGE_REFITS]
+ * passes, each sampling the edge through the current centre and ring (every 0.5°) and fitting a
+ * plain least-squares ellipse to those points. The homography spreads its error over the white
+ * lines too; this puts the ring back on the edge (on the hand labels its mean gap fell from 0.35 to
+ * 0.28 mm) without touching the centre. A pass that finds too few points or an implausible ellipse
+ * keeps the ring it had.
+ */
+private fun refitRing(image: BlurredRegion, centre: CentreEstimate, ring: FittedEllipse): FittedEllipse {
+    var current = ring
+    repeat(EDGE_REFITS) {
+        val plane = TargetPlane.of(centre, current) ?: return current
+        val pts = edgePoints(image, plane.matrix, RAY_STEP_DEG) ?: return current
+        val idx = (0 until pts.size).filter { pts.r[it] == R67 }
+        if (idx.size < MIN_POINT_SHARE * rayCount(RAY_STEP_DEG)) return current
+        val fitted = fitEllipse(DoubleArray(idx.size) { pts.x[idx[it]] }, DoubleArray(idx.size) { pts.y[idx[it]] })
+        if (fitted == null || !plausibleGeometry(centre, fitted)) return current
+        current = fitted
+    }
+    return current
+}
+
+/**
+ * Least-squares conic through the points under the trace constraint a + c = 1 (in coordinates
+ * centred on their mean and scaled to unit spread, so the fit is invariant to translation, rotation
+ * and scale), as an ellipse; null when the points do not make one.
+ */
+internal fun fitEllipse(xs: DoubleArray, ys: DoubleArray): FittedEllipse? {
+    val n = xs.size
+    if (n < 5) return null
+    val mx = xs.average()
+    val my = ys.average()
+    var spread = 0.0
+    for (i in 0 until n) spread += hypot(xs[i] - mx, ys[i] - my)
+    spread /= n
+    if (!(spread > 0.0)) return null
+    // a(x² - y²) + b xy + d x + e y + f = -y², with c = 1 - a.
+    val ata = Array(5) { DoubleArray(6) }
+    val row = DoubleArray(5)
+    for (i in 0 until n) {
+        val x = (xs[i] - mx) / spread
+        val y = (ys[i] - my) / spread
+        row[0] = x * x - y * y; row[1] = x * y; row[2] = x; row[3] = y; row[4] = 1.0
+        val rhs = -y * y
+        for (a in 0 until 5) {
+            for (b in 0 until 5) ata[a][b] += row[a] * row[b]
+            ata[a][5] += row[a] * rhs
+        }
+    }
+    val s = solveLinear(ata) ?: return null
+    val a = s[0]
+    val c = 1 - a
+    val kn = doubleArrayOf(a, s[1] / 2, s[2] / 2, s[1] / 2, c, s[3] / 2, s[2] / 2, s[3] / 2, s[4])
+    // Back to image px: the normalised point is T p, so the conic is Tᵀ K T.
+    val t = doubleArrayOf(1 / spread, 0.0, -mx / spread, 0.0, 1 / spread, -my / spread, 0.0, 0.0, 1.0)
+    val tt = doubleArrayOf(t[0], t[3], t[6], t[1], t[4], t[7], t[2], t[5], t[8])
+    return ellipseOf(multiply(multiply(tt, kn), t))
 }
 
 private fun rayCount(stepDeg: Double): Int = (360.0 / stepDeg).toInt()
