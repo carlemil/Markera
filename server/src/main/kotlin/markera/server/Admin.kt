@@ -1693,24 +1693,33 @@ document.getElementById('restore').onclick = () => {
 /**
  * The users page's sort and filter, all in the browser (a handful of users). A header click sorts on that column,
  * again reverses; numbers compare as numbers. Rows only move or hide, so their onclick links keep working.
- * The "hide users with 0 series" checkbox stacks on the column filters and is remembered in localStorage.
+ * The "hide users with 0 series" checkbox stacks on the column filters and is remembered in localStorage, and so
+ * is the last sort (by column name, so a column added later does not shift it), reapplied on load.
  */
 private const val USERS_JS = """
 const t = document.getElementById('users'), tb = t.tBodies[0], heads = t.tHead.rows[0].cells;
 const inputs = Array.from(t.tHead.querySelectorAll('input'));
 const text = (r, c) => r.cells[c].textContent.trim();
 let col = -1, dir = 1;
-Array.from(heads).forEach((h, c) => h.onclick = () => {
-  dir = col === c ? -dir : 1;
-  col = c;
+const sortBy = (c, d) => {
+  col = c; dir = d;
   Array.from(heads).forEach(o => o.removeAttribute('data-sort'));
-  h.dataset.sort = dir > 0 ? 'asc' : 'desc';
+  heads[c].dataset.sort = dir > 0 ? 'asc' : 'desc';
   Array.from(tb.rows).sort((a, b) => {
     const x = text(a, c), y = text(b, c);
     const n = x !== '' && y !== '' && !isNaN(x) && !isNaN(y);
     return dir * (n ? x - y : x.localeCompare(y));
   }).forEach(r => tb.appendChild(r));
+};
+const headName = h => h.textContent.trim();
+Array.from(heads).forEach((h, c) => h.onclick = () => {
+  sortBy(c, col === c ? -dir : 1);
+  try { localStorage.usersSort = JSON.stringify({ name: headName(h), dir }) } catch (e) {}
 });
+try {
+  const s = JSON.parse(localStorage.usersSort || 'null'), c = s ? Array.from(heads).findIndex(h => headName(h) === s.name) : -1;
+  if (c >= 0) sortBy(c, s.dir < 0 ? -1 : 1);
+} catch (e) {}
 const hide = document.getElementById('hide-empty'), sc = Array.from(heads).findIndex(h => h.textContent === 'series');
 const apply = () => {
   const f = inputs.map(i => i.value.trim().toLowerCase());
