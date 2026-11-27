@@ -55,6 +55,24 @@ platform :ios do
     end
   end
 
+  # The one field Apple lets change on a live version: pushes each metadata/<locale>/promotional_text.txt
+  # to the live (READY_FOR_SALE) version's localizations. Text only, no binary or screenshots, so ungated.
+  desc "Push promotional_text.txt to the live App Store version."
+  lane :promo do
+    asc_key
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    version = app.get_app_store_versions(filter: { appStoreState: "READY_FOR_SALE" }).first
+    UI.user_error!("No live App Store version") unless version
+    version.get_app_store_version_localizations.each do |loc|
+      file = File.join(__dir__, "metadata", loc.locale, "promotional_text.txt")
+      file = File.join(__dir__, "metadata", loc.locale.split("-").first, "promotional_text.txt") unless File.exist?(file)
+      next UI.message("#{loc.locale}: no promotional_text.txt, left as is") unless File.exist?(file)
+      text = File.read(file, encoding: "UTF-8").strip
+      loc.update(attributes: { promotional_text: text })
+      UI.success("#{version.version_string} #{loc.locale}: #{text}")
+    end
+  end
+
   # App Store availability (the ASC API's appAvailabilityV2): without options it prints the
   # territories (ISO alpha-3) the app is on; `add:DEU,FRA` makes those available too.
   desc "List the App Store territories, or open more with add:<ISO3,...>."
