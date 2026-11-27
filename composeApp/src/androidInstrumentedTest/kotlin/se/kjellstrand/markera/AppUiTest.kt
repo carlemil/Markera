@@ -2268,10 +2268,13 @@ class AppUiTest {
         waitForExact("9mm")
         waitForExact("Mean")
         waitForExact("Median")
+        // The timeline lives in the filters.
+        chip("Filter")
         val knob = hasContentDescription("Series timeline") and SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)
         rule.onNode(knob).performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(4f) }
         waitForDescribed("hits from 1 series")
-        // Only today's 22lr: one caliber needs no swatches.
+        // Folded again, so the filters' own 9mm chip is gone; only today's 22lr: one caliber needs no swatches.
+        chip("Filter")
         rule.waitUntil(TIMEOUT_MS) { !rule.exists(hasText("9mm")) }
         waitForExact("Mean")
         click(hasContentDescription("Show photo") and hasClickAction(), "Show photo")
@@ -2298,7 +2301,8 @@ class AppUiTest {
         rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
             .onFirst().performTouchInput { swipeDown() }
         rule.waitUntil(TIMEOUT_MS) { requests.count { it == "GET /series" } > before }
-        // The newest stamp under the timeline is the moved one: the refresh has been plotted.
+        // The newest stamp under the timeline (in the filters) is the moved one: the refresh has been plotted.
+        chip("Filter")
         waitForExact(localStamp(moved))
         waitForDescribed("hits from 5 series")
         val knob = hasContentDescription("Series timeline") and SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)

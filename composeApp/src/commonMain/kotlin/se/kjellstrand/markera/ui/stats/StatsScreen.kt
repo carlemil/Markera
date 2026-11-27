@@ -280,6 +280,28 @@ fun StatsScreen(
                         filter = selection,
                         onFilter = ::onSelection,
                         onPickDates = { pickingDates = true },
+                        // Target's series timeline narrows what is shown, so it opens with the filters.
+                        extra = if (tab == 0 && plotted.isNotEmpty()) {
+                            {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    color = MaterialTheme.colorScheme.background,
+                                    modifier = Modifier.padding(top = 8.dp),
+                                ) {
+                                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                        Text(
+                                            stringResource(Res.string.stats_timeline),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
+                                    }
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     )
                     // Only series the server lacks: an acknowledged one waiting for its photo is uploaded.
                     val localCount = plotted.count { it.series.local != null && it.series.id < 0 }
@@ -304,6 +326,14 @@ fun StatsScreen(
                     } else if (tab == 0) {
                         val segment = remember(plotted, knob, knobOn) { knobSelection(plotted, knob, knobOn) }
                         val segmentStats = remember(segment, limit) { segment.within(limit).statistics() }
+                        // The timeline sits in the filters; the ring hint captions the target.
+                        Text(
+                            stringResource(Res.string.stats_ring_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                         Box {
                             TargetCanvas(segment, segmentStats, calibers, limit) { limit = it }
                             // The gestures and the ring live in the help, not in a line of text here.
@@ -323,27 +353,6 @@ fun StatsScreen(
                                 ) {
                                     Icon(Icons.Default.PhotoCamera, stringResource(Res.string.stats_show_photo))
                                 }
-                            }
-                        }
-                        Text(
-                            stringResource(Res.string.stats_ring_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            color = MaterialTheme.colorScheme.background,
-                        ) {
-                            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                Text(
-                                    stringResource(Res.string.stats_timeline),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                AgeLegend(plotted, knob, knobOn) { index, on -> knob = index; knobOn = on }
                             }
                         }
                         MarkerLegend(segment, calibers)

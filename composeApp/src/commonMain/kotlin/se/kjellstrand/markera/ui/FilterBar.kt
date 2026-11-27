@@ -47,6 +47,8 @@ fun FilterBar(
     onFilter: (HistoryFilter) -> Unit,
     onPickDates: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Drawn under the date row while the filters are open (Statistik's series timeline). */
+    extra: (@Composable () -> Unit)? = null,
 ) {
     val all = stringResource(Res.string.stats_caliber_all)
     // Folded by default: the list or chart below is what the screen is for.
@@ -118,6 +120,7 @@ fun FilterBar(
                 preset(DatePreset.MONTH, Res.string.stats_date_month)
                 preset(DatePreset.YEAR, Res.string.stats_date_year)
             }
+            extra?.invoke()
         }
     }
 }
