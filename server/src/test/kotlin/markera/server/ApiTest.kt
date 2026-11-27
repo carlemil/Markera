@@ -1872,10 +1872,15 @@ class ApiTest {
     fun adminUsersPageCountsUsersPerProvider() = apiTest(adminPassword = ADMIN_PW) { client ->
         client.devAuth("a")
         val one = client.admin("/admin").bodyAsText()
-        assertTrue("""<p id="user-counts">1 user, by sign-in provider: dev 1</p>""" in one, one)
-        client.devAuth("b")
+        assertTrue("""<p id="user-counts">1 user, 0 series, 0 holes, by sign-in provider: dev 1</p>""" in one, one)
+        val b = client.devAuth("b")
+        // Two live series of two holes each; a deleted series and its holes are not counted.
+        client.createSeries(b.token, series())
+        client.createSeries(b.token, series())
+        val gone = client.createSeries(b.token, series())
+        client.delete("/series/$gone") { bearerAuth(b.token) }
         val users = client.admin("/admin").bodyAsText()
-        assertTrue("""<p id="user-counts">2 users, by sign-in provider: dev 2</p>""" in users, users)
+        assertTrue("""<p id="user-counts">2 users, 2 series, 4 holes, by sign-in provider: dev 2</p>""" in users, users)
     }
 
     @Test

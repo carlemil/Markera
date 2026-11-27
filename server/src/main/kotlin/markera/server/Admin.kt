@@ -50,7 +50,9 @@ fun Route.adminRoutes(
         val perProvider = allUsers.groupingBy { it.provider }.eachCount().toSortedMap()
             .entries.joinToString(", ") { "${esc(it.key)} ${it.value}" }
         val noun = if (allUsers.size == 1) "user" else "users"
-        val counts = """<p id="user-counts">${allUsers.size} $noun""" +
+        val (seriesTotal, holesTotal) = db.liveTotals()
+        val holeNoun = if (holesTotal == 1) "hole" else "holes"
+        val counts = """<p id="user-counts">${allUsers.size} $noun, $seriesTotal series, $holesTotal $holeNoun""" +
             (if (perProvider.isEmpty()) "" else ", by sign-in provider: $perProvider") + "</p>"
         val rows = allUsers.joinToString("") { u ->
             val link = """<a href="/admin/users/${u.id}">"""

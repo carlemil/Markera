@@ -470,6 +470,16 @@ class Db(dbPath: String) : AutoCloseable {
     @Synchronized
     fun listUsers(): List<UserRow> = queryUsers(null)
 
+    /** Live series and their live holes, over all users: the admin landing page's summary line. */
+    @Synchronized
+    fun liveTotals(): Pair<Int, Int> = conn.createStatement().use { st ->
+        st.executeQuery(
+            """SELECT (SELECT COUNT(*) FROM series WHERE deleted_at IS NULL),
+                      (SELECT COUNT(*) FROM holes h JOIN series s ON s.id = h.series_id
+                        WHERE s.deleted_at IS NULL AND h.deleted = 0)"""
+        ).use { rs -> rs.next(); rs.getInt(1) to rs.getInt(2) }
+    }
+
     @Synchronized
     fun getUser(userId: Long): UserRow? = queryUsers(userId).firstOrNull()
 
