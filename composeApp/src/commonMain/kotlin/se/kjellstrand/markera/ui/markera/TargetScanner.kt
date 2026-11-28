@@ -13,6 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -125,15 +129,21 @@ fun TargetScanner(
         }
         Box(modifier = Modifier.fillMaxSize().zoomPan(zoomPan)) {
             if (frozen != null) {
-                val bitmap = remember(frozen) { frozen.toImageBitmap() }
-                Image(
-                    bitmap = bitmap,
-                    contentDescription = null,
-                    // Fit-centre so the DetectionOverlay boxes (also fit-centre)
-                    // line up with the holes in this non-square snapshot.
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                // Converted off the main thread: on iOS a ~3000² frame is a 36 MB pixel copy,
+                // which froze the UI when a scan froze its frame (Sentry KOTLIN-G/H/M).
+                val bitmap by produceState<ImageBitmap?>(null, frozen) {
+                    value = withContext(Dispatchers.Default) { frozen.toImageBitmap() }
+                }
+                bitmap?.let {
+                    Image(
+                        bitmap = it,
+                        contentDescription = null,
+                        // Fit-centre so the DetectionOverlay boxes (also fit-centre)
+                        // line up with the holes in this non-square snapshot.
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
             DetectionOverlay(
                 detections = uiState.detections,
